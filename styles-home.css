@@ -309,6 +309,47 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* Spotlight match cards — stack teams so names aren't truncated */
+  .home-spotlight__track .match-card {
+    flex: 0 0 min(240px, 84vw);
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  .home-spotlight__track .match-teams {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-2);
+  }
+
+  .home-spotlight__track .match-team-side {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .home-spotlight__track .match-team-side--home {
+    flex-direction: row;
+  }
+
+  .home-spotlight__track .match-team-side--home .match-team-name {
+    text-align: center;
+  }
+
+  .home-spotlight__track .match-score {
+    justify-content: center;
+    padding: var(--sp-1) 0;
+  }
+
+  .home-spotlight__track .match-team-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    text-align: center;
+    line-height: 1.3;
+    word-break: break-word;
+  }
 }
 
 @media (max-width: 575.98px) {
