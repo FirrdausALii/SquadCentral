@@ -1,0 +1,247 @@
+/* Squad Central — Standings Table */
+
+.standings-card {
+  background-color: var(--bg-surface-2);
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.standings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 14px var(--sp-4);
+  border-bottom: 0.5px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+}
+
+.standings-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.standings-league-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: #0e2540;
+  color: #5aabdd;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.standings-table thead tr {
+  background-color: var(--bg-surface-1);
+}
+
+.standings-table th {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-bottom: 0.5px solid var(--border-default);
+  white-space: nowrap;
+}
+
+.standings-table th.col-club {
+  text-align: left;
+  padding-left: var(--sp-4);
+}
+
+.standings-table td {
+  padding: 10px 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  border-bottom: 0.5px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.standings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.standings-table tbody tr {
+  transition: background-color var(--transition);
+}
+
+.standings-table tbody tr:hover {
+  background-color: var(--bg-surface-3);
+}
+
+.standings-table td.col-pos {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  width: 32px;
+}
+
+.zone-champions td.col-pos   { color: var(--accent); }
+.zone-europa td.col-pos      { color: #a78bfa; }
+.zone-conference td.col-pos  { color: var(--color-win); }
+.zone-relegation td.col-pos  { color: var(--color-loss); }
+
+.zone-champions  { border-left: 2px solid var(--accent); }
+.zone-europa     { border-left: 2px solid #a78bfa; }
+.zone-conference { border-left: 2px solid var(--color-win); }
+.zone-relegation { border-left: 2px solid var(--color-loss); }
+
+.standings-table td.col-club {
+  text-align: left;
+  padding-left: 14px;
+}
+
+.club-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.club-cell-crest {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-3);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+  overflow: hidden;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 78% auto;
+}
+
+.club-cell-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.standings-table tr.highlight-team td {
+  background-color: #0e2540;
+}
+.standings-table tr.highlight-team:hover td {
+  background-color: #132f52;
+}
+.standings-table tr.highlight-team .club-cell-name {
+  color: var(--accent);
+}
+
+.standings-table td.col-pts {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.standings-table .form-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+}
+
+.standings-table .form-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.standings-table .form-dot.w,
+.standings-table .form-dot[data-v="W"] { background-color: var(--color-win); }
+.standings-table .form-dot.d,
+.standings-table .form-dot[data-v="D"] { background-color: var(--color-draw); }
+.standings-table .form-dot.l,
+.standings-table .form-dot[data-v="L"] { background-color: var(--color-loss); }
+
+.standings-legend {
+  display: flex;
+  gap: var(--sp-4);
+  padding: 10px var(--sp-4);
+  border-top: 0.5px solid var(--border-default);
+  flex-wrap: wrap;
+  background-color: var(--bg-surface-1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.standings-card--compact .standings-table th,
+.standings-card--compact .standings-table td {
+  padding: 8px 10px;
+}
+
+.standings-card--compact .club-cell-crest {
+  width: 22px;
+  height: 22px;
+}
+
+.mc-stand-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.mc-stand-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4) 0;
+}
+
+.standings-empty {
+  padding: var(--sp-8);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 767.98px) {
+  .standings-table {
+    font-size: 12px;
+  }
+  .standings-table th.col-form,
+  .standings-table td.col-form {
+    display: none;
+  }
+  .standings-legend {
+    gap: var(--sp-2);
+  }
+}

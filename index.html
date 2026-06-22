@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Explore squads across Europe, the Malaysia Super League, and the World Cup — Squad Central." />
+    <meta name="application-name" content="Squad Central" />
+    <meta name="apple-mobile-web-app-title" content="Squad Central" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#0b1120" />
+    <meta name="msapplication-TileColor" content="#0b1120" />
+    <title>Squad Central</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="apple-touch-icon" href="./logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="./squad-central-dark-stadium.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles-home.css" />
+    <link rel="stylesheet" href="./standings.css" />
+    <link rel="stylesheet" href="./lineups-pitch.css" />
+    <link rel="stylesheet" href="./styles-mobile.css" />
+    <style>
+      /* Critical fallback if CSS files fail to load on GitHub Pages */
+      body { margin: 0; background: #0b1120; color: #c8d8ea; font-family: system-ui, sans-serif; }
+      .reveal { opacity: 1; transform: none; }
+      html.reveal-init .reveal:not(.is-visible) { opacity: 0; transform: translateY(8px); }
+    </style>
+  </head>
+  <body class="fc-app" data-page="home" tabindex="0">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="topbar">
+      <a class="topbar-logo" href="#" aria-label="Squad Central Home">
+        <img src="./logo.png" width="28" height="28" alt="" decoding="async" fetchpriority="high" />
+        Squad Central
+      </a>
+
+      <button
+        class="topbar-toggler navbar-toggler d-lg-none"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#navOffcanvas"
+        aria-controls="navOffcanvas"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <ul class="topbar-nav d-none d-lg-flex" id="navbarMain">
+        <li><a href="#main">Home</a></li>
+        <li><a href="#squads">Squads</a></li>
+        <li><a href="#match-center">Match Center</a></li>
+        <li><a href="#transfers">Transfers</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+
+      <div class="topbar-actions d-none d-lg-flex align-items-center gap-2">
+        <a class="btn btn-primary btn-sm" href="#squads">Browse squads</a>
+      </div>
+    </header>
+
+    <div
+      class="offcanvas offcanvas-end fc-offcanvas"
+      tabindex="-1"
+      id="navOffcanvas"
+      aria-labelledby="navOffcanvasLabel"
+    >
+      <div class="offcanvas-header border-bottom" style="border-color: var(--border-default) !important">
+        <h2 class="offcanvas-title h5 mb-0" id="navOffcanvasLabel">Menu</h2>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column gap-3">
+        <ul class="navbar-nav gap-1">
+          <li class="nav-item"><a class="nav-link" href="#main" data-bs-dismiss="offcanvas">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="#squads" data-bs-dismiss="offcanvas">Squads</a></li>
+          <li class="nav-item"><a class="nav-link" href="#match-center" data-bs-dismiss="offcanvas">Match Center</a></li>
+          <li class="nav-item"><a class="nav-link" href="#transfers" data-bs-dismiss="offcanvas">Transfers</a></li>
+          <li class="nav-item"><a class="nav-link" href="#about" data-bs-dismiss="offcanvas">About</a></li>
+        </ul>
+        <div class="mt-auto d-grid">
+          <a class="btn btn-primary" href="#squads" data-bs-dismiss="offcanvas">Browse squads</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-wrapper">
+      <aside class="sidebar" aria-label="Sections">
+        <span class="sidebar-section-label">Navigate</span>
+        <a class="sidebar-item active" href="#main" data-nav="main">Home</a>
+        <a class="sidebar-item" href="#squads" data-nav="squads">Squads</a>
+        <a class="sidebar-item" href="#match-center" data-nav="match-center">Match Center</a>
+        <a class="sidebar-item" href="#transfers" data-nav="transfers">Transfers</a>
+        <a class="sidebar-item" href="#about" data-nav="about">About</a>
+        <span class="sidebar-section-label">Tools</span>
+        <a class="sidebar-item" href="./admin.html">Admin</a>
+      </aside>
+
+      <div class="main-content">
+        <div class="card mb-4 d-none" id="dataLoadWarn" role="status" style="border-color: #facc15; background: #2a2008; color: #facc15; padding: var(--sp-4)">
+          <!-- filled by fc-data-missing handler -->
+        </div>
+
+        <!-- Home -->
+        <section id="main" class="home-hub reveal" aria-label="Home" tabindex="-1">
+          <header class="home-hero">
+            <span class="home-hero__eyebrow">
+              <span class="dot" aria-hidden="true"></span>
+              Matchday live
+            </span>
+            <h1 class="home-hero__title">Every squad. Every score. One hub.</h1>
+            <p class="home-hero__lede">
+              Switch leagues instantly, skim the latest results, and dive into full rosters — clean, fast, and dark-first.
+            </p>
+            <div class="home-hero__actions">
+              <a class="btn btn-primary" href="#match-center">Match center</a>
+              <a class="btn btn-ghost" href="#squads">Explore squads</a>
+            </div>
+          </header>
+
+          <div class="home-stats grid-3">
+            <article class="stat-card">
+              <span class="stat-label">Leagues</span>
+              <span class="stat-value" id="statLeagues">—</span>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Clubs</span>
+              <span class="stat-value" id="statTeams">—</span>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Players</span>
+              <span class="stat-value" id="statPlayers">—</span>
+            </article>
+          </div>
+
+          <div class="home-shell">
+            <aside class="home-rail" aria-label="Select competition">
+              <span class="home-rail__label">Competitions</span>
+              <div class="home-rail__scroll-wrap">
+                <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
+                <div class="home-rail__scroll" id="leaguePillsScroll">
+                  <div class="league-tabs home-rail__pills" id="leaguePills"></div>
+                </div>
+                <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
+              </div>
+            </aside>
+
+            <div class="home-main">
+              <section class="home-spotlight" aria-labelledby="heroSpotlightTitle">
+                <div class="home-spotlight__head">
+                  <div>
+                    <h2 class="home-spotlight__title" id="heroSpotlightTitle">
+                      <span id="heroLeagueName">Premier League</span>
+                      <span class="home-spotlight__mw" id="heroMwMeta">—</span>
+                    </h2>
+                    <p class="home-spotlight__sub" id="heroMwRange">Latest results from matchweek</p>
+                  </div>
+                  <a class="home-spotlight__link" href="#match-center">Full center →</a>
+                </div>
+                <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
+              </section>
+
+              <div class="home-bento">
+                <div class="home-bento__clubs">
+                  <div class="card" aria-label="Clubs in league">
+                    <div class="home-panel-head">
+                      <span class="home-panel-head__title">Clubs</span>
+                      <div class="home-panel-head__metric">
+                        <span class="label">Squad size</span>
+                        <span class="value" id="leaguePlayerCount">—</span>
+                      </div>
+                    </div>
+                    <div class="home-clubs" id="leagueTrending"></div>
+                  </div>
+                </div>
+
+                <div class="home-bento__stack">
+                  <div class="home-bento__spotlight">
+                    <div class="card player-profile-card spotlight-card" aria-label="Club spotlight">
+                      <div class="player-profile-header">
+                        <div class="club-crest featured-crest" data-crest="home" aria-hidden="true"></div>
+                        <div class="min-w-0">
+                          <h3 class="player-profile-name" id="featuredTeam">—</h3>
+                          <div class="player-profile-meta" id="featuredMeta">—</div>
+                          <div class="player-profile-meta mt-1" id="featuredHint">Choose a league → pick a team</div>
+                        </div>
+                      </div>
+                      <div class="player-stats-grid">
+                        <div class="player-stat-item">
+                          <span class="value" id="featuredFormation">—</span>
+                          <span class="label">Formation</span>
+                        </div>
+                        <div class="player-stat-item">
+                          <span class="value form-dots" id="featuredForm" aria-hidden="true"></span>
+                          <span class="label">Form</span>
+                        </div>
+                      </div>
+                      <div class="spotlight-card__actions">
+                        <button class="btn btn-primary" type="button" id="featuredBtn">Open roster</button>
+                        <a class="btn btn-ghost" href="#squads">All squads</a>
+                      </div>
+                      <p class="spotlight-card__note">Tap any player in Squads for full profile details.</p>
+                    </div>
+                  </div>
+
+                  <div class="home-bento__table">
+                    <div class="card table-card" aria-label="League table preview">
+                      <div class="table-card__head">
+                        <span>Table</span>
+                        <a href="#match-center">Standings →</a>
+                      </div>
+                      <div id="heroStandings">Loading…</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Match Center -->
+        <section id="match-center" class="section reveal" aria-label="Match Center">
+          <div class="section-divider">
+            <h2>Match Center</h2>
+          </div>
+          <p class="text-secondary mb-4">Gameweek results, live status, and match analytics.</p>
+
+          <div class="card mb-4">
+            <div class="league-tabs" aria-label="League filter tabs" id="matchTabs"></div>
+          </div>
+
+          <div class="card mb-4" style="padding: 0; overflow: hidden">
+            <div class="matchweek-head">
+              <div class="row align-items-center justify-content-between g-2 mx-0">
+                <div class="col-auto">
+                  <button class="mw-nav" type="button" id="mwPrev" aria-label="Previous matchweek">‹</button>
+                </div>
+                <div class="col mw-title min-w-0 px-1 text-center">
+                  <div class="mw-kicker" id="mwTitle">Matchweek —</div>
+                  <div class="mw-range text-truncate" id="mwRange">—</div>
+                </div>
+                <div class="col-auto">
+                  <button class="mw-nav" type="button" id="mwNext" aria-label="Next matchweek">›</button>
+                </div>
+              </div>
+            </div>
+            <div class="mw-list" id="matchList" aria-label="Matchweek results"></div>
+          </div>
+
+          <div class="grid-2">
+            <div id="miniStandings" aria-label="League standings">Loading…</div>
+            <div class="card mini-card" style="padding: 0; overflow: hidden" aria-label="Top scorers">
+              <div class="mini-card-head">Top Scorer</div>
+              <div class="mini-body--flush" id="topScorers">Loading…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Transfers -->
+        <section id="transfers" class="section reveal" aria-label="Transfers">
+          <div class="section-divider">
+            <h2>Transfers</h2>
+          </div>
+          <p class="text-secondary mb-4">
+            Incoming and outgoing moves for
+            <span class="fw-semibold" style="color: var(--text-primary)" id="transferLeagueLabel">—</span>
+            —
+            <span class="fw-semibold" style="color: var(--text-primary)" id="transferClubLabel">—</span>.
+          </p>
+
+          <div class="card mb-4">
+            <div class="league-tabs mb-4" aria-label="League filter" id="transferTabs"></div>
+            <label class="d-grid gap-1">
+              <span class="field-label">Club</span>
+              <select id="transferTeamSelect" class="select form-select fc-input" aria-label="Club for transfers"></select>
+            </label>
+          </div>
+
+          <div class="grid-2">
+            <div class="card transfer-panel transfer-card--in">
+              <div class="transfer-panel-head">
+                <span class="badge badge-green">In</span>
+                <span class="transfer-card-sub small text-secondary">Signed by league clubs</span>
+              </div>
+              <div class="transfer-panel-body" id="transferIn" aria-live="polite"></div>
+            </div>
+            <div class="card transfer-panel transfer-card--out">
+              <div class="transfer-panel-head">
+                <span class="badge badge-blue">Out</span>
+                <span class="transfer-card-sub small text-secondary">Left league clubs</span>
+              </div>
+              <div class="transfer-panel-body" id="transferOut" aria-live="polite"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Squads -->
+        <section id="squads" class="section reveal" aria-label="Squads">
+          <div class="section-divider">
+            <h2>Squads</h2>
+          </div>
+          <p class="text-secondary mb-4">Select a league and team, then filter the roster.</p>
+
+          <div class="card mb-4">
+            <div class="filter-row">
+              <label class="filter-field d-grid gap-1">
+                <span class="field-label">League</span>
+                <select id="leagueSelect" class="select form-select fc-input"></select>
+              </label>
+              <label class="filter-field d-grid gap-1">
+                <span class="field-label">Team</span>
+                <select id="teamSelect" class="select form-select fc-input"></select>
+              </label>
+              <label class="filter-field d-grid gap-1">
+                <span class="field-label">Position</span>
+                <select id="positionSelect" class="select form-select fc-input">
+                  <option value="all">All</option>
+                  <option value="GK">Goalkeepers</option>
+                  <option value="DF">Defenders</option>
+                  <option value="MF">Midfielders</option>
+                  <option value="FW">Forwards</option>
+                </select>
+              </label>
+              <label class="filter-field d-grid gap-1">
+                <span class="field-label">Search</span>
+                <div class="search-bar">
+                  <span class="search-icon" aria-hidden="true">⌕</span>
+                  <input id="playerSearch" type="search" placeholder="Search player…" aria-label="Search players" />
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <div class="d-flex flex-wrap gap-2" id="rosterChips" aria-live="polite"></div>
+          </div>
+
+          <div class="card squad-panel player-table-wrap" id="rosterPanel">
+            <div class="squad-team-head" id="rosterTeamHead" aria-live="polite"></div>
+            <div class="squad-col-head" aria-hidden="true">
+              <span class="squad-col-num">#</span>
+              <span class="squad-col-player">Player</span>
+              <span class="squad-col-role">Pos</span>
+              <span class="squad-col-nat">Nation</span>
+              <span class="squad-col-starts" title="Starting XI appearances">Starts</span>
+            </div>
+            <div class="squad-body" id="rosterGrid" aria-live="polite"></div>
+          </div>
+          <p class="visually-hidden" id="rosterCount" aria-live="polite"></p>
+        </section>
+
+        <!-- About -->
+        <section id="about" class="section reveal" aria-label="About">
+          <div class="section-divider">
+            <h2>About</h2>
+          </div>
+          <div class="card">
+            <p class="mb-3" style="color: var(--text-muted)">
+              Squad data loads from <code>data.json</code> when you run the site over
+              <strong>http://</strong> (for example VS Code Live Server or <code>npx serve</code>).
+              Opening <code>index.html</code> directly as a file will not load logos or Malaysia Super League rosters.
+              Use the <a href="./admin.html">admin page</a> to edit data, then export
+              <code>data.json</code>. If an old copy still appears, clear this site’s storage or use admin
+              <strong>Reset to published seed</strong>.
+            </p>
+            <p class="mb-0 d-none" id="dataLoadWarnAbout" role="status" style="color: var(--text-muted)"></p>
+          </div>
+        </section>
+
+        <footer class="site-footer">
+          <div class="site-footer-inner">
+            <div class="site-footer-brand">
+              <img src="./logo.png" width="28" height="28" alt="" decoding="async" />
+              Squad Central
+            </div>
+            <nav class="site-footer-nav" aria-label="Footer">
+              <a href="#main">Back to top</a>
+              <a href="#squads">Squads</a>
+              <a href="#transfers">Transfers</a>
+              <a href="#about">About</a>
+              <a href="./admin.html">Admin</a>
+            </nav>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary fc-back-top" id="backToTop" aria-label="Back to top" data-bs-toggle="tooltip" title="Back to top">↑</button>
+
+    <dialog class="fc-modal" id="modal">
+      <form method="dialog" class="modal-inner">
+        <div class="modal-head">
+          <h3 class="modal-title" id="modalTitle">Details</h3>
+          <button class="btn btn-ghost btn-sm" value="cancel" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" value="cancel">Close</button>
+          <button class="btn btn-primary" id="modalPrimary" value="cancel" type="submit">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script src="./data-store.js"></script>
+    <script src="./nationality-flags.js"></script>
+    <script src="./app.js" defer></script>
+    <script>
+      document.addEventListener("fc-data-missing", () => {
+        const msg =
+          location.protocol === "file:"
+            ? "data.json cannot load from a file:// URL. Start a local server (e.g. serve.bat or VS Code Live Server) so Malaysia Super League squads, logos, and fixtures appear."
+            : "data.json did not load in time — refresh the page. If this keeps happening, run the site via serve.bat or Live Server (not by opening index.html directly).";
+        for (const id of ["dataLoadWarn", "dataLoadWarnAbout"]) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.classList.remove("d-none");
+          el.textContent = msg;
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,299 @@
+/* Squad Central — Pitch Lineup View */
+
+.lineup-toggle,
+.lineup-view-toggle {
+  display: flex;
+  gap: 4px;
+  background-color: var(--bg-surface-1);
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: var(--sp-4);
+}
+
+.lineup-toggle-btn,
+.lineup-view-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all var(--transition);
+  font-family: var(--font);
+}
+
+.lineup-toggle-btn.active,
+.lineup-view-btn.is-active {
+  background-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.lineup-toggle-btn:hover:not(.active),
+.lineup-view-btn:hover:not(.is-active) {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-3);
+}
+
+.lineup-view.is-hidden {
+  display: none;
+}
+
+.lineups-wrapper,
+.pitch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-5);
+}
+
+.lineup-block,
+.pitch-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lineup-team-header,
+.pitch-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 0 2px;
+}
+
+.lineup-team-name,
+.pitch-team {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.lineup-formation-badge,
+.pitch-formation {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background-color: var(--accent-dim);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid #1a3a5c;
+  white-space: nowrap;
+}
+
+.pitch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 68 / 105;
+  background: linear-gradient(
+    180deg,
+    #1e7a3e 0%,
+    #1a6e37 8.33%,
+    #1e7a3e 16.66%,
+    #1a6e37 25%,
+    #1e7a3e 33.33%,
+    #1a6e37 41.66%,
+    #1e7a3e 50%,
+    #1a6e37 58.33%,
+    #1e7a3e 66.66%,
+    #1a6e37 75%,
+    #1e7a3e 83.33%,
+    #1a6e37 91.66%,
+    #1e7a3e 100%
+  );
+  border-radius: var(--radius-md);
+  border: 1.5px solid #155a2c;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pitch--empty {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  aspect-ratio: auto;
+  background: var(--bg-surface-2);
+  border-color: var(--border-default);
+  box-shadow: none;
+}
+
+.pitch-markings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pitch-players {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.player-node,
+.pitch-player {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.player-circle,
+.pitch-token {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a6fcf 0%, #1a4fa0 100%);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(55, 138, 221, 0.3);
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative;
+}
+
+.player-circle.captain::after {
+  content: "C";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-draw);
+  color: #422006;
+  font-size: 7px;
+  font-weight: 800;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 12px;
+  text-align: center;
+  border: 1px solid var(--bg-page);
+}
+
+.pitch-cap {
+  display: none;
+}
+
+.player-node:hover .player-circle,
+.pitch-player:hover .pitch-token {
+  transform: scale(1.15);
+  box-shadow: 0 4px 16px rgba(55, 138, 221, 0.6), 0 0 0 3px rgba(55, 138, 221, 0.5);
+}
+
+.player-name-tag,
+.pitch-name {
+  background: rgba(11, 17, 32, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.pitch-flag {
+  display: none;
+}
+
+.player-node.gk .player-circle,
+.pitch-player.is-gk .pitch-token {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(217, 119, 6, 0.4);
+}
+
+.player-node.gk:hover .player-circle,
+.pitch-player.is-gk:hover .pitch-token {
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.6), 0 0 0 3px rgba(217, 119, 6, 0.5);
+}
+
+.player-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-surface-2);
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  width: 120px;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.player-node:hover .player-tooltip,
+.pitch-player:hover .player-tooltip {
+  display: block;
+}
+
+.player-tooltip-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-tooltip-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .lineups-wrapper,
+  .pitch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-circle,
+  .pitch-token {
+    width: 26px;
+    height: 26px;
+    font-size: 9px;
+  }
+
+  .player-name-tag,
+  .pitch-name {
+    font-size: 8px;
+    max-width: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-node:hover .player-circle,
+  .pitch-player:hover .pitch-token {
+    transform: none;
+  }
+}

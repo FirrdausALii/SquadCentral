@@ -1,0 +1,287 @@
+/* Squad Central — mobile responsiveness */
+
+html {
+  overflow-x: clip;
+}
+
+body.fc-app {
+  overflow-x: clip;
+  width: 100%;
+}
+
+.page-wrapper,
+.main-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-hub,
+.home-main,
+.home-shell,
+.section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-spotlight__track {
+  max-width: 100%;
+}
+
+.card code {
+  overflow-wrap: anywhere;
+}
+
+/* Topbar */
+@media (max-width: 991.98px) {
+  .topbar-logo {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .topbar {
+    padding: 0 var(--sp-3);
+    gap: var(--sp-2);
+  }
+}
+
+/* Home hero & hub */
+@media (max-width: 767.98px) {
+  .home-hero__title {
+    max-width: none;
+    font-size: clamp(1.5rem, 6.5vw, 2rem);
+    overflow-wrap: break-word;
+  }
+
+  .home-hero__lede {
+    max-width: none;
+  }
+
+  .home-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-hero__actions .btn {
+    width: 100%;
+  }
+
+  .home-stats.grid-3 {
+    gap: var(--sp-3);
+  }
+
+  .home-stats .stat-card {
+    padding: var(--sp-4);
+  }
+
+  .home-stats .stat-value {
+    font-size: 22px;
+  }
+
+  .home-spotlight__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .home-panel-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .spotlight-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .spotlight-card__actions .btn {
+    width: 100%;
+  }
+
+  .spotlight-card .player-profile-header,
+  .spotlight-card .player-stats-grid,
+  .spotlight-card__actions,
+  .spotlight-card__note {
+    padding-left: var(--sp-4);
+    padding-right: var(--sp-4);
+  }
+
+  .player-profile-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .main-content {
+    padding: var(--sp-4) var(--sp-3) !important;
+  }
+
+  .card {
+    padding: var(--sp-4);
+  }
+
+  .section {
+    margin-bottom: var(--sp-8);
+  }
+
+  .section-divider {
+    margin: var(--sp-6) 0 var(--sp-4);
+    gap: var(--sp-3);
+  }
+}
+
+/* Section dividers */
+@media (max-width: 767.98px) {
+  .section-divider h2 {
+    white-space: normal;
+    font-size: 20px;
+  }
+}
+
+/* Squads filters */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.filter-field {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+  .filter-field {
+    flex: 1 1 100%;
+  }
+}
+
+/* Match center */
+@media (max-width: 767.98px) {
+  .matchweek-head {
+    padding: var(--sp-3);
+  }
+
+  .mw-match-line.flex-nowrap {
+    flex-wrap: wrap !important;
+    row-gap: var(--sp-2);
+    justify-content: center;
+  }
+
+  .mw-match-line .mw-teamname.home,
+  .mw-match-line .mw-teamname.away {
+    flex: 1 1 38%;
+    max-width: 46%;
+    font-size: 12px;
+  }
+
+  .mw-row {
+    padding-left: var(--sp-2) !important;
+    padding-right: var(--sp-2) !important;
+  }
+
+  .mw-action .live-blog {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+
+/* Standings */
+@media (max-width: 767.98px) {
+  .standings-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .standings-table {
+    min-width: 280px;
+  }
+
+  .standings-header {
+    flex-wrap: wrap;
+  }
+
+  .table-card {
+    overflow-x: auto;
+  }
+}
+
+/* Transfers */
+@media (max-width: 767.98px) {
+  .transfer-panel-head {
+    flex-wrap: wrap;
+  }
+
+  .transfer-row {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .transfer-fee {
+    width: 100%;
+    padding-left: 28px;
+  }
+}
+
+/* Squads roster */
+@media (max-width: 575.98px) {
+  .squad-team-head {
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  .squad-team-head-inner {
+    flex-wrap: wrap;
+  }
+
+  .squad-count-badge {
+    margin-left: 0;
+    margin-top: var(--sp-2);
+  }
+}
+
+/* Footer */
+@media (max-width: 575.98px) {
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-3);
+  }
+}
+
+/* Modal */
+@media (max-width: 575.98px) {
+  .fc-modal {
+    width: calc(100% - 16px);
+    max-height: calc(100vh - 32px);
+  }
+
+  .modal-inner {
+    padding: var(--sp-3);
+  }
+
+  .squad-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* League tabs */
+@media (max-width: 575.98px) {
+  .league-tab {
+    padding: 6px var(--sp-3);
+    font-size: 11px;
+  }
+}
+
+/* Back to top */
+@media (max-width: 575.98px) {
+  .fc-back-top {
+    right: 12px;
+    bottom: 12px;
+    width: 40px;
+    height: 40px;
+  }
+}

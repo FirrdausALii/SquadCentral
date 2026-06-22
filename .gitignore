@@ -1,0 +1,8 @@
+# Accidental downloads / installers (never part of the site)
+*.exe
+*.msi
+*.zip
+
+# Local server helpers (optional on GitHub)
+serve.bat
+serve.ps1
