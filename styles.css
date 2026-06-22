@@ -221,8 +221,20 @@ html.reveal-init .reveal.is-visible {
   margin-top: 4px;
   padding-left: 2px;
 }
-.mw-venue-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.mw-venue-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
 .mw-venue-label { font-weight: 600; color: var(--text-muted); }
+.mw-venue-value { color: var(--text-faint); }
+.mw-coach {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  flex-wrap: wrap;
+}
+.mw-coach-sep {
+  color: var(--text-faint);
+  padding: 0 0.15em;
+}
+.mw-venue-row--coaches { row-gap: 4px; }
 
 .live-blog {
   display: inline-flex;

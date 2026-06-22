@@ -176,22 +176,54 @@ body.fc-app {
     padding: var(--sp-3);
   }
 
-  .mw-match-line.flex-nowrap {
-    flex-wrap: wrap !important;
-    row-gap: var(--sp-2);
-    justify-content: center;
-  }
-
-  .mw-match-line .mw-teamname.home,
-  .mw-match-line .mw-teamname.away {
-    flex: 1 1 38%;
-    max-width: 46%;
-    font-size: 12px;
-  }
-
   .mw-row {
     padding-left: var(--sp-2) !important;
     padding-right: var(--sp-2) !important;
+  }
+
+  .mw-match-line {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 26px auto 26px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 6px;
+    flex-wrap: nowrap !important;
+    --bs-gutter-x: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .mw-match-line > [class*="col"] {
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+    padding: 0 !important;
+  }
+
+  .mw-match-line .mw-b {
+    width: 26px;
+    height: 26px;
+  }
+
+  .mw-match-line .mw-score {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .mw-match-line .mw-teamname {
+    font-size: 12px;
+  }
+
+  .mw-match-line .mw-teamname.home {
+    text-align: right;
+  }
+
+  .mw-match-line .mw-teamname.away {
+    text-align: left;
+  }
+
+  .mw-venue-meta--list {
+    padding-left: 0;
+    margin-top: 6px;
   }
 
   .mw-action .live-blog {
