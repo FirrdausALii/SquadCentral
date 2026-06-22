@@ -696,7 +696,7 @@ p { margin: 0 0 var(--sp-4); }
   .topbar-nav { display: none; }
   .page-wrapper {
     flex-direction: column;
-    overflow-x: clip;
+    overflow-x: hidden;
   }
   .sidebar { display: none; }
   .main-content {
