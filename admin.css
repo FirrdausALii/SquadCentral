@@ -1730,59 +1730,7 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   text-align: center;
 }
 
-/* Modern dark dropdowns (matchweek + editor) */
-.mw-select-wrap {
-  position: relative;
-  display: block;
-  width: 100%;
-}
-
-.mw-select-wrap::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  margin-top: -2px;
-  border-right: 2px solid var(--accent);
-  border-bottom: 2px solid var(--accent);
-  transform: translateY(-60%) rotate(45deg);
-  pointer-events: none;
-  opacity: 0.85;
-}
-
-.mw-select-wrap--compact::after {
-  right: 10px;
-  width: 8px;
-  height: 8px;
-}
-
-.mw-select,
-.mw-page select.mw-select {
-  width: 100%;
-  box-sizing: border-box;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  padding: 11px 40px 11px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background-color: rgba(15, 23, 42, 0.95);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  color-scheme: dark;
-  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
-}
-
-.mw-select-wrap--compact .mw-select {
-  padding: 8px 32px 8px 10px;
-  font-size: 13px;
-  border-radius: 10px;
-}
+/* Modern dropdowns — see dropdowns.css */
 
 .tr-player-wrap {
   min-width: 11rem;
@@ -1791,37 +1739,6 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 .admin-table input[type="date"] {
   min-width: 10.5rem;
   color-scheme: dark;
-}
-
-.mw-select:hover {
-  border-color: rgba(55, 138, 221, 0.35);
-  background-color: rgba(18, 28, 52, 1);
-}
-
-.mw-select:focus {
-  outline: none;
-  border-color: rgba(55, 138, 221, 0.55);
-  box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.15);
-}
-
-.mw-select option {
-  background: var(--bg-surface-2);
-  color: var(--text-primary);
-  padding: 10px;
-}
-
-.mw-field--league .mw-select {
-  font-size: 15px;
-  font-weight: 700;
-  padding-top: 13px;
-  padding-bottom: 13px;
-  border-color: rgba(24, 95, 165, 0.25);
-  background: linear-gradient(180deg, rgba(18, 26, 46, 0.98), rgba(12, 18, 36, 0.98));
-}
-
-.mw-field--league .mw-select:focus {
-  border-color: rgba(24, 95, 165, 0.5);
-  box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.12);
 }
 
 .mw-btn-primary {

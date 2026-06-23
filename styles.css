@@ -610,8 +610,7 @@ html.reveal-init .reveal.is-visible {
   transform: translateY(0);
 }
 
-/* Bootstrap form overrides */
-.form-select.fc-input,
+/* Bootstrap form overrides — text inputs only; selects use dropdowns.css */
 .form-control.fc-input {
   background-color: var(--bg-surface-1);
   border: 0.5px solid var(--border-default);
@@ -619,7 +618,6 @@ html.reveal-init .reveal.is-visible {
   border-radius: var(--radius-md);
   font-size: 13px;
 }
-.form-select.fc-input:focus,
 .form-control.fc-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(55, 138, 221, 0.2);

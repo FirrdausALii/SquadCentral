@@ -160,7 +160,7 @@ function leagueSelect(id = "leagueFilter", value = leagueFilter, fieldClass = "a
   if (modern) {
     return `<div class="${fieldClass}"><label for="${id}">League</label><div class="mw-select-wrap"><select id="${id}" class="mw-select">${opts}</select></div></div>`;
   }
-  return `<div class="${fieldClass}"><label for="${id}">League</label><select id="${id}">${opts}</select></div>`;
+  return `<div class="${fieldClass}"><label for="${id}">League</label><div class="mw-select-wrap"><select id="${id}" class="mw-select">${opts}</select></div></div>`;
 }
 
 function panelOverview() {

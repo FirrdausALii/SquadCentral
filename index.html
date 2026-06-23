@@ -29,6 +29,7 @@
     <link rel="stylesheet" href="./standings.css" />
     <link rel="stylesheet" href="./lineups-pitch.css" />
     <link rel="stylesheet" href="./styles-mobile.css" />
+    <link rel="stylesheet" href="./dropdowns.css" />
     <style>
       /* Critical fallback if CSS files fail to load on GitHub Pages */
       body { margin: 0; background: #0b1120; color: #c8d8ea; font-family: system-ui, sans-serif; }
@@ -281,7 +282,9 @@
             <div class="league-tabs mb-4" aria-label="League filter" id="transferTabs"></div>
             <label class="d-grid gap-1">
               <span class="field-label">Club</span>
-              <select id="transferTeamSelect" class="select form-select fc-input" aria-label="Club for transfers"></select>
+              <div class="fc-select-wrap">
+                <select id="transferTeamSelect" class="fc-select form-select" aria-label="Club for transfers"></select>
+              </div>
             </label>
           </div>
 
@@ -314,21 +317,27 @@
             <div class="filter-row">
               <label class="filter-field d-grid gap-1">
                 <span class="field-label">League</span>
-                <select id="leagueSelect" class="select form-select fc-input"></select>
+                <div class="fc-select-wrap fc-select-wrap--league">
+                  <select id="leagueSelect" class="fc-select form-select" aria-label="League"></select>
+                </div>
               </label>
               <label class="filter-field d-grid gap-1">
                 <span class="field-label">Team</span>
-                <select id="teamSelect" class="select form-select fc-input"></select>
+                <div class="fc-select-wrap">
+                  <select id="teamSelect" class="fc-select form-select" aria-label="Team"></select>
+                </div>
               </label>
               <label class="filter-field d-grid gap-1">
                 <span class="field-label">Position</span>
-                <select id="positionSelect" class="select form-select fc-input">
-                  <option value="all">All</option>
-                  <option value="GK">Goalkeepers</option>
-                  <option value="DF">Defenders</option>
-                  <option value="MF">Midfielders</option>
-                  <option value="FW">Forwards</option>
-                </select>
+                <div class="fc-select-wrap">
+                  <select id="positionSelect" class="fc-select form-select" aria-label="Position">
+                    <option value="all">All</option>
+                    <option value="GK">Goalkeepers</option>
+                    <option value="DF">Defenders</option>
+                    <option value="MF">Midfielders</option>
+                    <option value="FW">Forwards</option>
+                  </select>
+                </div>
               </label>
               <label class="filter-field d-grid gap-1">
                 <span class="field-label">Search</span>
