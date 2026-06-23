@@ -121,6 +121,123 @@
     Zimbabwe: "🇿🇼",
   };
 
+  /** ISO 3166-1 codes for flagcdn.com (works on Windows, Android, all browsers). */
+  const ISO_CODES = {
+    Afghanistan: "af",
+    Albania: "al",
+    Algeria: "dz",
+    Argentina: "ar",
+    Armenia: "am",
+    Australia: "au",
+    Austria: "at",
+    Belgium: "be",
+    Bolivia: "bo",
+    "Bosnia and Herzegovina": "ba",
+    Brazil: "br",
+    Bulgaria: "bg",
+    "Burkina Faso": "bf",
+    Cameroon: "cm",
+    Canada: "ca",
+    "Cape Verde": "cv",
+    Chile: "cl",
+    China: "cn",
+    Colombia: "co",
+    "Costa Rica": "cr",
+    Croatia: "hr",
+    "Côte d'Ivoire": "ci",
+    "Ivory Coast": "ci",
+    Curacao: "cw",
+    Curaçao: "cw",
+    Cyprus: "cy",
+    "Czech Republic": "cz",
+    Czechia: "cz",
+    "Democratic Republic of the Congo": "cd",
+    "DR Congo": "cd",
+    Denmark: "dk",
+    Ecuador: "ec",
+    Egypt: "eg",
+    England: "gb-eng",
+    Estonia: "ee",
+    Finland: "fi",
+    France: "fr",
+    Gabon: "ga",
+    Gambia: "gm",
+    Georgia: "ge",
+    Germany: "de",
+    Ghana: "gh",
+    Greece: "gr",
+    Guinea: "gn",
+    "Guinea-Bissau": "gw",
+    Haiti: "ht",
+    Honduras: "hn",
+    Hungary: "hu",
+    Iceland: "is",
+    India: "in",
+    Indonesia: "id",
+    Iran: "ir",
+    Iraq: "iq",
+    Ireland: "ie",
+    Israel: "il",
+    Italy: "it",
+    Jamaica: "jm",
+    Japan: "jp",
+    Jordan: "jo",
+    Kazakhstan: "kz",
+    Kenya: "ke",
+    Kosovo: "xk",
+    Latvia: "lv",
+    Lithuania: "lt",
+    Luxembourg: "lu",
+    Malaysia: "my",
+    Mali: "ml",
+    Malta: "mt",
+    Mexico: "mx",
+    Moldova: "md",
+    Montenegro: "me",
+    Morocco: "ma",
+    Mozambique: "mz",
+    Netherlands: "nl",
+    "New Zealand": "nz",
+    Nigeria: "ng",
+    "North Macedonia": "mk",
+    "Northern Ireland": "gb-nir",
+    Norway: "no",
+    Paraguay: "py",
+    Peru: "pe",
+    Poland: "pl",
+    Portugal: "pt",
+    Qatar: "qa",
+    Romania: "ro",
+    Russia: "ru",
+    "Saudi Arabia": "sa",
+    Scotland: "gb-sct",
+    Senegal: "sn",
+    Serbia: "rs",
+    Slovakia: "sk",
+    Slovenia: "si",
+    "South Africa": "za",
+    "South Korea": "kr",
+    Korea: "kr",
+    Spain: "es",
+    Sweden: "se",
+    Switzerland: "ch",
+    Syria: "sy",
+    Tunisia: "tn",
+    Turkey: "tr",
+    Türkiye: "tr",
+    "United Arab Emirates": "ae",
+    Uganda: "ug",
+    Ukraine: "ua",
+    Uruguay: "uy",
+    USA: "us",
+    "United States": "us",
+    Venezuela: "ve",
+    Vietnam: "vn",
+    Wales: "gb-wls",
+    Zambia: "zm",
+    Zimbabwe: "zw",
+  };
+
   const learned = Object.create(null);
   const learnedLabels = Object.create(null);
 
@@ -145,7 +262,9 @@
     "côte d'ivoire": "ivory coast",
     turkiye: "turkey",
     "north macedonia": "north macedonia",
-    "bosnia": "bosnia and herzegovina",
+    bosnia: "bosnia and herzegovina",
+    "guinea bissau": "guinea-bissau",
+    "cape verde": "cape verde",
   };
 
   function resolveNationalityKey(nationality) {
@@ -186,6 +305,22 @@
     return "";
   }
 
+  function getIsoCode(nationality) {
+    const key = resolveNationalityKey(nationality);
+    if (!key) return "";
+    for (const [name, code] of Object.entries(ISO_CODES)) {
+      if (normalize(name) === key) return code;
+    }
+    return "";
+  }
+
+  function getFlagImageUrl(nationality, width = 40) {
+    const iso = getIsoCode(nationality);
+    if (!iso) return "";
+    const w = Math.max(20, Math.min(160, Number(width) || 40));
+    return `https://flagcdn.com/w${w}/${iso}.png`;
+  }
+
   function listNationalities() {
     const names = new Set(Object.keys(BASE));
     for (const key of Object.keys(learned)) {
@@ -196,7 +331,10 @@
 
   global.NationalityFlags = {
     BASE,
+    ISO_CODES,
     getFlag,
+    getIsoCode,
+    getFlagImageUrl,
     learnFromPlayers,
     listNationalities,
     normalize,

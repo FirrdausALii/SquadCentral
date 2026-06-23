@@ -327,7 +327,7 @@ html.reveal-init .reveal.is-visible {
 .squad-col-head,
 .squad-row {
   display: grid;
-  grid-template-columns: var(--squad-cols, 40px minmax(0, 1fr) 44px minmax(100px, 1fr) 52px);
+  grid-template-columns: var(--squad-cols, 40px minmax(0, 1fr) 44px minmax(100px, 1fr));
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
@@ -381,12 +381,34 @@ html.reveal-init .reveal.is-visible {
   color: #1a1508;
   vertical-align: middle;
 }
-.squad-nat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
-.squad-flag { font-size: 1rem; line-height: 1; }
+.squad-nat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); min-width: 0; }
+.squad-flag-img {
+  width: 20px;
+  height: 15px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 0.5px solid var(--border-default);
+  flex-shrink: 0;
+  display: block;
+}
+.squad-flag { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.squad-flag--code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 2px;
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-3);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
 .squad-nat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .squad-club { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.squad-starts { font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; text-align: center; }
-.squad-row--active .squad-starts { color: var(--accent); }
 
 .squad-group { border-bottom: 0.5px solid var(--border-subtle); }
 .squad-group:last-child { border-bottom: none; }
@@ -606,23 +628,22 @@ html.reveal-init .reveal.is-visible {
 @media (max-width: 767.98px) {
   .squad-col-head { display: none; }
   .squad-row {
-    grid-template-columns: 36px minmax(0, 1fr) auto 40px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
     grid-template-areas:
-      "num player role starts"
-      "num nat nat nat";
+      "num player role"
+      "num nat nat";
   }
   .squad-panel--worldcup .squad-row {
     grid-template-areas:
-      "num player role starts"
-      "num club club club"
-      "num nat nat nat";
+      "num player role"
+      "num club club"
+      "num nat nat";
   }
   .squad-num { grid-area: num; }
   .squad-player { grid-area: player; }
   .squad-pos-tag { grid-area: role; }
   .squad-club { grid-area: club; }
   .squad-nat { grid-area: nat; }
-  .squad-starts { grid-area: starts; }
   .lineups-grid { grid-template-columns: 1fr; }
   .squad-profile-grid { grid-template-columns: 1fr; }
 }

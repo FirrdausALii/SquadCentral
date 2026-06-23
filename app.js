@@ -51,7 +51,7 @@ const LEAGUE_FEATURE_SCHEMA = [
   { id: "playerNumber", label: "Shirt number", group: "Player fields", default: true },
   { id: "playerPosition", label: "Position tag", group: "Player fields", default: true },
   { id: "playerNationality", label: "Nationality / flag", group: "Player fields", default: true },
-  { id: "playerStarts", label: "Starts (XI count)", group: "Player fields", default: true },
+  { id: "playerStarts", label: "Starts (XI count)", group: "Player fields", default: false },
   { id: "playerClub", label: "Club (national teams)", group: "Player fields", default: true },
 ];
 
@@ -1838,15 +1838,19 @@ function playerFlagEmoji(p) {
   return "";
 }
 
-function squadFlagHtml(p, flag) {
+function squadFlagHtml(p) {
   const nat = String(p?.nationality ?? "").trim();
-  if (flag) {
-    return `<span class="squad-flag" aria-hidden="true" title="${escapeHtml(nat)}">${flag}</span>`;
+  if (!nat) {
+    return `<span class="squad-flag squad-flag--empty" aria-hidden="true">—</span>`;
   }
-  if (nat) {
-    return `<span class="squad-flag squad-flag--fallback" aria-hidden="true" title="${escapeHtml(nat)}">🌍</span>`;
+  const imgUrl =
+    typeof NationalityFlags !== "undefined" ? NationalityFlags.getFlagImageUrl(nat, 40) : "";
+  if (imgUrl) {
+    const imgUrl2x =
+      typeof NationalityFlags !== "undefined" ? NationalityFlags.getFlagImageUrl(nat, 80) : imgUrl;
+    return `<img class="squad-flag-img" src="${escapeHtml(imgUrl)}" srcset="${escapeHtml(imgUrl2x)} 2x" width="20" height="15" alt="" loading="lazy" decoding="async" title="${escapeHtml(nat)}" />`;
   }
-  return `<span class="squad-flag squad-flag--empty" aria-hidden="true">—</span>`;
+  return `<span class="squad-flag squad-flag--code" aria-hidden="true" title="${escapeHtml(nat)}">${escapeHtml(nat.slice(0, 3).toUpperCase())}</span>`;
 }
 
 function refreshNationalityFlagsLearn() {
@@ -4589,15 +4593,12 @@ function formatLineupStarts(n) {
 
 function openPlayerModal(p, startsMap = new Map(), leagueId) {
   const team = teamById.get(p.teamId);
-  const flag = playerFlagEmoji(p);
-  const starts = lineupStartsFor(p, startsMap);
   const role = p.role ?? POS_LABEL[p.pos] ?? p.pos;
   const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain">C</span>` : "";
   const displayName = stripCaptainSuffix(p.name);
   const lid = leagueId ?? team?.leagueId ?? "";
   const showClub = isWorldCupLeague(lid) && leagueFeatureOn(lid, "playerClub");
   const showNat = leagueFeatureOn(lid, "playerNationality");
-  const showStarts = leagueFeatureOn(lid, "playerStarts");
   const clubRow =
     showClub && p.club
       ? `<div class="squad-profile-stat">
@@ -4609,15 +4610,9 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
     ? `<div class="squad-profile-stat">
             <span class="squad-profile-stat-label">Nationality</span>
             <span class="squad-profile-stat-value">
-              ${squadFlagHtml(p, flag)}
+              ${squadFlagHtml(p)}
               ${escapeHtml(p.nationality ?? "—")}
             </span>
-          </div>`
-    : "";
-  const startsRow = showStarts
-    ? `<div class="squad-profile-stat">
-            <span class="squad-profile-stat-label">Starts (XI)</span>
-            <span class="squad-profile-stat-value squad-profile-stat-value--num">${escapeHtml(formatLineupStarts(starts))}</span>
           </div>`
     : "";
   openModal({
@@ -4634,7 +4629,6 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
         <div class="squad-profile-grid">
           ${natRow}
           ${clubRow}
-          ${startsRow}
           ${isCaptainPlayer(p) ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Role</span><span class="squad-profile-stat-value">Club captain</span></div>` : ""}
         </div>
       </div>
@@ -4667,19 +4661,15 @@ function rosterColumns(leagueId, showClub) {
     { key: "pos", width: "44px", head: `<span class="squad-col-role">Pos</span>`, on: leagueFeatureOn(leagueId, "playerPosition") },
     { key: "club", width: "minmax(88px, 0.95fr)", head: `<span class="squad-col-club">Club</span>`, on: showClub && leagueFeatureOn(leagueId, "playerClub") },
     { key: "nat", width: "minmax(100px, 1fr)", head: `<span class="squad-col-nat">Nation</span>`, on: leagueFeatureOn(leagueId, "playerNationality") },
-    { key: "starts", width: "52px", head: `<span class="squad-col-starts" title="Starting XI appearances">Starts</span>`, on: leagueFeatureOn(leagueId, "playerStarts") },
   ];
   return defs.filter((d) => d.on);
 }
 
-const ROSTER_COL_ORDER = ["num", "player", "pos", "club", "nat", "starts"];
+const ROSTER_COL_ORDER = ["num", "player", "pos", "club", "nat"];
 
 function renderSquadRow(p, startsMap, leagueId, colKeys) {
   const keys = colKeys ?? new Set(ROSTER_COL_ORDER);
-  const flag = playerFlagEmoji(p);
   const role = p.role ?? p.pos;
-  const starts = lineupStartsFor(p, startsMap);
-  const startsLabel = formatLineupStarts(starts);
   const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain" aria-label="Captain">C</span>` : "";
   const displayName = stripCaptainSuffix(p.name);
   const cells = {
@@ -4687,12 +4677,11 @@ function renderSquadRow(p, startsMap, leagueId, colKeys) {
     player: `<span class="squad-player"><span class="squad-name">${escapeHtml(displayName)}${cap}</span></span>`,
     pos: `<span class="squad-pos-tag" data-pos="${escapeHtml(p.pos)}">${escapeHtml(role)}</span>`,
     club: `<span class="squad-club">${escapeHtml(p.club ?? "—")}</span>`,
-    nat: `<span class="squad-nat">${squadFlagHtml(p, flag)}<span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span></span>`,
-    starts: `<span class="squad-starts" title="Starting XI appearances">${escapeHtml(startsLabel)}</span>`,
+    nat: `<span class="squad-nat">${squadFlagHtml(p)}<span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span></span>`,
   };
   const inner = ROSTER_COL_ORDER.filter((k) => keys.has(k)).map((k) => cells[k]).join("");
   return `
-    <button type="button" class="squad-row${starts > 0 ? " squad-row--active" : ""}" data-player="${escapeHtml(p.id)}" aria-label="View ${escapeHtml(displayName)}, ${escapeHtml(startsLabel)} starting appearances">
+    <button type="button" class="squad-row" data-player="${escapeHtml(p.id)}" aria-label="View ${escapeHtml(displayName)}">
       ${inner}
     </button>
   `;
@@ -4770,8 +4759,7 @@ function renderRoster() {
       .filter((p) => p.pos === g.key)
       .sort(
         (a, b) =>
-          comparePlayerOrder(a, b) ||
-          lineupStartsFor(b, startsMap) - lineupStartsFor(a, startsMap),
+          comparePlayerOrder(a, b),
       ),
   })).filter((g) => g.players.length);
 
