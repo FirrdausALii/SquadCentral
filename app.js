@@ -4828,14 +4828,9 @@ function formationForTeam(teamId) {
   return saved || "—";
 }
 
-function renderRecentFormDots(teamId) {
-  const el = $("#featuredForm");
-  if (!el) return;
-  // Demo-only: deterministic pseudo-form based on teamId.
-  const seed = Array.from(String(teamId)).reduce((a, c) => a + c.charCodeAt(0), 0);
-  const vals = ["W", "D", "L"];
-  const dots = Array.from({ length: 5 }, (_, i) => vals[(seed + i * 7) % vals.length]);
-  el.innerHTML = dots.map((v) => `<span class="form-dot" data-v="${v}" title="${v}"></span>`).join("");
+function stadiumForTeam(teamId) {
+  const saved = String(teamById.get(teamId)?.stadium ?? "").trim();
+  return saved && saved !== "—" ? saved : "—";
 }
 
 function setLeagueAccent(leagueId) {
@@ -5037,7 +5032,8 @@ function setFeaturedTeam(teamId) {
   $("#featuredMeta").textContent = `${league?.name ?? team.leagueId} • ${team.city} • ${squadSize} players`;
   $("#featuredHint").textContent = `Coach: ${team.coach}`;
   $("#featuredFormation").textContent = formationForTeam(teamId);
-  renderRecentFormDots(teamId);
+  const stadiumEl = $("#featuredStadium");
+  if (stadiumEl) stadiumEl.textContent = stadiumForTeam(teamId);
   renderLeaguePills(team.leagueId);
   setLeagueAccent(team.leagueId);
   renderLeagueTrending(team.leagueId);
