@@ -4653,6 +4653,160 @@ function bindSquadRowClicks(root, startsMap, leagueId) {
   }
 }
 
+const ROSTER_VIEW_STORAGE = "fc_roster_view";
+let rosterViewMode = "list";
+
+function initRosterViewMode() {
+  const saved = localStorage.getItem(ROSTER_VIEW_STORAGE);
+  if (saved === "depth" || saved === "list") rosterViewMode = saved;
+}
+
+function syncRosterViewToggle() {
+  const bar = $("#rosterViewBar");
+  if (!bar) return;
+  for (const btn of $$("[data-roster-view]", bar)) {
+    const active = btn.dataset.rosterView === rosterViewMode;
+    btn.classList.toggle("is-active", active);
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  }
+}
+
+function setRosterViewMode(mode) {
+  rosterViewMode = mode === "depth" ? "depth" : "list";
+  localStorage.setItem(ROSTER_VIEW_STORAGE, rosterViewMode);
+  syncRosterViewToggle();
+  renderRoster();
+}
+
+function renderSquadDepthToken(p, tier) {
+  const short = lineupShortName(p.name);
+  const num = escapeHtml(p.number ?? "");
+  const isGk = String(p.pos ?? "").toUpperCase() === "GK";
+  const capClass = isCaptainPlayer(p) ? " captain" : "";
+  const tierClass = tier === 2 ? " depth-player--backup" : " depth-player--starter";
+  const role = escapeHtml(p.role ?? p.pos ?? "");
+  const tierLabel = tier === 2 ? " · Depth" : " · Starter";
+  return `
+    <button type="button" class="depth-player pitch-player${tierClass}${isGk ? " is-gk" : ""}" data-player="${escapeHtml(p.id)}">
+      <div class="player-circle pitch-token depth-token${capClass}${tierClass}">${num}</div>
+      <div class="player-name-tag pitch-name depth-name">${escapeHtml(short)}</div>
+      <div class="player-tooltip">
+        <div class="player-tooltip-name">${escapeHtml(stripCaptainSuffix(p.name))}</div>
+        <div class="player-tooltip-meta">${role}${tierLabel}</div>
+      </div>
+    </button>
+  `;
+}
+
+function renderSquadDepthPitch(team, depth, leagueId) {
+  if (typeof SquadDepth === "undefined") return "";
+  const normalized = SquadDepth.normalizeSquadDepth(depth, team.formation);
+  if (!SquadDepth.isSquadDepthComplete(normalized)) return "";
+
+  const formation = normalized.formation || team.formation || "4-2-3-1";
+  const playerMap = new Map(playersForTeam(team.id).map((p) => [p.id, p]));
+  const gks = normalized.goalkeepers.map((id) => playerMap.get(id)).filter(Boolean);
+  const slots = normalized.slots.map((s) => ({
+    tag: s.tag,
+    players: s.players.map((id) => playerMap.get(id)).filter(Boolean),
+  }));
+  const outfieldRows = SquadDepth.buildOutfieldRows(formation, slots);
+  const rowCount = outfieldRows.length;
+
+  const gkHtml = gks
+    .map((p, i) => {
+      const left = gks.length > 1 ? ((i + 1) / (gks.length + 1)) * 100 : 50;
+      return `<div class="depth-gk-node" style="left:${left.toFixed(1)}%;top:92%">${renderSquadDepthToken(p, 1)}</div>`;
+    })
+    .join("");
+
+  const outfieldHtml = outfieldRows
+    .map((row, r) => {
+      const top = rowCount > 1 ? 84 - (r / (rowCount - 1)) * 72 : 50;
+      return row
+        .map((slot, c) => {
+          const left = ((c + 1) / (row.length + 1)) * 100;
+          const stack = slot.players.length
+            ? slot.players.map((p, pi) => renderSquadDepthToken(p, pi + 1)).join("")
+            : `<span class="depth-empty muted">—</span>`;
+          return `
+            <div class="depth-slot" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%">
+              <div class="depth-stack">${stack}</div>
+              <span class="depth-slot-tag">${escapeHtml(slot.tag ?? "")}</span>
+            </div>
+          `;
+        })
+        .join("");
+    })
+    .join("");
+
+  const onChart = SquadDepth.depthPlayerIds(normalized);
+  const excluded = playersForTeam(team.id).filter((p) => !onChart.has(p.id));
+  const excludedNote = excluded.length
+    ? `<p class="squad-depth-excluded muted mb-0">${excluded.length} squad player${excluded.length === 1 ? "" : "s"} not on depth chart</p>`
+    : "";
+
+  return `
+    <section class="lineup-block pitch-side squad-depth-side">
+      <div class="lineup-team-header pitch-side-head">
+        <h3 class="lineup-team-name pitch-team">${escapeHtml(team.name)}</h3>
+        <span class="lineup-formation-badge">${escapeHtml(formation)}</span>
+      </div>
+      <div class="pitch squad-depth-pitch">
+        ${pitchMarkingsSvg()}
+        <div class="pitch-players">
+          <div class="depth-gk-row">${gkHtml}</div>
+          ${outfieldHtml}
+        </div>
+      </div>
+      <p class="squad-depth-footnote muted mb-2">23 on chart · 3 GK + 10 positions × 2</p>
+      ${excludedNote}
+    </section>
+  `;
+}
+
+function renderSquadDepthView(state, team, startsMap) {
+  const wrap = $("#rosterDepthWrap");
+  const listWrap = $("#rosterListWrap");
+  if (!wrap || !listWrap) return;
+
+  listWrap.classList.add("is-hidden");
+  wrap.classList.remove("is-hidden");
+
+  if (!team) {
+    wrap.innerHTML = `<div class="squad-empty"><p class="mb-0">Select a team to view squad depth.</p></div>`;
+    return;
+  }
+
+  const depth = team.squadDepth;
+  const pitchHtml = renderSquadDepthPitch(team, depth, state.leagueId);
+  if (!pitchHtml) {
+    wrap.innerHTML = `
+      <div class="squad-empty squad-depth-empty">
+        <p class="mb-2"><strong>${escapeHtml(team.name)}</strong> — depth chart not set up yet.</p>
+        <p class="mb-0 muted">Configure 3 goalkeepers and 10 outfield slots (2 players each) in Admin → Squad depth.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const crest = clubLogoHtml(team.id, "club-crest squad-crest");
+  wrap.innerHTML = `
+    <div class="squad-team-head">
+      <div class="squad-team-head-inner">
+        ${crest}
+        <div class="squad-team-copy min-w-0">
+          <h3 class="squad-team-name h4 mb-1">${escapeHtml(team.name)}</h3>
+          <p class="squad-team-meta mb-0">Squad depth · ${escapeHtml(LEAGUES.find((l) => l.id === state.leagueId)?.name ?? state.leagueId)}</p>
+        </div>
+      </div>
+    </div>
+    <div class="squad-depth-body">${pitchHtml}</div>
+  `;
+  bindSquadRowClicks(wrap, startsMap, state.leagueId);
+}
+
 /** Ordered roster columns, filtered by the league's player-field feature flags. */
 function rosterColumns(leagueId, showClub) {
   const defs = [
@@ -4692,12 +4846,36 @@ function renderRoster() {
   const teamHead = $("#rosterTeamHead");
   const chips = $("#rosterChips");
   const count = $("#rosterCount");
+  const listWrap = $("#rosterListWrap");
+  const depthWrap = $("#rosterDepthWrap");
   if (!grid || !chips || !count) return;
+
+  syncRosterViewToggle();
 
   const state = getRosterState();
   const league = LEAGUES.find((l) => l.id === state.leagueId);
   const team = teamById.get(state.teamId);
   const squad = playersForTeam(state.teamId).filter((p) => playerMatches(p, state));
+  const startsMap = buildLineupStartsMap(state.leagueId);
+
+  if (rosterViewMode === "depth") {
+    const filterChips = [
+      `<span class="chip">${escapeHtml(league?.name ?? state.leagueId)}</span>`,
+      `<span class="chip">${escapeHtml(team?.name ?? state.teamId)}</span>`,
+      `<span class="chip">Depth chart</span>`,
+    ];
+    chips.innerHTML = filterChips.join("");
+    const fullSquad = playersForTeam(state.teamId);
+    count.textContent = `${fullSquad.length} player${fullSquad.length === 1 ? "" : "s"}`;
+    renderSquadDepthView(state, team, startsMap);
+    return;
+  }
+
+  if (listWrap) listWrap.classList.remove("is-hidden");
+  if (depthWrap) {
+    depthWrap.classList.add("is-hidden");
+    depthWrap.innerHTML = "";
+  }
 
   const filterChips = [
     `<span class="chip">${escapeHtml(league?.name ?? state.leagueId)}</span>`,
@@ -4730,7 +4908,6 @@ function renderRoster() {
   const order = { GK: 0, DF: 1, MF: 2, FW: 3 };
   squad.sort((a, b) => (order[a.pos] ?? 9) - (order[b.pos] ?? 9) || a.number - b.number || a.name.localeCompare(b.name));
 
-  const startsMap = buildLineupStartsMap(state.leagueId);
   const showClub = isWorldCupLeague(state.leagueId);
   const rosterPanel = $("#rosterPanel");
   const colHead = rosterPanel?.querySelector(".squad-col-head");
@@ -5234,6 +5411,15 @@ function setupRosterControls() {
   const teamSel = $("#teamSelect");
   const posSel = $("#positionSelect");
   const search = $("#playerSearch");
+
+  initRosterViewMode();
+  syncRosterViewToggle();
+
+  $("#rosterViewBar")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-roster-view]");
+    if (!btn) return;
+    setRosterViewMode(btn.dataset.rosterView);
+  });
 
   leagueSel?.addEventListener("change", () => {
     setActiveLeague(leagueSel.value);

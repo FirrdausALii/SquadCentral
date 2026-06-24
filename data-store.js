@@ -238,6 +238,7 @@
     }
     if (local.colors?.length) out.colors = clone(local.colors);
     if (local.group) out.group = local.group;
+    if (local.squadDepth) out.squadDepth = clone(local.squadDepth);
     return out;
   }
 

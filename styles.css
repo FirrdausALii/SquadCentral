@@ -562,6 +562,28 @@ html.reveal-init .reveal.is-visible {
 .lineup-nat { color: var(--text-muted); font-size: 11px; }
 
 .lineup-view.is-hidden { display: none; }
+.is-hidden { display: none !important; }
+
+/* Squad depth chart */
+.squad-depth-wrap {
+  padding: 0;
+  overflow: hidden;
+}
+.squad-depth-body {
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+}
+.squad-depth-empty {
+  padding: var(--sp-6) var(--sp-5);
+  text-align: center;
+}
+.squad-depth-footnote,
+.squad-depth-excluded {
+  padding: 0 var(--sp-5) var(--sp-4);
+  font-size: 12px;
+}
+.roster-view-toggle {
+  flex-shrink: 0;
+}
 
 /* Pitch lineup — see lineups-pitch.css */
 

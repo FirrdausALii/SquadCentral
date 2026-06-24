@@ -349,10 +349,15 @@
             </div>
           </div>
 
-          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div class="d-flex flex-wrap gap-2" id="rosterChips" aria-live="polite"></div>
+            <div class="lineup-toggle lineup-view-toggle roster-view-toggle" id="rosterViewBar" role="tablist" aria-label="Squad view">
+              <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">List</button>
+              <button type="button" class="lineup-toggle-btn lineup-view-btn" data-roster-view="depth" role="tab" aria-selected="false">Depth</button>
+            </div>
           </div>
 
+          <div id="rosterListWrap">
           <div class="card squad-panel player-table-wrap" id="rosterPanel">
             <div class="squad-team-head" id="rosterTeamHead" aria-live="polite"></div>
             <div class="squad-col-head" aria-hidden="true">
@@ -363,6 +368,8 @@
             </div>
             <div class="squad-body" id="rosterGrid" aria-live="polite"></div>
           </div>
+          </div>
+          <div id="rosterDepthWrap" class="card squad-depth-wrap is-hidden" aria-live="polite"></div>
           <p class="visually-hidden" id="rosterCount" aria-live="polite"></p>
         </section>
 
@@ -426,6 +433,7 @@
     ></script>
     <script src="./data-store.js"></script>
     <script src="./nationality-flags.js"></script>
+    <script src="./squad-depth.js"></script>
     <script src="./app.js" defer></script>
     <script>
       document.addEventListener("fc-data-missing", () => {

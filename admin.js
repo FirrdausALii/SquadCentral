@@ -7,6 +7,7 @@ const TABS = [
   { id: "leagues", label: "Leagues" },
   { id: "league", label: "Matchweek" },
   { id: "teams", label: "Teams" },
+  { id: "squaddepth", label: "Squad depth" },
   { id: "players", label: "Players" },
   { id: "matches", label: "Matches" },
   { id: "standings", label: "Standings" },
@@ -19,10 +20,13 @@ let activeTab = "overview";
 let leagueFilter = "epl";
 let leagueEditId = "";
 let playerTeamFilter = "";
+let squadDepthTeamFilter = "";
 let transferTeamFilter = "";
 let matchEditId = "";
 /** Preserves matchweek editor fields across renderPanel() (DOM is rebuilt each time). */
 let mwEditorDraft = null;
+/** Preserves squad depth editor across formation change re-renders. */
+let squadDepthDraft = null;
 const LINEUP_SLOTS = 11;
 
 function toast(msg) {
@@ -369,6 +373,222 @@ function rosterHasPlayerName(teamId, name) {
   return playersForTeam(teamId).some((p) => p.name === n);
 }
 
+function goalEventPlayerChoices(teamId, emptyLabel) {
+  if (!teamId) return [{ name: "", label: "— Select team first —" }];
+  return [
+    { name: "", label: emptyLabel },
+    ...playersForTeam(teamId).map((p) => ({
+      name: p.name,
+      label: `${p.number} · ${p.name}`,
+    })),
+  ];
+}
+
+function goalEventEmptyLabel(kind) {
+  return kind === "assist" ? "— No assist —" : "— Player —";
+}
+
+function goalEventSearchQuery(raw, emptyLabel) {
+  const q = String(raw ?? "").trim().toLowerCase();
+  if (!q) return "";
+  const empty = String(emptyLabel ?? "").trim().toLowerCase();
+  if (empty && q === empty) return "";
+  return q;
+}
+
+function renderGoalEventPlayerPickHtml(kind, teamId, selectedName, emptyLabel) {
+  const choices = goalEventPlayerChoices(teamId, emptyLabel);
+  const selected = String(selectedName ?? "").trim();
+  const sel = choices.find((c) => c.name === selected);
+  const label = kind === "assist" ? "Assist" : "Scorer";
+  return `
+    <div class="ge-player-pick fc-combobox" data-kind="${kind}" data-team-id="${esc(teamId ?? "")}">
+      <input
+        type="text"
+        class="fc-combobox-input ge-${kind}-search mw-input"
+        value="${esc(sel && sel.name ? sel.label : "")}"
+        placeholder="${esc(emptyLabel)}"
+        autocomplete="off"
+        spellcheck="false"
+        aria-autocomplete="list"
+        aria-expanded="false"
+      />
+      <input type="hidden" class="ge-${kind}-pick" value="${esc(selectedName ?? "")}" />
+      <ul class="fc-combobox-menu admin-hidden" role="listbox" aria-label="${label}"></ul>
+    </div>`;
+}
+
+function positionGoalEventPlayerMenu(wrap) {
+  const menu = wrap?.querySelector(".fc-combobox-menu");
+  const input = wrap?.querySelector(".fc-combobox-input");
+  if (!menu || !input || menu.classList.contains("admin-hidden")) return;
+
+  const rect = input.getBoundingClientRect();
+  menu.style.position = "fixed";
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.left = `${rect.left}px`;
+  menu.style.width = `${Math.max(rect.width, 160)}px`;
+  menu.style.right = "auto";
+  menu.style.zIndex = "1200";
+}
+
+function renderGoalEventPlayerMenu(wrap, filter = "") {
+  if (!wrap) return;
+  const kind = wrap.dataset.kind;
+  const teamId = wrap.dataset.teamId;
+  const emptyLabel = goalEventEmptyLabel(kind);
+  const menu = wrap.querySelector(".fc-combobox-menu");
+  const input = wrap.querySelector(`.ge-${kind}-search`);
+  if (!menu || !input) return;
+
+  const q = goalEventSearchQuery(filter, emptyLabel);
+  const choices = goalEventPlayerChoices(teamId, emptyLabel);
+  const filtered = q
+    ? choices.filter(
+        (c) =>
+          c.name === "" ||
+          c.label.toLowerCase().includes(q) ||
+          c.name.toLowerCase().includes(q),
+      )
+    : choices;
+
+  menu.innerHTML = filtered
+    .map(
+      (c) =>
+        `<li class="fc-combobox-option" role="option" data-value="${esc(c.name)}" tabindex="-1">${esc(c.label)}</li>`,
+    )
+    .join("");
+
+  const open = filtered.length > 0 && document.activeElement === input;
+  menu.classList.toggle("admin-hidden", !open);
+  input.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) positionGoalEventPlayerMenu(wrap);
+}
+
+function setGoalEventPlayerPick(wrap, playerName) {
+  if (!wrap) return;
+  const kind = wrap.dataset.kind;
+  const emptyLabel = goalEventEmptyLabel(kind);
+  const hidden = wrap.querySelector(`.ge-${kind}-pick`);
+  const input = wrap.querySelector(`.ge-${kind}-search`);
+  const menu = wrap.querySelector(".fc-combobox-menu");
+  if (!hidden || !input) return;
+
+  const name = String(playerName ?? "").trim();
+  hidden.value = name;
+  const choices = goalEventPlayerChoices(wrap.dataset.teamId, emptyLabel);
+  const sel = choices.find((c) => c.name === name);
+  input.value = sel && sel.name ? sel.label : name;
+  menu?.classList.add("admin-hidden");
+  input.setAttribute("aria-expanded", "false");
+}
+
+function refreshGoalEventPlayerPick(wrap, teamId, selectedName) {
+  if (!wrap) return;
+  wrap.dataset.teamId = teamId || "";
+  setGoalEventPlayerPick(wrap, selectedName);
+}
+
+function ensureGoalEventComboboxGlobalListeners() {
+  if (ensureGoalEventComboboxGlobalListeners._bound) return;
+  ensureGoalEventComboboxGlobalListeners._bound = true;
+
+  document.addEventListener("click", (e) => {
+    if (e.target instanceof Element && e.target.closest(".ge-player-pick")) return;
+    for (const menu of document.querySelectorAll(".ge-player-pick .fc-combobox-menu")) {
+      menu.classList.add("admin-hidden");
+    }
+    for (const input of document.querySelectorAll(".ge-player-pick .fc-combobox-input")) {
+      input.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      for (const wrap of document.querySelectorAll(".ge-player-pick")) {
+        const menu = wrap.querySelector(".fc-combobox-menu");
+        if (menu && !menu.classList.contains("admin-hidden")) {
+          positionGoalEventPlayerMenu(wrap);
+        }
+      }
+    },
+    true,
+  );
+
+  window.addEventListener("resize", () => {
+    for (const wrap of document.querySelectorAll(".ge-player-pick")) {
+      const menu = wrap.querySelector(".fc-combobox-menu");
+      if (menu && !menu.classList.contains("admin-hidden")) {
+        positionGoalEventPlayerMenu(wrap);
+      }
+    }
+  });
+}
+
+function bindGoalEventPlayerPick(wrap) {
+  if (!wrap || wrap.dataset.gePickBound === "1") return;
+  wrap.dataset.gePickBound = "1";
+  ensureGoalEventComboboxGlobalListeners();
+
+  const kind = wrap.dataset.kind;
+  const emptyLabel = goalEventEmptyLabel(kind);
+  const hidden = wrap.querySelector(`.ge-${kind}-pick`);
+  const input = wrap.querySelector(`.ge-${kind}-search`);
+  const menu = wrap.querySelector(".fc-combobox-menu");
+  if (!hidden || !input || !menu) return;
+
+  const showMenu = () => {
+    renderGoalEventPlayerMenu(wrap, input.value);
+  };
+
+  input.addEventListener("focus", showMenu);
+  input.addEventListener("click", showMenu);
+
+  input.addEventListener("input", () => {
+    hidden.value = "";
+    renderGoalEventPlayerMenu(wrap, input.value);
+  });
+
+  menu.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+  });
+
+  menu.addEventListener("click", (e) => {
+    const opt = e.target instanceof Element ? e.target.closest(".fc-combobox-option") : null;
+    if (!opt) return;
+    setGoalEventPlayerPick(wrap, opt.getAttribute("data-value") ?? "");
+    input.focus();
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      menu.classList.add("admin-hidden");
+      input.setAttribute("aria-expanded", "false");
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const first = menu.querySelector(".fc-combobox-option");
+      if (first) setGoalEventPlayerPick(wrap, first.getAttribute("data-value") ?? "");
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    window.setTimeout(() => {
+      menu.classList.add("admin-hidden");
+      input.setAttribute("aria-expanded", "false");
+      setGoalEventPlayerPick(wrap, hidden.value);
+    }, 150);
+  });
+}
+
+function bindGoalEventPlayerPicks(root = document) {
+  for (const wrap of root.querySelectorAll(".ge-player-pick")) {
+    bindGoalEventPlayerPick(wrap);
+  }
+}
+
 const GOAL_EVENT_TYPES = ["Own Goal", "Penalty", "Free kick", "Free Kick", "Header"];
 
 function normalizeGoalEventType(type) {
@@ -427,9 +647,7 @@ function renderGoalEventPlayerFields(kind, teamId, value) {
         </select>
       </div>
       <div class="ge-${kind}-roster${useManual ? " admin-hidden" : ""}">
-        <div class="mw-select-wrap mw-select-wrap--compact">
-          <select class="ge-${kind}-pick mw-select">${playerNameOptions(teamId, value ?? "", emptyLabel)}</select>
-        </div>
+        ${renderGoalEventPlayerPickHtml(kind, teamId, value ?? "", emptyLabel)}
       </div>
       <div class="ge-${kind}-manual${useManual ? "" : " admin-hidden"}">
         <input class="ge-${kind}-man mw-input" type="text" value="${esc(useManual ? value ?? "" : "")}" placeholder="${isAssist ? "Assist name" : "Scorer name"}" />
@@ -470,11 +688,10 @@ function refreshGoalEventRowPlayers(row) {
 
   for (const kind of ["scorer", "assist"]) {
     if (row.querySelector(`.ge-${kind}-mode`)?.value === "manual") continue;
-    const pick = row.querySelector(`.ge-${kind}-pick`);
-    if (!pick) continue;
-    const val = pick.value;
-    const emptyLabel = kind === "assist" ? "— No assist —" : "— Player —";
-    pick.innerHTML = playerNameOptions(teamId, val, emptyLabel);
+    const wrap = row.querySelector(`.ge-${kind}-roster .ge-player-pick`);
+    const hidden = row.querySelector(`.ge-${kind}-pick`);
+    const val = hidden?.value ?? "";
+    refreshGoalEventPlayerPick(wrap, teamId, val);
   }
 }
 
@@ -1189,7 +1406,7 @@ function panelTeams() {
       <section class="mw-card" id="teamFormCard">
         <div class="mw-card-head">
           <h3 id="teamFormTitle">Add team</h3>
-          <p>Stadium autofills matchweek fixtures; formation appears in Club Spotlight on the site.</p>
+          <p>Stadium autofills matchweek fixtures; formation is used in Club Spotlight and squad depth on the site.</p>
         </div>
         <input type="hidden" id="teamEditId" value="" />
         <div class="row g-2 g-md-3">
@@ -1226,6 +1443,177 @@ function panelTeams() {
             <button type="button" class="mw-btn-ghost w-100" id="btnNewTeam">Clear form</button>
           </div>
         </div>
+      </section>
+    </div>
+  `;
+}
+
+function squadDepthRoster(teamId) {
+  if (typeof playersForTeam === "function") return playersForTeam(teamId);
+  return state()
+    .players.filter((p) => p.teamId === teamId)
+    .sort((a, b) => Number(a.number) - Number(b.number) || String(a.name).localeCompare(b.name));
+}
+
+function squadDepthPickOptions(roster, selectedId, usedIds) {
+  const used = usedIds instanceof Set ? usedIds : new Set();
+  const opts = [`<option value="">— Pick —</option>`];
+  for (const p of roster) {
+    const sel = p.id === selectedId ? " selected" : "";
+    const dis = used.has(p.id) && p.id !== selectedId ? " disabled" : "";
+    opts.push(
+      `<option value="${esc(p.id)}"${sel}${dis}>#${esc(p.number)} ${esc(p.name)} · ${esc(p.role ?? p.pos ?? "—")}</option>`,
+    );
+  }
+  return opts.join("");
+}
+
+function readSquadDepthFromDom() {
+  const formation = $("#sdFormation")?.value?.trim() || "4-2-3-1";
+  const goalkeepers = Array.from({ length: SquadDepth.DEPTH_GK_COUNT }, (_, i) =>
+    String($(`#sdGk${i}`)?.value ?? "").trim(),
+  );
+  const slots = Array.from({ length: SquadDepth.DEPTH_OUTFIELD_SLOTS }, (_, i) => ({
+    tag: String($(`#sdTag${i}`)?.value ?? "").trim() || `S${i + 1}`,
+    players: [
+      String($(`#sdSlot${i}A`)?.value ?? "").trim(),
+      String($(`#sdSlot${i}B`)?.value ?? "").trim(),
+    ],
+  }));
+  return SquadDepth.normalizeSquadDepth({ formation, goalkeepers, slots }, formation);
+}
+
+function panelSquadDepth() {
+  const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
+  const teams = teamsForLeague(leagueFilter);
+  const teamId = squadDepthTeamFilter || teams[0]?.id || "";
+  const team = teams.find((t) => t.id === teamId);
+  const roster = team ? squadDepthRoster(team.id) : [];
+  const depth = squadDepthDraft ?? SquadDepth.normalizeSquadDepth(team?.squadDepth, team?.formation);
+  const usedPreview = SquadDepth.depthPlayerIds(depth);
+  const gkRows = Array.from({ length: SquadDepth.DEPTH_GK_COUNT }, (_, i) => {
+    const used = new Set([...usedPreview].filter((id) => id !== depth.goalkeepers[i]));
+    return `
+      <div class="sd-gk-row">
+        <label class="sd-gk-label" for="sdGk${i}">GK ${i + 1}</label>
+        <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
+          <select id="sdGk${i}" class="sd-pick mw-select" aria-label="Goalkeeper ${i + 1}">
+            ${squadDepthPickOptions(roster, depth.goalkeepers[i], used)}
+          </select>
+        </div>
+      </div>`;
+  }).join("");
+
+  const slotRows = depth.slots
+    .map((slot, i) => {
+      const used = new Set(
+        [...usedPreview].filter((id) => id !== slot.players[0] && id !== slot.players[1]),
+      );
+      return `
+        <div class="sd-slot-row">
+          <div class="sd-slot-head">
+            <span class="sd-slot-num">${i + 1}</span>
+            <input id="sdTag${i}" class="sd-tag mw-input" value="${esc(slot.tag)}" placeholder="LB" aria-label="Slot ${i + 1} tag" />
+          </div>
+          <div class="sd-slot-picks">
+            <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
+              <select id="sdSlot${i}A" class="sd-pick mw-select" aria-label="Slot ${i + 1} starter">
+                ${squadDepthPickOptions(roster, slot.players[0], used)}
+              </select>
+            </div>
+            <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
+              <select id="sdSlot${i}B" class="sd-pick mw-select" aria-label="Slot ${i + 1} depth">
+                ${squadDepthPickOptions(roster, slot.players[1], used)}
+              </select>
+            </div>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  const validation = SquadDepth.validateSquadDepth(depth);
+  const statusClass = validation.ok ? "sd-status--ok" : "sd-status--warn";
+  const statusText = validation.ok
+    ? `${SquadDepth.DEPTH_CHART_SIZE} players configured — ready for the public Depth view.`
+    : validation.errors[0];
+
+  const emptyTeam = !team
+    ? `<p class="admin-muted">Add teams in the <strong>Teams</strong> tab first.</p>`
+    : !roster.length
+      ? `<p class="admin-muted">Add players for <strong>${esc(team.name)}</strong> in the <strong>Players</strong> tab first.</p>`
+      : "";
+
+  return `
+    <div class="mw-page squaddepth-page">
+      <header class="mw-hero">
+        <div class="row g-3 align-items-start">
+          <div class="col-12 col-lg-8 mw-hero-text">
+            <p class="mw-eyebrow">Squad setup</p>
+            <h2 class="mw-heading">Squad depth</h2>
+            <p class="mw-lead">Set the formation and pick <strong>23 players</strong> for the public depth chart: <strong>3 goalkeepers</strong> plus <strong>10 positions × 2</strong>. Remaining squad players stay list-only.</p>
+          </div>
+          <div class="col-12 col-sm-8 col-lg-4">
+            <div class="mw-hero-preview w-100">
+              <span class="mw-hero-preview-label">League</span>
+              <strong class="mw-hero-preview-title">${esc(leagueName)}</strong>
+              <span class="mw-hero-preview-range">${teams.length} team${teams.length === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="mw-card">
+        <div class="mw-card-head">
+          <h3>Depth chart editor</h3>
+          <p>Formation drives the 10 outfield slots. Slot tags are labels only (LB, CB, ST, etc.).</p>
+        </div>
+        <div class="row g-2 g-md-3 mb-3">
+          <div class="col-12 col-md-6 col-lg-4">
+            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+          </div>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="mw-field">
+              <label for="sdTeam">Team</label>
+              <div class="mw-select-wrap">
+                <select id="sdTeam" class="mw-select"${teams.length ? "" : " disabled"}>
+                  ${teamOptionTags(teams, teamId)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="mw-field">
+              <label for="sdFormation">Formation</label>
+              <input id="sdFormation" class="mw-input" value="${esc(depth.formation)}" placeholder="4-2-3-1" />
+              <p class="mw-field-note admin-muted">Must total 10 outfield players (e.g. 4-2-3-1, 4-3-3, 3-5-2).</p>
+            </div>
+          </div>
+        </div>
+        ${emptyTeam}
+        ${
+          team && roster.length
+            ? `
+          <p class="sd-status ${statusClass}" id="sdStatus" aria-live="polite">${esc(statusText)}</p>
+          <div class="sd-editor-grid">
+            <section class="sd-block sd-block--gk">
+              <h4 class="sd-block-title">Goalkeepers <span class="sd-block-count">3</span></h4>
+              <div class="sd-gk-grid">${gkRows}</div>
+            </section>
+            <section class="sd-block sd-block--slots">
+              <h4 class="sd-block-title">Outfield slots <span class="sd-block-count">10 × 2</span></h4>
+              <div class="sd-slot-grid">${slotRows}</div>
+            </section>
+          </div>
+          <div class="sd-actions row g-2 mt-3">
+            <div class="col-12 col-sm-auto">
+              <button type="button" class="mw-btn-primary w-100" id="btnSaveSquadDepth">Save depth chart</button>
+            </div>
+            <div class="col-12 col-sm-auto">
+              <button type="button" class="mw-btn-ghost w-100" id="btnResetSquadDepth">Reset picks</button>
+            </div>
+          </div>`
+            : ""
+        }
       </section>
     </div>
   `;
@@ -2035,6 +2423,7 @@ function renderPanel() {
     leagues: panelLeagues,
     league: panelLeague,
     teams: panelTeams,
+    squaddepth: panelSquadDepth,
     players: panelPlayers,
     matches: panelMatches,
     standings: panelStandings,
@@ -2044,8 +2433,10 @@ function renderPanel() {
   };
 
   mwEditorDraft = activeTab === "league" ? readMwEditorDraft() : null;
+  if (activeTab !== "squaddepth") squadDepthDraft = null;
   main.innerHTML = map[activeTab]?.() ?? "";
   mwEditorDraft = null;
+  squadDepthDraft = null;
   bindLeagueSelect();
   bindPanelHandlers();
 }
@@ -2057,6 +2448,7 @@ function bindLeagueSelect() {
   sel.addEventListener("change", () => {
     leagueFilter = sel.value;
     playerTeamFilter = "";
+    squadDepthTeamFilter = "";
     transferTeamFilter = "";
     matchEditId = "";
     renderPanel();
@@ -2125,6 +2517,7 @@ function bindPanelHandlers() {
   bindLeagues();
   bindMatchweek();
   bindTeams();
+  bindSquadDepth();
   bindPlayers();
   bindMatches();
   bindStandings();
@@ -2262,31 +2655,37 @@ function bindGoalEventRowHandlers() {
       const modeSel = row.querySelector(`.ge-${kind}-mode`);
       const rosterEl = row.querySelector(`.ge-${kind}-roster`);
       const manualEl = row.querySelector(`.ge-${kind}-manual`);
-      const pick = row.querySelector(`.ge-${kind}-pick`);
+      const pickWrap = rosterEl?.querySelector(".ge-player-pick");
+      const hidden = row.querySelector(`.ge-${kind}-pick`);
       const man = row.querySelector(`.ge-${kind}-man`);
 
       const syncMode = () => {
         const manual = modeSel?.value === "manual";
         rosterEl?.classList.toggle("admin-hidden", manual);
         manualEl?.classList.toggle("admin-hidden", !manual);
-        if (!manual && man?.value.trim() && pick) {
-          const match = [...pick.options].find((o) => o.value === man.value.trim());
-          if (match) pick.value = match.value;
+        if (!manual && man?.value.trim() && hidden) {
+          const teamId = row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
+          const match = goalEventPlayerChoices(
+            teamId,
+            kind === "assist" ? "— No assist —" : "— Player —",
+          ).find((c) => c.name === man.value.trim());
+          if (match) setGoalEventPlayerPick(pickWrap, match.name);
         }
       };
 
       modeSel?.addEventListener("change", () => {
-        if (modeSel.value === "roster" && man?.value.trim() && pick) {
-          const match = [...pick.options].find((o) => o.value === man.value.trim());
-          if (match) pick.value = match.value;
-        } else if (modeSel.value === "manual" && pick?.value && man) {
-          man.value = pick.value;
+        if (modeSel.value === "roster" && man?.value.trim() && hidden) {
+          const teamId = row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
+          const match = goalEventPlayerChoices(
+            teamId,
+            kind === "assist" ? "— No assist —" : "— Player —",
+          ).find((c) => c.name === man.value.trim());
+          if (match) setGoalEventPlayerPick(pickWrap, match.name);
+          else hidden.value = man.value.trim();
+        } else if (modeSel.value === "manual" && hidden?.value && man) {
+          man.value = hidden.value;
         }
         syncMode();
-      });
-
-      pick?.addEventListener("change", () => {
-        if (pick.value && man && modeSel?.value === "manual") man.value = pick.value;
       });
 
       syncMode();
@@ -2300,6 +2699,7 @@ function bindGoalEventRowHandlers() {
       if (!custom) typeCustom && (typeCustom.value = "");
     });
   });
+  bindGoalEventPlayerPicks();
 }
 
 function bindMatchweek() {
@@ -2346,6 +2746,7 @@ function bindMatchweek() {
     tbody.insertAdjacentHTML("beforeend", renderGoalEventRowHtml({}, i, homeId, awayId));
     bindGoalEventDeletes();
     bindGoalEventRowHandlers();
+    bindGoalEventPlayerPicks(tbody);
   });
 
   bindGoalEventDeletes();
@@ -2542,6 +2943,7 @@ function bindTeams() {
     if (!name) return alert("Name required");
     const id = editId || `${leagueFilter}_${FCDataStore.slugify(name)}`;
     const formation = $("#teamFormation").value.trim();
+    const prev = editId ? state().teams.find((t) => t.id === editId) : null;
     const team = {
       id,
       leagueId: leagueFilter,
@@ -2553,6 +2955,7 @@ function bindTeams() {
       colors: [$("#teamC1").value, $("#teamC2").value],
       logo: $("#teamLogo").value.trim() || undefined,
     };
+    if (prev?.squadDepth) team.squadDepth = prev.squadDepth;
     FCDataStore.upsertTeam(team);
     syncToAppArrays();
     toast("Team saved");
@@ -2585,6 +2988,52 @@ function bindTeams() {
       toast("Team removed");
       renderPanel();
     });
+  });
+}
+
+function bindSquadDepth() {
+  $("#sdTeam")?.addEventListener("change", () => {
+    squadDepthTeamFilter = $("#sdTeam")?.value ?? "";
+    squadDepthDraft = null;
+    renderPanel();
+  });
+
+  $("#sdFormation")?.addEventListener("change", () => {
+    squadDepthDraft = SquadDepth.syncDepthFormation(
+      readSquadDepthFromDom(),
+      $("#sdFormation")?.value?.trim() || "4-2-3-1",
+    );
+    renderPanel();
+  });
+
+  $("#btnSaveSquadDepth")?.addEventListener("click", () => {
+    const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
+    const team = state().teams.find((t) => t.id === teamId);
+    if (!team) return alert("Select a team");
+    const depth = readSquadDepthFromDom();
+    const check = SquadDepth.validateSquadDepth(depth);
+    if (!check.ok) {
+      alert(check.errors.join("\n"));
+      return;
+    }
+    squadDepthDraft = null;
+    FCDataStore.upsertTeam({ ...team, squadDepth: depth, formation: depth.formation });
+    syncToAppArrays();
+    toast("Squad depth saved");
+    renderPanel();
+  });
+
+  $("#btnResetSquadDepth")?.addEventListener("click", () => {
+    const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
+    const team = state().teams.find((t) => t.id === teamId);
+    if (!team) return;
+    if (!confirm(`Clear depth chart picks for ${team.name}?`)) return;
+    const formation = $("#sdFormation")?.value?.trim() || team.formation || "4-2-3-1";
+    squadDepthDraft = null;
+    FCDataStore.upsertTeam({ ...team, squadDepth: SquadDepth.emptySquadDepth(formation) });
+    syncToAppArrays();
+    toast("Depth chart cleared");
+    renderPanel();
   });
 }
 
