@@ -1,5 +1,5 @@
 /**
- * Squad depth chart — 3 GK + 10 outfield slots × 2 players = 23 on pitch.
+ * Squad depth chart — up to 3 GK + 10 outfield slots × 2 players (partial picks allowed).
  */
 (function (global) {
   const DEPTH_GK_COUNT = 3;
@@ -101,37 +101,29 @@
     return ids;
   }
 
+  function countDepthPlayers(depth) {
+    return depthPlayerIds(depth).size;
+  }
+
+  function hasSquadDepthContent(depth) {
+    return countDepthPlayers(depth) > 0;
+  }
+
+  /** Only blocks duplicate picks — partial charts (2 GK, 1 player per slot, etc.) are fine. */
   function validateSquadDepth(depth) {
     const errors = [];
     const ids = [];
-    const gks = (depth.goalkeepers ?? []).filter(Boolean);
-    if (gks.length !== DEPTH_GK_COUNT) {
-      errors.push(`Pick exactly ${DEPTH_GK_COUNT} goalkeepers.`);
-    }
-    const slots = depth.slots ?? [];
-    if (slots.length !== DEPTH_OUTFIELD_SLOTS) {
-      errors.push(`Need ${DEPTH_OUTFIELD_SLOTS} outfield slots.`);
-    }
-    for (let i = 0; i < DEPTH_OUTFIELD_SLOTS; i++) {
-      const picked = (slots[i]?.players ?? []).filter(Boolean);
-      if (picked.length !== DEPTH_PLAYERS_PER_SLOT) {
-        errors.push(`Slot ${i + 1} (${slots[i]?.tag ?? "?"}) needs ${DEPTH_PLAYERS_PER_SLOT} players.`);
-      }
-    }
     for (const id of depth.goalkeepers ?? []) {
       if (id) ids.push(id);
     }
-    for (const slot of slots) {
+    for (const slot of depth.slots ?? []) {
       for (const id of slot.players ?? []) {
         if (id) ids.push(id);
       }
     }
     const uniq = new Set(ids);
     if (uniq.size !== ids.length) errors.push("Each player can only appear once on the depth chart.");
-    if (uniq.size !== DEPTH_CHART_SIZE) {
-      errors.push(`Depth chart must have ${DEPTH_CHART_SIZE} unique players (${uniq.size} now).`);
-    }
-    return { ok: errors.length === 0, errors };
+    return { ok: errors.length === 0, errors, count: uniq.size };
   }
 
   function buildOutfieldRows(formation, slots) {
@@ -150,7 +142,7 @@
   }
 
   function isSquadDepthComplete(depth) {
-    return validateSquadDepth(normalizeSquadDepth(depth)).ok;
+    return hasSquadDepthContent(depth);
   }
 
   global.SquadDepth = {
@@ -164,6 +156,8 @@
     normalizeSquadDepth,
     syncDepthFormation,
     depthPlayerIds,
+    countDepthPlayers,
+    hasSquadDepthContent,
     validateSquadDepth,
     buildOutfieldRows,
     isSquadDepthComplete,

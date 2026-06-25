@@ -4679,30 +4679,31 @@ function setRosterViewMode(mode) {
   renderRoster();
 }
 
-function renderSquadDepthToken(p, tier) {
-  const short = lineupShortName(p.name);
-  const num = escapeHtml(p.number ?? "");
-  const isGk = String(p.pos ?? "").toUpperCase() === "GK";
-  const capClass = isCaptainPlayer(p) ? " captain" : "";
-  const tierClass = tier === 2 ? " depth-player--backup" : " depth-player--starter";
-  const role = escapeHtml(p.role ?? p.pos ?? "");
-  const tierLabel = tier === 2 ? " · Depth" : " · Starter";
+function renderSquadDepthPosNode(tag, players, isGk = false) {
+  const label = escapeHtml(String(tag ?? "—").toUpperCase());
+  const hasCap = players.some((p) => isCaptainPlayer(p));
+  const capClass = hasCap ? " captain" : "";
+  const namesHtml = players.length
+    ? players
+        .map((p) => {
+          const short = lineupShortName(p.name);
+          const cap = isCaptainPlayer(p) ? `<span class="depth-pos-cap" aria-hidden="true">C</span>` : "";
+          return `<button type="button" class="depth-pos-name" data-player="${escapeHtml(p.id)}" aria-label="${escapeHtml(stripCaptainSuffix(p.name))}">${cap}${escapeHtml(short)}</button>`;
+        })
+        .join("")
+    : `<span class="depth-empty muted">—</span>`;
   return `
-    <button type="button" class="depth-player pitch-player${tierClass}${isGk ? " is-gk" : ""}" data-player="${escapeHtml(p.id)}">
-      <div class="player-circle pitch-token depth-token${capClass}${tierClass}">${num}</div>
-      <div class="player-name-tag pitch-name depth-name">${escapeHtml(short)}</div>
-      <div class="player-tooltip">
-        <div class="player-tooltip-name">${escapeHtml(stripCaptainSuffix(p.name))}</div>
-        <div class="player-tooltip-meta">${role}${tierLabel}</div>
-      </div>
-    </button>
+    <div class="depth-pos-node${isGk ? " is-gk" : ""}">
+      <div class="player-circle pitch-token depth-pos-badge${capClass}">${label}</div>
+      <div class="depth-pos-names">${namesHtml}</div>
+    </div>
   `;
 }
 
 function renderSquadDepthPitch(team, depth, leagueId) {
   if (typeof SquadDepth === "undefined") return "";
   const normalized = SquadDepth.normalizeSquadDepth(depth, team.formation);
-  if (!SquadDepth.isSquadDepthComplete(normalized)) return "";
+  if (!SquadDepth.hasSquadDepthContent(normalized)) return "";
 
   const formation = normalized.formation || team.formation || "4-2-3-1";
   const playerMap = new Map(playersForTeam(team.id).map((p) => [p.id, p]));
@@ -4713,27 +4714,23 @@ function renderSquadDepthPitch(team, depth, leagueId) {
   }));
   const outfieldRows = SquadDepth.buildOutfieldRows(formation, slots);
   const rowCount = outfieldRows.length;
+  const outfieldTopStart = 72;
+  const outfieldTopEnd = 12;
 
-  const gkHtml = gks
-    .map((p, i) => {
-      const left = gks.length > 1 ? ((i + 1) / (gks.length + 1)) * 100 : 50;
-      return `<div class="depth-gk-node" style="left:${left.toFixed(1)}%;top:92%">${renderSquadDepthToken(p, 1)}</div>`;
-    })
-    .join("");
+  const gkHtml =
+    gks.length > 0
+      ? `<div class="depth-slot depth-slot--gk" style="left:50%;top:86%">${renderSquadDepthPosNode("GK", gks, true)}</div>`
+      : "";
 
   const outfieldHtml = outfieldRows
     .map((row, r) => {
-      const top = rowCount > 1 ? 84 - (r / (rowCount - 1)) * 72 : 50;
+      const top = rowCount > 1 ? outfieldTopStart - (r / (rowCount - 1)) * (outfieldTopStart - outfieldTopEnd) : 50;
       return row
         .map((slot, c) => {
           const left = ((c + 1) / (row.length + 1)) * 100;
-          const stack = slot.players.length
-            ? slot.players.map((p, pi) => renderSquadDepthToken(p, pi + 1)).join("")
-            : `<span class="depth-empty muted">—</span>`;
           return `
             <div class="depth-slot" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%">
-              <div class="depth-stack">${stack}</div>
-              <span class="depth-slot-tag">${escapeHtml(slot.tag ?? "")}</span>
+              ${renderSquadDepthPosNode(slot.tag, slot.players)}
             </div>
           `;
         })
@@ -4742,6 +4739,7 @@ function renderSquadDepthPitch(team, depth, leagueId) {
     .join("");
 
   const onChart = SquadDepth.depthPlayerIds(normalized);
+  const chartCount = onChart.size;
   const excluded = playersForTeam(team.id).filter((p) => !onChart.has(p.id));
   const excludedNote = excluded.length
     ? `<p class="squad-depth-excluded muted mb-0">${excluded.length} squad player${excluded.length === 1 ? "" : "s"} not on depth chart</p>`
@@ -4756,11 +4754,11 @@ function renderSquadDepthPitch(team, depth, leagueId) {
       <div class="pitch squad-depth-pitch">
         ${pitchMarkingsSvg()}
         <div class="pitch-players">
-          <div class="depth-gk-row">${gkHtml}</div>
+          ${gkHtml}
           ${outfieldHtml}
         </div>
       </div>
-      <p class="squad-depth-footnote muted mb-2">23 on chart · 3 GK + 10 positions × 2</p>
+      <p class="squad-depth-footnote muted mb-2">${chartCount} on chart · up to ${SquadDepth.DEPTH_CHART_SIZE} (3 GK + 10 positions × 2)</p>
       ${excludedNote}
     </section>
   `;
@@ -4785,7 +4783,7 @@ function renderSquadDepthView(state, team, startsMap) {
     wrap.innerHTML = `
       <div class="squad-empty squad-depth-empty">
         <p class="mb-2"><strong>${escapeHtml(team.name)}</strong> — depth chart not set up yet.</p>
-        <p class="mb-0 muted">Configure 3 goalkeepers and 10 outfield slots (2 players each) in Admin → Squad depth.</p>
+        <p class="mb-0 muted">Add players in Admin → Squad depth (any number — 2 GK, 1 per slot, etc.).</p>
       </div>
     `;
     return;

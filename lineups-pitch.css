@@ -298,86 +298,153 @@
   }
 }
 
-/* Squad depth — 2 players per slot + 3 GK */
+/* Squad depth — one badge per position, names stacked below */
 .squad-depth-side {
   max-width: 420px;
   margin: 0 auto;
 }
 
-.squad-depth-pitch {
-  max-width: 100%;
+.squad-depth-body {
+  padding-bottom: var(--sp-2);
 }
 
-.depth-gk-row,
-.depth-gk-node,
+.squad-depth-pitch {
+  max-width: 100%;
+  overflow: visible;
+  margin-bottom: 8px;
+}
+
+.squad-depth-pitch .pitch-players {
+  overflow: visible;
+}
+
 .depth-slot {
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 2;
-}
-
-.depth-gk-node {
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-width: 78px;
 }
 
-.depth-slot {
+.depth-slot--gk {
+  z-index: 3;
+}
+
+.depth-pos-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.depth-pos-badge {
+  width: 34px;
+  height: 34px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 0 2px;
+  text-align: center;
+}
+
+.depth-pos-node.is-gk .depth-pos-badge {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(217, 119, 6, 0.4);
+}
+
+.depth-pos-names {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  width: 100%;
 }
 
-.depth-stack {
-  display: flex;
-  flex-direction: column;
+.depth-pos-name {
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
-}
-
-.depth-player {
-  position: relative;
-  transform: none;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
   gap: 2px;
-}
-
-.depth-player--backup .depth-token {
-  width: 26px;
-  height: 26px;
+  width: 100%;
+  max-width: 76px;
+  margin: 0;
+  padding: 2px 5px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(11, 17, 32, 0.88);
+  color: var(--text-primary);
   font-size: 9px;
-  opacity: 0.92;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
 }
 
-.depth-player--backup .depth-name {
-  font-size: 8px;
-  max-width: 58px;
+.depth-pos-name:hover,
+.depth-pos-name:focus-visible {
+  background: rgba(55, 138, 221, 0.22);
+  border-color: rgba(55, 138, 221, 0.45);
+  outline: none;
 }
 
-.depth-slot-tag {
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-  pointer-events: none;
+.depth-pos-cap {
+  flex-shrink: 0;
+  font-size: 7px;
+  font-weight: 800;
+  color: var(--color-draw);
 }
 
 .depth-empty {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 @media (max-width: 768px) {
-  .depth-player--backup .depth-token {
-    width: 22px;
-    height: 22px;
+  .squad-depth-side {
+    max-width: 100%;
+  }
+
+  .squad-depth-pitch {
+    margin-bottom: 12px;
+  }
+
+  .depth-slot {
+    max-width: 64px;
+  }
+
+  .depth-pos-badge {
+    width: 30px;
+    height: 30px;
+    font-size: 7.5px;
+  }
+
+  .depth-pos-name {
+    max-width: 62px;
     font-size: 8px;
+    padding: 2px 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .depth-slot {
+    max-width: 56px;
+  }
+
+  .depth-pos-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 7px;
+  }
+
+  .depth-pos-name {
+    max-width: 54px;
+    font-size: 7.5px;
   }
 }

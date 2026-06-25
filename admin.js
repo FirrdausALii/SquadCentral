@@ -1532,10 +1532,13 @@ function panelSquadDepth() {
     .join("");
 
   const validation = SquadDepth.validateSquadDepth(depth);
-  const statusClass = validation.ok ? "sd-status--ok" : "sd-status--warn";
-  const statusText = validation.ok
-    ? `${SquadDepth.DEPTH_CHART_SIZE} players configured — ready for the public Depth view.`
-    : validation.errors[0];
+  const chartCount = SquadDepth.countDepthPlayers(depth);
+  const statusClass = validation.ok ? (chartCount > 0 ? "sd-status--ok" : "sd-status--warn") : "sd-status--warn";
+  const statusText = !validation.ok
+    ? validation.errors[0]
+    : chartCount > 0
+      ? `${chartCount} player${chartCount === 1 ? "" : "s"} on chart (up to ${SquadDepth.DEPTH_CHART_SIZE}). Save anytime — picks are optional.`
+      : "No players picked yet. Save formation and fill slots when ready.";
 
   const emptyTeam = !team
     ? `<p class="admin-muted">Add teams in the <strong>Teams</strong> tab first.</p>`
@@ -1550,7 +1553,7 @@ function panelSquadDepth() {
           <div class="col-12 col-lg-8 mw-hero-text">
             <p class="mw-eyebrow">Squad setup</p>
             <h2 class="mw-heading">Squad depth</h2>
-            <p class="mw-lead">Set the formation and pick <strong>23 players</strong> for the public depth chart: <strong>3 goalkeepers</strong> plus <strong>10 positions × 2</strong>. Remaining squad players stay list-only.</p>
+            <p class="mw-lead">Set the formation and pick players for the public depth chart — up to <strong>3 goalkeepers</strong> and <strong>10 positions × 2</strong>. Every pick is optional; save with 2 GK, one player per slot, or a partial chart.</p>
           </div>
           <div class="col-12 col-sm-8 col-lg-4">
             <div class="mw-hero-preview w-100">
@@ -1565,7 +1568,7 @@ function panelSquadDepth() {
       <section class="mw-card">
         <div class="mw-card-head">
           <h3>Depth chart editor</h3>
-          <p>Formation drives the 10 outfield slots. Slot tags are labels only (LB, CB, ST, etc.).</p>
+          <p>Formation drives the 10 outfield slots. Slot tags are labels only. Leave any pick empty if you do not need it.</p>
         </div>
         <div class="row g-2 g-md-3 mb-3">
           <div class="col-12 col-md-6 col-lg-4">
@@ -1596,11 +1599,11 @@ function panelSquadDepth() {
           <p class="sd-status ${statusClass}" id="sdStatus" aria-live="polite">${esc(statusText)}</p>
           <div class="sd-editor-grid">
             <section class="sd-block sd-block--gk">
-              <h4 class="sd-block-title">Goalkeepers <span class="sd-block-count">3</span></h4>
+              <h4 class="sd-block-title">Goalkeepers <span class="sd-block-count">up to 3</span></h4>
               <div class="sd-gk-grid">${gkRows}</div>
             </section>
             <section class="sd-block sd-block--slots">
-              <h4 class="sd-block-title">Outfield slots <span class="sd-block-count">10 × 2</span></h4>
+              <h4 class="sd-block-title">Outfield slots <span class="sd-block-count">10 × 2 (optional)</span></h4>
               <div class="sd-slot-grid">${slotRows}</div>
             </section>
           </div>

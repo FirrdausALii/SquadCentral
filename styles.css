@@ -567,10 +567,11 @@ html.reveal-init .reveal.is-visible {
 /* Squad depth chart */
 .squad-depth-wrap {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 .squad-depth-body {
   padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  overflow: visible;
 }
 .squad-depth-empty {
   padding: var(--sp-6) var(--sp-5);
