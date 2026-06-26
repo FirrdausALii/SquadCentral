@@ -1455,17 +1455,52 @@ function squadDepthRoster(teamId) {
     .sort((a, b) => Number(a.number) - Number(b.number) || String(a.name).localeCompare(b.name));
 }
 
-function squadDepthPickOptions(roster, selectedId, usedIds) {
-  const used = usedIds instanceof Set ? usedIds : new Set();
+function squadDepthPickOptions(roster, selectedId) {
   const opts = [`<option value="">— Pick —</option>`];
   for (const p of roster) {
     const sel = p.id === selectedId ? " selected" : "";
-    const dis = used.has(p.id) && p.id !== selectedId ? " disabled" : "";
     opts.push(
-      `<option value="${esc(p.id)}"${sel}${dis}>#${esc(p.number)} ${esc(p.name)} · ${esc(p.role ?? p.pos ?? "—")}</option>`,
+      `<option value="${esc(p.id)}"${sel}>#${esc(p.number)} ${esc(p.name)} · ${esc(p.role ?? p.pos ?? "—")}</option>`,
     );
   }
   return opts.join("");
+}
+
+function squadDepthFieldValue(depth, fieldId) {
+  const gkMatch = fieldId.match(/^sdGk(\d+)$/);
+  if (gkMatch) return depth.goalkeepers[Number(gkMatch[1])] ?? "";
+  const slotMatch = fieldId.match(/^sdSlot(\d+)([AB])$/);
+  if (slotMatch) {
+    const idx = Number(slotMatch[1]);
+    const which = slotMatch[2] === "A" ? 0 : 1;
+    return depth.slots[idx]?.players[which] ?? "";
+  }
+  return "";
+}
+
+/** When a player is picked in one slot, remove them from any other slot (move, not duplicate). */
+function dedupeSquadDepthPicks(depth, keepFieldId) {
+  const next = SquadDepth.normalizeSquadDepth(depth);
+  const keepVal = squadDepthFieldValue(next, keepFieldId);
+  if (!keepVal) return next;
+
+  for (let i = 0; i < SquadDepth.DEPTH_GK_COUNT; i++) {
+    const fid = `sdGk${i}`;
+    if (fid !== keepFieldId && next.goalkeepers[i] === keepVal) next.goalkeepers[i] = "";
+  }
+  for (let i = 0; i < SquadDepth.DEPTH_OUTFIELD_SLOTS; i++) {
+    const fidA = `sdSlot${i}A`;
+    if (fidA !== keepFieldId && next.slots[i].players[0] === keepVal) next.slots[i].players[0] = "";
+    const fidB = `sdSlot${i}B`;
+    if (fidB !== keepFieldId && next.slots[i].players[1] === keepVal) next.slots[i].players[1] = "";
+  }
+  return next;
+}
+
+function applySquadDepthEditorChange(changedFieldId) {
+  if (!changedFieldId) return;
+  squadDepthDraft = dedupeSquadDepthPicks(readSquadDepthFromDom(), changedFieldId);
+  renderPanel();
 }
 
 function readSquadDepthFromDom() {
@@ -1490,40 +1525,38 @@ function panelSquadDepth() {
   const team = teams.find((t) => t.id === teamId);
   const roster = team ? squadDepthRoster(team.id) : [];
   const depth = squadDepthDraft ?? SquadDepth.normalizeSquadDepth(team?.squadDepth, team?.formation);
-  const usedPreview = SquadDepth.depthPlayerIds(depth);
   const gkRows = Array.from({ length: SquadDepth.DEPTH_GK_COUNT }, (_, i) => {
-    const used = new Set([...usedPreview].filter((id) => id !== depth.goalkeepers[i]));
     return `
       <div class="sd-gk-row">
         <label class="sd-gk-label" for="sdGk${i}">GK ${i + 1}</label>
         <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
           <select id="sdGk${i}" class="sd-pick mw-select" aria-label="Goalkeeper ${i + 1}">
-            ${squadDepthPickOptions(roster, depth.goalkeepers[i], used)}
+            ${squadDepthPickOptions(roster, depth.goalkeepers[i])}
           </select>
         </div>
       </div>`;
   }).join("");
 
+  const slotSummary = SquadDepth.formationSlotSummary(depth.formation);
+  const templateLocked = SquadDepth.hasFormationTemplate(depth.formation);
+
   const slotRows = depth.slots
     .map((slot, i) => {
-      const used = new Set(
-        [...usedPreview].filter((id) => id !== slot.players[0] && id !== slot.players[1]),
-      );
       return `
         <div class="sd-slot-row">
           <div class="sd-slot-head">
             <span class="sd-slot-num">${i + 1}</span>
-            <input id="sdTag${i}" class="sd-tag mw-input" value="${esc(slot.tag)}" placeholder="LB" aria-label="Slot ${i + 1} tag" />
+            <input id="sdTag${i}" class="sd-tag mw-input${templateLocked ? " sd-tag--locked" : ""}" value="${esc(slot.tag)}" placeholder="LB" aria-label="Slot ${i + 1} tag"${templateLocked ? " readonly" : ""} />
           </div>
           <div class="sd-slot-picks">
             <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
               <select id="sdSlot${i}A" class="sd-pick mw-select" aria-label="Slot ${i + 1} starter">
-                ${squadDepthPickOptions(roster, slot.players[0], used)}
+                ${squadDepthPickOptions(roster, slot.players[0])}
               </select>
             </div>
             <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
               <select id="sdSlot${i}B" class="sd-pick mw-select" aria-label="Slot ${i + 1} depth">
-                ${squadDepthPickOptions(roster, slot.players[1], used)}
+                ${squadDepthPickOptions(roster, slot.players[1])}
               </select>
             </div>
           </div>
@@ -1568,7 +1601,7 @@ function panelSquadDepth() {
       <section class="mw-card">
         <div class="mw-card-head">
           <h3>Depth chart editor</h3>
-          <p>Formation drives the 10 outfield slots. Slot tags are labels only. Leave any pick empty if you do not need it.</p>
+          <p>Formation drives the 10 outfield slots. Change any pick after saving — selecting a player in a new slot moves them automatically.</p>
         </div>
         <div class="row g-2 g-md-3 mb-3">
           <div class="col-12 col-md-6 col-lg-4">
@@ -1587,8 +1620,19 @@ function panelSquadDepth() {
           <div class="col-12 col-md-6 col-lg-4">
             <div class="mw-field">
               <label for="sdFormation">Formation</label>
-              <input id="sdFormation" class="mw-input" value="${esc(depth.formation)}" placeholder="4-2-3-1" />
-              <p class="mw-field-note admin-muted">Must total 10 outfield players (e.g. 4-2-3-1, 4-3-3, 3-5-2).</p>
+              <input id="sdFormation" class="mw-input" value="${esc(depth.formation)}" placeholder="4-2-3-1" list="sdFormationList" />
+              <datalist id="sdFormationList">
+                <option value="4-3-3"></option>
+                <option value="4-4-2"></option>
+                <option value="4-2-3-1"></option>
+                <option value="4-1-4-1"></option>
+                <option value="3-5-2"></option>
+                <option value="3-4-3"></option>
+                <option value="3-4-2-1"></option>
+                <option value="5-4-1"></option>
+                <option value="5-3-2"></option>
+              </datalist>
+              <p class="mw-field-note admin-muted" id="sdFormationHint">Slots: ${esc(slotSummary.label)}</p>
             </div>
           </div>
         </div>
@@ -2995,6 +3039,18 @@ function bindTeams() {
 }
 
 function bindSquadDepth() {
+  document.querySelectorAll(".sd-pick").forEach((sel) => {
+    sel.addEventListener("change", (e) => {
+      applySquadDepthEditorChange(e.target?.id ?? "");
+    });
+  });
+
+  document.querySelectorAll(".sd-tag").forEach((input) => {
+    input.addEventListener("change", () => {
+      squadDepthDraft = readSquadDepthFromDom();
+    });
+  });
+
   $("#sdTeam")?.addEventListener("change", () => {
     squadDepthTeamFilter = $("#sdTeam")?.value ?? "";
     squadDepthDraft = null;
@@ -3019,9 +3075,9 @@ function bindSquadDepth() {
       alert(check.errors.join("\n"));
       return;
     }
-    squadDepthDraft = null;
     FCDataStore.upsertTeam({ ...team, squadDepth: depth, formation: depth.formation });
     syncToAppArrays();
+    squadDepthDraft = SquadDepth.normalizeSquadDepth(depth, depth.formation);
     toast("Squad depth saved");
     renderPanel();
   });

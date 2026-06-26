@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1782306468056,
+  "dataRevision": 1782491604982,
   "leagues": [
     {
       "id": "epl",
@@ -91,7 +91,87 @@
       ],
       "logo": "./images/premierleague/arsenal.png",
       "stadium": "Emirates Stadium",
-      "formation": "4-3-3"
+      "formation": "4-3-3",
+      "squadDepth": {
+        "formation": "4-3-3",
+        "goalkeepers": [
+          "epl_arsenal_1_David_Raya",
+          "epl_arsenal_13_Kepa_Arrizabalaga",
+          ""
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_arsenal_33_Riccardo_Calafiori",
+              "epl_arsenal_49_Myles_Lewis-Skelly"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_arsenal_6_Gabriel_Magalhaes",
+              "epl_arsenal_5_Piero_Hincapie"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_arsenal_2_William_Saliba",
+              "epl_arsenal_3_Cristhian_Mosquera"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_arsenal_12_Jurrien_Timber",
+              "epl_arsenal_4_Ben_White"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_arsenal_41_Declan_Rice",
+              "epl_arsenal_10_Eberechi_Eze"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_arsenal_36_Martin_Zubimendi",
+              "epl_arsenal_16_Christian_Norgaard"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_arsenal_8_Martin_Odegaard_(C)",
+              "epl_arsenal_23_Mikel_Merino"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "epl_arsenal_19_Leandro_Trossard",
+              "epl_arsenal_11_Gabriel_Martinelli"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_arsenal_14_Viktor_Gyökeres",
+              "epl_arsenal_29_Kai_Havertz"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "epl_arsenal_7_Bukayo_Saka",
+              "epl_arsenal_20_Noni_Madueke"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_aston_villa",
@@ -105,7 +185,87 @@
       ],
       "logo": "./images/premierleague/astonvilla.png",
       "stadium": "Villa Park",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_aston_villa_23_Emiliano_Martinez",
+          "epl_aston_villa_40_Marco_Bizot",
+          ""
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_aston_villa_12_Lucas_Digne",
+              "epl_aston_villa_22_Ian_Maatsen"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_aston_villa_5_Tyrone_Mings",
+              "epl_aston_villa_14_Pau_Torres"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_aston_villa_4_Ezri_Konsa",
+              "epl_aston_villa_3_Victor_Lindelof"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_aston_villa_2_Matty_Cash",
+              "epl_aston_villa_26_Lamare_Bogarde"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_aston_villa_24_Amadou_Onana",
+              "epl_aston_villa_21_Douglas_Luiz"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_aston_villa_8_Youri_Tielemans",
+              "epl_aston_villa_44_Boubacar_Kamara"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_aston_villa_10_Emiliano_Buendia",
+              "epl_aston_villa_19_Jadon_Sancho"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_aston_villa_27_Morgan_Rogers",
+              "epl_aston_villa_9_Harvey_Elliott"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_aston_villa_7_John_McGinn_(C)",
+              "epl_aston_villa_31_Leon_Bailey"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_aston_villa_11_Ollie_Watkins",
+              "epl_aston_villa_18_Tammy_Abraham"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_bournemouth",
@@ -119,7 +279,87 @@
       ],
       "logo": "./images/premierleague/bournemouth.png",
       "stadium": "Vitality Stadium",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_bournemouth_1_Djordje_Petrovic",
+          "epl_bournemouth_29_Christos_Mandas",
+          "epl_bournemouth_17_Fraser_Forster"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_bournemouth_3_Adrien_Truffert",
+              "epl_bournemouth_6_Julio_Soler"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_bournemouth_5_Marcos_Senesi",
+              "epl_bournemouth_18_Bafode_Diakite"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_bournemouth_23_James_Hill",
+              "epl_bournemouth_44_Veljko_Milosavljevic"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_bournemouth_20_Alex_Jimenez",
+              "epl_bournemouth_15_Adam_Smith_(C)"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_bournemouth_8_Alex_Scott",
+              "epl_bournemouth_4_Lewis_Cook"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_bournemouth_12_Tyler_Adams",
+              "epl_bournemouth_10_Ryan_Christie"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_bournemouth_16_Marcus_Tavernier",
+              "epl_bournemouth_21_Amine_Adli"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_bournemouth_22_Junior_Kroupi",
+              "epl_bournemouth_19_Justin_Kluivert"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_bournemouth_37_Rayan",
+              "epl_bournemouth_7_David_Brooks"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_bournemouth_9_Evanilson",
+              "epl_bournemouth_26_Enes_Unal"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_brentford",
@@ -133,7 +373,87 @@
       ],
       "logo": "./images/premierleague/brentford.png",
       "stadium": "Gtech Community Stadium",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_brentford_1_Caoimhin_Kelleher",
+          "epl_brentford_12_Hakon_Valdimarsson",
+          "epl_brentford_31_Ellery_Balcombe"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_brentford_23_Keane_Lewis_Potter",
+              "epl_brentford_3_Rico_Henry"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_brentford_22_Nathan_Collins_(C)",
+              "epl_brentford_5_Ethan_Pinnock"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_brentford_4_Sepp_Van_Den_Berg",
+              "epl_brentford_20_Kristoffer_Ajer"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_brentford_33_Michael_Kayode",
+              "epl_brentford_2_Aaron_Hickey"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_brentford_8_Mathias_Jensen",
+              "epl_brentford_27_Vitaly_Janelt"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_brentford_18_Yegor_Yarmolyuk",
+              "epl_brentford_6_Jordan_Henderson"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_brentford_7_Kevin_Schade",
+              "epl_brentford_11_Reiss_Nelson"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_brentford_24_Mikkel_Damsgaard",
+              "epl_brentford_14_Fabio_Carvalho"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_brentford_19_Dango_Ouattara",
+              "epl_brentford_45_Romelle_Donovan"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_brentford_9_Igor_Thiago",
+              "epl_brentford_47_Kaye_Furo"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_brighton",
@@ -147,7 +467,87 @@
       ],
       "logo": "./images/premierleague/brighton.png",
       "stadium": "Amex Stadium",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_brighton_1_Bart_Verbruggen",
+          "epl_brighton_23_Jason_Steele",
+          "epl_brighton_38_Tom_McGill"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_brighton_24_Ferdi_Kadioglu",
+              "epl_brighton_29_Maxim_De_Cuyper"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_brighton_5_Lewis_Dunk_(C)",
+              "epl_brighton_21_Olivier_Boscagli"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_brighton_6_Jan_Paul_Van_Hecke",
+              "epl_brighton_4_Adam_Webster"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_brighton_27_Mats_Wieffer",
+              "epl_brighton_34_Joel_Veltman"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_brighton_30_Pascal_Gross",
+              "epl_brighton_20_James_Milner"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_brighton_17_Carlos_Baleba",
+              "epl_brighton_26_Yasin_Ayari"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_brighton_22_Kaoru_Mitoma",
+              "epl_brighton_11_Yankuba_Minteh"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_brighton_13_Jack_Hinshelwood",
+              "epl_brighton_10_Georginio_Rutter"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_brighton_25_Diego_Gomez",
+              "epl_brighton_7_Solly_March"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_brighton_18_Danny_Welbeck",
+              "epl_brighton_19_Charalampos_Kostoulas"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_burnley",
@@ -161,7 +561,87 @@
       ],
       "logo": "./images/premierleague/burnley.png",
       "stadium": "Turf Moor",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_burnley_1_Martin_Dubravka",
+          "epl_burnley_13_Max_Weiss",
+          "epl_burnley_32_Vaclav_Hladky"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_burnley_3_Quilindschy_Hartman",
+              "epl_burnley_23_Lucas_Pires"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_burnley_5_Maxime_Esteve",
+              "epl_burnley_12_Bashir_Humphreys"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_burnley_18_Hjalmar_Ekdal",
+              "epl_burnley_4_Joe_Worrall"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_burnley_2_Kyle_Walker",
+              "epl_burnley_6_Axel_Tuanzebe"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_burnley_16_Florentino_Luis",
+              "epl_burnley_24_Josh_Cullen_(C)"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_burnley_20_James_Ward_Prowse",
+              "epl_burnley_29_Josh_Laurent"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_burnley_11_Jaidon_Anthony",
+              "epl_burnley_7_Jacob_Bruun_Larsen"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_burnley_8_Lesley_Ugochukwu",
+              "epl_burnley_28_Hannibal_Mejbri"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_burnley_17_Loum_Tchaouna",
+              "epl_burnley_10_Marcus_Edwards"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_burnley_19_Zian_Flemming",
+              "epl_burnley_27_Armando_Broja"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_chelsea",
@@ -175,7 +655,87 @@
       ],
       "logo": "./images/premierleague/chelsea.png",
       "stadium": "Stamford Bridge",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_chelsea_1_Robert_Sanchez",
+          "epl_chelsea_12_Filip_Jorgensen",
+          "epl_chelsea_44_Gabriel_Slonina"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_chelsea_3_Marc_Cucurella",
+              "epl_chelsea_21_Jorrel_Hato"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_chelsea_23_Trevoh_Chalobah",
+              "epl_chelsea_6_Levi_Colwill"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_chelsea_29_Wesley_Fofana",
+              "epl_chelsea_34_Josh_Acheampong"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_chelsea_24_Reece_James_(C)",
+              "epl_chelsea_27_Malo_Gusto"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_chelsea_25_Moises_Caicedo",
+              "epl_chelsea_14_Dario_Essugo"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_chelsea_17_Andrey_Santos",
+              "epl_chelsea_45_Romeo_Lavia"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "epl_chelsea_49_Alejandro_Garnacho",
+              "epl_chelsea_11_Jamie_Gittens"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_chelsea_10_Cole_Palmer",
+              "epl_chelsea_8_Enzo_Fernandez"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "epl_chelsea_7_Pedro_Neto",
+              "epl_chelsea_41_Estevao"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_chelsea_20_Joao_Pedro",
+              "epl_chelsea_9_Liam_Delap"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_crystal_palace",
@@ -189,7 +749,87 @@
       ],
       "logo": "./images/premierleague/crystalpalace.png",
       "stadium": "Selhurst Park",
-      "formation": "3-4-2-1"
+      "formation": "3-4-2-1",
+      "squadDepth": {
+        "formation": "3-4-2-1",
+        "goalkeepers": [
+          "epl_crystal_palace_1_Dean_Henderson_(C)",
+          "epl_crystal_palace_44_Walter_Benitez",
+          "epl_crystal_palace_31_Remi_Matthews"
+        ],
+        "slots": [
+          {
+            "tag": "LCB",
+            "players": [
+              "epl_crystal_palace_23_Jaydee_Canvot",
+              "epl_crystal_palace_34_Chadi_Riad"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_crystal_palace_5_Maxence_Lacroix",
+              "epl_crystal_palace_8_Jefferson_Lerma"
+            ]
+          },
+          {
+            "tag": "RCB",
+            "players": [
+              "epl_crystal_palace_26_Chris_Richards",
+              "epl_crystal_palace_17_Nathaniel_Clyne"
+            ]
+          },
+          {
+            "tag": "LB",
+            "players": [
+              "epl_crystal_palace_3_Tyrick_Mitchell",
+              "epl_crystal_palace_24_Borna_Sosa"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_crystal_palace_19_Will_Hughes",
+              "epl_crystal_palace_28_Cheick_Doucoure"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_crystal_palace_20_Adam_Wharton",
+              "epl_crystal_palace_18_Daichi_Kamada"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_crystal_palace_2_Daniel_Munoz",
+              "epl_crystal_palace_55_Justin_Devenny"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_crystal_palace_10_Yeremy_Pino",
+              "epl_crystal_palace_29_Evann_Guessand"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "epl_crystal_palace_7_Ismaila_Sarr",
+              "epl_crystal_palace_11_Brennan_Johnson"
+            ]
+          },
+          {
+            "tag": "ST",
+            "players": [
+              "epl_crystal_palace_14_Jean_Philippe_Mateta",
+              "epl_crystal_palace_22_Jorgen_Strand_Larsen"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_everton",
@@ -2366,7 +3006,7 @@
       "id": "epl_arsenal_14_Viktor_Gyökeres",
       "teamId": "epl_arsenal",
       "number": 14,
-      "name": "Viktor Gyökeres",
+      "name": "Viktor Gyokeres",
       "pos": "FW",
       "role": "CF",
       "flag": "🇸🇪",
@@ -42671,10 +43311,10 @@
       "id": "worldcup_uruguay_2_Jose_Maria_Gimenez",
       "teamId": "worldcup_uruguay",
       "number": 2,
-      "name": "Jose Maria Gimenez",
+      "name": "Jose Gimenez",
       "pos": "DF",
       "role": "CB",
-      "club": "Atletico Madrid",
+      "club": "Atlético Madrid",
       "flag": "🇺🇾",
       "nationality": "Uruguay"
     },
@@ -42826,9 +43466,9 @@
       "id": "worldcup_uruguay_7_Nicolas_de_la_Cruz",
       "teamId": "worldcup_uruguay",
       "number": 7,
-      "name": "Nicolas de la Cruz",
+      "name": "Nicolás de la Cruz",
       "pos": "MF",
-      "role": "CM",
+      "role": "AM",
       "club": "Flamengo",
       "flag": "🇺🇾",
       "nationality": "Uruguay"
@@ -42859,10 +43499,10 @@
       "id": "worldcup_uruguay_18_Brian_Rodriguez",
       "teamId": "worldcup_uruguay",
       "number": 18,
-      "name": "Brian Rodriguez",
+      "name": "Brian Rodríguez",
       "pos": "FW",
-      "role": "LW",
-      "club": "Club America",
+      "role": "RW",
+      "club": "Club América",
       "flag": "🇺🇾",
       "nationality": "Uruguay"
     },
@@ -42892,7 +43532,7 @@
       "id": "worldcup_uruguay_9_Darwin_Nunez",
       "teamId": "worldcup_uruguay",
       "number": 9,
-      "name": "Darwin Nunez",
+      "name": "Darwin Núñez",
       "pos": "FW",
       "role": "CF",
       "club": "Al-Hilal",
@@ -43125,7 +43765,7 @@
       "number": 23,
       "name": "Mohamed Kanno",
       "pos": "MF",
-      "role": "CM",
+      "role": "DM",
       "club": "Al-Hilal",
       "flag": "🇸🇦",
       "nationality": "Saudi Arabia"
@@ -43322,7 +43962,7 @@
       "id": "worldcup_france_5_Jules_Kounde",
       "teamId": "worldcup_france",
       "number": 5,
-      "name": "Jules Kounde",
+      "name": "Jules Koundé",
       "pos": "DF",
       "role": "RB",
       "club": "Barcelona",
@@ -43344,7 +43984,7 @@
       "id": "worldcup_france_8_Aurelien_Tchouameni",
       "teamId": "worldcup_france",
       "number": 8,
-      "name": "Aurelien Tchouameni",
+      "name": "Aurélien Tchouaméni",
       "pos": "MF",
       "role": "DM",
       "club": "Real Madrid",
@@ -43355,7 +43995,7 @@
       "id": "worldcup_france_13_N_Golo_Kante",
       "teamId": "worldcup_france",
       "number": 13,
-      "name": "N'Golo Kante",
+      "name": "N'Golo Kanté",
       "pos": "MF",
       "role": "DM",
       "club": "Al-Ittihad",
@@ -43454,7 +44094,7 @@
       "id": "worldcup_france_10_Kylian_Mbappe",
       "teamId": "worldcup_france",
       "number": 10,
-      "name": "Kylian Mbappe",
+      "name": "Kylian Mbappé",
       "pos": "FW",
       "role": "CF",
       "club": "Real Madrid",
@@ -43466,9 +44106,9 @@
       "id": "worldcup_france_7_Ousmane_Dembele",
       "teamId": "worldcup_france",
       "number": 7,
-      "name": "Ousmane Dembele",
+      "name": "Ousmane Dembélé",
       "pos": "FW",
-      "role": "CF",
+      "role": "RW",
       "club": "Paris Saint-Germain",
       "flag": "🇫🇷",
       "nationality": "France"
@@ -43709,7 +44349,7 @@
       "id": "worldcup_senegal_10_Sadio_Mane",
       "teamId": "worldcup_senegal",
       "number": 10,
-      "name": "Sadio Mane",
+      "name": "Sadio Mané",
       "pos": "FW",
       "role": "LW",
       "club": "Al-Nassr",
@@ -43920,7 +44560,7 @@
       "number": 8,
       "name": "Sander Berge",
       "pos": "MF",
-      "role": "DM",
+      "role": "CM",
       "club": "Fulham",
       "flag": "🇳🇴",
       "nationality": "Norway"
@@ -44371,7 +45011,7 @@
       "id": "worldcup_argentina_12_Geronimo_Rulli",
       "teamId": "worldcup_argentina",
       "number": 12,
-      "name": "Geronimo Rulli",
+      "name": "Gerónimo Rulli",
       "pos": "GK",
       "role": "GK",
       "club": "Marseille",
@@ -44437,7 +45077,7 @@
       "id": "worldcup_argentina_19_Nicolas_Otamendi",
       "teamId": "worldcup_argentina",
       "number": 19,
-      "name": "Nicolas Otamendi",
+      "name": "Nicolás Otamendi",
       "pos": "DF",
       "role": "CB",
       "club": "Benfica",
@@ -44448,7 +45088,7 @@
       "id": "worldcup_argentina_3_Nicolas_Tagliafico",
       "teamId": "worldcup_argentina",
       "number": 3,
-      "name": "Nicolas Tagliafico",
+      "name": "Nicolás Tagliafico",
       "pos": "DF",
       "role": "LB",
       "club": "Lyon",
@@ -44492,7 +45132,7 @@
       "id": "worldcup_argentina_24_Enzo_Fernandez",
       "teamId": "worldcup_argentina",
       "number": 24,
-      "name": "Enzo Fernandez",
+      "name": "Enzo Fernández",
       "pos": "MF",
       "role": "CM",
       "club": "Chelsea",
@@ -44614,10 +45254,10 @@
       "id": "worldcup_argentina_9_Julian_Alvarez",
       "teamId": "worldcup_argentina",
       "number": 9,
-      "name": "Julian Alvarez",
+      "name": "Julián Álvarez",
       "pos": "FW",
       "role": "CF",
-      "club": "Atletico Madrid",
+      "club": "Atlético Madrid",
       "flag": "🇦🇷",
       "nationality": "Argentina"
     },
@@ -44625,7 +45265,7 @@
       "id": "worldcup_argentina_22_Lautaro_Martinez",
       "teamId": "worldcup_argentina",
       "number": 22,
-      "name": "Lautaro Martinez",
+      "name": "Lautaro Martínez",
       "pos": "FW",
       "role": "CF",
       "club": "Inter Milan",
@@ -44724,7 +45364,7 @@
       "id": "worldcup_algeria_2_Aissa_Mandi",
       "teamId": "worldcup_algeria",
       "number": 2,
-      "name": "Aissa Mandi",
+      "name": "Aïssa Mandi",
       "pos": "DF",
       "role": "CB",
       "club": "Lille",
@@ -45501,6 +46141,2287 @@
       "pos": "FW",
       "role": "CF",
       "club": "Zakho SC",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_saudi_arabia_2_Sultan_Al_Ghanam",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 2,
+      "name": "Sultan Al-Ghanam",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_6_Mohammed_Al_Breik",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 6,
+      "name": "Mohammed Al-Breik",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Al-Hilal",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_13_Yasser_Al_Shahrani",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 13,
+      "name": "Yasser Al-Shahrani",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Al-Hilal",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_3_Abdulelah_Al_Amri",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 3,
+      "name": "Abdulelah Al-Amri",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_4_Ali_Al_Bulaihi",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 4,
+      "name": "Ali Al-Bulaihi",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Hilal",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_5_Ali_Lajami",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 5,
+      "name": "Ali Lajami",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_17_Hassan_Al_Tambakti",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 17,
+      "name": "Hassan Al-Tambakti",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Hilal",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_8_Abdullah_Otayf",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 8,
+      "name": "Abdullah Otayf",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Al-Shabab",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_24_Abdullah_Al_Khaibari",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 24,
+      "name": "Abdullah Al-Khaibari",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_14_Nasser_Al_Dawsari",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 14,
+      "name": "Nasser Al-Dawsari",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Hilal",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_16_Sami_Al_Najei",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 16,
+      "name": "Sami Al-Najei",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_19_Ayman_Yahya",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 19,
+      "name": "Ayman Yahya",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_15_Ali_Al_Hassan",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 15,
+      "name": "Ali Al-Hassan",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Nassr",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_18_Musab_Al_Juwayr",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 18,
+      "name": "Musab Al-Juwayr",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Al-Hilal",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_7_Abdulrahman_Ghareeb",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 7,
+      "name": "Abdulrahman Ghareeb",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Al-Ahli",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_20_Marwan_Al_Sahafi",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 20,
+      "name": "Marwan Al-Sahafi",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Al-Ahli",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_26_Haitham_Asiri",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 26,
+      "name": "Haitham Asiri",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Al-Ahli",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_saudi_arabia_25_Abdullah_Radif",
+      "teamId": "worldcup_saudi_arabia",
+      "number": 25,
+      "name": "Abdullah Radif",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Taawoun",
+      "flag": "🇸🇦",
+      "nationality": "Saudi Arabia"
+    },
+    {
+      "id": "worldcup_uruguay_23_Franco_Israel",
+      "teamId": "worldcup_uruguay",
+      "number": 23,
+      "name": "Fernando Muslera",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Estudiantes",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_6_Nahitan_Nandez",
+      "teamId": "worldcup_uruguay",
+      "number": 22,
+      "name": "Joaquín Piquerez",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Palmeiras",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_22_Mathias_Olivera",
+      "teamId": "worldcup_uruguay",
+      "number": 16,
+      "name": "Mathias Olivera",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Napoli",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_19_Sebastian_Boselli",
+      "teamId": "worldcup_uruguay",
+      "number": 24,
+      "name": "Santi Bueno",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Wolves",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_14_Lucas_Torreira",
+      "teamId": "worldcup_uruguay",
+      "number": 25,
+      "name": "Juan Manuel Sanabria",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Salt Lake City",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_15_Federico_Valverde",
+      "teamId": "worldcup_uruguay",
+      "number": 15,
+      "name": "Federico Valverde",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Real Madrid",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay",
+      "captain": true
+    },
+    {
+      "id": "worldcup_uruguay_8_Rodrigo_Bentancur",
+      "teamId": "worldcup_uruguay",
+      "number": 6,
+      "name": "Rodrigo Bentancur",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Tottenham Hotspur",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_24_Nicolas_Fonseca",
+      "teamId": "worldcup_uruguay",
+      "number": 24,
+      "name": "Nicolás Fonseca",
+      "pos": "MF",
+      "role": "CM",
+      "club": "River Plate",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_16_Cesar_Araujo",
+      "teamId": "worldcup_uruguay",
+      "number": 15,
+      "name": "Emiliano Martinez",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Palmeiras",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_25_Federico_Vinas",
+      "teamId": "worldcup_uruguay",
+      "number": 25,
+      "name": "Federico Viñas",
+      "pos": "FW",
+      "role": "CF",
+      "club": "León",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_26_Luciano_Rodriguez",
+      "teamId": "worldcup_uruguay",
+      "number": 26,
+      "name": "Luciano Rodríguez",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Bahia",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_20_Cristian_Olivera",
+      "teamId": "worldcup_uruguay",
+      "number": 20,
+      "name": "Cristian Olivera",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Los Angeles FC",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_uruguay_21_Maximiliano_Araujo",
+      "teamId": "worldcup_uruguay",
+      "number": 21,
+      "name": "Maximiliano Araújo",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Sporting CP",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay"
+    },
+    {
+      "id": "worldcup_france_1_Mike_Maignan",
+      "teamId": "worldcup_france",
+      "number": 1,
+      "name": "Mike Maignan",
+      "pos": "GK",
+      "role": "GK",
+      "club": "AC Milan",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_16_Brice_Samba",
+      "teamId": "worldcup_france",
+      "number": 16,
+      "name": "Brice Samba",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Rennes",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_23_Lucas_Chevalier",
+      "teamId": "worldcup_france",
+      "number": 23,
+      "name": "Lucas Chevalier",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Paris Saint-Germain",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_2_Benjamin_Pavard",
+      "teamId": "worldcup_france",
+      "number": 2,
+      "name": "Benjamin Pavard",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Marseille",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_22_Theo_Hernandez",
+      "teamId": "worldcup_france",
+      "number": 22,
+      "name": "Theo Hernández",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Al-Hilal",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_24_Lucas_Digne",
+      "teamId": "worldcup_france",
+      "number": 24,
+      "name": "Lucas Digne",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Aston Villa",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_14_Ibrahima_Konate",
+      "teamId": "worldcup_france",
+      "number": 14,
+      "name": "Ibrahima Konaté",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Liverpool",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_15_William_Saliba",
+      "teamId": "worldcup_france",
+      "number": 15,
+      "name": "William Saliba",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Arsenal",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_3_Lucas_Hernandez",
+      "teamId": "worldcup_france",
+      "number": 3,
+      "name": "Lucas Hernández",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Paris Saint-Germain",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_6_Eduardo_Camavinga",
+      "teamId": "worldcup_france",
+      "number": 6,
+      "name": "Eduardo Camavinga",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Real Madrid",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_17_Manu_Kone",
+      "teamId": "worldcup_france",
+      "number": 17,
+      "name": "Manu Koné",
+      "pos": "MF",
+      "role": "CM",
+      "club": "AS Roma",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_19_Youssouf_Fofana",
+      "teamId": "worldcup_france",
+      "number": 19,
+      "name": "Youssouf Fofana",
+      "pos": "MF",
+      "role": "CM",
+      "club": "AC Milan",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_18_Adrien_Rabiot",
+      "teamId": "worldcup_france",
+      "number": 18,
+      "name": "Adrien Rabiot",
+      "pos": "MF",
+      "role": "CM",
+      "club": "AC Milan",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_25_Warren_Zaire_Emery",
+      "teamId": "worldcup_france",
+      "number": 25,
+      "name": "Warren Zaïre-Emery",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Paris Saint-Germain",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_12_Khephren_Thuram",
+      "teamId": "worldcup_france",
+      "number": 12,
+      "name": "Khéphren Thuram",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Juventus",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_11_Marcus_Thuram",
+      "teamId": "worldcup_france",
+      "number": 11,
+      "name": "Marcus Thuram",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Inter Milan",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_20_Michael_Olise",
+      "teamId": "worldcup_france",
+      "number": 20,
+      "name": "Michael Olise",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Bayern Munich",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_9_Bradley_Barcola",
+      "teamId": "worldcup_france",
+      "number": 9,
+      "name": "Bradley Barcola",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Paris Saint-Germain",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_26_Desire_Doue",
+      "teamId": "worldcup_france",
+      "number": 26,
+      "name": "Désiré Doué",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Paris Saint-Germain",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_france_21_Rayan_Cherki",
+      "teamId": "worldcup_france",
+      "number": 21,
+      "name": "Rayan Cherki",
+      "pos": "FW",
+      "role": "AM",
+      "club": "Manchester City",
+      "flag": "🇫🇷",
+      "nationality": "France"
+    },
+    {
+      "id": "worldcup_senegal_1_Edouard_Mendy",
+      "teamId": "worldcup_senegal",
+      "number": 1,
+      "name": "Édouard Mendy",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Al-Ahli",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_16_Mory_Diaw",
+      "teamId": "worldcup_senegal",
+      "number": 16,
+      "name": "Mory Diaw",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Lorient",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_23_Seny_Dieng",
+      "teamId": "worldcup_senegal",
+      "number": 23,
+      "name": "Seny Dieng",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Middlesbrough",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_2_Krepin_Diatta",
+      "teamId": "worldcup_senegal",
+      "number": 2,
+      "name": "Krépin Diatta",
+      "pos": "DF",
+      "role": "RB",
+      "club": "AS Monaco",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_12_Formose_Mendy",
+      "teamId": "worldcup_senegal",
+      "number": 12,
+      "name": "Formose Mendy",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Amiens",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_6_Ismail_Jakobs",
+      "teamId": "worldcup_senegal",
+      "number": 6,
+      "name": "Ismail Jakobs",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Galatasaray",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_17_El_Hadji_Malick_Diouf",
+      "teamId": "worldcup_senegal",
+      "number": 17,
+      "name": "El Hadji Malick Diouf",
+      "pos": "DF",
+      "role": "LB",
+      "club": "West Ham United",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_4_Moussa_Niakhate",
+      "teamId": "worldcup_senegal",
+      "number": 4,
+      "name": "Moussa Niakhaté",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Lyon",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_5_Abdou_Diallo",
+      "teamId": "worldcup_senegal",
+      "number": 5,
+      "name": "Abdou Diallo",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Arabi",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_22_Moussa_Ndiaye",
+      "teamId": "worldcup_senegal",
+      "number": 22,
+      "name": "Moussa Ndiaye",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Anderlecht",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_13_Idrissa_Gana_Gueye",
+      "teamId": "worldcup_senegal",
+      "number": 13,
+      "name": "Idrissa Gana Gueye",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Everton",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_14_Pape_Gueye",
+      "teamId": "worldcup_senegal",
+      "number": 14,
+      "name": "Pape Gueye",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Villarreal",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_19_Pathe_Ciss",
+      "teamId": "worldcup_senegal",
+      "number": 19,
+      "name": "Pathé Ciss",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Rayo Vallecano",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_8_Pape_Matar_Sarr",
+      "teamId": "worldcup_senegal",
+      "number": 8,
+      "name": "Pape Matar Sarr",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Tottenham Hotspur",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_18_Lamine_Camara",
+      "teamId": "worldcup_senegal",
+      "number": 18,
+      "name": "Lamine Camara",
+      "pos": "MF",
+      "role": "CM",
+      "club": "AS Monaco",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_25_Habib_Diarra",
+      "teamId": "worldcup_senegal",
+      "number": 25,
+      "name": "Habib Diarra",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Sunderland",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_15_Dion_Lopy",
+      "teamId": "worldcup_senegal",
+      "number": 15,
+      "name": "Dion Lopy",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Almería",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_24_Mamadou_Loum",
+      "teamId": "worldcup_senegal",
+      "number": 24,
+      "name": "Mamadou Loum",
+      "pos": "MF",
+      "role": "CM",
+      "club": "FC Porto",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_7_Iliman_Ndiaye",
+      "teamId": "worldcup_senegal",
+      "number": 7,
+      "name": "Iliman Ndiaye",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Everton",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_21_Ismaila_Sarr",
+      "teamId": "worldcup_senegal",
+      "number": 21,
+      "name": "Ismaïla Sarr",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Crystal Palace",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_26_Cherif_Ndiaye",
+      "teamId": "worldcup_senegal",
+      "number": 26,
+      "name": "Cherif Ndiaye",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Trabzonspor",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_9_Boulaye_Dia",
+      "teamId": "worldcup_senegal",
+      "number": 9,
+      "name": "Boulaye Dia",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Lazio",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_11_Habib_Diallo",
+      "teamId": "worldcup_senegal",
+      "number": 11,
+      "name": "Habib Diallo",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Shabab",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_senegal_20_Nicolas_Jackson",
+      "teamId": "worldcup_senegal",
+      "number": 20,
+      "name": "Nicolas Jackson",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Chelsea",
+      "flag": "🇸🇳",
+      "nationality": "Senegal"
+    },
+    {
+      "id": "worldcup_iraq_1_Jalal_Hassan",
+      "teamId": "worldcup_iraq",
+      "number": 1,
+      "name": "Jalal Hassan",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Al-Quwa Al-Jawiya",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_12_Fahad_Talib",
+      "teamId": "worldcup_iraq",
+      "number": 12,
+      "name": "Fahad Talib",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Al-Shorta",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_23_Ahmad_Basil",
+      "teamId": "worldcup_iraq",
+      "number": 23,
+      "name": "Ahmad Basil",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Al-Zawraa",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_13_Mustafa_Nadhim",
+      "teamId": "worldcup_iraq",
+      "number": 13,
+      "name": "Mustafa Nadhim",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Al-Quwa Al-Jawiya",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_2_Merchas_Doski",
+      "teamId": "worldcup_iraq",
+      "number": 2,
+      "name": "Merchas Doski",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Hansa Rostock",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_4_Rebin_Sulaka",
+      "teamId": "worldcup_iraq",
+      "number": 4,
+      "name": "Rebin Sulaka",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Western Sydney Wanderers",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_5_Zaid_Tahseen",
+      "teamId": "worldcup_iraq",
+      "number": 5,
+      "name": "Zaid Tahseen",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Shorta",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_6_Ali_Faez",
+      "teamId": "worldcup_iraq",
+      "number": 6,
+      "name": "Ali Faez",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Shorta",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_15_Saad_Natiq",
+      "teamId": "worldcup_iraq",
+      "number": 15,
+      "name": "Saad Natiq",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Shorta",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_3_Akam_Hashim",
+      "teamId": "worldcup_iraq",
+      "number": 3,
+      "name": "Akam Hashim",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Al-Quwa Al-Jawiya",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_14_Hussein_Ali",
+      "teamId": "worldcup_iraq",
+      "number": 14,
+      "name": "Hussein Ali",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Al-Zawraa",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_8_Amir_Al_Ammari",
+      "teamId": "worldcup_iraq",
+      "number": 8,
+      "name": "Amir Al-Ammari",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Halmstads BK",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_19_Zidane_Iqbal",
+      "teamId": "worldcup_iraq",
+      "number": 19,
+      "name": "Zidane Iqbal",
+      "pos": "MF",
+      "role": "CM",
+      "club": "FC Utrecht",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_21_Yaser_Kasim",
+      "teamId": "worldcup_iraq",
+      "number": 21,
+      "name": "Yaser Kasim",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Al-Talaba",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_24_Osama_Rashid",
+      "teamId": "worldcup_iraq",
+      "number": 24,
+      "name": "Osama Rashid",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Santa Clara",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_10_Bashar_Resan",
+      "teamId": "worldcup_iraq",
+      "number": 10,
+      "name": "Bashar Resan",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Gharafa",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_25_Hassan_Abdul_Karim",
+      "teamId": "worldcup_iraq",
+      "number": 25,
+      "name": "Hassan Abdul-Karim",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Shorta",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_17_Ibrahim_Bayesh",
+      "teamId": "worldcup_iraq",
+      "number": 17,
+      "name": "Ibrahim Bayesh",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Al-Quwa Al-Jawiya",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_18_Amjad_Attwan",
+      "teamId": "worldcup_iraq",
+      "number": 18,
+      "name": "Amjad Attwan",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Persepolis",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_9_Aymen_Hussein",
+      "teamId": "worldcup_iraq",
+      "number": 9,
+      "name": "Aymen Hussein",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Najma",
+      "flag": "🇮🇶",
+      "nationality": "Iraq",
+      "captain": true
+    },
+    {
+      "id": "worldcup_iraq_11_Mohanad_Ali",
+      "teamId": "worldcup_iraq",
+      "number": 11,
+      "name": "Mohanad Ali",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Duhail",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_20_Mohammed_Qasim",
+      "teamId": "worldcup_iraq",
+      "number": 20,
+      "name": "Mohammed Qasim",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Shorta",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_7_Ali_Jasim",
+      "teamId": "worldcup_iraq",
+      "number": 7,
+      "name": "Ali Jasim",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Como",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_16_Sajjad_Jassim",
+      "teamId": "worldcup_iraq",
+      "number": 16,
+      "name": "Sajjad Jassim",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Al-Quwa Al-Jawiya",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_22_Ali_Al_Hamadi",
+      "teamId": "worldcup_iraq",
+      "number": 22,
+      "name": "Ali Al-Hamadi",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Ipswich Town",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_iraq_26_Manaf_Younus",
+      "teamId": "worldcup_iraq",
+      "number": 26,
+      "name": "Manaf Younus",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Al-Zawraa",
+      "flag": "🇮🇶",
+      "nationality": "Iraq"
+    },
+    {
+      "id": "worldcup_norway_1_rjan_Nyland",
+      "teamId": "worldcup_norway",
+      "number": 1,
+      "name": "Ørjan Nyland",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Sevilla",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_12_Egil_Selvik",
+      "teamId": "worldcup_norway",
+      "number": 12,
+      "name": "Egil Selvik",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Lillestrøm",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_23_Per_Kristian_Bratveit",
+      "teamId": "worldcup_norway",
+      "number": 23,
+      "name": "Per Kristian Bråtveit",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Djurgården",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_6_Julian_Ryerson",
+      "teamId": "worldcup_norway",
+      "number": 6,
+      "name": "Julian Ryerson",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Borussia Dortmund",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_2_Kristoffer_Ajer",
+      "teamId": "worldcup_norway",
+      "number": 2,
+      "name": "Kristoffer Ajer",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Brentford",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_4_Leo_stigard",
+      "teamId": "worldcup_norway",
+      "number": 4,
+      "name": "Leo Østigård",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Rennes",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_5_Stian_Gregersen",
+      "teamId": "worldcup_norway",
+      "number": 5,
+      "name": "Stian Gregersen",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Mainz 05",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_18_Andreas_Hanche_Olsen",
+      "teamId": "worldcup_norway",
+      "number": 18,
+      "name": "Andreas Hanche-Olsen",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Mainz 05",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_15_Marius_H_ibraten",
+      "teamId": "worldcup_norway",
+      "number": 15,
+      "name": "Marius Høibråten",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Union Berlin",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_3_David_M_ller_Wolfe",
+      "teamId": "worldcup_norway",
+      "number": 3,
+      "name": "David Møller Wolfe",
+      "pos": "DF",
+      "role": "LB",
+      "club": "AZ Alkmaar",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_17_Fredrik_Bj_rkan",
+      "teamId": "worldcup_norway",
+      "number": 17,
+      "name": "Fredrik Bjørkan",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Bodø/Glimt",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_7_Martin_degaard",
+      "teamId": "worldcup_norway",
+      "number": 7,
+      "name": "Martin Ødegaard",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Arsenal",
+      "flag": "🇳🇴",
+      "nationality": "Norway",
+      "captain": true
+    },
+    {
+      "id": "worldcup_norway_20_Patrick_Berg",
+      "teamId": "worldcup_norway",
+      "number": 20,
+      "name": "Patrick Berg",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Bodø/Glimt",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_16_Fredrik_Aursnes",
+      "teamId": "worldcup_norway",
+      "number": 16,
+      "name": "Fredrik Aursnes",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Benfica",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_21_Morten_Thorsby",
+      "teamId": "worldcup_norway",
+      "number": 21,
+      "name": "Morten Thorsby",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Genoa",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_25_Hugo_Vetlesen",
+      "teamId": "worldcup_norway",
+      "number": 25,
+      "name": "Hugo Vetlesen",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Club Brugge",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_14_Sverre_Nypan",
+      "teamId": "worldcup_norway",
+      "number": 14,
+      "name": "Sverre Nypan",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Manchester City",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_24_Mats_M_ller_D_hli",
+      "teamId": "worldcup_norway",
+      "number": 24,
+      "name": "Mats Møller Dæhli",
+      "pos": "MF",
+      "role": "AM",
+      "club": "KAA Gent",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_11_Alexander_S_rloth",
+      "teamId": "worldcup_norway",
+      "number": 11,
+      "name": "Alexander Sørloth",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Atlético Madrid",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_13_J_rgen_Strand_Larsen",
+      "teamId": "worldcup_norway",
+      "number": 13,
+      "name": "Jørgen Strand Larsen",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Wolverhampton Wanderers",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_10_Antonio_Nusa",
+      "teamId": "worldcup_norway",
+      "number": 10,
+      "name": "Antonio Nusa",
+      "pos": "FW",
+      "role": "LW",
+      "club": "RB Leipzig",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_19_Aron_D_nnum",
+      "teamId": "worldcup_norway",
+      "number": 19,
+      "name": "Aron Dønnum",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Standard Liège",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_norway_26_Ola_Brynhildsen",
+      "teamId": "worldcup_norway",
+      "number": 26,
+      "name": "Ola Brynhildsen",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Molde",
+      "flag": "🇳🇴",
+      "nationality": "Norway"
+    },
+    {
+      "id": "worldcup_argentina_1_Emiliano_Martinez",
+      "teamId": "worldcup_argentina",
+      "number": 1,
+      "name": "Emiliano Martínez",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Aston Villa",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_23_Walter_Benitez",
+      "teamId": "worldcup_argentina",
+      "number": 23,
+      "name": "Walter Benítez",
+      "pos": "GK",
+      "role": "GK",
+      "club": "PSV Eindhoven",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_13_Nahuel_Molina",
+      "teamId": "worldcup_argentina",
+      "number": 13,
+      "name": "Nahuel Molina",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Atlético Madrid",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_8_Marcos_Acuna",
+      "teamId": "worldcup_argentina",
+      "number": 8,
+      "name": "Marcos Acuña",
+      "pos": "DF",
+      "role": "LB",
+      "club": "River Plate",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_2_Cristian_Romero",
+      "teamId": "worldcup_argentina",
+      "number": 2,
+      "name": "Cristian Romero",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Tottenham Hotspur",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_25_Lisandro_Martinez",
+      "teamId": "worldcup_argentina",
+      "number": 25,
+      "name": "Lisandro Martínez",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Manchester United",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_6_German_Pezzella",
+      "teamId": "worldcup_argentina",
+      "number": 6,
+      "name": "Germán Pezzella",
+      "pos": "DF",
+      "role": "CB",
+      "club": "River Plate",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_18_Guido_Rodriguez",
+      "teamId": "worldcup_argentina",
+      "number": 18,
+      "name": "Guido Rodríguez",
+      "pos": "MF",
+      "role": "DM",
+      "club": "West Ham United",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_16_Giovani_Lo_Celso",
+      "teamId": "worldcup_argentina",
+      "number": 16,
+      "name": "Giovani Lo Celso",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Real Betis",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_26_Thiago_Almada",
+      "teamId": "worldcup_argentina",
+      "number": 26,
+      "name": "Thiago Almada",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Atlético Madrid",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_11_Angel_Di_Maria",
+      "teamId": "worldcup_argentina",
+      "number": 11,
+      "name": "Ángel Di María",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Rosario Central",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_21_Giuliano_Simeone",
+      "teamId": "worldcup_argentina",
+      "number": 21,
+      "name": "Giuliano Simeone",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Atlético Madrid",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_15_Nicolas_Gonzalez",
+      "teamId": "worldcup_argentina",
+      "number": 15,
+      "name": "Nicolás González",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Juventus",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_argentina_17_Alejandro_Garnacho",
+      "teamId": "worldcup_argentina",
+      "number": 17,
+      "name": "Alejandro Garnacho",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Chelsea",
+      "flag": "🇦🇷",
+      "nationality": "Argentina"
+    },
+    {
+      "id": "worldcup_algeria_1_Anthony_Mandrea",
+      "teamId": "worldcup_algeria",
+      "number": 1,
+      "name": "Anthony Mandrea",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Angers",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_16_Alexis_Guendouz",
+      "teamId": "worldcup_algeria",
+      "number": 16,
+      "name": "Alexis Guendouz",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Mladá Boleslav",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_12_Mohamed_Farsi",
+      "teamId": "worldcup_algeria",
+      "number": 12,
+      "name": "Mohamed Farsi",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Columbus Crew",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_17_Youcef_Atal",
+      "teamId": "worldcup_algeria",
+      "number": 17,
+      "name": "Youcef Atal",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Al-Sadd",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_6_Ramy_Bensebaini",
+      "teamId": "worldcup_algeria",
+      "number": 6,
+      "name": "Ramy Bensebaini",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Borussia Dortmund",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_13_Rayan_Ait_Nouri",
+      "teamId": "worldcup_algeria",
+      "number": 13,
+      "name": "Rayan Aït-Nouri",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Manchester City",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_5_Jaouen_Hadjam",
+      "teamId": "worldcup_algeria",
+      "number": 5,
+      "name": "Jaouen Hadjam",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Young Boys",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_3_Mohamed_Amine_Tougai",
+      "teamId": "worldcup_algeria",
+      "number": 3,
+      "name": "Mohamed Amine Tougai",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Espérance de Tunis",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_4_Ahmed_Touba",
+      "teamId": "worldcup_algeria",
+      "number": 4,
+      "name": "Ahmed Touba",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Trabzonspor",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_8_Nabil_Bentaleb",
+      "teamId": "worldcup_algeria",
+      "number": 8,
+      "name": "Nabil Bentaleb",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Lille",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_14_Ramiz_Zerrouki",
+      "teamId": "worldcup_algeria",
+      "number": 14,
+      "name": "Ramiz Zerrouki",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Feyenoord",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_20_Hicham_Boudaoui",
+      "teamId": "worldcup_algeria",
+      "number": 20,
+      "name": "Hicham Boudaoui",
+      "pos": "MF",
+      "role": "CM",
+      "club": "OGC Nice",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_18_Adem_Zorgane",
+      "teamId": "worldcup_algeria",
+      "number": 18,
+      "name": "Adem Zorgane",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Sturm Graz",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_25_Mehdi_Boudjemaa",
+      "teamId": "worldcup_algeria",
+      "number": 25,
+      "name": "Mehdi Boudjemaa",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Le Havre",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_19_Himad_Abdelli",
+      "teamId": "worldcup_algeria",
+      "number": 19,
+      "name": "Himad Abdelli",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Angers",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_21_Ibrahim_Maza",
+      "teamId": "worldcup_algeria",
+      "number": 21,
+      "name": "Ibrahim Maza",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Bayer Leverkusen",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_24_Fares_Chaibi",
+      "teamId": "worldcup_algeria",
+      "number": 24,
+      "name": "Farès Chaïbi",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Eintracht Frankfurt",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_26_Badredine_Bouanani",
+      "teamId": "worldcup_algeria",
+      "number": 26,
+      "name": "Badredine Bouanani",
+      "pos": "FW",
+      "role": "RW",
+      "club": "OGC Nice",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_15_Anis_Hadj_Moussa",
+      "teamId": "worldcup_algeria",
+      "number": 15,
+      "name": "Anis Hadj Moussa",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Feyenoord",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_10_Said_Benrahma",
+      "teamId": "worldcup_algeria",
+      "number": 10,
+      "name": "Saïd Benrahma",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Neom SC",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_9_Mohamed_Amoura",
+      "teamId": "worldcup_algeria",
+      "number": 9,
+      "name": "Mohamed Amoura",
+      "pos": "FW",
+      "role": "CF",
+      "club": "VfL Wolfsburg",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_11_Baghdad_Bounedjah",
+      "teamId": "worldcup_algeria",
+      "number": 11,
+      "name": "Baghdad Bounedjah",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Sadd",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_algeria_22_Amine_Gouiri",
+      "teamId": "worldcup_algeria",
+      "number": 22,
+      "name": "Amine Gouiri",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Marseille",
+      "flag": "🇩🇿",
+      "nationality": "Algeria"
+    },
+    {
+      "id": "worldcup_austria_1_Patrick_Pentz",
+      "teamId": "worldcup_austria",
+      "number": 1,
+      "name": "Patrick Pentz",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Brøndby",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_12_Niklas_Hedl",
+      "teamId": "worldcup_austria",
+      "number": 12,
+      "name": "Niklas Hedl",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Rapid Wien",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_23_Tobias_Lawal",
+      "teamId": "worldcup_austria",
+      "number": 23,
+      "name": "Tobias Lawal",
+      "pos": "GK",
+      "role": "GK",
+      "club": "LASK",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_2_Stefan_Posch",
+      "teamId": "worldcup_austria",
+      "number": 2,
+      "name": "Stefan Posch",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Como",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_6_Stefan_Lainer",
+      "teamId": "worldcup_austria",
+      "number": 6,
+      "name": "Stefan Lainer",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Borussia Mönchengladbach",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_17_Phillipp_Mwene",
+      "teamId": "worldcup_austria",
+      "number": 17,
+      "name": "Phillipp Mwene",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Mainz 05",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_3_Gernot_Trauner",
+      "teamId": "worldcup_austria",
+      "number": 3,
+      "name": "Gernot Trauner",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Feyenoord",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_4_Kevin_Danso",
+      "teamId": "worldcup_austria",
+      "number": 4,
+      "name": "Kevin Danso",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Tottenham Hotspur",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_5_Maximilian_Wober",
+      "teamId": "worldcup_austria",
+      "number": 5,
+      "name": "Maximilian Wöber",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Borussia Mönchengladbach",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_13_Nicolas_Seiwald",
+      "teamId": "worldcup_austria",
+      "number": 13,
+      "name": "Nicolas Seiwald",
+      "pos": "MF",
+      "role": "DM",
+      "club": "RB Leipzig",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_14_Konrad_Laimer",
+      "teamId": "worldcup_austria",
+      "number": 14,
+      "name": "Konrad Laimer",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Bayern Munich",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_7_Marcel_Sabitzer",
+      "teamId": "worldcup_austria",
+      "number": 7,
+      "name": "Marcel Sabitzer",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Borussia Dortmund",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_22_Romano_Schmid",
+      "teamId": "worldcup_austria",
+      "number": 22,
+      "name": "Romano Schmid",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Werder Bremen",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_24_Matthias_Seidl",
+      "teamId": "worldcup_austria",
+      "number": 24,
+      "name": "Matthias Seidl",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Rapid Wien",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_19_Christoph_Baumgartner",
+      "teamId": "worldcup_austria",
+      "number": 19,
+      "name": "Christoph Baumgartner",
+      "pos": "MF",
+      "role": "AM",
+      "club": "RB Leipzig",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_18_Alexander_Prass",
+      "teamId": "worldcup_austria",
+      "number": 18,
+      "name": "Alexander Prass",
+      "pos": "MF",
+      "role": "AM",
+      "club": "TSG Hoffenheim",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_9_Marko_Arnautovic",
+      "teamId": "worldcup_austria",
+      "number": 9,
+      "name": "Marko Arnautović",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Red Star Belgrade",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_25_Junior_Adamu",
+      "teamId": "worldcup_austria",
+      "number": 25,
+      "name": "Junior Adamu",
+      "pos": "FW",
+      "role": "CF",
+      "club": "SC Freiburg",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_21_Maximilian_Entrup",
+      "teamId": "worldcup_austria",
+      "number": 21,
+      "name": "Maximilian Entrup",
+      "pos": "FW",
+      "role": "CF",
+      "club": "TSV Hartberg",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_20_Patrick_Wimmer",
+      "teamId": "worldcup_austria",
+      "number": 20,
+      "name": "Patrick Wimmer",
+      "pos": "FW",
+      "role": "LW",
+      "club": "VfL Wolfsburg",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_16_Marco_Grull",
+      "teamId": "worldcup_austria",
+      "number": 16,
+      "name": "Marco Grüll",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Werder Bremen",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_austria_26_Muhammed_Cham",
+      "teamId": "worldcup_austria",
+      "number": 26,
+      "name": "Muhammed Cham",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Mainz 05",
+      "flag": "🇦🇹",
+      "nationality": "Austria"
+    },
+    {
+      "id": "worldcup_jordan_22_Abdullah_Al_Fakhouri",
+      "teamId": "worldcup_jordan",
+      "number": 22,
+      "name": "Abdullah Al-Fakhouri",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Al-Faisaly",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_23_Moayad_Abu_Keshek",
+      "teamId": "worldcup_jordan",
+      "number": 23,
+      "name": "Moayad Abu Keshek",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Al-Ramtha",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_2_Mahmoud_Al_Mardi",
+      "teamId": "worldcup_jordan",
+      "number": 2,
+      "name": "Mahmoud Al-Mardi",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Al-Hussein",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_12_Mohammad_Abu_Hashish",
+      "teamId": "worldcup_jordan",
+      "number": 12,
+      "name": "Mohammad Abu Hashish",
+      "pos": "DF",
+      "role": "RB",
+      "club": "Al-Faisaly",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_3_Ihsan_Haddad",
+      "teamId": "worldcup_jordan",
+      "number": 3,
+      "name": "Ihsan Haddad",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Al-Faisaly",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_13_Adham_Habil",
+      "teamId": "worldcup_jordan",
+      "number": 13,
+      "name": "Adham Habil",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Al-Salt",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_4_Yazan_Al_Arab",
+      "teamId": "worldcup_jordan",
+      "number": 4,
+      "name": "Yazan Al-Arab",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_5_Abdallah_Nasib",
+      "teamId": "worldcup_jordan",
+      "number": 5,
+      "name": "Abdallah Nasib",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_6_Salem_Al_Ajalin",
+      "teamId": "worldcup_jordan",
+      "number": 6,
+      "name": "Salem Al-Ajalin",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Hussein",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_15_Bara_Marei",
+      "teamId": "worldcup_jordan",
+      "number": 15,
+      "name": "Bara' Marei",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_8_Nizar_Al_Rashdan",
+      "teamId": "worldcup_jordan",
+      "number": 8,
+      "name": "Nizar Al-Rashdan",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_14_Mahmoud_Mardiyyah",
+      "teamId": "worldcup_jordan",
+      "number": 14,
+      "name": "Mahmoud Mardiyyah",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Al-Faisaly",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_16_Rajaei_Ayed",
+      "teamId": "worldcup_jordan",
+      "number": 16,
+      "name": "Rajaei Ayed",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Hussein",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_20_Mohammad_Abu_Zraiq",
+      "teamId": "worldcup_jordan",
+      "number": 20,
+      "name": "Mohammad Abu Zraiq",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_21_Ali_Saada",
+      "teamId": "worldcup_jordan",
+      "number": 21,
+      "name": "Ali Saada",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Faisaly",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_24_Saleh_Rateb",
+      "teamId": "worldcup_jordan",
+      "number": 24,
+      "name": "Saleh Rateb",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Al-Hussein",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_18_Yousef_Abu_Jalboush",
+      "teamId": "worldcup_jordan",
+      "number": 18,
+      "name": "Yousef Abu Jalboush",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Al-Hussein",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_19_Noor_Al_Rawabdeh",
+      "teamId": "worldcup_jordan",
+      "number": 19,
+      "name": "Noor Al-Rawabdeh",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_7_Mousa_Al_Tamari",
+      "teamId": "worldcup_jordan",
+      "number": 7,
+      "name": "Mousa Al-Tamari",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Rennes",
+      "flag": "🇯🇴",
+      "nationality": "Jordan",
+      "captain": true
+    },
+    {
+      "id": "worldcup_jordan_10_Mahmoud_Zaqout",
+      "teamId": "worldcup_jordan",
+      "number": 10,
+      "name": "Mahmoud Zaqout",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Al-Wehdat",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_17_Tareq_Khattab",
+      "teamId": "worldcup_jordan",
+      "number": 17,
+      "name": "Tareq Khattab",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Al-Salt",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_11_Yazan_Al_Naimat",
+      "teamId": "worldcup_jordan",
+      "number": 11,
+      "name": "Yazan Al-Naimat",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Ahli",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_25_Musa_Suleiman",
+      "teamId": "worldcup_jordan",
+      "number": 25,
+      "name": "Musa Suleiman",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Al-Hussein",
+      "flag": "🇯🇴",
+      "nationality": "Jordan"
+    },
+    {
+      "id": "worldcup_jordan_26_Ahmad_Ersan",
+      "teamId": "worldcup_jordan",
+      "number": 26,
+      "name": "Ahmad Ersan",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Al-Faisaly",
       "flag": "🇯🇴",
       "nationality": "Jordan"
     }

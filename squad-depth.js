@@ -7,6 +7,19 @@
   const DEPTH_PLAYERS_PER_SLOT = 2;
   const DEPTH_CHART_SIZE = DEPTH_GK_COUNT + DEPTH_OUTFIELD_SLOTS * DEPTH_PLAYERS_PER_SLOT;
 
+  /** Outfield slot tags left → right, back → front (GK is separate). */
+  const FORMATION_SLOT_TEMPLATES = {
+    "4-3-3": ["LB", "CB", "CB", "RB", "DM", "CM", "CM", "LW", "CF", "RW"],
+    "4-4-2": ["LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "CF", "CF"],
+    "4-2-3-1": ["LB", "CB", "CB", "RB", "CM", "CM", "LW", "AM", "RW", "CF"],
+    "4-1-4-1": ["LB", "CB", "CB", "RB", "DM", "LW", "AM", "AM", "RW", "CF"],
+    "3-5-2": ["CB", "CB", "CB", "LM", "DM", "CM", "CM", "RM", "CF", "CF"],
+    "3-4-3": ["CB", "CB", "CB", "LM", "DM", "DM", "RM", "LW", "CF", "RW"],
+    "3-4-2-1": ["CB", "CB", "CB", "LM", "DM", "DM", "RM", "AM", "AM", "CF"],
+    "5-4-1": ["LB", "CB", "CB", "CB", "RB", "LM", "DM", "DM", "RM", "CF"],
+    "5-3-2": ["LB", "CB", "CB", "CB", "RB", "CM", "DM", "CM", "CF", "CF"],
+  };
+
   function parseFormationLines(formation) {
     return String(formation ?? "")
       .split(/[^0-9]+/)
@@ -14,7 +27,12 @@
       .filter((n) => Number.isFinite(n) && n > 0);
   }
 
-  function defaultSlotTagsForFormation(formation) {
+  function normalizeFormationKey(formation) {
+    const lines = parseFormationLines(formation);
+    return lines.length ? lines.join("-") : String(formation ?? "").trim();
+  }
+
+  function genericSlotTagsForFormation(formation) {
     const lines = parseFormationLines(formation);
     const sum = lines.reduce((a, b) => a + b, 0);
     if (!lines.length || sum !== DEPTH_OUTFIELD_SLOTS) {
@@ -41,6 +59,18 @@
     return tags.slice(0, DEPTH_OUTFIELD_SLOTS);
   }
 
+  function defaultSlotTagsForFormation(formation) {
+    const key = normalizeFormationKey(formation);
+    const template = FORMATION_SLOT_TEMPLATES[key];
+    if (template?.length === DEPTH_OUTFIELD_SLOTS) return template.slice();
+    return genericSlotTagsForFormation(formation);
+  }
+
+  function hasFormationTemplate(formation) {
+    const key = normalizeFormationKey(formation);
+    return Boolean(FORMATION_SLOT_TEMPLATES[key]);
+  }
+
   function emptySquadDepth(formation) {
     const form = String(formation ?? "4-2-3-1").trim() || "4-2-3-1";
     const tags = defaultSlotTagsForFormation(form);
@@ -57,6 +87,7 @@
 
     const formation = String(raw.formation ?? base.formation).trim() || base.formation;
     const tags = defaultSlotTagsForFormation(formation);
+    const useTemplateTags = hasFormationTemplate(formation);
     const gks = Array.isArray(raw.goalkeepers) ? raw.goalkeepers.map(String) : [];
     const slotsIn = Array.isArray(raw.slots) ? raw.slots : [];
 
@@ -67,7 +98,7 @@
         const slot = slotsIn[i] ?? {};
         const players = Array.isArray(slot.players) ? slot.players.map(String) : [];
         return {
-          tag: String(slot.tag ?? tags[i] ?? `S${i + 1}`),
+          tag: useTemplateTags ? tags[i] : String(slot.tag ?? tags[i] ?? `S${i + 1}`),
           players: [players[0] ?? "", players[1] ?? ""],
         };
       }),
@@ -145,13 +176,27 @@
     return hasSquadDepthContent(depth);
   }
 
+  function formationSlotSummary(formation) {
+    const key = normalizeFormationKey(formation);
+    const tags = defaultSlotTagsForFormation(formation);
+    const counts = { GK: 1 };
+    for (const t of tags) counts[t] = (counts[t] ?? 0) + 1;
+    const posOrder = ["GK", "CB", "LB", "RB", "DM", "CM", "AM", "LM", "RM", "LW", "RW", "CF", "ST"];
+    const parts = posOrder.filter((t) => counts[t]).map((t) => `${counts[t]} ${t}`);
+    return { key, tags, label: parts.join(", ") };
+  }
+
   global.SquadDepth = {
     DEPTH_GK_COUNT,
     DEPTH_OUTFIELD_SLOTS,
     DEPTH_PLAYERS_PER_SLOT,
     DEPTH_CHART_SIZE,
+    FORMATION_SLOT_TEMPLATES,
     parseFormationLines,
+    normalizeFormationKey,
     defaultSlotTagsForFormation,
+    hasFormationTemplate,
+    formationSlotSummary,
     emptySquadDepth,
     normalizeSquadDepth,
     syncDepthFormation,
