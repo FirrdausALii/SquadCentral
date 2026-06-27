@@ -1954,14 +1954,18 @@ function panelPlayers() {
               .map(
                 (p) => `<tr class="player-sort-row" draggable="true" data-player-id="${esc(p.id)}">
               <td class="admin-drag-cell"><span class="player-drag-handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span></td>
-              <td>${esc(p.number)}</td>
-              <td class="admin-player-name-cell"><strong>${esc(p.name)}</strong>${adminPlayerInstagramBadge(p)}</td>
-              <td class="d-none d-sm-table-cell">${esc(p.pos)}</td>
-              <td>${esc(p.role ?? "")}</td>
-              ${isWorldCup ? `<td class="d-none d-lg-table-cell">${esc(p.club ?? "—")}</td>` : ""}
-              <td class="admin-row-actions">
+              <td class="players-cell-num">${esc(p.number)}</td>
+              <td class="admin-player-name-cell">
+                <span class="admin-player-name-inner">
+                  <strong class="admin-player-name">${esc(p.name)}</strong>${adminPlayerInstagramBadge(p)}
+                </span>
+              </td>
+              <td class="players-cell-pos d-none d-sm-table-cell">${esc(p.pos)}</td>
+              <td class="players-cell-role">${esc(p.role ?? "")}</td>
+              ${isWorldCup ? `<td class="players-cell-club d-none d-lg-table-cell">${esc(p.club ?? "—")}</td>` : ""}
+              <td class="admin-row-actions players-cell-actions">
                 <button type="button" class="mw-btn-ghost players-row-btn" data-edit-player="${esc(p.id)}">Edit</button>
-                <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}">Transfer</button>
+                <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}" title="Transfer to another club"><span class="players-row-btn-long">Transfer</span><span class="players-row-btn-short">Move</span></button>
                 <button type="button" class="mw-btn-danger players-row-btn" data-del-player="${esc(p.id)}">Remove</button>
               </td></tr>`,
               )
