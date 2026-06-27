@@ -454,7 +454,44 @@ html.reveal-init .reveal.is-visible {
   color: var(--accent);
 }
 .squad-profile-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.squad-profile-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .squad-profile-club { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.player-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--border-strong);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+.player-social-link:hover,
+.player-social-link:focus-visible {
+  color: #f472b6;
+  border-color: rgba(244, 114, 182, 0.45);
+  background: rgba(244, 114, 182, 0.1);
+  outline: none;
+}
+.player-social-icon {
+  flex-shrink: 0;
+  display: block;
+}
+.player-social-label {
+  line-height: 1;
+}
+@media (max-width: 480px) {
+  .player-social-label { display: none; }
+}
 .squad-profile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

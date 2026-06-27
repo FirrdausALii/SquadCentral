@@ -1887,6 +1887,13 @@ function panelPlayers() {
               </div>
             </div>
           </div>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="mw-field">
+              <label for="playerInstagram">Instagram <span class="admin-muted">(optional)</span></label>
+              <input id="playerInstagram" class="mw-input" type="url" inputmode="url" placeholder="@username or https://instagram.com/…" autocomplete="off" />
+              <p class="mw-field-note admin-muted">Shows an Instagram icon on the public player profile when set.</p>
+            </div>
+          </div>
         </div>
         <div class="players-form-footer row g-2 mt-1">
           <div class="col-12 col-sm-auto">
@@ -3329,6 +3336,10 @@ function bindPlayers() {
     if (teamId.startsWith("worldcup_")) {
       playerPayload.club = $("#playerClub")?.value.trim() || undefined;
     }
+    const igRaw = $("#playerInstagram")?.value?.trim() ?? "";
+    const ig = normalizeInstagramUrl(igRaw);
+    if (igRaw && !ig) return alert("Invalid Instagram — use @username or a full instagram.com link.");
+    playerPayload.instagram = ig;
     FCDataStore.upsertPlayer(playerPayload);
     syncToAppArrays();
     toast("Player saved");
@@ -3348,6 +3359,7 @@ function bindPlayers() {
       $("#playerRole").value = p.role ?? "";
       $("#playerNat").value = p.nationality ?? "";
       if ($("#playerClub")) $("#playerClub").value = p.club ?? "";
+      if ($("#playerInstagram")) $("#playerInstagram").value = p.instagram ?? "";
       const flagEl = $("#playerFlag");
       if (flagEl) {
         flagEl.value = p.flag ?? "";

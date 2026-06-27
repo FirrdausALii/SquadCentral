@@ -226,6 +226,8 @@
     out.flag = preferNonPlaceholder(local.flag, out.flag);
     if (local.captain != null) out.captain = local.captain;
     if (local.sortOrder != null) out.sortOrder = local.sortOrder;
+    if (local.instagram != null && String(local.instagram).trim()) out.instagram = String(local.instagram).trim();
+    else if (local.instagram === "" || local.instagram === null) delete out.instagram;
     return out;
   }
 
@@ -452,8 +454,15 @@
 
   function upsertPlayer(player) {
     const i = state.players.findIndex((p) => p.id === player.id);
-    if (i >= 0) state.players[i] = { ...state.players[i], ...player };
-    else state.players.push(player);
+    if (i >= 0) {
+      const merged = { ...state.players[i], ...player };
+      if (Object.prototype.hasOwnProperty.call(player, "instagram") && !player.instagram) delete merged.instagram;
+      state.players[i] = merged;
+    } else {
+      const next = { ...player };
+      if (!next.instagram) delete next.instagram;
+      state.players.push(next);
+    }
     untombstone("players", player.id);
     touchRevision();
     save();
