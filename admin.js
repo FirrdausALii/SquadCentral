@@ -8,6 +8,7 @@ const TABS = [
   { id: "league", label: "Matchweek" },
   { id: "teams", label: "Teams" },
   { id: "squaddepth", label: "Squad depth" },
+  { id: "nationalduty", label: "National duty" },
   { id: "players", label: "Players" },
   { id: "matches", label: "Matches" },
   { id: "standings", label: "Standings" },
@@ -20,7 +21,9 @@ let activeTab = "overview";
 let leagueFilter = "epl";
 let leagueEditId = "";
 let playerTeamFilter = "";
+let playerTransferPickId = "";
 let squadDepthTeamFilter = "";
+let nationalDutyTeamFilter = "";
 let transferTeamFilter = "";
 let matchEditId = "";
 /** Preserves matchweek editor fields across renderPanel() (DOM is rebuilt each time). */
@@ -72,6 +75,11 @@ function esc(s) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function adminPlayerInstagramBadge(p) {
+  if (!playerInstagramUrl(p)) return "";
+  return `<span class="admin-player-ig" title="Instagram linked" aria-label="Instagram linked">${instagramIconSvg()}</span>`;
 }
 
 function showLogin(show) {
@@ -1666,10 +1674,181 @@ function panelSquadDepth() {
   `;
 }
 
+function nationalDutyRowHtml(teamId, entry) {
+  const roster = squadDepthRoster(teamId);
+  const playerOpts = squadDepthPickOptions(roster, entry.playerId);
+  return `<tr class="nd-row">
+    <td class="nd-player-col">
+      <div class="mw-select-wrap mw-select-wrap--compact nd-player-wrap">
+        <select class="nd-player mw-select" aria-label="Player">${playerOpts}</select>
+      </div>
+    </td>
+    <td class="nd-country-col"><input class="nd-country mw-input" value="${esc(entry.country ?? "")}" placeholder="Ecuador" aria-label="Country" /></td>
+    <td class="nd-note-col d-none d-md-table-cell"><input class="nd-note mw-input" value="${esc(entry.note ?? "")}" placeholder="FIFA window, friendly…" aria-label="Note" /></td>
+    <td class="nd-until-col"><input class="nd-until mw-input" type="date" value="${esc(transferDateToInputValue(entry.until))}" aria-label="Until date" /></td>
+    <td class="nd-del-col"><button type="button" class="mw-btn-danger nd-del" title="Remove row">×</button></td>
+  </tr>`;
+}
+
+function readNationalDutyFromDom() {
+  const tbody = $("#ndTable tbody");
+  if (!tbody) return [];
+  return [...tbody.querySelectorAll(".nd-row")]
+    .map((row) => ({
+      playerId: row.querySelector(".nd-player")?.value?.trim() ?? "",
+      country: row.querySelector(".nd-country")?.value?.trim() ?? "",
+      note: row.querySelector(".nd-note")?.value?.trim() ?? "",
+      until:
+        transferDateFromInputValue(row.querySelector(".nd-until")?.value?.trim() ?? "") ||
+        row.querySelector(".nd-until")?.value?.trim() ||
+        "",
+    }))
+    .filter((e) => e.playerId);
+}
+
+function panelNationalDuty() {
+  const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
+  const isWorldCup = leagueFilter === "worldcup";
+  const teams = teamsForLeague(leagueFilter);
+  if (!teams.length) nationalDutyTeamFilter = "";
+  else if (!teams.some((t) => t.id === nationalDutyTeamFilter)) nationalDutyTeamFilter = teams[0].id;
+
+  const teamId = nationalDutyTeamFilter;
+  const team = teams.find((t) => t.id === teamId);
+  const teamOpts = teamOptionTags(teams, teamId);
+  const roster = team ? squadDepthRoster(team.id) : [];
+  const entries =
+    typeof NationalDuty !== "undefined"
+      ? NationalDuty.normalizeNationalDuty(team?.nationalDuty)
+      : (team?.nationalDuty ?? []);
+  const count = entries.length;
+
+  if (isWorldCup) {
+    return `
+      <div class="mw-page nationalduty-page">
+        <header class="mw-hero">
+          <div class="mw-hero-text">
+            <p class="mw-eyebrow">International windows</p>
+            <h2 class="mw-heading">National duty</h2>
+            <p class="mw-lead">Track club players away on international duty. This applies to <strong>club leagues</strong> only — not the World Cup tournament squads.</p>
+          </div>
+        </header>
+        <section class="mw-card">
+          <p class="admin-muted mb-0">Switch to a club league (Premier League, La Liga, etc.) to manage national duty lists.</p>
+        </section>
+      </div>`;
+  }
+
+  const emptyTeam = !team
+    ? `<p class="admin-muted mb-0">Add teams in the <strong>Teams</strong> tab first.</p>`
+    : !roster.length
+      ? `<p class="admin-muted mb-0">Add players for <strong>${esc(team.name)}</strong> in the <strong>Players</strong> tab first.</p>`
+      : "";
+
+  const tableBody = entries.length
+    ? entries.map((e) => nationalDutyRowHtml(teamId, e)).join("")
+    : `<tr class="nd-empty-row"><td colspan="5" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+
+  return `
+    <div class="mw-page nationalduty-page">
+      <header class="mw-hero">
+        <div class="row g-3 align-items-start">
+          <div class="col-12 col-lg-8 mw-hero-text">
+            <p class="mw-eyebrow">International windows</p>
+            <h2 class="mw-heading">National duty</h2>
+            <p class="mw-lead">List squad players away with their national team (e.g. Piero Hincapie · Ecuador). Shown on the public <strong>Squads</strong> page for the selected club.</p>
+          </div>
+          <div class="col-12 col-sm-8 col-lg-4">
+            <div class="mw-hero-preview w-100">
+              <span class="mw-hero-preview-label">${esc(team?.name ?? "Club")}</span>
+              <strong class="mw-hero-preview-title">${count} on duty</strong>
+              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="mw-card">
+        <div class="mw-card-head">
+          <h3>Duty list${team ? ` · ${esc(team.name)}` : ""}</h3>
+          <p>Pick a player from the club squad and set their national team. Country defaults from the player profile when you select them.</p>
+        </div>
+        <div class="row g-2 g-md-3 mb-3">
+          <div class="col-12 col-md-6 col-lg-4">
+            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+          </div>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="mw-field">
+              <label for="ndTeam">Club</label>
+              <div class="mw-select-wrap">
+                <select id="ndTeam" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${
+          emptyTeam
+            ? emptyTeam
+            : `<div class="nd-table-wrap admin-table-wrap">
+          <table class="admin-table admin-table-compact nd-table" id="ndTable">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Country</th>
+                <th class="d-none d-md-table-cell">Note</th>
+                <th>Until</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${tableBody}</tbody>
+          </table>
+        </div>
+        <div class="nd-actions row g-2 mt-3">
+          <div class="col-12 col-sm-auto">
+            <button type="button" class="mw-btn-ghost w-100" id="btnNdAdd">Add player</button>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <button type="button" class="mw-btn-primary w-100" id="btnSaveNationalDuty">Save for ${esc(team.name)}</button>
+          </div>
+        </div>`
+        }
+      </section>
+    </div>
+  `;
+}
+
 function teamOptionTags(teams, selectedId) {
   return teams
     .map((t) => `<option value="${esc(t.id)}"${t.id === selectedId ? " selected" : ""}>${esc(t.name)}</option>`)
     .join("");
+}
+
+function playerTransferPickOptions(teamId, selectedId) {
+  const roster = teamId ? playersForTeam(teamId) : [];
+  if (!roster.length) return `<option value="">— No players —</option>`;
+  return (
+    `<option value="">— Select player —</option>` +
+    roster
+      .map((p) => {
+        const sel = p.id === selectedId ? " selected" : "";
+        return `<option value="${esc(p.id)}"${sel}>${esc(p.number)} · ${esc(p.name)}</option>`;
+      })
+      .join("")
+  );
+}
+
+function transferDestTeamOptions(teams, fromTeamId, selectedId = "") {
+  const dest = teams.filter((t) => t.id !== fromTeamId);
+  if (!dest.length) return `<option value="">— No other teams —</option>`;
+  return (
+    `<option value="">— Select club —</option>` +
+    dest
+      .map((t) => {
+        const sel = t.id === selectedId ? " selected" : "";
+        return `<option value="${esc(t.id)}"${sel}>${esc(t.name)}</option>`;
+      })
+      .join("")
+  );
 }
 
 function standingsClubSelectHtml(clubName, teams) {
@@ -1734,8 +1913,15 @@ function panelPlayers() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   if (!teams.length) {
     playerTeamFilter = "";
+    playerTransferPickId = "";
   } else if (!teams.some((t) => t.id === playerTeamFilter)) {
     playerTeamFilter = teams[0].id;
+    playerTransferPickId = "";
+  } else if (
+    playerTransferPickId &&
+    !playersForTeam(playerTeamFilter).some((p) => p.id === playerTransferPickId)
+  ) {
+    playerTransferPickId = "";
   }
   const teamId = playerTeamFilter;
   const teamOpts = teamOptionTags(teams, teamId);
@@ -1769,12 +1955,13 @@ function panelPlayers() {
                 (p) => `<tr class="player-sort-row" draggable="true" data-player-id="${esc(p.id)}">
               <td class="admin-drag-cell"><span class="player-drag-handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span></td>
               <td>${esc(p.number)}</td>
-              <td><strong>${esc(p.name)}</strong></td>
+              <td class="admin-player-name-cell"><strong>${esc(p.name)}</strong>${adminPlayerInstagramBadge(p)}</td>
               <td class="d-none d-sm-table-cell">${esc(p.pos)}</td>
               <td>${esc(p.role ?? "")}</td>
               ${isWorldCup ? `<td class="d-none d-lg-table-cell">${esc(p.club ?? "—")}</td>` : ""}
               <td class="admin-row-actions">
                 <button type="button" class="mw-btn-ghost players-row-btn" data-edit-player="${esc(p.id)}">Edit</button>
+                <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}">Transfer</button>
                 <button type="button" class="mw-btn-danger players-row-btn" data-del-player="${esc(p.id)}">Remove</button>
               </td></tr>`,
               )
@@ -1828,6 +2015,38 @@ function panelPlayers() {
             : ""
         }
         ${rosterBody}
+      </section>
+
+      <section class="mw-card" id="playerTransferCard">
+        <div class="mw-card-head">
+          <h3>Transfer player</h3>
+          <p>Move a squad member to another club in this league. They are removed from the current team and added to the destination roster. Squad depth picks on the old team are cleared automatically.</p>
+        </div>
+        ${
+          !teams.length || !teamId
+            ? `<p class="admin-muted mb-0">Select a team above to transfer players.</p>`
+            : `<div class="row g-2 g-md-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <div class="mw-field">
+              <label for="playerTransferPick">Player · ${esc(teamName)}</label>
+              <div class="mw-select-wrap">
+                <select id="playerTransferPick" class="mw-select">${playerTransferPickOptions(teamId, playerTransferPickId)}</select>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="mw-field">
+              <label for="playerTransferDest">Transfer to</label>
+              <div class="mw-select-wrap">
+                <select id="playerTransferDest" class="mw-select">${transferDestTeamOptions(teams, teamId)}</select>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <button type="button" class="mw-btn-primary w-100" id="btnExecuteTransfer">Transfer player</button>
+          </div>
+        </div>`
+        }
       </section>
 
       <section class="mw-card" id="playerFormCard">
@@ -2478,6 +2697,7 @@ function renderPanel() {
     league: panelLeague,
     teams: panelTeams,
     squaddepth: panelSquadDepth,
+    nationalduty: panelNationalDuty,
     players: panelPlayers,
     matches: panelMatches,
     standings: panelStandings,
@@ -2502,7 +2722,9 @@ function bindLeagueSelect() {
   sel.addEventListener("change", () => {
     leagueFilter = sel.value;
     playerTeamFilter = "";
+    playerTransferPickId = "";
     squadDepthTeamFilter = "";
+    nationalDutyTeamFilter = "";
     transferTeamFilter = "";
     matchEditId = "";
     renderPanel();
@@ -2572,6 +2794,7 @@ function bindPanelHandlers() {
   bindMatchweek();
   bindTeams();
   bindSquadDepth();
+  bindNationalDuty();
   bindPlayers();
   bindMatches();
   bindStandings();
@@ -3103,6 +3326,78 @@ function bindSquadDepth() {
   });
 }
 
+function bindNationalDutyPlayerAuto(selectEl) {
+  selectEl?.addEventListener("change", () => {
+    const row = selectEl.closest(".nd-row");
+    const countryInput = row?.querySelector(".nd-country");
+    if (!countryInput || countryInput.value.trim()) return;
+    const p = state().players.find((x) => x.id === selectEl.value);
+    if (p?.nationality?.trim()) countryInput.value = p.nationality.trim();
+  });
+}
+
+function bindNationalDutyTableHandlers() {
+  document.querySelectorAll(".nd-player").forEach((sel) => bindNationalDutyPlayerAuto(sel));
+
+  document.querySelectorAll(".nd-del").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btn.closest(".nd-row")?.remove();
+      const tbody = $("#ndTable tbody");
+      if (tbody && !tbody.querySelector(".nd-row")) {
+        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="5" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+      }
+    });
+  });
+}
+
+function bindNationalDuty() {
+  $("#ndTeam")?.addEventListener("change", () => {
+    nationalDutyTeamFilter = $("#ndTeam")?.value ?? "";
+    renderPanel();
+  });
+
+  bindNationalDutyTableHandlers();
+
+  $("#btnNdAdd")?.addEventListener("click", () => {
+    const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
+    if (!teamId) return toast("Choose a club first");
+    const tbody = $("#ndTable tbody");
+    if (!tbody) return;
+    tbody.querySelector(".nd-empty-row")?.remove();
+    tbody.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, {}));
+    const rows = tbody.querySelectorAll(".nd-row");
+    const lastSel = rows[rows.length - 1]?.querySelector(".nd-player");
+    bindNationalDutyPlayerAuto(lastSel);
+    rows[rows.length - 1]?.querySelector(".nd-del")?.addEventListener("click", () => {
+      rows[rows.length - 1]?.remove();
+      if (!tbody.querySelector(".nd-row")) {
+        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="5" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+      }
+    });
+  });
+
+  $("#btnSaveNationalDuty")?.addEventListener("click", () => {
+    const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
+    const team = state().teams.find((t) => t.id === teamId);
+    if (!team) return alert("Select a club");
+    const raw = readNationalDutyFromDom();
+    const entries = typeof NationalDuty !== "undefined" ? NationalDuty.normalizeNationalDuty(raw) : raw;
+    const rosterIds = squadDepthRoster(teamId).map((p) => p.id);
+    const check =
+      typeof NationalDuty !== "undefined"
+        ? NationalDuty.validateNationalDuty(entries, rosterIds)
+        : { ok: true, errors: [] };
+    if (!check.ok) {
+      alert(check.errors.join("\n"));
+      return;
+    }
+    FCDataStore.upsertTeam({ ...team, nationalDuty: entries });
+    syncToAppArrays();
+    toast(entries.length ? `National duty saved (${entries.length})` : "National duty cleared");
+    renderPanel();
+  });
+}
+
 function setupPlayerFlagAuto() {
   const nat = $("#playerNat");
   const flag = $("#playerFlag");
@@ -3299,12 +3594,57 @@ function bindPlayers() {
 
   $("#playerTeamFilter")?.addEventListener("change", (e) => {
     playerTeamFilter = e.target.value;
+    if (playerTransferPickId && !playersForTeam(playerTeamFilter).some((p) => p.id === playerTransferPickId)) {
+      playerTransferPickId = "";
+    }
     renderPanel();
   });
 
   $("#playerTeam")?.addEventListener("change", (e) => {
     playerTeamFilter = e.target.value;
+    playerTransferPickId = "";
     renderPanel();
+  });
+
+  $("#playerTransferPick")?.addEventListener("change", (e) => {
+    playerTransferPickId = e.target.value;
+  });
+
+  $("#btnExecuteTransfer")?.addEventListener("click", () => {
+    const fromTeamId = playerTeamFilter;
+    const playerId = $("#playerTransferPick")?.value;
+    const toTeamId = $("#playerTransferDest")?.value;
+    if (!fromTeamId) return toast("Choose a team first");
+    if (!playerId) return alert("Choose a player to transfer.");
+    if (!toTeamId) return alert("Choose a destination club.");
+    const p = state().players.find((x) => x.id === playerId);
+    if (!p) return alert("Player not found.");
+    const fromName = state().teams.find((t) => t.id === fromTeamId)?.name ?? fromTeamId;
+    const toName = state().teams.find((t) => t.id === toTeamId)?.name ?? toTeamId;
+    if (
+      !confirm(
+        `Transfer ${p.name} from ${fromName} to ${toName}?\n\nThey will be removed from ${fromName}'s squad and squad depth chart.`,
+      )
+    ) {
+      return;
+    }
+    const r = FCDataStore.transferPlayer(playerId, toTeamId, { fromTeamId });
+    if (!r.ok) return alert(r.error);
+    syncToAppArrays();
+    playerTransferPickId = "";
+    playerTeamFilter = toTeamId;
+    toast(`${p.name} → ${toName}`);
+    renderPanel();
+  });
+
+  document.querySelectorAll("[data-transfer-player]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      playerTransferPickId = btn.getAttribute("data-transfer-player");
+      const pick = $("#playerTransferPick");
+      if (pick) pick.value = playerTransferPickId;
+      $("#playerTransferCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#playerTransferDest")?.focus();
+    });
   });
 
   setupPlayerFlagAuto();

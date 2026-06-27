@@ -2427,6 +2427,68 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   font-size: 12px !important;
 }
 
+.players-row-btn--transfer {
+  color: var(--admin-accent, #6eb5ff);
+}
+
+#playerTransferCard .mw-card-head p {
+  max-width: 52rem;
+}
+
+/* —— National duty —— */
+.nd-table-wrap {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+}
+
+.nd-table {
+  min-width: 520px;
+  margin: 0;
+}
+
+.nd-player-wrap {
+  min-width: 180px;
+}
+
+.nd-player-wrap .mw-select {
+  width: 100%;
+  min-width: 160px;
+}
+
+.nd-del {
+  padding: 4px 10px !important;
+  font-size: 16px !important;
+  line-height: 1;
+}
+
+.nd-empty-row td {
+  padding: var(--sp-4);
+  text-align: center;
+}
+
+.admin-player-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.admin-player-ig {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #e1306c;
+  opacity: 0.9;
+  line-height: 0;
+}
+
+.admin-player-ig .player-social-icon {
+  width: 14px;
+  height: 14px;
+}
+
 .players-form-footer {
   margin-top: 4px;
 }

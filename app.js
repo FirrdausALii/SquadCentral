@@ -37,6 +37,7 @@ const LEAGUE_FEATURE_SCHEMA = [
   { id: "standings", label: "Standings table", group: "Sections", default: true },
   { id: "topScorers", label: "Top scorers", group: "Sections", default: true },
   { id: "transfers", label: "Transfers section", group: "Sections", default: true },
+  { id: "nationalDuty", label: "National duty (squads)", group: "Sections", default: true },
   { id: "squads", label: "Squads / roster", group: "Sections", default: true },
   { id: "spotlight", label: "Club spotlight (home)", group: "Sections", default: true },
   { id: "groupStandings", label: "Use group-stage standings", group: "Standings", default: false },
@@ -59,7 +60,7 @@ const LEAGUE_FEATURE_IDS = LEAGUE_FEATURE_SCHEMA.map((f) => f.id);
 
 /** Built-in defaults that differ from the schema baseline for specific leagues. */
 const LEAGUE_FEATURE_PRESETS = {
-  worldcup: { transfers: false, groupStandings: true },
+  worldcup: { transfers: false, nationalDuty: false, groupStandings: true },
 };
 
 function defaultLeagueFeatures(leagueId) {
@@ -81,6 +82,10 @@ function leagueFeatureOn(leagueId, featureId) {
 
 function leagueHasTransfers(leagueId) {
   return leagueFeatureOn(leagueId, "transfers");
+}
+
+function leagueHasNationalDuty(leagueId) {
+  return leagueFeatureOn(leagueId, "nationalDuty") && !isWorldCupLeague(leagueId);
 }
 
 function leagueUsesGroupStandings(leagueId) {
@@ -4841,6 +4846,7 @@ function renderSquadDepthView(state, team, startsMap) {
           <p class="squad-team-meta mb-0">Squad depth · ${escapeHtml(LEAGUES.find((l) => l.id === state.leagueId)?.name ?? state.leagueId)}</p>
         </div>
       </div>
+      ${renderNationalDutyBlock(team, state.leagueId)}
     </div>
     <div class="squad-depth-body">${pitchHtml}</div>
   `;
@@ -4861,14 +4867,61 @@ function rosterColumns(leagueId, showClub) {
 
 const ROSTER_COL_ORDER = ["num", "player", "pos", "club", "nat"];
 
-function renderSquadRow(p, startsMap, leagueId, colKeys) {
+function nationalDutyEntriesForTeam(team) {
+  if (!team) return [];
+  return typeof NationalDuty !== "undefined"
+    ? NationalDuty.normalizeNationalDuty(team.nationalDuty)
+    : Array.isArray(team.nationalDuty)
+      ? team.nationalDuty
+      : [];
+}
+
+function nationalDutyPlayerIdsForTeam(team) {
+  if (typeof NationalDuty !== "undefined") return NationalDuty.dutyPlayerIds(team?.nationalDuty);
+  return new Set(nationalDutyEntriesForTeam(team).map((e) => e.playerId));
+}
+
+function renderNationalDutyBlock(team, leagueId) {
+  if (!leagueHasNationalDuty(leagueId) || !team) return "";
+  const entries = nationalDutyEntriesForTeam(team);
+  if (!entries.length) return "";
+
+  const rosterMap = new Map(playersForTeam(team.id).map((p) => [p.id, p]));
+  const rows = entries
+    .map((e) => {
+      const p = rosterMap.get(e.playerId);
+      if (!p) return "";
+      const country = e.country || p.nationality || "—";
+      const meta = [e.note, e.until ? `Until ${e.until}` : ""].filter(Boolean).join(" · ");
+      return `<li class="national-duty-row">
+          <span class="national-duty-player">${squadFlagHtml(p)}<strong>${escapeHtml(stripCaptainSuffix(p.name))}</strong></span>
+          <span class="national-duty-country">${escapeHtml(country)}</span>
+          ${meta ? `<span class="national-duty-meta">${escapeHtml(meta)}</span>` : ""}
+        </li>`;
+    })
+    .filter(Boolean)
+    .join("");
+
+  if (!rows) return "";
+
+  return `<div class="national-duty-block" role="region" aria-label="On national duty">
+    <h4 class="national-duty-title">On national duty</h4>
+    <ul class="national-duty-list">${rows}</ul>
+  </div>`;
+}
+
+function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
   const keys = colKeys ?? new Set(ROSTER_COL_ORDER);
   const role = p.role ?? p.pos;
   const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain" aria-label="Captain">C</span>` : "";
+  const onDuty = dutyIds?.has(p.id);
+  const dutyBadge = onDuty
+    ? `<span class="squad-duty-badge" title="On national duty">Int'l</span>`
+    : "";
   const displayName = stripCaptainSuffix(p.name);
   const cells = {
     num: `<span class="squad-num">${escapeHtml(p.number)}</span>`,
-    player: `<span class="squad-player"><span class="squad-name">${escapeHtml(displayName)}${cap}</span></span>`,
+    player: `<span class="squad-player"><span class="squad-name">${escapeHtml(displayName)}${cap}${dutyBadge}</span></span>`,
     pos: `<span class="squad-pos-tag" data-pos="${escapeHtml(p.pos)}">${escapeHtml(role)}</span>`,
     club: `<span class="squad-club">${escapeHtml(p.club ?? "—")}</span>`,
     nat: `<span class="squad-nat">${squadFlagHtml(p)}<span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span></span>`,
@@ -4942,8 +4995,11 @@ function renderRoster() {
         </div>
         <span class="squad-count-badge">${escapeHtml(countLabel)}</span>
       </div>
+      ${renderNationalDutyBlock(team, state.leagueId)}
     `;
   }
+
+  const dutyIds = nationalDutyPlayerIdsForTeam(team);
 
   const order = { GK: 0, DF: 1, MF: 2, FW: 3 };
   squad.sort((a, b) => (order[a.pos] ?? 9) - (order[b.pos] ?? 9) || a.number - b.number || a.name.localeCompare(b.name));
@@ -4989,7 +5045,7 @@ function renderRoster() {
           <span class="squad-group-count">${escapeHtml(g.players.length)}</span>
         </h4>
         <div class="squad-list">
-          ${g.players.map((p) => renderSquadRow(p, startsMap, state.leagueId, colKeys)).join("")}
+          ${g.players.map((p) => renderSquadRow(p, startsMap, state.leagueId, colKeys, dutyIds)).join("")}
         </div>
       </section>
     `,

@@ -241,6 +241,8 @@
     if (local.colors?.length) out.colors = clone(local.colors);
     if (local.group) out.group = local.group;
     if (local.squadDepth) out.squadDepth = clone(local.squadDepth);
+    if (local.nationalDuty?.length) out.nationalDuty = clone(local.nationalDuty);
+    else if (Array.isArray(local.nationalDuty)) out.nationalDuty = [];
     return out;
   }
 
@@ -475,6 +477,79 @@
     save();
   }
 
+  function stripPlayerFromSquadDepth(depth, playerId) {
+    if (!depth || !playerId) return depth;
+    const next = clone(depth);
+    if (Array.isArray(next.goalkeepers)) {
+      next.goalkeepers = next.goalkeepers.map((id) => (id === playerId ? "" : id));
+    }
+    if (Array.isArray(next.slots)) {
+      next.slots = next.slots.map((slot) => ({
+        ...slot,
+        players: (slot.players ?? ["", ""]).map((id) => (id === playerId ? "" : id)),
+      }));
+    }
+    return next;
+  }
+
+  /**
+   * Move an existing player to another team (same record, no duplicate).
+   * Clears them from the source squad depth chart; they appear on the destination roster immediately.
+   * @param {string} playerId
+   * @param {string} toTeamId
+   * @param {{ fromTeamId?: string, sortOrder?: number }} [options]
+   * @returns {{ ok: true, player: object, fromTeamId: string, toTeamId: string, previousPlayerId: string } | { ok: false, error: string }}
+   */
+  function transferPlayer(playerId, toTeamId, options = {}) {
+    const id = String(playerId ?? "").trim();
+    const destTeamId = String(toTeamId ?? "").trim();
+    if (!id) return { ok: false, error: "Player id is required." };
+    if (!destTeamId) return { ok: false, error: "Destination team is required." };
+
+    const idx = state.players.findIndex((p) => p.id === id);
+    if (idx < 0) return { ok: false, error: "Player not found." };
+
+    const player = state.players[idx];
+    const fromTeamId = player.teamId;
+    if (!fromTeamId) return { ok: false, error: "Player has no current team." };
+    if (options.fromTeamId && options.fromTeamId !== fromTeamId) {
+      return { ok: false, error: "Player is not on the expected source team." };
+    }
+    if (fromTeamId === destTeamId) return { ok: false, error: "Player is already on that team." };
+
+    const destTeam = state.teams.find((t) => t.id === destTeamId);
+    if (!destTeam) return { ok: false, error: "Destination team not found." };
+
+    const nextId = makePlayerId(destTeamId, player.number, player.name);
+    if (nextId !== id && state.players.some((p) => p.id === nextId)) {
+      return {
+        ok: false,
+        error: "A player with the same number and name already exists on the destination team.",
+      };
+    }
+
+    const sourceTeam = state.teams.find((t) => t.id === fromTeamId);
+    if (sourceTeam?.squadDepth) {
+      sourceTeam.squadDepth = stripPlayerFromSquadDepth(sourceTeam.squadDepth, id);
+    }
+
+    const targetMax = state.players
+      .filter((p) => p.teamId === destTeamId && p.id !== id)
+      .reduce((m, p) => Math.max(m, p.sortOrder ?? -1), -1);
+    const moved = { ...player, teamId: destTeamId, sortOrder: options.sortOrder ?? targetMax + 1 };
+    if (nextId !== id) {
+      moved.id = nextId;
+      tombstone("players", id);
+    }
+
+    state.players[idx] = moved;
+    untombstone("players", moved.id);
+    touchRevision();
+    save();
+
+    return { ok: true, player: moved, fromTeamId, toTeamId: destTeamId, previousPlayerId: id };
+  }
+
   /** Persist drag-and-drop order for a team’s squad list (Players tab + public roster). */
   function reorderTeamPlayers(teamId, orderedPlayerIds) {
     if (!teamId || !orderedPlayerIds?.length) return;
@@ -616,6 +691,7 @@
     removeTeam,
     upsertPlayer,
     removePlayer,
+    transferPlayer,
     reorderTeamPlayers,
     upsertMatch,
     removeMatch,
