@@ -82,6 +82,37 @@ function adminPlayerInstagramBadge(p) {
   return `<span class="admin-player-ig" title="Instagram linked" aria-label="Instagram linked">${instagramIconSvg()}</span>`;
 }
 
+function playerRosterCardHtml(p, isWorldCup) {
+  const clubMeta =
+    isWorldCup && p.club
+      ? `<span class="player-roster-club">${esc(p.club)}</span>`
+      : "";
+  const metaParts = [
+    `<span class="player-roster-pos">${esc(p.pos)}</span>`,
+    `<span class="player-roster-role">${esc(p.role ?? "")}</span>`,
+    clubMeta,
+  ].filter(Boolean);
+  return `<article class="player-roster-card player-sort-row" draggable="true" data-player-id="${esc(p.id)}">
+    <span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
+    <div class="player-roster-body">
+      <div class="player-roster-line">
+        <span class="player-roster-num">${esc(p.number)}</span>
+        <div class="player-roster-copy">
+          <div class="admin-player-name-inner">
+            <strong class="admin-player-name">${esc(p.name)}</strong>${adminPlayerInstagramBadge(p)}
+          </div>
+          <div class="player-roster-meta">${metaParts.join('<span class="player-roster-meta-sep" aria-hidden="true">·</span>')}</div>
+        </div>
+      </div>
+      <div class="admin-row-actions player-roster-actions">
+        <button type="button" class="mw-btn-ghost players-row-btn" data-edit-player="${esc(p.id)}">Edit</button>
+        <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}" title="Transfer to another club"><span class="players-row-btn-long">Transfer</span><span class="players-row-btn-short">Move</span></button>
+        <button type="button" class="mw-btn-danger players-row-btn" data-del-player="${esc(p.id)}">Remove</button>
+      </div>
+    </div>
+  </article>`;
+}
+
 function showLogin(show) {
   const login = $("#loginView");
   const app = $("#appView");
@@ -1930,47 +1961,14 @@ function panelPlayers() {
   const players = teamId ? playersForTeam(teamId) : [];
   const teamName = teams.find((t) => t.id === teamId)?.name ?? "—";
   const playerCount = players.length;
-  const clubCol = isWorldCup ? '<th class="d-none d-lg-table-cell">Club</th>' : "";
   const dragHint = isWorldCup
     ? " Drag the <strong>⋮⋮</strong> handle to reorder. For World Cup squads, set each player’s <strong>club</strong> (domestic team)."
     : " Drag the <strong>⋮⋮</strong> handle to reorder the squad list. Order saves when you drop a row and appears on the public site.";
 
   const rosterBody = !teams.length
     ? `<p class="admin-muted mb-0">Add teams in the <strong>Teams</strong> tab first, then return here to manage squads.</p>`
-    : `<div class="players-table-wrap admin-table-wrap admin-table-wrap--sort">
-          <table class="admin-table admin-table-compact admin-table--sortable players-table">
-            <thead>
-              <tr>
-                <th class="admin-drag-col" aria-label="Reorder"></th>
-                <th>#</th>
-                <th>Name</th>
-                <th class="d-none d-sm-table-cell">Pos</th>
-                <th>Role</th>
-                ${clubCol}
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="playersSortTbody">${players
-              .map(
-                (p) => `<tr class="player-sort-row" draggable="true" data-player-id="${esc(p.id)}">
-              <td class="admin-drag-cell"><span class="player-drag-handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span></td>
-              <td class="players-cell-num">${esc(p.number)}</td>
-              <td class="admin-player-name-cell">
-                <span class="admin-player-name-inner">
-                  <strong class="admin-player-name">${esc(p.name)}</strong>${adminPlayerInstagramBadge(p)}
-                </span>
-              </td>
-              <td class="players-cell-pos d-none d-sm-table-cell">${esc(p.pos)}</td>
-              <td class="players-cell-role">${esc(p.role ?? "")}</td>
-              ${isWorldCup ? `<td class="players-cell-club d-none d-lg-table-cell">${esc(p.club ?? "—")}</td>` : ""}
-              <td class="admin-row-actions players-cell-actions">
-                <button type="button" class="mw-btn-ghost players-row-btn" data-edit-player="${esc(p.id)}">Edit</button>
-                <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}" title="Transfer to another club"><span class="players-row-btn-long">Transfer</span><span class="players-row-btn-short">Move</span></button>
-                <button type="button" class="mw-btn-danger players-row-btn" data-del-player="${esc(p.id)}">Remove</button>
-              </td></tr>`,
-              )
-              .join("")}</tbody>
-          </table>
+    : `<div class="players-roster-wrap admin-table-wrap admin-table-wrap--sort">
+          <div class="players-roster-list" id="playersSortTbody">${players.map((p) => playerRosterCardHtml(p, isWorldCup)).join("")}</div>
         </div>`;
 
   return `

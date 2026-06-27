@@ -2408,18 +2408,133 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   }
 }
 
-/* —— Players —— */
-.players-table-wrap {
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+/* —— Players (roster cards) —— */
+.players-roster-wrap {
   border-radius: 12px;
   border: 1px solid var(--admin-border);
-  max-height: min(420px, 55vh);
+  overflow: hidden;
+  max-height: min(480px, 58vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.players-table {
-  min-width: 440px;
-  margin: 0;
+.players-roster-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-roster-card {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-panel);
+  align-items: flex-start;
+}
+
+.player-roster-card:last-child {
+  border-bottom: none;
+}
+
+.player-drag-handle {
+  flex-shrink: 0;
+  width: 22px;
+  padding-top: 2px;
+  color: var(--admin-muted);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.player-roster-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.player-roster-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.player-roster-num {
+  flex-shrink: 0;
+  width: 28px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--admin-muted);
+  line-height: 1.35;
+}
+
+.player-roster-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-player-name-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.admin-player-name {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.player-roster-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.player-roster-meta-sep {
+  opacity: 0.55;
+}
+
+.player-roster-club {
+  color: var(--admin-muted);
+}
+
+.player-roster-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.player-roster-actions .players-row-btn {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+}
+
+.admin-player-ig {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #e1306c;
+  opacity: 0.9;
+  line-height: 0;
+}
+
+.admin-player-ig .player-social-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .players-row-btn {
@@ -2429,6 +2544,60 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 
 .players-row-btn--transfer {
   color: var(--admin-accent, #6eb5ff);
+}
+
+.players-row-btn-short {
+  display: none;
+}
+
+@media (min-width: 576px) {
+  .player-roster-card {
+    align-items: center;
+    padding: 10px 12px;
+  }
+
+  .player-roster-body {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .player-roster-line {
+    align-items: center;
+    flex: 1;
+  }
+
+  .player-roster-copy {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .player-roster-meta {
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+
+  .admin-player-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: min(36vw, 320px);
+  }
+
+  .player-roster-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    width: auto;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .player-roster-actions .players-row-btn {
+    width: auto;
+  }
 }
 
 #playerTransferCard .mw-card-head p {
@@ -2468,56 +2637,6 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   text-align: center;
 }
 
-.admin-player-name-cell {
-  min-width: 0;
-}
-
-.players-table .players-cell-actions.admin-row-actions {
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-  white-space: nowrap;
-}
-
-@media (min-width: 576px) {
-  .players-table .admin-player-name-cell {
-    max-width: min(32vw, 280px);
-  }
-}
-
-.admin-player-name-inner {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  max-width: 100%;
-  vertical-align: middle;
-}
-
-.admin-player-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  font-weight: 700;
-}
-
-.admin-player-ig {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  color: #e1306c;
-  opacity: 0.9;
-  line-height: 0;
-}
-
-.admin-player-ig .player-social-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.players-row-btn-short {
-  display: none;
-}
-
 .players-form-footer {
   margin-top: 4px;
 }
@@ -2550,90 +2669,25 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 }
 
 @media (max-width: 575.98px) {
-  .players-table-wrap {
+  .players-roster-wrap {
     max-height: none;
-    overflow: visible;
     border: none;
     border-radius: 0;
   }
 
-  .players-table {
-    min-width: 0;
-    display: block;
-  }
-
-  .players-table thead {
-    display: none;
-  }
-
-  .players-table tbody {
-    display: block;
-  }
-
-  .players-table .player-sort-row {
-    display: grid;
-    grid-template-columns: 22px 28px minmax(0, 1fr) auto;
-    grid-template-areas:
-      "drag num name actions"
-      "drag role role actions";
-    gap: 4px 8px;
-    padding: 10px 0;
-    align-items: center;
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .players-table .player-sort-row td {
-    display: block;
-    padding: 0;
-    border: none;
+  .player-roster-card {
+    padding: 12px 0;
     background: transparent;
   }
 
-  .players-table .admin-drag-cell {
-    grid-area: drag;
-    align-self: start;
-    padding-top: 2px;
+  .admin-player-name {
+    white-space: normal;
+    word-break: break-word;
   }
 
-  .players-table .players-cell-num {
-    grid-area: num;
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--admin-muted);
-  }
-
-  .players-table .admin-player-name-cell {
-    grid-area: name;
-    max-width: none;
-  }
-
-  .players-table .players-cell-role {
-    grid-area: role;
-    font-size: 12px;
-    color: var(--admin-muted);
-    padding-left: 0;
-  }
-
-  .players-table .players-cell-actions {
-    grid-area: actions;
-    align-self: center;
-  }
-
-  .players-table .admin-row-actions {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: 4px;
-    min-width: 54px;
-  }
-
-  .players-row-btn {
-    flex: 0 0 auto;
-    width: 100%;
-    min-width: 54px;
-    padding: 5px 6px !important;
-    font-size: 10px !important;
-    text-align: center;
+  .player-roster-actions .players-row-btn {
+    padding: 8px 6px !important;
+    font-size: 11px !important;
   }
 
   .players-row-btn-long {
