@@ -166,10 +166,38 @@
     const rows = [];
     let idx = 0;
     for (const n of lines) {
-      rows.push(slots.slice(idx, idx + n));
+      rows.push(centerDmInPitchRow(slots.slice(idx, idx + n)));
       idx += n;
     }
     return rows;
+  }
+
+  function isDmTag(tag) {
+    const t = String(tag ?? "").toUpperCase();
+    return t === "DM" || t === "CDM" || t === "DMF";
+  }
+
+  /** Place DM slot(s) in the middle of a pitch row (display only — slot data unchanged). */
+  function centerDmInPitchRow(items, getTag = (x) => x?.tag) {
+    if (!items?.length) return items;
+    const dm = [];
+    const rest = [];
+    for (const item of items) {
+      if (isDmTag(getTag(item))) dm.push(item);
+      else rest.push(item);
+    }
+    if (!dm.length) return items.slice();
+
+    const n = items.length;
+    const out = Array(n).fill(null);
+    const dmStart = Math.floor((n - dm.length) / 2);
+    for (let i = 0; i < dm.length; i++) out[dmStart + i] = dm[i];
+
+    let ri = 0;
+    for (let i = 0; i < n; i++) {
+      if (!out[i]) out[i] = rest[ri++];
+    }
+    return out;
   }
 
   function isSquadDepthComplete(depth) {
@@ -205,6 +233,8 @@
     hasSquadDepthContent,
     validateSquadDepth,
     buildOutfieldRows,
+    centerDmInPitchRow,
+    isDmTag,
     isSquadDepthComplete,
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -5746,10 +5746,13 @@ function buildFormationRows(formation, lineup) {
   }
 
   // Order each outfield row left -> right by flank hint (stable for centre players).
-  for (const row of rows) {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
     row.forEach((p, i) => (p.__i = i));
     row.sort((a, b) => tagSideHint(a.tag) - tagSideHint(b.tag) || a.__i - b.__i);
     row.forEach((p) => delete p.__i);
+    rows[r] =
+      typeof SquadDepth !== "undefined" ? SquadDepth.centerDmInPitchRow(row, (p) => p.tag) : row;
   }
 
   return [[gk], ...rows];
