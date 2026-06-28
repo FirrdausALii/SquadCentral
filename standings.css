@@ -17,13 +17,6 @@
   background-color: var(--bg-surface-1);
 }
 
-.standings-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
 .standings-league-badge {
   font-size: 10px;
   font-weight: 600;
@@ -35,10 +28,20 @@
   white-space: nowrap;
 }
 
+.standings-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.standings-table-wrap--compact {
+  margin: 0;
+}
+
 .standings-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .standings-table thead tr {
@@ -82,11 +85,25 @@
   background-color: var(--bg-surface-3);
 }
 
+.standings-table th.col-stat,
+.standings-table td.col-stat {
+  width: 32px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.standings-table td.col-gd {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .standings-table td.col-pos {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-faint);
-  width: 32px;
+  width: 36px;
+  padding-left: 14px;
+  position: relative;
 }
 
 .zone-champions td.col-pos   { color: var(--accent); }
@@ -94,10 +111,23 @@
 .zone-conference td.col-pos  { color: var(--color-win); }
 .zone-relegation td.col-pos  { color: var(--color-loss); }
 
-.zone-champions  { border-left: 2px solid var(--accent); }
-.zone-europa     { border-left: 2px solid #a78bfa; }
-.zone-conference { border-left: 2px solid var(--color-win); }
-.zone-relegation { border-left: 2px solid var(--color-loss); }
+.zone-champions td.col-pos::before,
+.zone-europa td.col-pos::before,
+.zone-conference td.col-pos::before,
+.zone-relegation td.col-pos::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+
+.zone-champions td.col-pos::before   { background: var(--accent); }
+.zone-europa td.col-pos::before      { background: #a78bfa; }
+.zone-conference td.col-pos::before  { background: var(--color-win); }
+.zone-relegation td.col-pos::before  { background: var(--color-loss); }
 
 .standings-table td.col-club {
   text-align: left;
@@ -202,7 +232,17 @@
 
 .standings-card--compact .standings-table th,
 .standings-card--compact .standings-table td {
-  padding: 8px 10px;
+  padding: 8px 8px;
+}
+
+.standings-card--compact .standings-table th.col-club,
+.standings-card--compact .standings-table td.col-club {
+  padding-left: 12px;
+  min-width: 108px;
+}
+
+.standings-table--full {
+  min-width: 420px;
 }
 
 .standings-card--compact .club-cell-crest {
@@ -240,6 +280,9 @@
   .standings-table th.col-form,
   .standings-table td.col-form {
     display: none;
+  }
+  .standings-table--full {
+    min-width: 360px;
   }
   .standings-legend {
     gap: var(--sp-2);

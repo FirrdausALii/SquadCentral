@@ -1258,7 +1258,7 @@ const MATCHES = [
   },
 ];
 
-/** Rows: [rank, clubName, points] */
+/** Rows: [rank, clubName, points, played?, won?, drawn?, lost?, gd?, form?] */
 const MINI_STANDINGS = [
   {
     leagueId: "epl",
@@ -1605,11 +1605,42 @@ function sortStandingsRows(rows) {
     .map((row, i) => [i + 1, row[1], row[2] ?? 0, ...row.slice(3)]);
 }
 
-function standingsZoneClass(rank, total) {
+function standingsMatchesPlayed(leagueId) {
+  if (leagueId === "msl") return 22;
+  if (leagueId === "bundesliga") return 34;
+  if (leagueId === "worldcup") return 3;
+  return 38;
+}
+
+function enrichStandingsRow(row, rank, total, leagueId) {
+  const rk = Number(row[0] ?? rank) || rank;
+  const club = row[1];
+  const pts = Number(row[2] ?? 0) || 0;
+  if (row.length >= 8 && row[3] != null && row[4] != null) {
+    return [rk, club, pts, row[3], row[4], row[5], row[6], row[7], row[8]];
+  }
+
+  const played = Number(row[3]) || standingsMatchesPlayed(leagueId);
+  let won = Math.min(Math.floor(pts / 3), played);
+  let drawn = pts - won * 3;
+  let lost = played - won - drawn;
+  if (lost < 0) {
+    won += lost;
+    lost = 0;
+    drawn = Math.max(0, played - won);
+  }
+  const gd =
+    row[7] != null && row[7] !== ""
+      ? Number(row[7])
+      : Math.round((won - lost) * 1.1 + (pts - played * 1.05) * 0.25);
+  return [rk, club, pts, played, won, drawn, lost, gd, row[8]];
+}
+
+function standingsZoneClass(rank, totalTeams) {
   if (rank <= 4) return "zone-champions";
   if (rank <= 6) return "zone-europa";
   if (rank === 7) return "zone-conference";
-  if (total >= 10 && rank >= total - 2) return "zone-relegation";
+  if (totalTeams >= 10 && rank >= totalTeams - 2) return "zone-relegation";
   return "";
 }
 
@@ -1693,22 +1724,28 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     limit,
     highlightClub = "",
     wrapCard = true,
+    fullStats = true,
   } = typeof options === "string" ? { emptyLabel: options } : options;
 
   const sorted = sortStandingsRows(rows);
+  const totalTeams = sorted.length;
   const list = limit ? sorted.slice(0, limit) : sorted;
   if (!list.length) {
     return `<div class="standings-empty">${escapeHtml(emptyLabel)}</div>`;
   }
 
-  const hasFullStats = list.some((row) => row.length >= 8);
-  const thead = hasFullStats
+  const enriched = fullStats
+    ? list.map((row, i) => enrichStandingsRow(row, i + 1, totalTeams, leagueId))
+    : list;
+  const showFullColumns = fullStats && enriched.some((row) => row.length >= 8);
+
+  const thead = showFullColumns
     ? `<thead><tr>
         <th class="col-pos">#</th>
         <th class="col-club">Club</th>
-        <th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th>
+        <th class="col-stat">P</th><th class="col-stat">W</th><th class="col-stat">D</th><th class="col-stat">L</th><th class="col-stat">GD</th>
         <th class="col-pts">Pts</th>
-        <th class="col-form">Form</th>
+        ${compact ? "" : `<th class="col-form">Form</th>`}
       </tr></thead>`
     : `<thead><tr>
         <th class="col-pos">#</th>
@@ -1717,11 +1754,11 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         ${compact ? "" : `<th class="col-form">Form</th>`}
       </tr></thead>`;
 
-  const body = list
-    .map((row) => {
+  const body = enriched
+    .map((row, i) => {
       const [rk, club, pts, played, won, drawn, lost, gd, form] = row;
       const team = teamForStandingClub(club, leagueId);
-      const zone = standingsZoneClass(Number(rk), list.length);
+      const zone = standingsZoneClass(Number(rk), totalTeams);
       const highlight =
         highlightClub && String(club).trim().toLowerCase() === String(highlightClub).trim().toLowerCase()
           ? " highlight-team"
@@ -1729,7 +1766,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
       const stat = (v) => (v == null || v === "" ? "—" : escapeHtml(String(v)));
       const gdText = gd == null || gd === "" ? "—" : gd > 0 ? `+${gd}` : String(gd);
 
-      if (hasFullStats) {
+      if (showFullColumns) {
         return `
         <tr class="${zone}${highlight}">
           <td class="col-pos">${escapeHtml(String(rk))}</td>
@@ -1739,13 +1776,17 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
               <span class="club-cell-name">${escapeHtml(String(club))}</span>
             </div>
           </td>
-          <td>${stat(played)}</td>
-          <td>${stat(won)}</td>
-          <td>${stat(drawn)}</td>
-          <td>${stat(lost)}</td>
-          <td>${gdText === "—" ? "—" : escapeHtml(gdText)}</td>
+          <td class="col-stat">${stat(played)}</td>
+          <td class="col-stat">${stat(won)}</td>
+          <td class="col-stat">${stat(drawn)}</td>
+          <td class="col-stat">${stat(lost)}</td>
+          <td class="col-stat col-gd">${gdText === "—" ? "—" : escapeHtml(gdText)}</td>
           <td class="col-pts">${escapeHtml(String(pts))}</td>
-          <td class="col-form"><div class="form-dots">${standingsFormDotsHtml(form, team?.id ?? club)}</div></td>
+          ${
+            compact
+              ? ""
+              : `<td class="col-form"><div class="form-dots">${standingsFormDotsHtml(form, team?.id ?? club)}</div></td>`
+          }
         </tr>`;
       }
 
@@ -1769,17 +1810,19 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     .join("");
 
   const tableHtml = `
-      <table class="standings-table">
-        ${thead}
-        <tbody>${body}</tbody>
-      </table>`;
+      <div class="standings-table-wrap${compact ? " standings-table-wrap--compact" : ""}">
+        <table class="standings-table${showFullColumns ? " standings-table--full" : ""}">
+          ${thead}
+          <tbody>${body}</tbody>
+        </table>
+      </div>`;
 
   if (!wrapCard) return tableHtml;
 
   return `
     <div class="standings-card${compact ? " standings-card--compact" : ""}">
       <div class="standings-header">
-        <h2 class="standings-title">${escapeHtml(title)}</h2>
+        <h3 class="panel-title standings-title">${escapeHtml(title)}</h3>
         ${leagueId ? standingsLeagueBadge(leagueId) : ""}
       </div>
       ${tableHtml}
@@ -1798,7 +1841,7 @@ function renderGroupStandingsHtml(groups, leagueId = "worldcup") {
       return `
       <section class="standings-card standings-card--compact" aria-label="Group ${escapeHtml(g.id)}">
         <div class="standings-header">
-          <h2 class="standings-title">Group ${escapeHtml(g.id)}</h2>
+          <h3 class="panel-title standings-title">Group ${escapeHtml(g.id)}</h3>
         </div>
         ${
           hasTeams
@@ -4842,7 +4885,7 @@ function renderSquadDepthView(state, team, startsMap) {
       <div class="squad-team-head-inner">
         ${crest}
         <div class="squad-team-copy min-w-0">
-          <h3 class="squad-team-name h4 mb-1">${escapeHtml(team.name)}</h3>
+          <h4 class="subsection-title squad-team-name mb-1">${escapeHtml(team.name)}</h4>
           <p class="squad-team-meta mb-0">Squad depth · ${escapeHtml(LEAGUES.find((l) => l.id === state.leagueId)?.name ?? state.leagueId)}</p>
         </div>
       </div>
@@ -4990,7 +5033,7 @@ function renderRoster() {
       <div class="squad-team-head-inner">
         ${crest}
         <div class="squad-team-copy min-w-0">
-          <h3 class="squad-team-name h4 mb-1">${escapeHtml(team?.name ?? state.teamId)}</h3>
+          <h4 class="subsection-title squad-team-name mb-1">${escapeHtml(team?.name ?? state.teamId)}</h4>
           <p class="squad-team-meta mb-0">${escapeHtml(league?.name ?? state.leagueId)}${team?.coach ? ` · ${escapeHtml(team.coach)}` : ""}</p>
         </div>
         <span class="squad-count-badge">${escapeHtml(countLabel)}</span>
@@ -5059,39 +5102,89 @@ function heroMatchBadgeCss(team) {
   return team?.logo ? `background-image:url('${escapeHtml(team.logo)}')` : "";
 }
 
+function matchCardStatusClass(status) {
+  const live = String(status ?? "").toLowerCase() === "live";
+  return live ? "meta-pill live match-card__status" : "meta-pill match-card__status";
+}
+
+function matchCardAriaLabel(m, ht, at) {
+  return `${ht?.name ?? "Home"} ${m.score[0]} to ${m.score[1]} ${at?.name ?? "Away"}`;
+}
+
+function matchCardVenueHtml(m, ht, at, { list = false } = {}) {
+  const raw = renderMatchVenueCoachesHtml(m, ht, at, { list });
+  if (!raw) return "";
+  return `<div class="match-card__venue">${raw}</div>`;
+}
+
+function matchCardHtml(m, options = {}) {
+  const {
+    variant = "card",
+    showVenue = variant === "list",
+    showStatus = true,
+    kicker = "",
+    attrs = "",
+    tag = "article",
+  } = options;
+
+  const ht = teamById.get(m.homeTeamId);
+  const at = teamById.get(m.awayTeamId);
+  const badgeCss = heroMatchBadgeCss;
+  const headerKicker = kicker || m.matchday || "";
+  const datetime = m.time || "";
+  const status = String(m.status ?? "").trim();
+  const venueHtml = showVenue ? matchCardVenueHtml(m, ht, at, { list: variant === "list" }) : "";
+
+  const headerHtml =
+    headerKicker || (showStatus && status)
+      ? `<div class="match-card__header">
+          ${headerKicker ? `<span class="match-card__kicker">${escapeHtml(headerKicker)}</span>` : ""}
+          ${showStatus && status ? `<span class="${matchCardStatusClass(status)}">${escapeHtml(status)}</span>` : ""}
+        </div>`
+      : "";
+
+  const datetimeHtml = datetime
+    ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>`
+    : "";
+
+  return `
+    <${tag}
+      class="match-card match-card--${variant}"
+      ${attrs}
+    >
+      ${headerHtml}
+      <div class="match-card__main">
+        <div class="match-card__side match-card__side--home">
+          <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
+          <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
+        </div>
+        <div class="match-card__score" aria-label="Score">
+          <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
+          <span class="match-card__score-sep" aria-hidden="true">:</span>
+          <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
+        </div>
+        <div class="match-card__side match-card__side--away">
+          <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
+          <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
+        </div>
+      </div>
+      ${datetimeHtml}
+      ${venueHtml}
+    </${tag}>`;
+}
+
 function heroMatchCardHtml(m) {
   const ht = teamById.get(m.homeTeamId);
   const at = teamById.get(m.awayTeamId);
-  const live = String(m.status).toLowerCase() === "live";
-  const statusClass = live ? "meta-pill live" : "meta-pill";
-  return `
-    <article
-      class="match-card match-card--hero"
+  return matchCardHtml(m, {
+    variant: "hero",
+    showVenue: true,
+    attrs: `
       data-hero-match="${escapeHtml(m.id)}"
       role="button"
       tabindex="0"
-      aria-label="${escapeHtml(ht?.name ?? "Home")} ${escapeHtml(m.score[0])} to ${escapeHtml(m.score[1])} ${escapeHtml(at?.name ?? "Away")}"
-    >
-      <div class="match-competition">${escapeHtml(m.status)}</div>
-      <div class="match-teams">
-        <div class="match-team-side match-team-side--home">
-          <span class="match-team-name">${escapeHtml(ht?.name ?? "Home")}</span>
-          <span class="match-badge" style="${heroMatchBadgeCss(ht)}" aria-hidden="true"></span>
-        </div>
-        <div class="match-score">
-          <span class="match-score-num">${escapeHtml(String(m.score[0]))}</span>
-          <span class="match-score-sep">:</span>
-          <span class="match-score-num">${escapeHtml(String(m.score[1]))}</span>
-        </div>
-        <div class="match-team-side">
-          <span class="match-badge" style="${heroMatchBadgeCss(at)}" aria-hidden="true"></span>
-          <span class="match-team-name">${escapeHtml(at?.name ?? "Away")}</span>
-        </div>
-      </div>
-      <div class="match-meta">
-        <span class="${statusClass}">${escapeHtml(m.time || m.matchday)}</span>
-      </div>
-    </article>`;
+      aria-label="${escapeHtml(matchCardAriaLabel(m, ht, at))}"`,
+  });
 }
 
 function openHeroMatch(leagueId, matchId) {
@@ -5474,9 +5567,56 @@ function renderLeagueTabBar(container, activeLeagueId, attr) {
   }
 }
 
-function renderTransferRows(items, direction) {
+function transferEmptyIconHtml(direction) {
+  if (direction === "in") {
+    return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 5v10"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V9"/><path d="M8 13l4-4 4 4"/><path d="M5 5h14"/>
+  </svg>`;
+}
+
+function transferEmptyHtml(direction, clubName) {
+  const isIn = direction === "in";
+  const club = String(clubName ?? "").trim() && clubName !== "—" ? clubName : "this club";
+  const title = isIn ? "No incoming transfers yet" : "No outgoing transfers yet";
+  const hint = isIn
+    ? `Players signed by ${club} will appear here once they are recorded.`
+    : `Players who left ${club} will appear here once they are recorded.`;
+  return `
+    <div class="transfer-empty-state" role="status">
+      <div class="transfer-empty-state__icon transfer-empty-state__icon--${isIn ? "in" : "out"}" aria-hidden="true">
+        ${transferEmptyIconHtml(direction)}
+      </div>
+      <p class="transfer-empty-state__title">${escapeHtml(title)}</p>
+      <p class="transfer-empty-state__hint">${escapeHtml(hint)}</p>
+    </div>`;
+}
+
+function transferPanelMetaText(count, direction) {
+  if (!count) return "";
+  if (direction === "in") return `${count} arrival${count === 1 ? "" : "s"}`;
+  return `${count} departure${count === 1 ? "" : "s"}`;
+}
+
+function setTransferPanelMeta(inCount, outCount) {
+  for (const [count, direction, sel] of [
+    [inCount, "in", ".transfer-card--in .transfer-panel-head__meta"],
+    [outCount, "out", ".transfer-card--out .transfer-panel-head__meta"],
+  ]) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const text = transferPanelMetaText(count, direction);
+    el.textContent = text;
+    el.hidden = !text;
+  }
+}
+
+function renderTransferRows(items, direction, clubName) {
   if (!items?.length) {
-    return `<p class="transfer-empty mb-0">No transfers ${direction === "in" ? "in" : "out"} yet.</p>`;
+    return transferEmptyHtml(direction, clubName);
   }
   const dirClass = direction === "in" ? "in" : "out";
   const dirSymbol = direction === "in" ? "↓" : "↑";
@@ -5527,14 +5667,10 @@ function renderTransfers(leagueId, preferredTeamId) {
   const clubName = team?.name ?? "—";
   if (clubLabelEl) clubLabelEl.textContent = clubName;
 
-  const inSub = document.querySelector(".transfer-card--in .transfer-card-sub");
-  const outSub = document.querySelector(".transfer-card--out .transfer-card-sub");
-  if (inSub) inSub.textContent = teamId ? `Signed by ${clubName}` : "Signed by league clubs";
-  if (outSub) outSub.textContent = teamId ? `Left ${clubName}` : "Left league clubs";
-
   const block = transfersForTeam(leagueId, teamId);
-  inEl.innerHTML = renderTransferRows(block.in, "in");
-  outEl.innerHTML = renderTransferRows(block.out, "out");
+  setTransferPanelMeta(block.in.length, block.out.length);
+  inEl.innerHTML = renderTransferRows(block.in, "in", clubName);
+  outEl.innerHTML = renderTransferRows(block.out, "out", clubName);
 }
 
 function setupTransferControls() {
@@ -6121,39 +6257,31 @@ function renderMatchCenter(leagueId) {
     groups.set(day, list);
   }
 
-  const badgeCss = (t) => (t?.logo ? `background-image:url('${escapeHtml(t.logo)}')` : "");
   const showStatus = leagueFeatureOn(leagueId, "matchStatus");
   const rowHtml = (m) => {
     const ht = teamById.get(m.homeTeamId);
     const at = teamById.get(m.awayTeamId);
-    const s = `${m.score[0]} - ${m.score[1]}`;
-    const venueListHtml = renderMatchVenueCoachesHtml(m, ht, at, { list: true });
-    const statusCol = showStatus
-      ? `<div class="col-auto col-md-1 mw-status text-center text-md-start" data-s="${escapeHtml(m.status)}">${escapeHtml(m.status)}</div>`
-      : "";
+    const cardHtml = matchCardHtml(m, {
+      variant: "list",
+      showVenue: true,
+      showStatus,
+      tag: "div",
+    });
     return `
       <div
-        class="mw-row row align-items-center g-2 g-md-3 mx-0 px-2 px-sm-3 py-2 py-md-3"
+        class="mw-row"
         data-match="${escapeHtml(m.id)}"
         role="button"
         tabindex="0"
-        aria-label="Open match details"
+        aria-label="${escapeHtml(matchCardAriaLabel(m, ht, at))}"
       >
-        ${statusCol}
-        <div class="col mw-match-core min-w-0">
-          <div class="row align-items-center gx-1 gx-sm-2 flex-nowrap mw-match-line">
-            <div class="col min-w-0 mw-teamname home text-end">${escapeHtml(ht?.name ?? "Home")}</div>
-            <div class="col-auto"><div class="mw-b" style="${badgeCss(ht)}" aria-hidden="true"></div></div>
-            <div class="col-auto"><div class="mw-score">${escapeHtml(s)}</div></div>
-            <div class="col-auto"><div class="mw-b" style="${badgeCss(at)}" aria-hidden="true"></div></div>
-            <div class="col min-w-0 mw-teamname away text-start">${escapeHtml(at?.name ?? "Away")}</div>
+        <div class="mw-row__layout">
+          ${cardHtml}
+          <div class="mw-action">
+            <button class="live-blog w-100 w-md-auto justify-content-center" type="button" data-open="${escapeHtml(m.id)}">
+              Live blog <span class="arr" aria-hidden="true">›</span>
+            </button>
           </div>
-          ${venueListHtml}
-        </div>
-        <div class="col-12 col-md-auto mw-action d-grid d-md-block text-md-end">
-          <button class="live-blog w-100 w-md-auto justify-content-center" type="button" data-open="${escapeHtml(m.id)}">
-            Live blog <span class="arr" aria-hidden="true">›</span>
-          </button>
         </div>
       </div>
     `;

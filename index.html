@@ -176,10 +176,10 @@
               <section class="home-spotlight" aria-labelledby="heroSpotlightTitle">
                 <div class="home-spotlight__head">
                   <div>
-                    <h2 class="home-spotlight__title" id="heroSpotlightTitle">
+                    <h3 class="subsection-title home-spotlight__title" id="heroSpotlightTitle">
                       <span id="heroLeagueName">Premier League</span>
                       <span class="home-spotlight__mw" id="heroMwMeta">—</span>
-                    </h2>
+                    </h3>
                     <p class="home-spotlight__sub" id="heroMwRange">Latest results from matchweek</p>
                   </div>
                   <a class="home-spotlight__link" href="#match-center">Full center →</a>
@@ -191,7 +191,7 @@
                 <div class="home-bento__clubs">
                   <div class="card" aria-label="Clubs in league">
                     <div class="home-panel-head">
-                      <span class="home-panel-head__title">Clubs</span>
+                      <h3 class="panel-title home-panel-head__title">Clubs</h3>
                       <div class="home-panel-head__metric">
                         <span class="label">Squad size</span>
                         <span class="value" id="leaguePlayerCount">—</span>
@@ -233,7 +233,7 @@
                   <div class="home-bento__table">
                     <div class="card table-card" aria-label="League table preview">
                       <div class="table-card__head">
-                        <span>Table</span>
+                        <h3 class="panel-title">Table</h3>
                         <a href="#match-center">Standings →</a>
                       </div>
                       <div id="heroStandings">Loading…</div>
@@ -248,7 +248,7 @@
         <!-- Match Center -->
         <section id="match-center" class="section reveal" aria-label="Match Center">
           <div class="section-divider">
-            <h2>Match Center</h2>
+            <h2 class="section-title">Match Center</h2>
           </div>
           <p class="text-secondary mb-4">Gameweek results, live status, and match analytics.</p>
 
@@ -277,7 +277,7 @@
           <div class="grid-2">
             <div id="miniStandings" aria-label="League standings">Loading…</div>
             <div class="card mini-card" style="padding: 0; overflow: hidden" aria-label="Top scorers">
-              <div class="mini-card-head">Top Scorer</div>
+              <h3 class="panel-title mini-card-head">Top Scorer</h3>
               <div class="mini-body--flush" id="topScorers">Loading…</div>
             </div>
           </div>
@@ -286,7 +286,7 @@
         <!-- Transfers -->
         <section id="transfers" class="section reveal" aria-label="Transfers">
           <div class="section-divider">
-            <h2>Transfers</h2>
+            <h2 class="section-title">Transfers</h2>
           </div>
           <p class="text-secondary mb-4">
             Incoming and outgoing moves for
@@ -309,16 +309,26 @@
             <div class="card transfer-panel transfer-card--in">
               <div class="transfer-panel-head">
                 <span class="badge badge-green">In</span>
-                <span class="transfer-card-sub small text-secondary">Signed by league clubs</span>
+                <span class="transfer-panel-head__meta small text-secondary" hidden></span>
               </div>
-              <div class="transfer-panel-body" id="transferIn" aria-live="polite"></div>
+              <div class="transfer-panel-body" id="transferIn" aria-live="polite">
+                <div class="transfer-skeleton" aria-busy="true" aria-label="Loading transfers">
+                  <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                  <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                </div>
+              </div>
             </div>
             <div class="card transfer-panel transfer-card--out">
               <div class="transfer-panel-head">
                 <span class="badge badge-blue">Out</span>
-                <span class="transfer-card-sub small text-secondary">Left league clubs</span>
+                <span class="transfer-panel-head__meta small text-secondary" hidden></span>
               </div>
-              <div class="transfer-panel-body" id="transferOut" aria-live="polite"></div>
+              <div class="transfer-panel-body" id="transferOut" aria-live="polite">
+                <div class="transfer-skeleton" aria-busy="true" aria-label="Loading transfers">
+                  <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                  <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -326,7 +336,7 @@
         <!-- Squads -->
         <section id="squads" class="section reveal" aria-label="Squads">
           <div class="section-divider">
-            <h2>Squads</h2>
+            <h2 class="section-title">Squads</h2>
           </div>
           <p class="text-secondary mb-4">Select a league and team, then filter the roster.</p>
 
@@ -393,7 +403,7 @@
         <!-- About -->
         <section id="about" class="section reveal" aria-label="About">
           <div class="section-divider">
-            <h2>About</h2>
+            <h2 class="section-title">About</h2>
           </div>
           <div class="card">
             <p class="mb-3" style="color: var(--text-muted)">

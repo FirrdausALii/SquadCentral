@@ -119,16 +119,12 @@
   background: rgba(11, 17, 32, 0.35);
 }
 
-.home-hero-feature .match-competition {
-  margin-bottom: var(--sp-2);
-}
-
-.home-hero-feature .match-team-name {
+.home-hero-feature .match-card__team {
   font-size: 12px;
 }
 
-.home-hero-feature .match-score-num {
-  font-size: 1.35rem;
+.home-hero-feature .match-card__score-num {
+  font-size: clamp(1.85rem, 5vw, 2.35rem);
 }
 
 .home-hero__eyebrow {
@@ -252,10 +248,6 @@
 }
 
 .home-spotlight__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -308,35 +300,37 @@
 .home-spotlight__track .match-card {
   flex: 0 0 min(200px, 72vw);
   padding: var(--sp-3) var(--sp-4);
+  gap: var(--sp-2);
 }
 
-.home-spotlight__track .match-teams {
+.home-spotlight__track .match-card__main {
   flex-direction: column;
   align-items: stretch;
   gap: var(--sp-2);
 }
 
-.home-spotlight__track .match-team-side {
+.home-spotlight__track .match-card__side {
   flex: none;
   width: 100%;
   min-width: 0;
   justify-content: center;
 }
 
-.home-spotlight__track .match-team-side--home {
+.home-spotlight__track .match-card__side--home {
   flex-direction: row;
 }
 
-.home-spotlight__track .match-team-side--home .match-team-name {
+.home-spotlight__track .match-card__side--home .match-card__team {
   text-align: center;
 }
 
-.home-spotlight__track .match-score {
+.home-spotlight__track .match-card__score {
   justify-content: center;
   padding: var(--sp-1) 0;
+  min-width: 0;
 }
 
-.home-spotlight__track .match-team-name {
+.home-spotlight__track .match-card__team {
   white-space: normal;
   overflow: visible;
   text-overflow: unset;
@@ -360,9 +354,8 @@
   margin-bottom: var(--sp-3);
 }
 .home-panel-head__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
 }
 .home-panel-head__metric .label {
   margin-bottom: 2px;
@@ -414,6 +407,9 @@
 }
 
 .table-card { padding: 0; overflow: hidden; }
+.table-card #heroStandings .standings-table-wrap {
+  border-radius: 0;
+}
 .table-card__head {
   display: flex;
   align-items: center;
@@ -421,8 +417,6 @@
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 0.5px solid var(--border-subtle);
   background: var(--bg-surface-1);
-  font-weight: 600;
-  color: var(--text-primary);
 }
 .table-card__head a {
   font-size: 12px;
