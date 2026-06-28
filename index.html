@@ -114,34 +114,51 @@
         <!-- Home -->
         <section id="main" class="home-hub reveal" aria-label="Home" tabindex="-1">
           <header class="home-hero">
-            <span class="home-hero__eyebrow">
-              <span class="dot" aria-hidden="true"></span>
-              Matchday live
-            </span>
-            <h1 class="home-hero__title">Every squad. Every score. One hub.</h1>
-            <p class="home-hero__lede">
-              Switch leagues instantly, skim the latest results, and dive into full rosters — clean, fast, and dark-first.
-            </p>
-            <div class="home-hero__actions">
-              <a class="btn btn-primary" href="#match-center">Match center</a>
-              <a class="btn btn-ghost" href="#squads">Explore squads</a>
+            <div class="home-hero__grid">
+              <div class="home-hero__copy">
+                <span class="home-hero__eyebrow">
+                  <span class="dot" aria-hidden="true"></span>
+                  Matchday live
+                </span>
+                <h1 class="home-hero__title">Every squad. Every score. One hub.</h1>
+                <p class="home-hero__lede">
+                  Switch leagues instantly, skim the latest results, and dive into full rosters — clean, fast, and dark-first.
+                </p>
+                <div class="home-hero__actions">
+                  <a class="btn btn-primary" href="#match-center">Match center</a>
+                  <a class="btn btn-ghost" href="#squads">Explore squads</a>
+                </div>
+              </div>
+
+              <aside class="home-hero__panel" aria-label="Platform snapshot">
+                <div class="home-stats home-stats--hero">
+                  <article class="stat-card stat-card--hero">
+                    <span class="stat-label">Leagues</span>
+                    <span class="stat-value" id="statLeagues">—</span>
+                  </article>
+                  <article class="stat-card stat-card--hero">
+                    <span class="stat-label">Clubs</span>
+                    <span class="stat-value" id="statTeams">—</span>
+                  </article>
+                  <article class="stat-card stat-card--hero">
+                    <span class="stat-label">Players</span>
+                    <span class="stat-value" id="statPlayers">—</span>
+                  </article>
+                </div>
+
+                <div class="home-hero-feature" id="heroFeaturedWrap">
+                  <div class="home-hero-feature__head">
+                    <div class="home-hero-feature__titles">
+                      <span class="home-hero-feature__eyebrow" id="heroFeaturedLeague">—</span>
+                      <span class="home-hero-feature__label" id="heroFeaturedLabel">Featured result</span>
+                    </div>
+                    <a class="home-hero-feature__link" href="#match-center">Match center →</a>
+                  </div>
+                  <div id="heroFeaturedMatch" aria-live="polite"></div>
+                </div>
+              </aside>
             </div>
           </header>
-
-          <div class="home-stats grid-3">
-            <article class="stat-card">
-              <span class="stat-label">Leagues</span>
-              <span class="stat-value" id="statLeagues">—</span>
-            </article>
-            <article class="stat-card">
-              <span class="stat-label">Clubs</span>
-              <span class="stat-value" id="statTeams">—</span>
-            </article>
-            <article class="stat-card">
-              <span class="stat-label">Players</span>
-              <span class="stat-value" id="statPlayers">—</span>
-            </article>
-          </div>
 
           <div class="home-shell">
             <aside class="home-rail" aria-label="Select competition">

@@ -5055,6 +5055,114 @@ function renderRoster() {
   bindSquadRowClicks(grid, startsMap, state.leagueId);
 }
 
+function heroMatchBadgeCss(team) {
+  return team?.logo ? `background-image:url('${escapeHtml(team.logo)}')` : "";
+}
+
+function heroMatchCardHtml(m) {
+  const ht = teamById.get(m.homeTeamId);
+  const at = teamById.get(m.awayTeamId);
+  const live = String(m.status).toLowerCase() === "live";
+  const statusClass = live ? "meta-pill live" : "meta-pill";
+  return `
+    <article
+      class="match-card match-card--hero"
+      data-hero-match="${escapeHtml(m.id)}"
+      role="button"
+      tabindex="0"
+      aria-label="${escapeHtml(ht?.name ?? "Home")} ${escapeHtml(m.score[0])} to ${escapeHtml(m.score[1])} ${escapeHtml(at?.name ?? "Away")}"
+    >
+      <div class="match-competition">${escapeHtml(m.status)}</div>
+      <div class="match-teams">
+        <div class="match-team-side match-team-side--home">
+          <span class="match-team-name">${escapeHtml(ht?.name ?? "Home")}</span>
+          <span class="match-badge" style="${heroMatchBadgeCss(ht)}" aria-hidden="true"></span>
+        </div>
+        <div class="match-score">
+          <span class="match-score-num">${escapeHtml(String(m.score[0]))}</span>
+          <span class="match-score-sep">:</span>
+          <span class="match-score-num">${escapeHtml(String(m.score[1]))}</span>
+        </div>
+        <div class="match-team-side">
+          <span class="match-badge" style="${heroMatchBadgeCss(at)}" aria-hidden="true"></span>
+          <span class="match-team-name">${escapeHtml(at?.name ?? "Away")}</span>
+        </div>
+      </div>
+      <div class="match-meta">
+        <span class="${statusClass}">${escapeHtml(m.time || m.matchday)}</span>
+      </div>
+    </article>`;
+}
+
+function openHeroMatch(leagueId, matchId) {
+  const openRow = () => {
+    const row = $(`[data-match="${CSS.escape(matchId)}"]`, $("#matchList"));
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    row.click();
+  };
+  $("#match-center")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const leagueSel = $("#leagueSelect");
+  if (leagueSel && leagueSel.value !== leagueId) {
+    setActiveLeague(leagueId);
+    requestAnimationFrame(() => requestAnimationFrame(openRow));
+  } else {
+    renderMatchCenter(leagueId);
+    openRow();
+  }
+}
+
+function bindHeroMatchCards(root, leagueId) {
+  if (!root) return;
+  for (const card of $$("[data-hero-match]", root)) {
+    const id = card.getAttribute("data-hero-match");
+    if (!id) continue;
+    card.addEventListener("click", () => openHeroMatch(leagueId, id));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openHeroMatch(leagueId, id);
+      }
+    });
+  }
+}
+
+function pickHeroFeaturedMatch(matches) {
+  if (!matches?.length) return null;
+  const live = matches.find((m) => String(m.status).toLowerCase() === "live");
+  if (live) return live;
+  const finished = matches.filter((m) => String(m.status).toUpperCase() === "FT");
+  if (finished.length) return finished[finished.length - 1];
+  return matches[0];
+}
+
+function renderHeroFeaturedMatch(leagueId) {
+  const wrap = $("#heroFeaturedMatch");
+  const leagueEl = $("#heroFeaturedLeague");
+  const labelEl = $("#heroFeaturedLabel");
+  if (!wrap) return;
+
+  const league = LEAGUES.find((l) => l.id === leagueId);
+  const meta = heroLeagueMeta(leagueId);
+  const mw = meta.matchweek ?? 36;
+  const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, mw);
+  const featured = pickHeroFeaturedMatch(matches);
+
+  if (leagueEl) leagueEl.textContent = league?.name ?? leagueId;
+  if (labelEl) {
+    const live = featured && String(featured.status).toLowerCase() === "live";
+    labelEl.textContent = live ? "Live now" : featured ? "Featured result" : "This matchweek";
+  }
+
+  if (!featured) {
+    wrap.innerHTML = `<div class="home-hero-feature__empty">No fixtures for this matchweek yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = heroMatchCardHtml(featured);
+  bindHeroMatchCards(wrap, leagueId);
+}
+
 function updateHeroSummary() {
   const totalPlayers = PLAYERS.length;
   const totalTeams = TEAMS.length;
@@ -5169,78 +5277,13 @@ function renderHeroSpotlight(leagueId) {
     return;
   }
 
-  const badgeCss = (t) => (t?.logo ? `background-image:url('${escapeHtml(t.logo)}')` : "");
-
-  track.innerHTML = matches
-    .map((m) => {
-      const ht = teamById.get(m.homeTeamId);
-      const at = teamById.get(m.awayTeamId);
-      const live = String(m.status).toLowerCase() === "live";
-      const statusClass = live ? "meta-pill live" : "meta-pill";
-      return `
-        <article
-          class="match-card"
-          data-hero-match="${escapeHtml(m.id)}"
-          role="button"
-          tabindex="0"
-          aria-label="${escapeHtml(ht?.name ?? "Home")} ${escapeHtml(m.score[0])} to ${escapeHtml(m.score[1])} ${escapeHtml(at?.name ?? "Away")}"
-        >
-          <div class="match-competition">${escapeHtml(m.status)}</div>
-          <div class="match-teams">
-            <div class="match-team-side match-team-side--home">
-              <span class="match-team-name">${escapeHtml(ht?.name ?? "Home")}</span>
-              <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
-            </div>
-            <div class="match-score">
-              <span class="match-score-num">${escapeHtml(String(m.score[0]))}</span>
-              <span class="match-score-sep">:</span>
-              <span class="match-score-num">${escapeHtml(String(m.score[1]))}</span>
-            </div>
-            <div class="match-team-side">
-              <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
-              <span class="match-team-name">${escapeHtml(at?.name ?? "Away")}</span>
-            </div>
-          </div>
-          <div class="match-meta">
-            <span class="${statusClass}">${escapeHtml(m.time || m.matchday)}</span>
-          </div>
-        </article>`;
-    })
-    .join("");
-
-  const openHeroMatch = (matchId) => {
-    const openRow = () => {
-      const row = $(`[data-match="${CSS.escape(matchId)}"]`, $("#matchList"));
-      if (!row) return;
-      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      row.click();
-    };
-    $("#match-center")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const leagueSel = $("#leagueSelect");
-    if (leagueSel && leagueSel.value !== leagueId) {
-      setActiveLeague(leagueId);
-      requestAnimationFrame(() => requestAnimationFrame(openRow));
-    } else {
-      renderMatchCenter(leagueId);
-      openRow();
-    }
-  };
-
-  for (const card of $$("[data-hero-match]", track)) {
-    const id = card.getAttribute("data-hero-match");
-    if (!id) continue;
-    card.addEventListener("click", () => openHeroMatch(id));
-    card.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        openHeroMatch(id);
-      }
-    });
-  }
+  track.innerHTML = matches.map((m) => heroMatchCardHtml(m)).join("");
+  bindHeroMatchCards(track, leagueId);
 }
 
 function updateHeroLeagueContext(leagueId) {
   renderHeroLeagueMeta(leagueId);
+  renderHeroFeaturedMatch(leagueId);
   renderHeroSpotlight(leagueId);
   renderHeroStandings(leagueId);
 }
