@@ -95,8 +95,36 @@ body.fc-app {
   }
 
   .home-panel-head {
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-3);
+  }
+
+  .home-panel-head__metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-subtle);
+    background: var(--bg-surface-1);
+  }
+
+  .home-panel-head__metric .label {
+    margin-bottom: 0;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .home-panel-head__metric .value {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .home-clubs {
+    grid-template-columns: 1fr;
   }
 
   .spotlight-card__actions {
@@ -114,6 +142,14 @@ body.fc-app {
   .spotlight-card__note {
     padding-left: var(--sp-4);
     padding-right: var(--sp-4);
+  }
+
+  .spotlight-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .spotlight-stat-text {
+    -webkit-line-clamp: 3;
   }
 
   .player-profile-header {
@@ -166,31 +202,118 @@ body.fc-app {
   }
 }
 
-/* Match center */
+/* Match center — mobile matchweek cards */
 @media (max-width: 767.98px) {
   .matchweek-head {
     padding: var(--sp-3);
   }
 
-  .mw-row__layout {
+  .mw-list {
     padding: var(--sp-3);
+    background: var(--bg-surface-1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
   }
 
-  .match-card--list .match-card__score-num {
-    font-size: 1.65rem;
+  .mw-day {
+    margin: 0;
+    padding: var(--sp-1) 0 0;
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  .mw-day:first-child {
+    padding-top: 0;
+  }
+
+  .mw-row {
+    border: 0.5px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface-2);
+    overflow: hidden;
+  }
+
+  .mw-row:hover {
+    background: var(--bg-surface-3);
+  }
+
+  .mw-row__layout {
+    padding: var(--sp-4);
+    gap: var(--sp-3);
+  }
+
+  .match-card--list {
+    gap: var(--sp-3);
+  }
+
+  .match-card--list .match-card__row .match-badge {
+    width: 32px;
+    height: 32px;
   }
 
   .match-card--list .match-card__team {
-    font-size: 12px;
+    font-size: 15px;
   }
 
-  .match-card--list .match-card__main {
+  .match-card--list .match-card__score-num {
+    font-size: 2.35rem;
+  }
+
+  .match-card--list .match-card__time {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .match-card--list .match-card__venue {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .match-card--list .mw-venue-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35em;
+  }
+
+  .match-card--list .mw-venue-row + .mw-venue-row {
+    margin-top: var(--sp-2);
+    padding-top: var(--sp-2);
+    border-top: 0.5px solid var(--border-subtle);
+  }
+
+  .match-card--list .mw-venue-row--coaches {
+    flex-direction: column;
+    align-items: stretch;
     gap: var(--sp-2);
   }
 
+  .match-card--list .mw-coach-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+  }
+
+  .match-card--list .mw-venue-label {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .match-card--list .mw-venue-value {
+    color: var(--text-secondary);
+  }
+
   .mw-action .live-blog {
-    font-size: 11px;
-    padding: 6px 10px;
+    font-size: 12px;
+    padding: 10px 14px;
+    justify-content: center;
+    width: 100%;
   }
 }
 
@@ -211,6 +334,74 @@ body.fc-app {
 
   .table-card {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-card #heroStandings,
+  .table-card #heroStandings .standings-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  .table-card .standings-table th.col-stat:not(.col-gd),
+  .table-card .standings-table td.col-stat:not(.col-gd) {
+    display: none;
+  }
+
+  .table-card .standings-table--full {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .table-card .standings-table th.col-club,
+  .table-card .standings-table td.col-club {
+    min-width: 0;
+    max-width: 46vw;
+  }
+
+  .table-card .club-cell-name {
+    font-size: 12px;
+  }
+
+  .table-card .standings-table th,
+  .table-card .standings-table td {
+    padding: 8px 6px;
+  }
+
+  .table-card .standings-table td.col-pos {
+    padding-left: 10px;
+  }
+
+  .table-card .standings-table th.col-club,
+  .table-card .standings-table td.col-club {
+    padding-left: 8px;
+  }
+
+  #match-center > .card > .league-tabs,
+  #transfers > .card > .league-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: var(--sp-2);
+    margin: 0 calc(-1 * var(--sp-4));
+    padding: 0 var(--sp-4) var(--sp-1);
+    scrollbar-width: none;
+  }
+
+  #match-center > .card > .league-tabs::-webkit-scrollbar,
+  #transfers > .card > .league-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  #match-center > .card > .league-tabs .league-tab,
+  #transfers > .card > .league-tabs .league-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  #transfers > .card > .league-tabs {
+    margin-bottom: var(--sp-3);
   }
 }
 

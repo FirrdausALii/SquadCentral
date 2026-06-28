@@ -5147,27 +5147,45 @@ function matchCardHtml(m, options = {}) {
     ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>`
     : "";
 
+  const scoreHtml = `
+        <div class="match-card__score" aria-label="Score">
+          <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
+          <span class="match-card__score-sep" aria-hidden="true">:</span>
+          <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
+        </div>`;
+
+  const mainHtml =
+    variant === "list"
+      ? `<div class="match-card__stack">
+          <div class="match-card__row match-card__row--home">
+            <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
+            <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
+          </div>
+          ${scoreHtml}
+          <div class="match-card__row match-card__row--away">
+            <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
+            <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
+          </div>
+        </div>`
+      : `<div class="match-card__main">
+          <div class="match-card__side match-card__side--home">
+            <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
+            <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
+          </div>
+          ${scoreHtml}
+          <div class="match-card__side match-card__side--away">
+            <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
+            <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
+          </div>
+        </div>`;
+
   return `
     <${tag}
       class="match-card match-card--${variant}"
       ${attrs}
     >
       ${headerHtml}
-      <div class="match-card__main">
-        <div class="match-card__side match-card__side--home">
-          <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
-          <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
-        </div>
-        <div class="match-card__score" aria-label="Score">
-          <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
-          <span class="match-card__score-sep" aria-hidden="true">:</span>
-          <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
-        </div>
-        <div class="match-card__side match-card__side--away">
-          <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
-          <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
-        </div>
-      </div>
+      ${mainHtml}
       ${datetimeHtml}
       ${venueHtml}
     </${tag}>`;
@@ -5853,18 +5871,33 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false } = {}) {
 
   let coachesRow = "";
   if (homeCoachOk || awayCoachOk) {
-    const bits = [];
-    if (homeCoachOk) {
-      bits.push(
-        `<span class="mw-coach"><span class="mw-venue-label">${escapeHtml(ht?.name ?? "Home")}</span><span class="mw-venue-value">${escapeHtml(hc)}</span></span>`,
-      );
+    if (list) {
+      const lines = [];
+      if (homeCoachOk) {
+        lines.push(
+          `<div class="mw-coach-line"><span class="mw-venue-label">Home coach</span><span class="mw-venue-value">${escapeHtml(hc)}</span></div>`,
+        );
+      }
+      if (awayCoachOk) {
+        lines.push(
+          `<div class="mw-coach-line"><span class="mw-venue-label">Away coach</span><span class="mw-venue-value">${escapeHtml(ac)}</span></div>`,
+        );
+      }
+      coachesRow = `<div class="mw-venue-row mw-venue-row--coaches">${lines.join("")}</div>`;
+    } else {
+      const bits = [];
+      if (homeCoachOk) {
+        bits.push(
+          `<span class="mw-coach"><span class="mw-venue-label">${escapeHtml(ht?.name ?? "Home")}</span><span class="mw-venue-value">${escapeHtml(hc)}</span></span>`,
+        );
+      }
+      if (awayCoachOk) {
+        bits.push(
+          `<span class="mw-coach"><span class="mw-venue-label">${escapeHtml(at?.name ?? "Away")}</span><span class="mw-venue-value">${escapeHtml(ac)}</span></span>`,
+        );
+      }
+      coachesRow = `<div class="mw-venue-row mw-venue-row--coaches">${bits.join(`<span class="mw-coach-sep" aria-hidden="true">·</span>`)}</div>`;
     }
-    if (awayCoachOk) {
-      bits.push(
-        `<span class="mw-coach"><span class="mw-venue-label">${escapeHtml(at?.name ?? "Away")}</span><span class="mw-venue-value">${escapeHtml(ac)}</span></span>`,
-      );
-    }
-    coachesRow = `<div class="mw-venue-row mw-venue-row--coaches">${bits.join(`<span class="mw-coach-sep" aria-hidden="true">·</span>`)}</div>`;
   }
 
   const cls = list ? "mw-venue-meta mw-venue-meta--list" : "mw-venue-meta";

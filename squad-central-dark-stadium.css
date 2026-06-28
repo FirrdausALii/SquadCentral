@@ -495,11 +495,42 @@ p { margin: 0 0 var(--sp-4); }
   border: none;
   border-radius: 0;
   cursor: inherit;
+  gap: var(--sp-3);
+}
+
+.match-card__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--sp-2);
 }
 
+.match-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.match-card--list .match-card__team {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  line-height: 1.35;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.match-card--list .match-card__score {
+  justify-content: center;
+  min-width: 0;
+  padding: var(--sp-1) 0 var(--sp-2);
+}
+
 .match-card--list .match-card__score-num {
-  font-size: clamp(1.75rem, 4.5vw, 2.35rem);
+  font-size: clamp(1.85rem, 5vw, 2.35rem);
 }
 
 .match-card--list .match-card__header {
@@ -508,6 +539,59 @@ p { margin: 0 0 var(--sp-4); }
 
 .match-card--list .match-card__datetime {
   justify-content: flex-start;
+}
+
+.match-card--list .match-card__venue {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+}
+
+.match-card--list .mw-coach-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+}
+
+@media (min-width: 768px) {
+  .match-card--list .match-card__stack {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-4);
+  }
+
+  .match-card--list .match-card__row {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .match-card--list .match-card__row--home {
+    justify-content: flex-end;
+    flex-direction: row-reverse;
+  }
+
+  .match-card--list .match-card__row--home .match-card__team {
+    text-align: right;
+  }
+
+  .match-card--list .match-card__row--away {
+    justify-content: flex-start;
+  }
+
+  .match-card--list .match-card__score {
+    flex: 0 0 auto;
+    padding: 0 var(--sp-2);
+  }
+
+  .match-card--list .match-card__team {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
 }
 
 .match-card--hero {
