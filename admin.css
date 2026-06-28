@@ -2663,6 +2663,72 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   gap: 10px 14px;
 }
 
+.players-search-field {
+  width: 100%;
+}
+
+.players-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.players-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.players-search-input {
+  width: 100%;
+  padding-left: 34px !important;
+  padding-right: 36px !important;
+}
+
+.players-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.players-search-clear {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--admin-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.players-search-clear:hover,
+.players-search-clear:focus-visible {
+  color: var(--admin-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.players-search-meta {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.players-roster-empty {
+  padding: var(--sp-5) var(--sp-4);
+  text-align: center;
+  font-size: 13px;
+  color: var(--admin-muted);
+  border-top: 1px solid var(--admin-border);
+}
+
 .players-toolbar-hint {
   font-size: 12px;
   line-height: 1.4;

@@ -22,6 +22,7 @@ let leagueFilter = "epl";
 let leagueEditId = "";
 let playerTeamFilter = "";
 let playerTransferPickId = "";
+let playerSearchQuery = "";
 let squadDepthTeamFilter = "";
 let nationalDutyTeamFilter = "";
 let transferTeamFilter = "";
@@ -82,6 +83,40 @@ function adminPlayerInstagramBadge(p) {
   return `<span class="admin-player-ig" title="Instagram linked" aria-label="Instagram linked">${instagramIconSvg()}</span>`;
 }
 
+function adminPlayerSearchHaystack(p) {
+  return [p.number, p.name, p.pos, p.role, p.nationality, p.club]
+    .filter((x) => x != null && String(x).trim())
+    .join(" ")
+    .toLowerCase();
+}
+
+function applyPlayerRosterSearch() {
+  const q = playerSearchQuery.trim().toLowerCase();
+  const list = $("#playersSortTbody");
+  if (!list) return;
+
+  let visible = 0;
+  for (const card of list.querySelectorAll(".player-roster-card")) {
+    const hay = card.getAttribute("data-search") ?? "";
+    const show = !q || hay.includes(q);
+    card.classList.toggle("admin-hidden", !show);
+    if (show) visible += 1;
+  }
+
+  const total = list.querySelectorAll(".player-roster-card").length;
+  const empty = $("#playersRosterEmpty");
+  if (empty) empty.classList.toggle("admin-hidden", visible > 0 || !q);
+
+  const meta = $("#playersSearchMeta");
+  if (meta) {
+    meta.textContent = q ? `${visible} of ${total} players` : "";
+    meta.classList.toggle("admin-hidden", !q);
+  }
+
+  const clearBtn = $("#btnClearPlayerSearch");
+  if (clearBtn) clearBtn.classList.toggle("admin-hidden", !q);
+}
+
 function playerRosterCardHtml(p, isWorldCup) {
   const clubMeta =
     isWorldCup && p.club
@@ -92,7 +127,7 @@ function playerRosterCardHtml(p, isWorldCup) {
     `<span class="player-roster-role">${esc(p.role ?? "")}</span>`,
     clubMeta,
   ].filter(Boolean);
-  return `<article class="player-roster-card player-sort-row" draggable="true" data-player-id="${esc(p.id)}">
+  return `<article class="player-roster-card player-sort-row" draggable="true" data-player-id="${esc(p.id)}" data-search="${esc(adminPlayerSearchHaystack(p))}">
     <span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
     <div class="player-roster-body">
       <div class="player-roster-line">
@@ -1948,6 +1983,7 @@ function panelPlayers() {
   } else if (!teams.some((t) => t.id === playerTeamFilter)) {
     playerTeamFilter = teams[0].id;
     playerTransferPickId = "";
+    playerSearchQuery = "";
   } else if (
     playerTransferPickId &&
     !playersForTeam(playerTeamFilter).some((p) => p.id === playerTransferPickId)
@@ -1969,6 +2005,7 @@ function panelPlayers() {
     ? `<p class="admin-muted mb-0">Add teams in the <strong>Teams</strong> tab first, then return here to manage squads.</p>`
     : `<div class="players-roster-wrap admin-table-wrap admin-table-wrap--sort">
           <div class="players-roster-list" id="playersSortTbody">${players.map((p) => playerRosterCardHtml(p, isWorldCup)).join("")}</div>
+          <p class="players-roster-empty admin-hidden" id="playersRosterEmpty">No players match your search.</p>
         </div>`;
 
   return `
@@ -2007,6 +2044,30 @@ function panelPlayers() {
               </div>
             </div>
           </div>
+          ${
+            teams.length && teamId
+              ? `<div class="col-12 col-md-6 col-lg-4">
+            <div class="mw-field players-search-field mb-0">
+              <label for="playerRosterSearch">Search squad</label>
+              <div class="players-search-wrap">
+                <span class="players-search-icon" aria-hidden="true">⌕</span>
+                <input
+                  id="playerRosterSearch"
+                  class="mw-input players-search-input"
+                  type="search"
+                  inputmode="search"
+                  placeholder="Name, number, role…"
+                  value="${esc(playerSearchQuery)}"
+                  autocomplete="off"
+                  aria-describedby="playersSearchMeta"
+                />
+                <button type="button" class="players-search-clear${playerSearchQuery.trim() ? "" : " admin-hidden"}" id="btnClearPlayerSearch" aria-label="Clear search">×</button>
+              </div>
+              <p class="players-search-meta admin-muted${playerSearchQuery.trim() ? "" : " admin-hidden"}" id="playersSearchMeta" aria-live="polite"></p>
+            </div>
+          </div>`
+              : ""
+          }
         </div>
         ${
           playerCount > 1
@@ -2725,6 +2786,7 @@ function bindLeagueSelect() {
     leagueFilter = sel.value;
     playerTeamFilter = "";
     playerTransferPickId = "";
+    playerSearchQuery = "";
     squadDepthTeamFilter = "";
     nationalDutyTeamFilter = "";
     transferTeamFilter = "";
@@ -3576,6 +3638,21 @@ function bindPlayerRowTouchSort(tbody, persistOrder) {
 function bindPlayers() {
   bindPlayerRowDragSort();
 
+  $("#playerRosterSearch")?.addEventListener("input", (e) => {
+    playerSearchQuery = e.target.value;
+    applyPlayerRosterSearch();
+  });
+
+  $("#btnClearPlayerSearch")?.addEventListener("click", () => {
+    playerSearchQuery = "";
+    const input = $("#playerRosterSearch");
+    if (input) input.value = "";
+    applyPlayerRosterSearch();
+    input?.focus();
+  });
+
+  applyPlayerRosterSearch();
+
   $("#btnAutoArrange")?.addEventListener("click", () => {
     const teamId = playerTeamFilter;
     if (!teamId) return;
@@ -3596,6 +3673,7 @@ function bindPlayers() {
 
   $("#playerTeamFilter")?.addEventListener("change", (e) => {
     playerTeamFilter = e.target.value;
+    playerSearchQuery = "";
     if (playerTransferPickId && !playersForTeam(playerTeamFilter).some((p) => p.id === playerTransferPickId)) {
       playerTransferPickId = "";
     }
@@ -3605,6 +3683,7 @@ function bindPlayers() {
   $("#playerTeam")?.addEventListener("change", (e) => {
     playerTeamFilter = e.target.value;
     playerTransferPickId = "";
+    playerSearchQuery = "";
     renderPanel();
   });
 

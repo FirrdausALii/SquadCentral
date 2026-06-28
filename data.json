@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1782574231059,
+  "dataRevision": 1782632696705,
   "leagues": [
     {
       "id": "epl",
@@ -171,7 +171,15 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_arsenal_1_David_Raya",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_aston_villa",
@@ -843,7 +851,87 @@
       ],
       "logo": "./images/premierleague/everton.png",
       "stadium": "Hill Dickinson Stadium",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_everton_1_Jordan_Pickford",
+          "epl_everton_12_Mark_Travers",
+          "epl_everton_31_Tom_King"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_everton_16_Vitaly_Mykolenko",
+              "epl_everton_39_Adam_Aznou"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_everton_32_Jarrad_Branthwaite",
+              "epl_everton_5_Michael_Keane"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_everton_6_James_Tarkowski",
+              "epl_everton_15_Jake_O’Brien"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_everton_23_Seamus_Coleman_(C)",
+              "epl_everton_2_Nathan_Patterson"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_everton_37_James_Garner",
+              "epl_everton_34_Merlin_Rohl"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_everton_27_Idrissa_Gueye",
+              "epl_everton_42_Tim_Iroegbunam"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "epl_everton_18_Jack_Grealish",
+              "epl_everton_7_Dwight_McNeil"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "epl_everton_22_Kiernan_Dewsbury_Hall",
+              "epl_everton_24_Carlos_Alcaraz"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "epl_everton_10_Iliman_Ndiaye",
+              "epl_everton_20_Tyler_Dibling"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "epl_everton_9_Beto",
+              "epl_everton_11_Thierno_Barry"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_fulham",
@@ -857,7 +945,87 @@
       ],
       "logo": "./images/premierleague/fulham.png",
       "stadium": "Craven Cottage",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "epl_fulham_1_Bernd_Leno",
+          "epl_fulham_23_Benjamin_Lecomte",
+          ""
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "epl_fulham_33_Antonee_Robinson",
+              "epl_fulham_30_Ryan_Sessegnon"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_fulham_3_Calvin_Bassey",
+              "epl_fulham_15_Jorge_Cuenca"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "epl_fulham_5_Joachim_Andersen",
+              "epl_fulham_31_Issa_Diop"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "epl_fulham_21_Timothy_Castagne",
+              "epl_fulham_2_Kenny_Tete"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_fulham_20_Sasa_Lukic",
+              "epl_fulham_10_Tom_Cairney_(C)"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "epl_fulham_16_Sander_Berge",
+              "epl_fulham_17_Alex_Iwobi"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "epl_fulham_19_Samuel_Chukwueze",
+              "epl_fulham_22_Kevin"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "epl_fulham_32_Emile_Smith_Rowe",
+              "epl_fulham_24_Josh_King"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "epl_fulham_8_Harry_Wilson",
+              "epl_fulham_14_Oscar_Bobb"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "epl_fulham_7_Raul_Jimenez",
+              "epl_fulham_9_Rodrigo_Muniz"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "epl_leeds",
@@ -4491,7 +4659,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/robertsanchez_1/"
     },
     {
       "id": "epl_chelsea_12_Filip_Jorgensen",
@@ -4501,7 +4670,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇩🇰",
-      "nationality": "Denmark"
+      "nationality": "Denmark",
+      "instagram": "https://www.instagram.com/filipjorgensen1/"
     },
     {
       "id": "epl_chelsea_28_Teddy_Sharman_Lowe",
@@ -4511,7 +4681,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tsharmanlowe/"
     },
     {
       "id": "epl_chelsea_44_Gabriel_Slonina",
@@ -4521,7 +4692,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇺🇸",
-      "nationality": "USA"
+      "nationality": "USA",
+      "instagram": "https://www.instagram.com/gabrielslonina/"
     },
     {
       "id": "epl_chelsea_4_Tosin_Adarabioyo",
@@ -4531,7 +4703,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tosin/"
     },
     {
       "id": "epl_chelsea_5_Benoit_Badiashile",
@@ -4541,7 +4714,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/benoit.badiashile/"
     },
     {
       "id": "epl_chelsea_6_Levi_Colwill",
@@ -4551,7 +4725,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/levicolwill/"
     },
     {
       "id": "epl_chelsea_19_Mamadou_Sarr",
@@ -4561,7 +4736,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇸🇳",
-      "nationality": "Senegal"
+      "nationality": "Senegal",
+      "instagram": "https://www.instagram.com/msarr6_/"
     },
     {
       "id": "epl_chelsea_23_Trevoh_Chalobah",
@@ -4571,7 +4747,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/chalobah/"
     },
     {
       "id": "epl_chelsea_29_Wesley_Fofana",
@@ -4581,7 +4758,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/lawestt_/"
     },
     {
       "id": "epl_chelsea_24_Reece_James_(C)",
@@ -4591,7 +4769,8 @@
       "pos": "DF",
       "role": "RB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/reece/"
     },
     {
       "id": "epl_chelsea_27_Malo_Gusto",
@@ -4601,7 +4780,8 @@
       "pos": "DF",
       "role": "RB",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/malogusto/"
     },
     {
       "id": "epl_chelsea_34_Josh_Acheampong",
@@ -4611,7 +4791,8 @@
       "pos": "DF",
       "role": "RB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/joshkofi2/"
     },
     {
       "id": "epl_chelsea_3_Marc_Cucurella",
@@ -4621,7 +4802,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/cucurella3/"
     },
     {
       "id": "epl_chelsea_21_Jorrel_Hato",
@@ -4631,7 +4813,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🇳🇱",
-      "nationality": "Netherlands"
+      "nationality": "Netherlands",
+      "instagram": "https://www.instagram.com/jorrelhato/"
     },
     {
       "id": "epl_chelsea_14_Dario_Essugo",
@@ -4641,7 +4824,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇵🇹",
-      "nationality": "Portugal"
+      "nationality": "Portugal",
+      "instagram": "https://www.instagram.com/darioessugo6/"
     },
     {
       "id": "epl_chelsea_17_Andrey_Santos",
@@ -4651,7 +4835,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇧🇷",
-      "nationality": "Brazil"
+      "nationality": "Brazil",
+      "instagram": "https://www.instagram.com/andreysantos_5/"
     },
     {
       "id": "epl_chelsea_25_Moises_Caicedo",
@@ -4661,7 +4846,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇪🇨",
-      "nationality": "Ecuador"
+      "nationality": "Ecuador",
+      "instagram": "https://www.instagram.com/moises_caicedo55/"
     },
     {
       "id": "epl_chelsea_45_Romeo_Lavia",
@@ -4671,7 +4857,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇧🇪",
-      "nationality": "Belgium"
+      "nationality": "Belgium",
+      "instagram": "https://www.instagram.com/romeolavia/"
     },
     {
       "id": "epl_chelsea_8_Enzo_Fernandez",
@@ -4681,7 +4868,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🇦🇷",
-      "nationality": "Argentina"
+      "nationality": "Argentina",
+      "instagram": "https://www.instagram.com/enzojfernandez/"
     },
     {
       "id": "epl_chelsea_10_Cole_Palmer",
@@ -4691,7 +4879,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/colepalmer10/"
     },
     {
       "id": "epl_chelsea_7_Pedro_Neto",
@@ -4701,7 +4890,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🇵🇹",
-      "nationality": "Portugal"
+      "nationality": "Portugal",
+      "instagram": "https://www.instagram.com/pedroneto_30/"
     },
     {
       "id": "epl_chelsea_41_Estevao",
@@ -4711,7 +4901,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🇧🇷",
-      "nationality": "Brazil"
+      "nationality": "Brazil",
+      "instagram": "https://www.instagram.com/estevaowilian_/"
     },
     {
       "id": "epl_chelsea_11_Jamie_Gittens",
@@ -4721,7 +4912,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/jbgittens/"
     },
     {
       "id": "epl_chelsea_49_Alejandro_Garnacho",
@@ -4731,7 +4923,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🇦🇷",
-      "nationality": "Argentina"
+      "nationality": "Argentina",
+      "instagram": "https://www.instagram.com/garnacho7/"
     },
     {
       "id": "epl_chelsea_9_Liam_Delap",
@@ -4741,7 +4934,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/liamdelap/"
     },
     {
       "id": "epl_chelsea_20_Joao_Pedro",
@@ -4751,7 +4945,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇧🇷",
-      "nationality": "Brazil"
+      "nationality": "Brazil",
+      "instagram": "https://www.instagram.com/joaopedro.oficial/"
     },
     {
       "id": "epl_chelsea_38_Marc_Guiu",
@@ -4761,7 +4956,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/marcguiu9/"
     },
     {
       "id": "epl_crystal_palace_1_Dean_Henderson_(C)",
@@ -4771,7 +4967,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/deanhenderson/"
     },
     {
       "id": "epl_crystal_palace_31_Remi_Matthews",
@@ -4781,7 +4978,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/remimatthews/"
     },
     {
       "id": "epl_crystal_palace_44_Walter_Benitez",
@@ -4791,7 +4989,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇦🇷",
-      "nationality": "Argentina"
+      "nationality": "Argentina",
+      "instagram": "https://www.instagram.com/walterbenitezoficial/"
     },
     {
       "id": "epl_crystal_palace_5_Maxence_Lacroix",
@@ -4801,7 +5000,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/lacroix_maxence/"
     },
     {
       "id": "epl_crystal_palace_8_Jefferson_Lerma",
@@ -4811,7 +5011,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇨🇴",
-      "nationality": "Colombia"
+      "nationality": "Colombia",
+      "instagram": "https://www.instagram.com/jeffersonlerma/"
     },
     {
       "id": "epl_crystal_palace_17_Nathaniel_Clyne",
@@ -4821,7 +5022,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/nathaniel_clyne/"
     },
     {
       "id": "epl_crystal_palace_23_Jaydee_Canvot",
@@ -4831,7 +5033,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/j.canvot/"
     },
     {
       "id": "epl_crystal_palace_26_Chris_Richards",
@@ -4841,7 +5044,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇺🇸",
-      "nationality": "USA"
+      "nationality": "USA",
+      "instagram": "https://www.instagram.com/eastmamba/"
     },
     {
       "id": "epl_crystal_palace_34_Chadi_Riad",
@@ -4851,7 +5055,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇲🇦",
-      "nationality": "Morocco"
+      "nationality": "Morocco",
+      "instagram": "https://www.instagram.com/chadiriad17/"
     },
     {
       "id": "epl_crystal_palace_2_Daniel_Munoz",
@@ -4861,7 +5066,8 @@
       "pos": "DF",
       "role": "RM",
       "flag": "🇨🇴",
-      "nationality": "Colombia"
+      "nationality": "Colombia",
+      "instagram": "https://www.instagram.com/daniel.chitiva/"
     },
     {
       "id": "epl_crystal_palace_55_Justin_Devenny",
@@ -4871,7 +5077,8 @@
       "pos": "DF",
       "role": "RM",
       "flag": "🇬🇬",
-      "nationality": "Northern Ireland"
+      "nationality": "Northern Ireland",
+      "instagram": "https://www.instagram.com/justindevenny_03/"
     },
     {
       "id": "epl_crystal_palace_58_Caleb_Kporha",
@@ -4881,7 +5088,8 @@
       "pos": "DF",
       "role": "RM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/caleb.kporha/"
     },
     {
       "id": "epl_crystal_palace_3_Tyrick_Mitchell",
@@ -4891,7 +5099,8 @@
       "pos": "DF",
       "role": "LM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tmitchell/"
     },
     {
       "id": "epl_crystal_palace_24_Borna_Sosa",
@@ -4901,7 +5110,8 @@
       "pos": "DF",
       "role": "LM",
       "flag": "🇭🇷",
-      "nationality": "Croatia"
+      "nationality": "Croatia",
+      "instagram": "https://www.instagram.com/bornasosa/"
     },
     {
       "id": "epl_crystal_palace_59_Rio_Cardines",
@@ -4911,7 +5121,8 @@
       "pos": "DF",
       "role": "LM",
       "flag": "🇹🇹",
-      "nationality": "Trinidad and Tobago"
+      "nationality": "Trinidad and Tobago",
+      "instagram": "https://www.instagram.com/cardinesrio/"
     },
     {
       "id": "epl_crystal_palace_18_Daichi_Kamada",
@@ -4921,7 +5132,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇯🇵",
-      "nationality": "Japan"
+      "nationality": "Japan",
+      "instagram": "https://www.instagram.com/kamadadaichi/"
     },
     {
       "id": "epl_crystal_palace_19_Will_Hughes",
@@ -4941,7 +5153,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/adamwharton10/"
     },
     {
       "id": "epl_crystal_palace_28_Cheick_Doucoure",
@@ -4951,7 +5164,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇲🇱",
-      "nationality": "Mali"
+      "nationality": "Mali",
+      "instagram": "https://www.instagram.com/cheick.doucoure20/"
     },
     {
       "id": "epl_crystal_palace_42_Kaden_Rodney",
@@ -4971,7 +5185,8 @@
       "pos": "FW",
       "role": "RAM",
       "flag": "🇸🇳",
-      "nationality": "Senegal"
+      "nationality": "Senegal",
+      "instagram": "https://www.instagram.com/ismaila_sarr_18/"
     },
     {
       "id": "epl_crystal_palace_11_Brennan_Johnson",
@@ -4981,7 +5196,8 @@
       "pos": "FW",
       "role": "RAM",
       "flag": "🏴",
-      "nationality": "Wales"
+      "nationality": "Wales",
+      "instagram": "https://www.instagram.com/brenjohnson_/"
     },
     {
       "id": "epl_crystal_palace_10_Yeremy_Pino",
@@ -4991,7 +5207,8 @@
       "pos": "FW",
       "role": "LAM",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/yeresantos10/"
     },
     {
       "id": "epl_crystal_palace_29_Evann_Guessand",
@@ -5001,7 +5218,8 @@
       "pos": "FW",
       "role": "LAM",
       "flag": "🇨🇮",
-      "nationality": "Côte d’Ivoire"
+      "nationality": "Côte d’Ivoire",
+      "instagram": "https://www.instagram.com/e.guessand/"
     },
     {
       "id": "epl_crystal_palace_9_Eddie_Nketiah",
@@ -5011,7 +5229,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/eddienketiah/"
     },
     {
       "id": "epl_crystal_palace_12_Christantus_Uche",
@@ -5021,7 +5240,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇳🇬",
-      "nationality": "Nigeria"
+      "nationality": "Nigeria",
+      "instagram": "https://www.instagram.com/uche__6/"
     },
     {
       "id": "epl_crystal_palace_14_Jean_Philippe_Mateta",
@@ -5031,7 +5251,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/iammateta/"
     },
     {
       "id": "epl_crystal_palace_22_Jorgen_Strand_Larsen",
@@ -5041,7 +5262,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇳🇴",
-      "nationality": "Norway"
+      "nationality": "Norway",
+      "instagram": "https://www.instagram.com/strandlarsen/"
     },
     {
       "id": "epl_everton_1_Jordan_Pickford",
@@ -5051,7 +5273,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/jpickford1/"
     },
     {
       "id": "epl_everton_12_Mark_Travers",
@@ -5061,7 +5284,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇮🇪",
-      "nationality": "Ireland"
+      "nationality": "Ireland",
+      "instagram": "https://www.instagram.com/marktravers1/"
     },
     {
       "id": "epl_everton_31_Tom_King",
@@ -5071,7 +5295,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tomlking/"
     },
     {
       "id": "epl_everton_5_Michael_Keane",
@@ -5081,7 +5306,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/michaelkeane93/"
     },
     {
       "id": "epl_everton_6_James_Tarkowski",
@@ -5091,7 +5317,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tarky19/"
     },
     {
       "id": "epl_everton_15_Jake_O’Brien",
@@ -5101,7 +5328,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇮🇪",
-      "nationality": "Ireland"
+      "nationality": "Ireland",
+      "instagram": "https://www.instagram.com/obrienjake_/"
     },
     {
       "id": "epl_everton_32_Jarrad_Branthwaite",
@@ -5111,7 +5339,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/jarrad_b_/"
     },
     {
       "id": "epl_everton_2_Nathan_Patterson",
@@ -5121,7 +5350,8 @@
       "pos": "DF",
       "role": "RB",
       "flag": "🏴",
-      "nationality": "Scotland"
+      "nationality": "Scotland",
+      "instagram": "https://www.instagram.com/nathan.patterson_/"
     },
     {
       "id": "epl_everton_23_Seamus_Coleman_(C)",
@@ -5141,7 +5371,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🇺🇦",
-      "nationality": "Ukraine"
+      "nationality": "Ukraine",
+      "instagram": "https://www.instagram.com/mikola_16/"
     },
     {
       "id": "epl_everton_39_Adam_Aznou",
@@ -5151,7 +5382,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🇲🇦",
-      "nationality": "Morocco"
+      "nationality": "Morocco",
+      "instagram": "https://www.instagram.com/adamaznou/"
     },
     {
       "id": "epl_everton_27_Idrissa_Gueye",
@@ -5161,7 +5393,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇸🇳",
-      "nationality": "Senegal"
+      "nationality": "Senegal",
+      "instagram": "https://www.instagram.com/iganagueye/"
     },
     {
       "id": "epl_everton_34_Merlin_Rohl",
@@ -5171,7 +5404,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇩🇪",
-      "nationality": "Germany"
+      "nationality": "Germany",
+      "instagram": "https://www.instagram.com/merlin.rohl/"
     },
     {
       "id": "epl_everton_37_James_Garner",
@@ -5181,7 +5415,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/jgarnerr96/"
     },
     {
       "id": "epl_everton_42_Tim_Iroegbunam",
@@ -5191,7 +5426,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tim.iro8/"
     },
     {
       "id": "epl_everton_22_Kiernan_Dewsbury_Hall",
@@ -5201,7 +5437,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/kdh_8/"
     },
     {
       "id": "epl_everton_24_Carlos_Alcaraz",
@@ -5221,7 +5458,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/harrisonarmstrong._/"
     },
     {
       "id": "epl_everton_10_Iliman_Ndiaye",
@@ -5231,7 +5469,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🇸🇳",
-      "nationality": "Senegal"
+      "nationality": "Senegal",
+      "instagram": "https://www.instagram.com/ilimanndiaye10/"
     },
     {
       "id": "epl_everton_20_Tyler_Dibling",
@@ -5241,7 +5480,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tylerdibling/"
     },
     {
       "id": "epl_everton_7_Dwight_McNeil",
@@ -5251,7 +5491,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/dwightmc99/"
     },
     {
       "id": "epl_everton_18_Jack_Grealish",
@@ -5261,7 +5502,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/jackgrealish/"
     },
     {
       "id": "epl_everton_19_Tyrique_George",
@@ -5271,7 +5513,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/tyg.10/"
     },
     {
       "id": "epl_everton_9_Beto",
@@ -5281,7 +5524,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇬🇼",
-      "nationality": "Guinea-Bissau"
+      "nationality": "Guinea-Bissau",
+      "instagram": "https://www.instagram.com/beto_norberto_14/"
     },
     {
       "id": "epl_everton_11_Thierno_Barry",
@@ -5291,7 +5535,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/t.barry29/"
     },
     {
       "id": "epl_fulham_1_Bernd_Leno",
@@ -5301,7 +5546,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇩🇪",
-      "nationality": "Germany"
+      "nationality": "Germany",
+      "instagram": "https://www.instagram.com/berndleno1/"
     },
     {
       "id": "epl_fulham_23_Benjamin_Lecomte",
@@ -5311,7 +5557,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇫🇷",
-      "nationality": "France"
+      "nationality": "France",
+      "instagram": "https://www.instagram.com/benj_lecomte/"
     },
     {
       "id": "epl_fulham_3_Calvin_Bassey",
@@ -5321,7 +5568,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇳🇬",
-      "nationality": "Nigeria"
+      "nationality": "Nigeria",
+      "instagram": "https://www.instagram.com/calvinbassey/"
     },
     {
       "id": "epl_fulham_5_Joachim_Andersen",
@@ -5331,7 +5579,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇩🇰",
-      "nationality": "Denmark"
+      "nationality": "Denmark",
+      "instagram": "https://www.instagram.com/joachimandersen3/"
     },
     {
       "id": "epl_fulham_15_Jorge_Cuenca",
@@ -5341,7 +5590,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/jorgecuenca22/"
     },
     {
       "id": "epl_fulham_31_Issa_Diop",
@@ -5351,7 +5601,8 @@
       "pos": "DF",
       "role": "CB",
       "flag": "🇲🇦",
-      "nationality": "Morocco"
+      "nationality": "Morocco",
+      "instagram": "https://www.instagram.com/issa_diop_05/"
     },
     {
       "id": "epl_fulham_2_Kenny_Tete",
@@ -5361,7 +5612,8 @@
       "pos": "DF",
       "role": "RB",
       "flag": "🇳🇱",
-      "nationality": "Netherlands"
+      "nationality": "Netherlands",
+      "instagram": "https://www.instagram.com/kennytete/"
     },
     {
       "id": "epl_fulham_21_Timothy_Castagne",
@@ -5371,7 +5623,8 @@
       "pos": "DF",
       "role": "RB",
       "flag": "🇧🇪",
-      "nationality": "Belgium"
+      "nationality": "Belgium",
+      "instagram": "https://www.instagram.com/timothycastagne/"
     },
     {
       "id": "epl_fulham_30_Ryan_Sessegnon",
@@ -5381,7 +5634,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/ryansess/"
     },
     {
       "id": "epl_fulham_33_Antonee_Robinson",
@@ -5391,7 +5645,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🇺🇸",
-      "nationality": "USA"
+      "nationality": "USA",
+      "instagram": "https://www.instagram.com/antonee_jedi/"
     },
     {
       "id": "epl_fulham_6_Harrison_Reed",
@@ -5401,7 +5656,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/harrisonreed/"
     },
     {
       "id": "epl_fulham_10_Tom_Cairney_(C)",
@@ -5411,7 +5667,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🏴",
-      "nationality": "Scotland"
+      "nationality": "Scotland",
+      "instagram": "https://www.instagram.com/thomascairney10/"
     },
     {
       "id": "epl_fulham_16_Sander_Berge",
@@ -5421,7 +5678,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇳🇴",
-      "nationality": "Norway"
+      "nationality": "Norway",
+      "instagram": "https://www.instagram.com/sanderberge8/"
     },
     {
       "id": "epl_fulham_17_Alex_Iwobi",
@@ -5431,7 +5689,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇳🇬",
-      "nationality": "Nigeria"
+      "nationality": "Nigeria",
+      "instagram": "https://www.instagram.com/alexanderiwobi/"
     },
     {
       "id": "epl_fulham_20_Sasa_Lukic",
@@ -5441,7 +5700,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇷🇸",
-      "nationality": "Serbia"
+      "nationality": "Serbia",
+      "instagram": "https://www.instagram.com/sasalukic_/"
     },
     {
       "id": "epl_fulham_24_Josh_King",
@@ -5451,7 +5711,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/josh.kingg10/"
     },
     {
       "id": "epl_fulham_32_Emile_Smith_Rowe",
@@ -5461,7 +5722,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/esr/"
     },
     {
       "id": "epl_fulham_8_Harry_Wilson",
@@ -5471,7 +5733,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🏴",
-      "nationality": "Wales"
+      "nationality": "Wales",
+      "instagram": "https://www.instagram.com/harrywilson22/"
     },
     {
       "id": "epl_fulham_14_Oscar_Bobb",
@@ -5481,7 +5744,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🇳🇴",
-      "nationality": "Norway"
+      "nationality": "Norway",
+      "instagram": "https://www.instagram.com/oscarbobb/"
     },
     {
       "id": "epl_fulham_19_Samuel_Chukwueze",
@@ -5491,7 +5755,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🇳🇬",
-      "nationality": "Nigeria"
+      "nationality": "Nigeria",
+      "instagram": "https://www.instagram.com/chukwuezesamuel8/"
     },
     {
       "id": "epl_fulham_22_Kevin",
@@ -5501,7 +5766,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🇧🇷",
-      "nationality": "Brazil"
+      "nationality": "Brazil",
+      "instagram": "https://www.instagram.com/_kev11nn/"
     },
     {
       "id": "epl_fulham_7_Raul_Jimenez",
@@ -5511,7 +5777,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇲🇽",
-      "nationality": "Mexico"
+      "nationality": "Mexico",
+      "instagram": "https://www.instagram.com/raulalonsojimenez9/"
     },
     {
       "id": "epl_fulham_9_Rodrigo_Muniz",
@@ -5521,7 +5788,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇧🇷",
-      "nationality": "Brazil"
+      "nationality": "Brazil",
+      "instagram": "https://www.instagram.com/r.muniz/"
     },
     {
       "id": "epl_fulham_18_Jonah_Kusi_Asare",
@@ -5531,7 +5799,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇸🇪",
-      "nationality": "Sweden"
+      "nationality": "Sweden",
+      "instagram": "https://www.instagram.com/jonah.kusi.asare/"
     },
     {
       "id": "epl_leeds_1_Lucas_Perri",
