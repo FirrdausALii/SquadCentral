@@ -462,267 +462,19 @@ function goalEventEmptyLabel(kind) {
   return kind === "assist" ? "— No assist —" : "— Player —";
 }
 
-function goalEventPickPlaceholder(kind) {
-  return kind === "assist" ? "Search assist…" : "Search scorer…";
-}
-
-function goalEventSearchQuery(raw, emptyLabel) {
-  const q = String(raw ?? "").trim().toLowerCase();
-  if (!q) return "";
-  const empty = String(emptyLabel ?? "").trim().toLowerCase();
-  if (empty && q === empty) return "";
-  return q;
-}
-
 function renderGoalEventPlayerPickHtml(kind, teamId, selectedName, emptyLabel) {
-  const choices = goalEventPlayerChoices(teamId, emptyLabel);
   const selected = String(selectedName ?? "").trim();
-  const sel = choices.find((c) => c.name === selected);
+  const options = goalEventPlayerChoices(teamId, emptyLabel)
+    .map((c) => {
+      const sel = c.name === selected ? " selected" : "";
+      return `<option value="${esc(c.name)}"${sel}>${esc(c.label)}</option>`;
+    })
+    .join("");
   const ariaLabel = kind === "assist" ? "Assist" : "Scorer";
-  const displayLabel = sel && sel.name ? sel.label : selected || emptyLabel;
-  const searchPh = goalEventPickPlaceholder(kind);
   return `
-    <div class="ge-player-pick fc-combobox" data-kind="${kind}" data-team-id="${esc(teamId ?? "")}">
-      <div class="mw-select-wrap mw-select-wrap--compact fc-combobox-trigger-wrap">
-        <button type="button" class="fc-combobox-trigger mw-select" aria-expanded="false" aria-haspopup="listbox" aria-label="${ariaLabel}">
-          <span class="fc-combobox-label">${esc(displayLabel)}</span>
-        </button>
-      </div>
-      <input type="hidden" class="ge-${kind}-pick" value="${esc(selectedName ?? "")}" />
-      <div class="fc-combobox-panel admin-hidden">
-        <div class="fc-combobox-search-wrap">
-          <input type="text" class="fc-combobox-search mw-input" placeholder="${esc(searchPh)}" autocomplete="off" spellcheck="false" aria-label="Search ${ariaLabel.toLowerCase()}" />
-        </div>
-        <ul class="fc-combobox-menu" role="listbox" aria-label="${ariaLabel}"></ul>
-      </div>
+    <div class="mw-select-wrap mw-select-wrap--compact">
+      <select class="ge-${kind}-pick mw-select" aria-label="${ariaLabel}">${options}</select>
     </div>`;
-}
-
-function positionGoalEventPlayerPanel(wrap) {
-  const panel = wrap?.querySelector(".fc-combobox-panel");
-  const trigger = wrap?.querySelector(".fc-combobox-trigger");
-  if (!panel || !trigger || panel.classList.contains("admin-hidden")) return;
-
-  const rect = trigger.getBoundingClientRect();
-  const panelHeight = Math.min(panel.offsetHeight || 280, 280);
-  const spaceBelow = window.innerHeight - rect.bottom - 8;
-  const openUp = spaceBelow < Math.min(panelHeight, 140) && rect.top > panelHeight + 8;
-
-  panel.style.position = "fixed";
-  panel.style.left = `${rect.left}px`;
-  panel.style.width = `${Math.max(rect.width, 200)}px`;
-  panel.style.right = "auto";
-  panel.style.zIndex = "2500";
-  if (openUp) {
-    panel.style.top = "auto";
-    panel.style.bottom = `${window.innerHeight - rect.top + 4}px`;
-  } else {
-    panel.style.top = `${rect.bottom + 4}px`;
-    panel.style.bottom = "auto";
-  }
-}
-
-function renderGoalEventPlayerMenu(wrap, filter = "", forceOpen = false) {
-  if (!wrap) return;
-  const kind = wrap.dataset.kind;
-  const teamId = wrap.dataset.teamId;
-  const emptyLabel = goalEventEmptyLabel(kind);
-  const panel = wrap.querySelector(".fc-combobox-panel");
-  const menu = wrap.querySelector(".fc-combobox-menu");
-  const search = wrap.querySelector(".fc-combobox-search");
-  const trigger = wrap.querySelector(".fc-combobox-trigger");
-  if (!panel || !menu || !search) return;
-
-  const q = goalEventSearchQuery(filter || search.value, emptyLabel);
-  const choices = goalEventPlayerChoices(teamId, emptyLabel);
-  const filtered = q
-    ? choices.filter(
-        (c) =>
-          c.name === "" ||
-          c.label.toLowerCase().includes(q) ||
-          c.name.toLowerCase().includes(q),
-      )
-    : choices;
-
-  menu.innerHTML = filtered.length
-    ? filtered
-        .map(
-          (c) =>
-            `<li class="fc-combobox-option" role="option" data-value="${esc(c.name)}" tabindex="-1">${esc(c.label)}</li>`,
-        )
-        .join("")
-    : `<li class="fc-combobox-option fc-combobox-option--empty" role="option" data-value="" tabindex="-1">No players found</li>`;
-
-  const open = forceOpen || !panel.classList.contains("admin-hidden");
-  panel.classList.toggle("admin-hidden", !open);
-  trigger?.setAttribute("aria-expanded", open ? "true" : "false");
-  if (open) positionGoalEventPlayerPanel(wrap);
-}
-
-function openGoalEventPlayerMenu(wrap) {
-  if (!wrap) return;
-  const search = wrap.querySelector(".fc-combobox-search");
-  renderGoalEventPlayerMenu(wrap, search?.value ?? "", true);
-}
-
-function setGoalEventPlayerPick(wrap, playerName) {
-  if (!wrap) return;
-  const kind = wrap.dataset.kind;
-  const emptyLabel = goalEventEmptyLabel(kind);
-  const hidden = wrap.querySelector(`.ge-${kind}-pick`);
-  const labelEl = wrap.querySelector(".fc-combobox-label");
-  const panel = wrap.querySelector(".fc-combobox-panel");
-  const search = wrap.querySelector(".fc-combobox-search");
-  const trigger = wrap.querySelector(".fc-combobox-trigger");
-  if (!hidden || !labelEl) return;
-
-  const name = String(playerName ?? "").trim();
-  hidden.value = name;
-  const choices = goalEventPlayerChoices(wrap.dataset.teamId, emptyLabel);
-  const sel = choices.find((c) => c.name === name);
-  labelEl.textContent = sel && sel.name ? sel.label : name || emptyLabel;
-  panel?.classList.add("admin-hidden");
-  trigger?.setAttribute("aria-expanded", "false");
-  if (search) search.value = "";
-}
-
-function refreshGoalEventPlayerPick(wrap, teamId, selectedName) {
-  if (!wrap) return;
-  wrap.dataset.teamId = teamId || "";
-  setGoalEventPlayerPick(wrap, selectedName);
-  renderGoalEventPlayerMenu(wrap, "", false);
-}
-
-function ensureGoalEventComboboxGlobalListeners() {
-  if (ensureGoalEventComboboxGlobalListeners._bound) return;
-  ensureGoalEventComboboxGlobalListeners._bound = true;
-
-  document.addEventListener(
-    "mousedown",
-    (e) => {
-      if (e.target instanceof Element && e.target.closest(".ge-player-pick")) return;
-      for (const panel of document.querySelectorAll(".ge-player-pick .fc-combobox-panel")) {
-        panel.classList.add("admin-hidden");
-      }
-      for (const trigger of document.querySelectorAll(".ge-player-pick .fc-combobox-trigger")) {
-        trigger.setAttribute("aria-expanded", "false");
-      }
-      for (const search of document.querySelectorAll(".ge-player-pick .fc-combobox-search")) {
-        search.value = "";
-      }
-    },
-    true,
-  );
-
-  window.addEventListener(
-    "scroll",
-    () => {
-      for (const wrap of document.querySelectorAll(".ge-player-pick")) {
-        const panel = wrap.querySelector(".fc-combobox-panel");
-        if (panel && !panel.classList.contains("admin-hidden")) {
-          positionGoalEventPlayerPanel(wrap);
-        }
-      }
-    },
-    true,
-  );
-
-  window.addEventListener("resize", () => {
-    for (const wrap of document.querySelectorAll(".ge-player-pick")) {
-      const panel = wrap.querySelector(".fc-combobox-panel");
-      if (panel && !panel.classList.contains("admin-hidden")) {
-        positionGoalEventPlayerPanel(wrap);
-      }
-    }
-  });
-}
-
-function bindGoalEventPlayerPick(wrap) {
-  if (!wrap || wrap.dataset.gePickBound === "1") return;
-  wrap.dataset.gePickBound = "1";
-  ensureGoalEventComboboxGlobalListeners();
-
-  const kind = wrap.dataset.kind;
-  const hidden = wrap.querySelector(`.ge-${kind}-pick`);
-  const panel = wrap.querySelector(".fc-combobox-panel");
-  const menu = wrap.querySelector(".fc-combobox-menu");
-  const search = wrap.querySelector(".fc-combobox-search");
-  const trigger = wrap.querySelector(".fc-combobox-trigger");
-  if (!hidden || !panel || !menu || !search || !trigger) return;
-
-  trigger.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!panel.classList.contains("admin-hidden")) {
-      panel.classList.add("admin-hidden");
-      trigger.setAttribute("aria-expanded", "false");
-      search.value = "";
-      renderGoalEventPlayerMenu(wrap, "", false);
-      return;
-    }
-    search.value = "";
-    openGoalEventPlayerMenu(wrap);
-    search.focus();
-  });
-
-  search.addEventListener("input", () => {
-    hidden.value = "";
-    renderGoalEventPlayerMenu(wrap, search.value, true);
-  });
-
-  search.addEventListener("focus", () => {
-    openGoalEventPlayerMenu(wrap);
-  });
-
-  menu.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-  });
-
-  menu.addEventListener("click", (e) => {
-    const opt = e.target instanceof Element ? e.target.closest(".fc-combobox-option") : null;
-    if (!opt) return;
-    setGoalEventPlayerPick(wrap, opt.getAttribute("data-value") ?? "");
-    trigger.focus();
-  });
-
-  search.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      panel.classList.add("admin-hidden");
-      trigger.setAttribute("aria-expanded", "false");
-      search.value = "";
-      setGoalEventPlayerPick(wrap, hidden.value);
-      trigger.focus();
-      return;
-    }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      openGoalEventPlayerMenu(wrap);
-      return;
-    }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const first = menu.querySelector(".fc-combobox-option:not(.fc-combobox-option--empty)");
-      if (first) setGoalEventPlayerPick(wrap, first.getAttribute("data-value") ?? "");
-      trigger.focus();
-    }
-  });
-
-  search.addEventListener("blur", () => {
-    window.setTimeout(() => {
-      if (wrap.contains(document.activeElement)) return;
-      panel.classList.add("admin-hidden");
-      trigger.setAttribute("aria-expanded", "false");
-      search.value = "";
-      setGoalEventPlayerPick(wrap, hidden.value);
-    }, 150);
-  });
-
-  renderGoalEventPlayerMenu(wrap, "", false);
-}
-
-function bindGoalEventPlayerPicks(root = document) {
-  for (const wrap of root.querySelectorAll(".ge-player-pick")) {
-    bindGoalEventPlayerPick(wrap);
-  }
 }
 
 const GOAL_EVENT_TYPES = ["Own Goal", "Penalty", "Free kick", "Free Kick", "Header"];
@@ -820,14 +572,15 @@ function refreshGoalEventRowPlayers(row) {
   if (!row) return;
   const side = row.querySelector(".ge-side")?.value === "away" ? "away" : "home";
   const teamId = side === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
-  if (!teamId) return;
 
   for (const kind of ["scorer", "assist"]) {
     if (row.querySelector(`.ge-${kind}-mode`)?.value === "manual") continue;
-    const wrap = row.querySelector(`.ge-${kind}-roster .ge-player-pick`);
-    const hidden = row.querySelector(`.ge-${kind}-pick`);
-    const val = hidden?.value ?? "";
-    refreshGoalEventPlayerPick(wrap, teamId, val);
+    const rosterEl = row.querySelector(`.ge-${kind}-roster`);
+    const pick = row.querySelector(`.ge-${kind}-pick`);
+    const val = pick?.value ?? "";
+    if (rosterEl) {
+      rosterEl.innerHTML = renderGoalEventPlayerPickHtml(kind, teamId, val, goalEventEmptyLabel(kind));
+    }
   }
 }
 
@@ -3058,47 +2811,30 @@ function bindGoalEventRowHandlers() {
       const modeSel = row.querySelector(`.ge-${kind}-mode`);
       const rosterEl = row.querySelector(`.ge-${kind}-roster`);
       const manualEl = row.querySelector(`.ge-${kind}-manual`);
-      const pickWrap = rosterEl?.querySelector(".ge-player-pick");
-      const hidden = row.querySelector(`.ge-${kind}-pick`);
+      const pick = row.querySelector(`.ge-${kind}-pick`);
       const man = row.querySelector(`.ge-${kind}-man`);
+      const emptyLabel = goalEventEmptyLabel(kind);
 
       const syncMode = () => {
         const manual = modeSel?.value === "manual";
         rosterEl?.classList.toggle("admin-hidden", manual);
         manualEl?.classList.toggle("admin-hidden", !manual);
-        if (!manual && man?.value.trim() && hidden) {
+        if (!manual && man?.value.trim() && pick) {
           const teamId = row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
-          const match = goalEventPlayerChoices(
-            teamId,
-            kind === "assist" ? "— No assist —" : "— Player —",
-          ).find((c) => c.name === man.value.trim());
-          if (match) setGoalEventPlayerPick(pickWrap, match.name);
-        }
-        if (!manual && pickWrap) {
-          bindGoalEventPlayerPick(pickWrap);
-          renderGoalEventPlayerMenu(pickWrap, pickWrap.querySelector(".fc-combobox-search")?.value ?? "", false);
+          const match = goalEventPlayerChoices(teamId, emptyLabel).find((c) => c.name === man.value.trim());
+          if (match) pick.value = match.name;
         }
       };
 
       modeSel?.addEventListener("change", () => {
-        if (modeSel.value === "roster" && man?.value.trim() && hidden) {
+        if (modeSel.value === "roster" && man?.value.trim() && pick) {
           const teamId = row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
-          const match = goalEventPlayerChoices(
-            teamId,
-            kind === "assist" ? "— No assist —" : "— Player —",
-          ).find((c) => c.name === man.value.trim());
-          if (match) setGoalEventPlayerPick(pickWrap, match.name);
-          else hidden.value = man.value.trim();
-        } else if (modeSel.value === "manual" && hidden?.value && man) {
-          man.value = hidden.value;
+          const match = goalEventPlayerChoices(teamId, emptyLabel).find((c) => c.name === man.value.trim());
+          if (match) pick.value = match.name;
+        } else if (modeSel.value === "manual" && pick?.value && man) {
+          man.value = pick.value;
         }
         syncMode();
-        if (modeSel.value === "roster" && pickWrap) {
-          bindGoalEventPlayerPick(pickWrap);
-          const search = pickWrap.querySelector(".fc-combobox-search");
-          if (search) search.value = "";
-          renderGoalEventPlayerMenu(pickWrap, "", false);
-        }
       });
 
       syncMode();
@@ -3112,7 +2848,6 @@ function bindGoalEventRowHandlers() {
       if (!custom) typeCustom && (typeCustom.value = "");
     });
   });
-  bindGoalEventPlayerPicks();
 }
 
 function bindMatchweek() {
@@ -3159,7 +2894,6 @@ function bindMatchweek() {
     tbody.insertAdjacentHTML("beforeend", renderGoalEventRowHtml({}, i, homeId, awayId));
     bindGoalEventDeletes();
     bindGoalEventRowHandlers();
-    bindGoalEventPlayerPicks(tbody);
   });
 
   bindGoalEventDeletes();

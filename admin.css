@@ -2156,92 +2156,11 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   font-size: 11px;
 }
 
-.ge-player-col .mw-input {
+.ge-player-col .mw-input,
+.ge-player-col .ge-scorer-roster .mw-select,
+.ge-player-col .ge-assist-roster .mw-select {
   width: 100%;
   min-width: 0;
-}
-
-.ge-player-pick.fc-combobox {
-  position: relative;
-  width: 100%;
-}
-
-.ge-player-pick .fc-combobox-trigger-wrap {
-  width: 100%;
-}
-
-.ge-player-pick .fc-combobox-trigger {
-  text-align: left;
-}
-
-.ge-player-pick .fc-combobox-trigger .fc-combobox-label {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ge-player-pick .fc-combobox-panel {
-  position: fixed;
-  z-index: 2500;
-  top: 0;
-  left: 0;
-  min-width: 160px;
-  max-height: 280px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid var(--admin-border);
-  background: rgba(12, 18, 34, 0.98);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-}
-
-.ge-player-pick .fc-combobox-search-wrap {
-  flex: 0 0 auto;
-  padding: 8px;
-  border-bottom: 1px solid var(--admin-border);
-}
-
-.ge-player-pick .fc-combobox-search {
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-}
-
-.ge-player-pick .fc-combobox-menu {
-  flex: 1 1 auto;
-  position: static;
-  max-height: 220px;
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
-  overflow-y: auto;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.ge-player-pick .fc-combobox-option {
-  padding: 8px 12px;
-  font-size: 13px;
-  color: var(--admin-text, #e2e8f0);
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ge-player-pick .fc-combobox-option:hover,
-.ge-player-pick .fc-combobox-option:focus {
-  background: rgba(56, 189, 248, 0.12);
-  color: #f8fafc;
-}
-
-.ge-player-pick .fc-combobox-option--empty {
-  color: var(--admin-muted, #94a3b8);
-  cursor: default;
-  pointer-events: none;
 }
 
 .mw-lineups-grid {
