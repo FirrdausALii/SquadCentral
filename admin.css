@@ -2209,6 +2209,12 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   color: #f8fafc;
 }
 
+.ge-player-pick .fc-combobox-option--empty {
+  color: var(--admin-muted, #94a3b8);
+  cursor: default;
+  pointer-events: none;
+}
+
 .mw-lineups-grid {
   /* Bootstrap row handles layout */
 }
