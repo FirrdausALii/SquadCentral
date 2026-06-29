@@ -277,14 +277,57 @@
   .standings-table {
     font-size: 12px;
   }
+
   .standings-table th.col-form,
-  .standings-table td.col-form {
+  .standings-table td.col-form,
+  .standings-table th.col-stat:not(.col-gd),
+  .standings-table td.col-stat:not(.col-gd) {
     display: none;
   }
+
   .standings-table--full {
-    min-width: 360px;
+    min-width: 0;
+    width: 100%;
   }
+
+  .standings-table th,
+  .standings-table td {
+    padding: 8px 5px;
+  }
+
+  .standings-table th.col-club,
+  .standings-table td.col-club {
+    min-width: 0;
+    max-width: 52vw;
+    padding-left: 8px;
+  }
+
+  .standings-table td.col-pos {
+    width: 28px;
+    padding-left: 10px;
+  }
+
+  .club-cell {
+    gap: 6px;
+  }
+
+  .club-cell-crest {
+    width: 20px;
+    height: 20px;
+  }
+
+  .club-cell-name {
+    font-size: 12px;
+  }
+
   .standings-legend {
-    gap: var(--sp-2);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3);
+  }
+
+  .legend-item {
+    min-width: 0;
   }
 }

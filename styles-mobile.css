@@ -250,13 +250,24 @@ body.fc-app {
     gap: var(--sp-3);
   }
 
+  .match-card--list .match-card__row {
+    justify-content: center;
+  }
+
   .match-card--list .match-card__row .match-badge {
     width: 32px;
     height: 32px;
+    flex-shrink: 0;
   }
 
   .match-card--list .match-card__team {
     font-size: 15px;
+    flex: 0 1 auto;
+    text-align: center;
+  }
+
+  .match-card--list .match-card__datetime {
+    justify-content: center;
   }
 
   .match-card--list .match-card__score-num {
@@ -317,65 +328,38 @@ body.fc-app {
   }
 }
 
-/* Standings */
+/* Standings + match center panels */
 @media (max-width: 767.98px) {
-  .standings-card {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  #match-center .grid-2 {
+    gap: var(--sp-3);
   }
 
-  .standings-table {
-    min-width: 280px;
-  }
-
-  .standings-header {
-    flex-wrap: wrap;
-  }
-
+  #miniStandings,
+  #miniStandings .standings-card,
   .table-card {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    min-width: 0;
+    max-width: 100%;
   }
 
-  .table-card #heroStandings,
+  #miniStandings .standings-table-wrap,
   .table-card #heroStandings .standings-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
   }
 
-  .table-card .standings-table th.col-stat:not(.col-gd),
-  .table-card .standings-table td.col-stat:not(.col-gd) {
-    display: none;
+  .standings-header {
+    flex-wrap: wrap;
+    padding: var(--sp-3);
   }
 
-  .table-card .standings-table--full {
-    min-width: 0;
-    width: 100%;
+  .standings-title {
+    font-size: 13px;
   }
 
-  .table-card .standings-table th.col-club,
-  .table-card .standings-table td.col-club {
-    min-width: 0;
-    max-width: 46vw;
-  }
-
-  .table-card .club-cell-name {
-    font-size: 12px;
-  }
-
-  .table-card .standings-table th,
-  .table-card .standings-table td {
-    padding: 8px 6px;
-  }
-
-  .table-card .standings-table td.col-pos {
-    padding-left: 10px;
-  }
-
-  .table-card .standings-table th.col-club,
-  .table-card .standings-table td.col-club {
-    padding-left: 8px;
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   #match-center > .card > .league-tabs,
@@ -402,6 +386,48 @@ body.fc-app {
 
   #transfers > .card > .league-tabs {
     margin-bottom: var(--sp-3);
+  }
+
+  .mini-card {
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .mc-score-list {
+    min-width: 0;
+  }
+
+  .mc-score-row {
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+  }
+
+  .mc-score-main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mc-score-name {
+    font-size: 14px;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .mc-score-club {
+    display: block;
+    font-size: 12px;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+  }
+
+  .mc-score-goals {
+    flex-shrink: 0;
+    min-width: 1.75rem;
+    font-size: 18px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
 }
 

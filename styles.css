@@ -265,6 +265,10 @@ html.reveal-init .reveal.is-visible {
 }
 .mc-score-row:last-child { border-bottom: none; }
 .mc-score-row:hover { background: var(--bg-surface-3); }
+.mc-score-main {
+  min-width: 0;
+  flex: 1;
+}
 .mc-score-name { font-weight: 600; color: var(--text-primary); display: block; font-size: 13px; }
 .mc-score-club { font-size: 11px; color: var(--text-muted); }
 .mc-score-goals { font-weight: 700; color: var(--accent); font-size: 16px; }
