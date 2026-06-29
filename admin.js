@@ -478,48 +478,47 @@ function renderGoalEventPlayerPickHtml(kind, teamId, selectedName, emptyLabel) {
   const choices = goalEventPlayerChoices(teamId, emptyLabel);
   const selected = String(selectedName ?? "").trim();
   const sel = choices.find((c) => c.name === selected);
-  const label = kind === "assist" ? "Assist" : "Scorer";
-  const placeholder = goalEventPickPlaceholder(kind);
+  const ariaLabel = kind === "assist" ? "Assist" : "Scorer";
+  const displayLabel = sel && sel.name ? sel.label : selected || emptyLabel;
+  const searchPh = goalEventPickPlaceholder(kind);
   return `
     <div class="ge-player-pick fc-combobox" data-kind="${kind}" data-team-id="${esc(teamId ?? "")}">
-      <input
-        type="text"
-        class="fc-combobox-input ge-${kind}-search mw-input"
-        value="${esc(sel && sel.name ? sel.label : "")}"
-        placeholder="${esc(placeholder)}"
-        autocomplete="off"
-        spellcheck="false"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded="false"
-        aria-haspopup="listbox"
-      />
+      <div class="mw-select-wrap mw-select-wrap--compact fc-combobox-trigger-wrap">
+        <button type="button" class="fc-combobox-trigger mw-select" aria-expanded="false" aria-haspopup="listbox" aria-label="${ariaLabel}">
+          <span class="fc-combobox-label">${esc(displayLabel)}</span>
+        </button>
+      </div>
       <input type="hidden" class="ge-${kind}-pick" value="${esc(selectedName ?? "")}" />
-      <ul class="fc-combobox-menu admin-hidden" role="listbox" aria-label="${label}"></ul>
+      <div class="fc-combobox-panel admin-hidden">
+        <div class="fc-combobox-search-wrap">
+          <input type="text" class="fc-combobox-search mw-input" placeholder="${esc(searchPh)}" autocomplete="off" spellcheck="false" aria-label="Search ${ariaLabel.toLowerCase()}" />
+        </div>
+        <ul class="fc-combobox-menu" role="listbox" aria-label="${ariaLabel}"></ul>
+      </div>
     </div>`;
 }
 
-function positionGoalEventPlayerMenu(wrap) {
-  const menu = wrap?.querySelector(".fc-combobox-menu");
-  const input = wrap?.querySelector(".fc-combobox-input");
-  if (!menu || !input || menu.classList.contains("admin-hidden")) return;
+function positionGoalEventPlayerPanel(wrap) {
+  const panel = wrap?.querySelector(".fc-combobox-panel");
+  const trigger = wrap?.querySelector(".fc-combobox-trigger");
+  if (!panel || !trigger || panel.classList.contains("admin-hidden")) return;
 
-  const rect = input.getBoundingClientRect();
-  const menuHeight = Math.min(menu.scrollHeight || 220, 220);
+  const rect = trigger.getBoundingClientRect();
+  const panelHeight = Math.min(panel.offsetHeight || 280, 280);
   const spaceBelow = window.innerHeight - rect.bottom - 8;
-  const openUp = spaceBelow < Math.min(menuHeight, 120) && rect.top > menuHeight + 8;
+  const openUp = spaceBelow < Math.min(panelHeight, 140) && rect.top > panelHeight + 8;
 
-  menu.style.position = "fixed";
-  menu.style.left = `${rect.left}px`;
-  menu.style.width = `${Math.max(rect.width, 200)}px`;
-  menu.style.right = "auto";
-  menu.style.zIndex = "2500";
+  panel.style.position = "fixed";
+  panel.style.left = `${rect.left}px`;
+  panel.style.width = `${Math.max(rect.width, 200)}px`;
+  panel.style.right = "auto";
+  panel.style.zIndex = "2500";
   if (openUp) {
-    menu.style.top = "auto";
-    menu.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+    panel.style.top = "auto";
+    panel.style.bottom = `${window.innerHeight - rect.top + 4}px`;
   } else {
-    menu.style.top = `${rect.bottom + 4}px`;
-    menu.style.bottom = "auto";
+    panel.style.top = `${rect.bottom + 4}px`;
+    panel.style.bottom = "auto";
   }
 }
 
@@ -528,11 +527,13 @@ function renderGoalEventPlayerMenu(wrap, filter = "", forceOpen = false) {
   const kind = wrap.dataset.kind;
   const teamId = wrap.dataset.teamId;
   const emptyLabel = goalEventEmptyLabel(kind);
+  const panel = wrap.querySelector(".fc-combobox-panel");
   const menu = wrap.querySelector(".fc-combobox-menu");
-  const input = wrap.querySelector(`.ge-${kind}-search`);
-  if (!menu || !input) return;
+  const search = wrap.querySelector(".fc-combobox-search");
+  const trigger = wrap.querySelector(".fc-combobox-trigger");
+  if (!panel || !menu || !search) return;
 
-  const q = goalEventSearchQuery(filter, emptyLabel);
+  const q = goalEventSearchQuery(filter || search.value, emptyLabel);
   const choices = goalEventPlayerChoices(teamId, emptyLabel);
   const filtered = q
     ? choices.filter(
@@ -552,18 +553,16 @@ function renderGoalEventPlayerMenu(wrap, filter = "", forceOpen = false) {
         .join("")
     : `<li class="fc-combobox-option fc-combobox-option--empty" role="option" data-value="" tabindex="-1">No players found</li>`;
 
-  const open = forceOpen || document.activeElement === input;
-  menu.classList.toggle("admin-hidden", !open);
-  input.setAttribute("aria-expanded", open ? "true" : "false");
-  if (open) positionGoalEventPlayerMenu(wrap);
+  const open = forceOpen || !panel.classList.contains("admin-hidden");
+  panel.classList.toggle("admin-hidden", !open);
+  trigger?.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) positionGoalEventPlayerPanel(wrap);
 }
 
 function openGoalEventPlayerMenu(wrap) {
   if (!wrap) return;
-  const kind = wrap.dataset.kind;
-  const input = wrap.querySelector(`.ge-${kind}-search`);
-  if (!input) return;
-  renderGoalEventPlayerMenu(wrap, input.value, true);
+  const search = wrap.querySelector(".fc-combobox-search");
+  renderGoalEventPlayerMenu(wrap, search?.value ?? "", true);
 }
 
 function setGoalEventPlayerPick(wrap, playerName) {
@@ -571,17 +570,20 @@ function setGoalEventPlayerPick(wrap, playerName) {
   const kind = wrap.dataset.kind;
   const emptyLabel = goalEventEmptyLabel(kind);
   const hidden = wrap.querySelector(`.ge-${kind}-pick`);
-  const input = wrap.querySelector(`.ge-${kind}-search`);
-  const menu = wrap.querySelector(".fc-combobox-menu");
-  if (!hidden || !input) return;
+  const labelEl = wrap.querySelector(".fc-combobox-label");
+  const panel = wrap.querySelector(".fc-combobox-panel");
+  const search = wrap.querySelector(".fc-combobox-search");
+  const trigger = wrap.querySelector(".fc-combobox-trigger");
+  if (!hidden || !labelEl) return;
 
   const name = String(playerName ?? "").trim();
   hidden.value = name;
   const choices = goalEventPlayerChoices(wrap.dataset.teamId, emptyLabel);
   const sel = choices.find((c) => c.name === name);
-  input.value = sel && sel.name ? sel.label : name;
-  menu?.classList.add("admin-hidden");
-  input.setAttribute("aria-expanded", "false");
+  labelEl.textContent = sel && sel.name ? sel.label : name || emptyLabel;
+  panel?.classList.add("admin-hidden");
+  trigger?.setAttribute("aria-expanded", "false");
+  if (search) search.value = "";
 }
 
 function refreshGoalEventPlayerPick(wrap, teamId, selectedName) {
@@ -599,11 +601,14 @@ function ensureGoalEventComboboxGlobalListeners() {
     "mousedown",
     (e) => {
       if (e.target instanceof Element && e.target.closest(".ge-player-pick")) return;
-      for (const menu of document.querySelectorAll(".ge-player-pick .fc-combobox-menu")) {
-        menu.classList.add("admin-hidden");
+      for (const panel of document.querySelectorAll(".ge-player-pick .fc-combobox-panel")) {
+        panel.classList.add("admin-hidden");
       }
-      for (const input of document.querySelectorAll(".ge-player-pick .fc-combobox-input")) {
-        input.setAttribute("aria-expanded", "false");
+      for (const trigger of document.querySelectorAll(".ge-player-pick .fc-combobox-trigger")) {
+        trigger.setAttribute("aria-expanded", "false");
+      }
+      for (const search of document.querySelectorAll(".ge-player-pick .fc-combobox-search")) {
+        search.value = "";
       }
     },
     true,
@@ -613,9 +618,9 @@ function ensureGoalEventComboboxGlobalListeners() {
     "scroll",
     () => {
       for (const wrap of document.querySelectorAll(".ge-player-pick")) {
-        const menu = wrap.querySelector(".fc-combobox-menu");
-        if (menu && !menu.classList.contains("admin-hidden")) {
-          positionGoalEventPlayerMenu(wrap);
+        const panel = wrap.querySelector(".fc-combobox-panel");
+        if (panel && !panel.classList.contains("admin-hidden")) {
+          positionGoalEventPlayerPanel(wrap);
         }
       }
     },
@@ -624,9 +629,9 @@ function ensureGoalEventComboboxGlobalListeners() {
 
   window.addEventListener("resize", () => {
     for (const wrap of document.querySelectorAll(".ge-player-pick")) {
-      const menu = wrap.querySelector(".fc-combobox-menu");
-      if (menu && !menu.classList.contains("admin-hidden")) {
-        positionGoalEventPlayerMenu(wrap);
+      const panel = wrap.querySelector(".fc-combobox-panel");
+      if (panel && !panel.classList.contains("admin-hidden")) {
+        positionGoalEventPlayerPanel(wrap);
       }
     }
   });
@@ -638,27 +643,33 @@ function bindGoalEventPlayerPick(wrap) {
   ensureGoalEventComboboxGlobalListeners();
 
   const kind = wrap.dataset.kind;
-  const emptyLabel = goalEventEmptyLabel(kind);
   const hidden = wrap.querySelector(`.ge-${kind}-pick`);
-  const input = wrap.querySelector(`.ge-${kind}-search`);
+  const panel = wrap.querySelector(".fc-combobox-panel");
   const menu = wrap.querySelector(".fc-combobox-menu");
-  if (!hidden || !input || !menu) return;
+  const search = wrap.querySelector(".fc-combobox-search");
+  const trigger = wrap.querySelector(".fc-combobox-trigger");
+  if (!hidden || !panel || !menu || !search || !trigger) return;
 
-  const showMenu = () => {
+  trigger.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!panel.classList.contains("admin-hidden")) {
+      panel.classList.add("admin-hidden");
+      trigger.setAttribute("aria-expanded", "false");
+      search.value = "";
+      renderGoalEventPlayerMenu(wrap, "", false);
+      return;
+    }
+    search.value = "";
     openGoalEventPlayerMenu(wrap);
-  };
-
-  input.addEventListener("focus", showMenu);
-  input.addEventListener("click", showMenu);
-
-  input.addEventListener("input", () => {
-    hidden.value = "";
-    renderGoalEventPlayerMenu(wrap, input.value, true);
+    search.focus();
   });
 
-  wrap.addEventListener("mousedown", (e) => {
-    if (e.target instanceof Element && e.target.closest(".fc-combobox-menu")) return;
-    if (document.activeElement !== input) input.focus();
+  search.addEventListener("input", () => {
+    hidden.value = "";
+    renderGoalEventPlayerMenu(wrap, search.value, true);
+  });
+
+  search.addEventListener("focus", () => {
     openGoalEventPlayerMenu(wrap);
   });
 
@@ -670,13 +681,16 @@ function bindGoalEventPlayerPick(wrap) {
     const opt = e.target instanceof Element ? e.target.closest(".fc-combobox-option") : null;
     if (!opt) return;
     setGoalEventPlayerPick(wrap, opt.getAttribute("data-value") ?? "");
-    input.focus();
+    trigger.focus();
   });
 
-  input.addEventListener("keydown", (e) => {
+  search.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      menu.classList.add("admin-hidden");
-      input.setAttribute("aria-expanded", "false");
+      panel.classList.add("admin-hidden");
+      trigger.setAttribute("aria-expanded", "false");
+      search.value = "";
+      setGoalEventPlayerPick(wrap, hidden.value);
+      trigger.focus();
       return;
     }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -688,19 +702,21 @@ function bindGoalEventPlayerPick(wrap) {
       e.preventDefault();
       const first = menu.querySelector(".fc-combobox-option:not(.fc-combobox-option--empty)");
       if (first) setGoalEventPlayerPick(wrap, first.getAttribute("data-value") ?? "");
+      trigger.focus();
     }
   });
 
-  input.addEventListener("blur", () => {
+  search.addEventListener("blur", () => {
     window.setTimeout(() => {
       if (wrap.contains(document.activeElement)) return;
-      menu.classList.add("admin-hidden");
-      input.setAttribute("aria-expanded", "false");
+      panel.classList.add("admin-hidden");
+      trigger.setAttribute("aria-expanded", "false");
+      search.value = "";
       setGoalEventPlayerPick(wrap, hidden.value);
     }, 150);
   });
 
-  renderGoalEventPlayerMenu(wrap, input.value, false);
+  renderGoalEventPlayerMenu(wrap, "", false);
 }
 
 function bindGoalEventPlayerPicks(root = document) {
@@ -3060,7 +3076,7 @@ function bindGoalEventRowHandlers() {
         }
         if (!manual && pickWrap) {
           bindGoalEventPlayerPick(pickWrap);
-          renderGoalEventPlayerMenu(pickWrap, pickWrap.querySelector(`.ge-${kind}-search`)?.value ?? "", false);
+          renderGoalEventPlayerMenu(pickWrap, pickWrap.querySelector(".fc-combobox-search")?.value ?? "", false);
         }
       };
 
@@ -3079,9 +3095,9 @@ function bindGoalEventRowHandlers() {
         syncMode();
         if (modeSel.value === "roster" && pickWrap) {
           bindGoalEventPlayerPick(pickWrap);
-          const input = pickWrap.querySelector(`.ge-${kind}-search`);
-          input?.focus();
-          openGoalEventPlayerMenu(pickWrap);
+          const search = pickWrap.querySelector(".fc-combobox-search");
+          if (search) search.value = "";
+          renderGoalEventPlayerMenu(pickWrap, "", false);
         }
       });
 
