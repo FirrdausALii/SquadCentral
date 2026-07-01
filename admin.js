@@ -1555,10 +1555,16 @@ function panelSquadDepth() {
   `;
 }
 
-function nationalDutyRowHtml(teamId, entry) {
+function nationalDutyRowKey(entry, index) {
+  return String(entry?.playerId ?? "").trim() || `nd-row-${index}`;
+}
+
+function nationalDutyRowHtml(teamId, entry, rowKey) {
   const roster = squadDepthRoster(teamId);
   const playerOpts = squadDepthPickOptions(roster, entry.playerId);
-  return `<tr class="nd-row">
+  const key = rowKey ?? nationalDutyRowKey(entry, 0);
+  return `<tr class="nd-row nd-sort-row" draggable="true" data-nd-row-key="${esc(key)}">
+    <td class="admin-drag-cell"><span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
     <td class="nd-player-col">
       <div class="mw-select-wrap mw-select-wrap--compact nd-player-wrap">
         <select class="nd-player mw-select" aria-label="Player">${playerOpts}</select>
@@ -1627,8 +1633,8 @@ function panelNationalDuty() {
       : "";
 
   const tableBody = entries.length
-    ? entries.map((e) => nationalDutyRowHtml(teamId, e)).join("")
-    : `<tr class="nd-empty-row"><td colspan="5" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+    ? entries.map((e, i) => nationalDutyRowHtml(teamId, e, nationalDutyRowKey(e, i))).join("")
+    : `<tr class="nd-empty-row"><td colspan="6" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
 
   return `
     <div class="mw-page nationalduty-page">
@@ -1652,7 +1658,7 @@ function panelNationalDuty() {
       <section class="mw-card">
         <div class="mw-card-head">
           <h3>Duty list${team ? ` · ${esc(team.name)}` : ""}</h3>
-          <p>Pick a player from the club squad and set their national team. Country defaults from the player profile when you select them.</p>
+          <p>Pick a player from the club squad and set their national team. Drag rows to arrange display order. Country defaults from the player profile when you select them.</p>
         </div>
         <div class="row g-2 g-md-3 mb-3">
           <div class="col-12 col-md-6 col-lg-4">
@@ -1674,6 +1680,7 @@ function panelNationalDuty() {
           <table class="admin-table admin-table-compact nd-table" id="ndTable">
             <thead>
               <tr>
+                <th class="admin-drag-col" aria-label="Reorder"></th>
                 <th>Player</th>
                 <th>Country</th>
                 <th class="d-none d-md-table-cell">Note</th>
@@ -2269,30 +2276,90 @@ function mergeTeamTransfersIntoLeague(leagueId, teamId, teamIns, teamOuts) {
   return { in: [...othersIn, ...stamp(teamIns)], out: [...othersOut, ...stamp(teamOuts)] };
 }
 
-function transferInPlayerSelectHtml(teamId, selectedPlayer) {
-  if (!teamId) {
-    return `<div class="mw-select-wrap mw-select-wrap--compact tr-player-wrap"><select class="tr-player mw-select" disabled><option>Select team first</option></select></div>`;
+function rosterPlayerByName(teamId, name) {
+  const n = stripCaptainSuffix(String(name ?? "").trim());
+  if (!n || !teamId) return null;
+  return (
+    playersForTeam(teamId).find((p) => stripCaptainSuffix(p.name) === n || p.name === n) ?? null
+  );
+}
+
+function nextSquadShirtNumber(teamId) {
+  const nums = playersForTeam(teamId)
+    .map((p) => Number(p.number))
+    .filter((n) => Number.isFinite(n));
+  return nums.length ? Math.max(...nums) + 1 : 1;
+}
+
+function transferPlayerFieldHtml(mode, teamId, playerName) {
+  const name = String(playerName ?? "").trim();
+  const onSquad = Boolean(teamId && name && rosterPlayerByName(teamId, name));
+  const isIn = mode === "in";
+  const btnLabel = isIn ? (onSquad ? "Already on squad" : "Add to squad") : onSquad ? "Remove from squad" : "Not on squad";
+  const disabled = isIn ? !name || onSquad : !name || !onSquad;
+  return `
+    <div class="tr-player-field">
+      <input class="tr-player transfers-input mw-input" value="${esc(name)}" placeholder="Player name" aria-label="Player" />
+      <button type="button" class="mw-btn-ghost tr-roster-btn ${isIn ? "tr-add-squad" : "tr-remove-squad"}" title="${esc(btnLabel)}"${disabled ? " disabled" : ""}>${isIn ? "+ Squad" : "− Squad"}</button>
+    </div>`;
+}
+
+function syncTransferRosterBtn(row, teamId, mode) {
+  if (!row) return;
+  const input = row.querySelector(".tr-player");
+  const btn = row.querySelector(".tr-roster-btn");
+  if (!input || !btn) return;
+  const name = input.value.trim();
+  const onSquad = Boolean(name && rosterPlayerByName(teamId, name));
+  const isIn = mode === "in";
+  if (isIn) {
+    btn.disabled = !name || onSquad;
+    btn.textContent = onSquad ? "On squad" : "+ Squad";
+    btn.title = onSquad ? "Already on squad" : "Add to squad";
+  } else {
+    btn.disabled = !name || !onSquad;
+    btn.textContent = "− Squad";
+    btn.title = onSquad ? "Remove from squad" : "Not on squad";
   }
-  const trimmed = String(selectedPlayer ?? "").trim();
-  const players = playersForTeam(teamId);
-  const opts = players
-    .map((p) => {
-      const sel = p.name === trimmed ? " selected" : "";
-      return `<option value="${esc(p.name)}"${sel}>${esc(p.number)} · ${esc(p.name)}</option>`;
-    })
-    .join("");
-  const legacy =
-    trimmed && !players.some((p) => p.name === trimmed)
-      ? `<option value="${esc(trimmed)}" selected>${esc(trimmed)} (not in squad)</option>`
-      : "";
-  return `<div class="mw-select-wrap mw-select-wrap--compact tr-player-wrap"><select class="tr-player mw-select" aria-label="Player">
-    <option value="">— Player —</option>${opts}${legacy}
-  </select></div>`;
+}
+
+function addTransferPlayerToSquad(teamId, playerName) {
+  const name = String(playerName ?? "").trim();
+  if (!teamId) return toast("Choose a club first");
+  if (!name) return toast("Enter a player name first");
+  if (rosterPlayerByName(teamId, name)) return toast("Player is already on the squad");
+  const number = nextSquadShirtNumber(teamId);
+  const maxOrder = playersForTeam(teamId).reduce((m, p) => Math.max(m, p.sortOrder ?? -1), -1);
+  FCDataStore.upsertPlayer({
+    id: FCDataStore.makePlayerId(teamId, number, name),
+    teamId,
+    number,
+    name,
+    pos: "MF",
+    role: "CM",
+    flag: "",
+    nationality: "",
+    sortOrder: maxOrder + 1,
+  });
+  syncToAppArrays();
+  toast(`${name} added to squad`);
+}
+
+function removeTransferPlayerFromSquad(teamId, playerName) {
+  const name = String(playerName ?? "").trim();
+  if (!teamId) return toast("Choose a club first");
+  if (!name) return toast("Enter a player name first");
+  const player = rosterPlayerByName(teamId, name);
+  if (!player) return toast("Player not found on this squad");
+  if (!confirm(`Remove ${player.name} from the squad?`)) return;
+  FCDataStore.removePlayer(player.id);
+  syncToAppArrays();
+  toast(`${player.name} removed from squad`);
 }
 
 function transferInRowHtml(teamId, t, i) {
   return `<tr data-i="${i}" data-dir="in" data-id="${esc(t.id ?? "")}">
-    <td class="transfers-player-col">${transferInPlayerSelectHtml(teamId, t.player)}</td>
+    <td class="transfers-player-col">${transferPlayerFieldHtml("in", teamId, t.player)}</td>
     <td class="transfers-club-col"><input class="tr-from transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="Previous club" /></td>
     <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="€5m / Free" /></td>
     <td class="transfers-date-col"><input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" /></td>
@@ -2302,7 +2369,7 @@ function transferInRowHtml(teamId, t, i) {
 
 function transferOutRowHtml(t, i) {
   return `<tr data-i="${i}" data-dir="out" data-id="${esc(t.id ?? "")}">
-    <td class="transfers-player-col"><input class="tr-player transfers-input mw-input" value="${esc(t.player ?? "")}" placeholder="Player name" /></td>
+    <td class="transfers-player-col">${transferPlayerFieldHtml("out", transferTeamFilter, t.player)}</td>
     <td class="transfers-club-col"><input class="tr-to transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="Destination club" /></td>
     <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="€5m / Loan" /></td>
     <td class="transfers-date-col"><input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" /></td>
@@ -2360,7 +2427,7 @@ function panelTransfers() {
           <div class="col-12 col-lg-8 mw-hero-text">
             <p class="mw-eyebrow">Market moves</p>
             <h2 class="mw-heading">Transfers</h2>
-            <p class="mw-lead">Choose league and club — set <strong>In</strong> (from squad) and <strong>Out</strong> (manual name) for that team only.</p>
+            <p class="mw-lead">Choose league and club — set <strong>In</strong> (incoming) and <strong>Out</strong> (outgoing) for that team. Use <strong>+ Squad</strong> / <strong>− Squad</strong> to update the roster.</p>
           </div>
           <div class="col-12 col-sm-8 col-lg-4">
             <div class="mw-hero-preview w-100">
@@ -2393,7 +2460,7 @@ function panelTransfers() {
 
         <div class="transfers-section">
           <h4 class="transfers-section-title">Transfers In${team ? ` · ${esc(team.name)}` : ""}</h4>
-          <p class="transfers-section-hint">Player from this club’s squad. Pick date on the calendar.</p>
+          <p class="transfers-section-hint">Type the incoming player name. Use <strong>+ Squad</strong> to add them to the club roster (edit details later in Players).</p>
           <div class="transfers-table-wrap">
             <table class="admin-table admin-table-compact transfers-table" id="transfersInTable">
               <thead><tr><th>Player</th><th>From</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
@@ -2409,7 +2476,7 @@ function panelTransfers() {
 
         <div class="transfers-section">
           <h4 class="transfers-section-title">Transfers Out${team ? ` · ${esc(team.name)}` : ""}</h4>
-          <p class="transfers-section-hint">Type player name manually (any destination).</p>
+          <p class="transfers-section-hint">Type the outgoing player name. Use <strong>− Squad</strong> to remove them from the club roster.</p>
           <div class="transfers-table-wrap">
             <table class="admin-table admin-table-compact transfers-table" id="transfersOutTable">
               <thead><tr><th>Player</th><th>To</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
@@ -3206,15 +3273,117 @@ function bindNationalDutyPlayerAuto(selectEl) {
   });
 }
 
+function bindNationalDutyRowDragSort() {
+  const tbody = $("#ndTable tbody");
+  if (!tbody || tbody.dataset.ndDragBound === "1") return;
+  tbody.dataset.ndDragBound = "1";
+
+  let draggedKey = null;
+  let touchRow = null;
+  let touchMoved = false;
+
+  const rowFromPoint = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest(".nd-sort-row") : null;
+  };
+
+  tbody.addEventListener("dragstart", (e) => {
+    const row = e.target.closest(".nd-sort-row");
+    if (!row) return;
+    draggedKey = row.getAttribute("data-nd-row-key");
+    row.classList.add("is-dragging");
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", draggedKey ?? "");
+    }
+  });
+
+  tbody.addEventListener("dragend", (e) => {
+    const row = e.target.closest(".nd-sort-row");
+    row?.classList.remove("is-dragging");
+    draggedKey = null;
+    tbody.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+  });
+
+  tbody.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const target = e.target.closest(".nd-sort-row");
+    if (!target || !draggedKey || target.getAttribute("data-nd-row-key") === draggedKey) return;
+
+    const dragged = tbody.querySelector(`[data-nd-row-key="${CSS.escape(draggedKey)}"]`);
+    if (!dragged) return;
+
+    tbody.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    target.classList.add("is-drag-over");
+
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    if (before) tbody.insertBefore(dragged, target);
+    else tbody.insertBefore(dragged, target.nextSibling);
+  });
+
+  tbody.addEventListener("dragleave", (e) => {
+    const row = e.target.closest(".nd-sort-row");
+    if (row) row.classList.remove("is-drag-over");
+  });
+
+  tbody.addEventListener("drop", (e) => {
+    e.preventDefault();
+    tbody.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+  });
+
+  tbody.addEventListener(
+    "touchstart",
+    (e) => {
+      const handle = e.target.closest(".player-drag-handle");
+      if (!handle || !tbody.contains(handle)) return;
+      touchRow = handle.closest(".nd-sort-row");
+      touchMoved = false;
+      touchRow?.classList.add("is-dragging");
+    },
+    { passive: true },
+  );
+
+  tbody.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!touchRow) return;
+      e.preventDefault();
+      touchMoved = true;
+      const touch = e.touches[0];
+      const target = rowFromPoint(touch.clientX, touch.clientY);
+      if (!target || target === touchRow) return;
+
+      const rect = target.getBoundingClientRect();
+      const before = touch.clientY < rect.top + rect.height / 2;
+      if (before) tbody.insertBefore(touchRow, target);
+      else tbody.insertBefore(touchRow, target.nextSibling);
+    },
+    { passive: false },
+  );
+
+  const endTouch = () => {
+    if (!touchRow) return;
+    touchRow.classList.remove("is-dragging");
+    touchRow = null;
+    touchMoved = false;
+  };
+
+  tbody.addEventListener("touchend", endTouch);
+  tbody.addEventListener("touchcancel", endTouch);
+}
+
 function bindNationalDutyTableHandlers() {
   document.querySelectorAll(".nd-player").forEach((sel) => bindNationalDutyPlayerAuto(sel));
+  bindNationalDutyRowDragSort();
 
   document.querySelectorAll(".nd-del").forEach((btn) => {
     btn.addEventListener("click", () => {
       btn.closest(".nd-row")?.remove();
       const tbody = $("#ndTable tbody");
       if (tbody && !tbody.querySelector(".nd-row")) {
-        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="5" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="6" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
       }
     });
   });
@@ -3234,14 +3403,14 @@ function bindNationalDuty() {
     const tbody = $("#ndTable tbody");
     if (!tbody) return;
     tbody.querySelector(".nd-empty-row")?.remove();
-    tbody.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, {}));
+    tbody.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, {}, `nd-row-${Date.now()}`));
     const rows = tbody.querySelectorAll(".nd-row");
     const lastSel = rows[rows.length - 1]?.querySelector(".nd-player");
     bindNationalDutyPlayerAuto(lastSel);
     rows[rows.length - 1]?.querySelector(".nd-del")?.addEventListener("click", () => {
       rows[rows.length - 1]?.remove();
       if (!tbody.querySelector(".nd-row")) {
-        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="5" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="6" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
       }
     });
   });
@@ -3793,10 +3962,57 @@ function bindScorerDel() {
   });
 }
 
+function bindTransferRosterActions() {
+  const inTable = $("#transfersInTable");
+  const outTable = $("#transfersOutTable");
+
+  inTable?.querySelectorAll("tbody tr").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, "in"));
+  outTable?.querySelectorAll("tbody tr").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, "out"));
+
+  if (inTable && inTable.dataset.trRosterBound !== "1") {
+    inTable.dataset.trRosterBound = "1";
+    inTable.addEventListener("input", (e) => {
+      if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-player")) return;
+      syncTransferRosterBtn(e.target.closest("tr"), transferTeamFilter, "in");
+    });
+    inTable.addEventListener("click", (e) => {
+      const btn = e.target instanceof Element ? e.target.closest(".tr-add-squad") : null;
+      if (!btn || btn.disabled) return;
+      const row = btn.closest("tr");
+      const name = row?.querySelector(".tr-player")?.value ?? "";
+      addTransferPlayerToSquad(transferTeamFilter, name);
+      syncTransferRosterBtn(row, transferTeamFilter, "in");
+    });
+  }
+
+  if (outTable && outTable.dataset.trRosterBound !== "1") {
+    outTable.dataset.trRosterBound = "1";
+    outTable.addEventListener("input", (e) => {
+      if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-player")) return;
+      syncTransferRosterBtn(e.target.closest("tr"), transferTeamFilter, "out");
+    });
+    outTable.addEventListener("click", (e) => {
+      const btn = e.target instanceof Element ? e.target.closest(".tr-remove-squad") : null;
+      if (!btn || btn.disabled) return;
+      const row = btn.closest("tr");
+      const name = row?.querySelector(".tr-player")?.value ?? "";
+      removeTransferPlayerFromSquad(transferTeamFilter, name);
+      syncTransferRosterBtn(row, transferTeamFilter, "out");
+    });
+  }
+}
+
 function bindTransferDel() {
-  document.querySelectorAll(".tr-del").forEach((btn) => {
-    btn.addEventListener("click", () => btn.closest("tr")?.remove());
-  });
+  for (const sel of ["#transfersInTable", "#transfersOutTable"]) {
+    const table = $(sel);
+    if (!table || table.dataset.trDelBound === "1") continue;
+    table.dataset.trDelBound = "1";
+    table.addEventListener("click", (e) => {
+      const btn = e.target instanceof Element ? e.target.closest(".tr-del") : null;
+      if (!btn) return;
+      btn.closest("tr")?.remove();
+    });
+  }
 }
 
 function readTransfersTable(tableId, dir, clubName) {
@@ -3837,7 +4053,7 @@ function bindTransfers() {
     if (!tbody || !transferTeamFilter) return toast("Choose a club first");
     const i = tbody.querySelectorAll("tr").length;
     tbody.insertAdjacentHTML("beforeend", transferInRowHtml(transferTeamFilter, {}, i));
-    bindTransferDel();
+    syncTransferRosterBtn(tbody.lastElementChild, transferTeamFilter, "in");
   });
 
   $("#btnAddTransferOut")?.addEventListener("click", () => {
@@ -3845,7 +4061,7 @@ function bindTransfers() {
     if (!tbody || !transferTeamFilter) return toast("Choose a club first");
     const i = tbody.querySelectorAll("tr").length;
     tbody.insertAdjacentHTML("beforeend", transferOutRowHtml({}, i));
-    bindTransferDel();
+    syncTransferRosterBtn(tbody.lastElementChild, transferTeamFilter, "out");
   });
 
   $("#btnSaveTransfers")?.addEventListener("click", () => {
@@ -3862,7 +4078,12 @@ function bindTransfers() {
     toast(`Transfers saved for ${teamName}`);
   });
 
+  bindTransferTableHandlers();
+}
+
+function bindTransferTableHandlers() {
   bindTransferDel();
+  bindTransferRosterActions();
 }
 
 function setLoginError(msg) {

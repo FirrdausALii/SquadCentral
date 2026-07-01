@@ -2094,20 +2094,24 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   touch-action: none;
 }
 
-.player-sort-row {
+.player-sort-row,
+.nd-sort-row {
   transition: background 0.15s ease;
 }
 
-.player-sort-row.is-dragging {
+.player-sort-row.is-dragging,
+.nd-sort-row.is-dragging {
   opacity: 0.45;
   background: rgba(55, 138, 221, 0.08);
 }
 
-.player-sort-row.is-drag-over {
+.player-sort-row.is-drag-over,
+.nd-sort-row.is-drag-over {
   background: rgba(55, 138, 221, 0.12);
 }
 
-.player-sort-row:active .admin-drag-cell {
+.player-sort-row:active .admin-drag-cell,
+.nd-sort-row:active .admin-drag-cell {
   cursor: grabbing;
 }
 
@@ -2567,8 +2571,14 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 }
 
 .nd-table {
-  min-width: 520px;
+  min-width: 560px;
   margin: 0;
+}
+
+.nd-sort-row .admin-drag-cell {
+  width: 36px;
+  padding: 8px 4px !important;
+  vertical-align: middle;
 }
 
 .nd-player-wrap {
@@ -3067,7 +3077,27 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 }
 
 .transfers-player-col {
-  min-width: 140px;
+  min-width: 148px;
+}
+
+.tr-player-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tr-roster-btn {
+  align-self: flex-start;
+  padding: 5px 10px !important;
+  font-size: 11px !important;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.tr-roster-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .transfers-club-col {

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1782744072030,
+  "dataRevision": 1782910588169,
   "leagues": [
     {
       "id": "epl",
@@ -178,6 +178,90 @@
           "country": "Spain",
           "note": "",
           "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_2_William_Saliba",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_6_Gabriel_Magalhaes",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_5_Piero_Hincapie",
+          "country": "Ecuador",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_36_Martin_Zubimendi",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_41_Declan_Rice",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_23_Mikel_Merino",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_8_Martin_Odegaard_(C)",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_10_Eberechi_Eze",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_7_Bukayo_Saka",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_20_Noni_Madueke",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_11_Gabriel_Martinelli",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_19_Leandro_Trossard",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_14_Viktor_Gyökeres",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_arsenal_29_Kai_Havertz",
+          "country": "Germany",
+          "note": "",
+          "until": ""
         }
       ]
     },
@@ -273,7 +357,63 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_aston_villa_23_Emiliano_Martinez",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_4_Ezri_Konsa",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_3_Victor_Lindelof",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_12_Lucas_Digne",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_24_Amadou_Onana",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_8_Youri_Tielemans",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_7_John_McGinn_(C)",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_27_Morgan_Rogers",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_aston_villa_11_Ollie_Watkins",
+          "country": "England",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_bournemouth",
@@ -367,7 +507,45 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_bournemouth_5_Marcos_Senesi",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_bournemouth_12_Tyler_Adams",
+          "country": "USA",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_bournemouth_10_Ryan_Christie",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_bournemouth_19_Justin_Kluivert",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_bournemouth_37_Rayan",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_bournemouth_11_Ben_Doak",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_brentford",
@@ -461,7 +639,33 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_brentford_20_Kristoffer_Ajer",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brentford_2_Aaron_Hickey",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brentford_6_Jordan_Henderson",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brentford_9_Igor_Thiago",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_brighton",
@@ -555,7 +759,57 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_brighton_1_Bart_Verbruggen",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_6_Jan_Paul_Van_Hecke",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_27_Mats_Wieffer",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_24_Ferdi_Kadioglu",
+          "country": "Turkey",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_29_Maxim_De_Cuyper",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_26_Yasin_Ayari",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_25_Diego_Gomez",
+          "country": "Paraguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_brighton_30_Pascal_Gross",
+          "country": "Germany",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_burnley",
@@ -649,7 +903,39 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_burnley_6_Axel_Tuanzebe",
+          "country": "DR Congo",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_burnley_18_Hjalmar_Ekdal",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_burnley_28_Hannibal_Mejbri",
+          "country": "Tunisia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_burnley_9_Lyle_Foster",
+          "country": "South Africa",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_burnley_25_Zeki_Amdouni",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_chelsea",
@@ -743,7 +1029,63 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_chelsea_23_Trevoh_Chalobah",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_19_Mamadou_Sarr",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_24_Reece_James_(C)",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_27_Malo_Gusto",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_3_Marc_Cucurella",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_21_Jorrel_Hato",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_25_Moises_Caicedo",
+          "country": "Ecuador",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_8_Enzo_Fernandez",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_chelsea_7_Pedro_Neto",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_crystal_palace",
@@ -837,7 +1179,81 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_crystal_palace_1_Dean_Henderson_(C)",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_5_Maxence_Lacroix",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_26_Chris_Richards",
+          "country": "USA",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_34_Chadi_Riad",
+          "country": "Morocco",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_2_Daniel_Munoz",
+          "country": "Colombia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_8_Jefferson_Lerma",
+          "country": "Colombia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_18_Daichi_Kamada",
+          "country": "Japan",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_7_Ismaila_Sarr",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_29_Evann_Guessand",
+          "country": "Côte d’Ivoire",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_10_Yeremy_Pino",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_14_Jean_Philippe_Mateta",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_crystal_palace_22_Jorgen_Strand_Larsen",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_everton",
@@ -931,7 +1347,33 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_everton_1_Jordan_Pickford",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_everton_2_Nathan_Patterson",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_everton_27_Idrissa_Gueye",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_everton_10_Iliman_Ndiaye",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_fulham",
@@ -1025,7 +1467,45 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_fulham_31_Issa_Diop",
+          "country": "Morocco",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_fulham_33_Antonee_Robinson",
+          "country": "USA",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_fulham_21_Timothy_Castagne",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_fulham_16_Sander_Berge",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_fulham_14_Oscar_Bobb",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_fulham_7_Raul_Jimenez",
+          "country": "Mexico",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_leeds",
@@ -1119,7 +1599,33 @@
             ]
           }
         ]
-      }
+      },
+      "nationalDuty": [
+        {
+          "playerId": "epl_leeds_3_Gabriel_Gudmundsson",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_leeds_22_Ao_Tanaka",
+          "country": "Japan",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_leeds_11_Brenden_Aaronson",
+          "country": "USA",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_leeds_19_Noah_Okafor",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_liverpool",
@@ -1133,7 +1639,69 @@
       ],
       "logo": "./images/premierleague/liverpool.png",
       "stadium": "Anfield",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_liverpool_1_Alisson",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_5_Ibrahima_Konate",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_4_Virgil_Van_Dijk_(C)",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_26_Andrew_Robertson",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_38_Ryan_Gravenberch",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_10_Alexis_Mac_Allister",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_7_Florian_Wirtz",
+          "country": "Germany",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_11_Mohamed_Salah",
+          "country": "Egypt",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_18_Cody_Gakpo",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_liverpool_9_Alexander_Isak",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_city",
@@ -1147,7 +1715,117 @@
       ],
       "logo": "./images/premierleague/mancity.png",
       "stadium": "Etihad Stadium",
-      "formation": "4-1-4-1"
+      "formation": "4-1-4-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_city_1_James_Trafford",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_15_Marc_Guehi",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_24_Josko_Gvardiol",
+          "country": "Croatia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_3_Ruben_Dias",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_45_Abdukodir_Khusanov",
+          "country": "Uzbekistan",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_5_John_Stones",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_6_Nathan_Ake",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_33_Nico_O’Reilly",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_21_Rayan_Ait_Nouri",
+          "country": "Algeria",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_27_Matheus_Nunes",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_16_Rodri",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_4_Tijjani_Reijnders",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_8_Mateo_Kovacic",
+          "country": "Croatia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_10_Rayan_Cherki",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_20_Bernardo_Silva_(C)",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_11_Jeremy_Doku",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_42_Antoine_Semenyo",
+          "country": "Ghana",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_city_7_Omar_Marmoush",
+          "country": "Egypt",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_united",
@@ -1161,7 +1839,75 @@
       ],
       "logo": "./images/premierleague/manunited.png",
       "stadium": "Old Trafford",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_united_31_Senne_Lammens",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_1_Altay_Bayindir",
+          "country": "Turkey",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_6_Lisandro_Martinez",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_2_Diogo_Dalot",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_3_Noussair_Mazraoui",
+          "country": "Morocco",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_25_Manuel_Ugarte",
+          "country": "Uruguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_18_Casemiro",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_37_Kobbie_Mainoo",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_8_Bruno_Fernandes_(C)",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_16_Amad_Diallo",
+          "country": "Côte d’Ivoire",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_united_10_Matheus_Cunha",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_newcastle",
@@ -1175,7 +1921,51 @@
       ],
       "logo": "./images/premierleague/newcastle.png",
       "stadium": "St James Park",
-      "formation": "4-3-3"
+      "formation": "4-3-3",
+      "nationalDuty": [
+        {
+          "playerId": "epl_newcastle_12_Malick_Thiaw",
+          "country": "Germany",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_newcastle_33_Dan_Burn",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_newcastle_39_Bruno_Guimaraes_(C)",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_newcastle_10_Anthony_Gordon",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_newcastle_20_Anthony_Elanga",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_newcastle_27_Nick_Woltemade",
+          "country": "Germany",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_newcastle_9_Yoane_Wissa",
+          "country": "DR Congo",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_nottingham",
@@ -1189,7 +1979,39 @@
       ],
       "logo": "./images/premierleague/nottingham.png",
       "stadium": "The City Ground",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_nottingham_18_Angus_Gunn",
+          "country": "Scotland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_nottingham_6_Ibrahim_Sangare",
+          "country": "Côte d’Ivoire",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_nottingham_8_Elliot_Anderson",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_nottingham_14_Dan_Ndoye",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_nottingham_11_Chris_Wood",
+          "country": "New Zealand",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_sunderland",
@@ -1203,7 +2025,63 @@
       ],
       "logo": "./images/premierleague/sunderland.png",
       "stadium": "Stadium of Light",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_sunderland_22_Robin_Roefs",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_15_Omar_Alderete",
+          "country": "Paraguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_34_Granit_Xhaka_(C)",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_19_Habib_Diarra",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_27_Noah_Sadiki",
+          "country": "DR Congo",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_10_Nilson_Angulo",
+          "country": "Ecuador",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_7_Chemsdine_Talbi",
+          "country": "Morocco",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_9_Brian_Brobbey",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_sunderland_18_Wilson_Isidor",
+          "country": "Haiti",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_tottenham",
@@ -1217,7 +2095,57 @@
       ],
       "logo": "./images/premierleague/tottenham.png",
       "stadium": "Tottenham Hotspur Stadium",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_tottenham_37_Micky_Van_De_Ven",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_17_Cristian_Romero_(C)",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_4_Kevin_Danso",
+          "country": "Austria",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_24_Djed_Spence",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_23_Pedro_Porro",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_30_Rodrigo_Bentancur",
+          "country": "Uruguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_15_Lucas_Bergvall",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_tottenham_29_Pape_Sarr",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_west_ham",
@@ -1231,7 +2159,33 @@
       ],
       "logo": "./images/premierleague/westham.png",
       "stadium": "London Stadium",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_west_ham_12_Malick_Diouf",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_west_ham_29_Aaron_Wan_Bissaka",
+          "country": "DR Congo",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_west_ham_28_Tomas_Soucek",
+          "country": "Czech Republic",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_west_ham_7_Crysencio_Summerville",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "epl_wolves",
@@ -1245,7 +2199,45 @@
       ],
       "logo": "./images/premierleague/wolves.png",
       "stadium": "Molineux Stadium",
-      "formation": "3-4-2-1"
+      "formation": "3-4-2-1",
+      "nationalDuty": [
+        {
+          "playerId": "epl_wolves_1_Jose_Sa",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_wolves_4_Santi_Bueno",
+          "country": "Uruguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_wolves_6_David_Moller_Wolfe",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_wolves_27_Jean_Ricner_Bellegarde",
+          "country": "Haiti",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_wolves_11_Hwang_Hee_Chan",
+          "country": "South Korea",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "epl_wolves_37_Ladislav_Krejci",
+          "country": "Czech Republic",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_alaves",
@@ -1273,7 +2265,33 @@
       ],
       "logo": "./images/laliga/athletic_bilbao.png",
       "stadium": "San Mames",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_athletic_bilbao_1_Unai_Simon",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_athletic_bilbao_14_Aymeric_Laporte",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_athletic_bilbao_10_Nico_Williams",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_athletic_bilbao_9_Inaki_Williams_(C)",
+          "country": "Ghana",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_atletico_madrid",
@@ -1287,7 +2305,75 @@
       ],
       "logo": "./images/laliga/atletico_madrid.png",
       "stadium": "Riyadh Air Metropolitano",
-      "formation": "4-4-2"
+      "formation": "4-4-2",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_atletico_madrid_1_Juan_Musso",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_18_Marc_Pubill",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_2_Jose_Gimenez",
+          "country": "Uruguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_14_Marcos_Llorente",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_16_Nahuel_Molina",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_21_Obed_Vargas",
+          "country": "Mexico",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_10_Alex_Baena",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_11_Thiago_Almada",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_20_Giuliano_Simeone",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_19_Julian_Alvarez",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_atletico_madrid_9_Alexander_Sorloth",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_barcelona",
@@ -1301,7 +2387,87 @@
       ],
       "logo": "./images/laliga/barcelona.png",
       "stadium": "Spotify Camp Nou",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_barcelona_13_Joan_Garcia",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_5_Pau_Cubarsi",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_24_Eric_Garcia",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_4_Ronald_Araujo_(C)",
+          "country": "Uruguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_23_Jules_Kounde",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_8_Pedri",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_21_Frenkie_De_Jong",
+          "country": "Netherlands",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_6_Gavi",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_20_Dani_Olmo",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_11_Raphinha",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_14_Marcus_Rashford",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_10_Lamine_Yamal",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_barcelona_7_Ferran_Torres",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_celta_vigo",
@@ -1315,7 +2481,21 @@
       ],
       "logo": "./images/laliga/celta_vigo.png",
       "stadium": "Abanca Balaidos",
-      "formation": "3-4-3"
+      "formation": "3-4-3",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_celta_vigo_2_Carl_Starfelt",
+          "country": "Sweden",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_celta_vigo_7_Borja_Iglesias",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_elche",
@@ -1329,7 +2509,15 @@
       ],
       "logo": "./images/laliga/elche.png",
       "stadium": "Estadio Martinez Valero",
-      "formation": "3-5-2"
+      "formation": "3-5-2",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_elche_22_David_Affengruber",
+          "country": "Austria",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_espanyol",
@@ -1371,7 +2559,21 @@
       ],
       "logo": "./images/laliga/girona.png",
       "stadium": "Municipal Montilivi",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_girona_20_Axel_Witsel",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_girona_18_Azzedine_Ounahi",
+          "country": "Morocco",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_levante",
@@ -1385,7 +2587,15 @@
       ],
       "logo": "./images/laliga/levante.png",
       "stadium": "Ciutat de Valencia",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_levante_13_Mathew_Ryan",
+          "country": "Australia",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_mallorca",
@@ -1399,7 +2609,21 @@
       ],
       "logo": "./images/laliga/mallorca.png",
       "stadium": "Estadi Mallorca Son Moix",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_mallorca_22_Johan_Mojica",
+          "country": "Colombia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_mallorca_12_Samu_Costa",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_osasuna",
@@ -1413,7 +2637,21 @@
       ],
       "logo": "./images/laliga/osasuna.png",
       "stadium": "Estadio El Sadar",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_osasuna_21_Victor_Munoz",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_osasuna_17_Ante_Budimir",
+          "country": "Croatia",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_rayo_vallecano",
@@ -1427,7 +2665,21 @@
       ],
       "logo": "./images/laliga/rayo_vallecano.png",
       "stadium": "Estadio de Vallecas",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_rayo_vallecano_16_Abdul_Mumin",
+          "country": "Ghana",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_rayo_vallecano_6_Pathe_Ciss",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_real_betis",
@@ -1441,7 +2693,39 @@
       ],
       "logo": "./images/laliga/real_betis.png",
       "stadium": "Benito Villamarin",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_real_betis_12_Ricardo_Rodriguez",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_betis_15_Alvaro_Fidalgo",
+          "country": "Mexico",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_betis_20_Giovanni_Lo_Celso",
+          "country": "Argentina",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_betis_19_Cucho_Hernandez",
+          "country": "Colombia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_betis_11_Cedric_Bakambu",
+          "country": "DR Congo",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_real_madrid",
@@ -1455,7 +2739,69 @@
       ],
       "logo": "./images/laliga/real_madrid.png",
       "stadium": "Santiago Bernabeu",
-      "formation": "4-4-2"
+      "formation": "4-4-2",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_real_madrid_1_Thibaut_Courtois",
+          "country": "Belgium",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_22_Antonio_Rudiger",
+          "country": "Germany",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_4_David_Alaba",
+          "country": "Austria",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_14_Aurelien_Tchouameni",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_8_Federico_Valverde",
+          "country": "Uruguay",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_5_Jude_Bellingham",
+          "country": "England",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_15_Arda_Guler",
+          "country": "Turkey",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_7_Vinicius_Jr",
+          "country": "Brazil",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_10_Kylian_Mbappe",
+          "country": "France",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_madrid_21_Brahim_Diaz",
+          "country": "Morocco",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_real_oviedo",
@@ -1469,7 +2815,21 @@
       ],
       "logo": "./images/laliga/real_oviedo.png",
       "stadium": "Carlos Tartiere",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_real_oviedo_6_Kwasi_Sibo",
+          "country": "Ghana",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_oviedo_10_Haissem_Hassan",
+          "country": "Egypt",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_real_sociedad",
@@ -1483,7 +2843,33 @@
       ],
       "logo": "./images/laliga/real_sociedad.png",
       "stadium": "Anoeta",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_real_sociedad_24_Luka_Sucic",
+          "country": "Croatia",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_sociedad_11_Goncalo_Guedes",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_sociedad_14_Takefusa_Kubo",
+          "country": "Japan",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_real_sociedad_10_Mikel_Oyarzabal_(C)",
+          "country": "Spain",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_sevilla",
@@ -1497,7 +2883,27 @@
       ],
       "logo": "./images/laliga/sevilla.png",
       "stadium": "Ramon Sanchez-Pizjuan",
-      "formation": "4-2-3-1"
+      "formation": "4-2-3-1",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_sevilla_13_Orjan_Nyland",
+          "country": "Norway",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_sevilla_20_Djibril_Sow",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_sevilla_11_Ruben_Vargas",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_valencia",
@@ -1511,7 +2917,15 @@
       ],
       "logo": "./images/laliga/valencia.png",
       "stadium": "Mestalla",
-      "formation": "4-4-2"
+      "formation": "4-4-2",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_valencia_24_Eray_Comert",
+          "country": "Switzerland",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "laliga_villarreal",
@@ -1525,7 +2939,57 @@
       ],
       "logo": "./images/laliga/villarreal.png",
       "stadium": "Estadio de la Ceramica",
-      "formation": "4-4-2"
+      "formation": "4-4-2",
+      "nationalDuty": [
+        {
+          "playerId": "laliga_villarreal_12_Renato_Veiga",
+          "country": "Portugal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_2_Logan_Costa",
+          "country": "Cape Verde",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_3_Alex_Freeman",
+          "country": "USA",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_16_Thomas_Partey",
+          "country": "Ghana",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_18_Pape_Gueye",
+          "country": "Senegal",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_17_Tajon_Buchanan",
+          "country": "Canada",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_19_Nicolas_Pepe",
+          "country": "Ivory Coast",
+          "note": "",
+          "until": ""
+        },
+        {
+          "playerId": "laliga_villarreal_21_Tani_Oluwaseyi",
+          "country": "Canada",
+          "note": "",
+          "until": ""
+        }
+      ]
     },
     {
       "id": "seriea_ac_milan",
@@ -9708,7 +11172,8 @@
       "pos": "GK",
       "role": "GK",
       "flag": "🇵🇱",
-      "nationality": "Poland"
+      "nationality": "Poland",
+      "instagram": "https://www.instagram.com/wojciech.szczesny1/"
     },
     {
       "id": "laliga_barcelona_31_Diego_Kochen",
@@ -9798,7 +11263,8 @@
       "pos": "DF",
       "role": "LB",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/gerardmaartin/"
     },
     {
       "id": "laliga_barcelona_6_Gavi",
@@ -9808,7 +11274,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/pablogavi/"
     },
     {
       "id": "laliga_barcelona_8_Pedri",
@@ -9818,7 +11285,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/pedri/"
     },
     {
       "id": "laliga_barcelona_17_Marc_Casado",
@@ -9838,7 +11306,8 @@
       "pos": "MF",
       "role": "CM",
       "flag": "🇳🇱",
-      "nationality": "Netherlands"
+      "nationality": "Netherlands",
+      "instagram": "https://www.instagram.com/frenkiedejong/"
     },
     {
       "id": "laliga_barcelona_22_Marc_Bernal",
@@ -9858,7 +11327,8 @@
       "pos": "MF",
       "role": "AM",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/fermin/"
     },
     {
       "id": "laliga_barcelona_20_Dani_Olmo",
@@ -9878,7 +11348,8 @@
       "pos": "FW",
       "role": "RW",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/lamineyamal/"
     },
     {
       "id": "laliga_barcelona_19_Roony_Bardghji",
@@ -9908,7 +11379,8 @@
       "pos": "FW",
       "role": "LW",
       "flag": "🏴",
-      "nationality": "England"
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/marcusrashford/"
     },
     {
       "id": "laliga_barcelona_7_Ferran_Torres",
@@ -9918,7 +11390,8 @@
       "pos": "FW",
       "role": "CF",
       "flag": "🇪🇸",
-      "nationality": "Spain"
+      "nationality": "Spain",
+      "instagram": "https://www.instagram.com/ferrantorres/"
     },
     {
       "id": "laliga_barcelona_9_Robert_Lewandowski",
@@ -63569,13 +65042,506 @@
         1
       ],
       "scorers": [],
-      "goalEvents": [],
+      "goalEvents": [
+        {
+          "minute": 59,
+          "side": "away",
+          "scorer": "Ladislav Krejci (C)",
+          "assist": "Vladimir Coufal"
+        },
+        {
+          "minute": 67,
+          "side": "home",
+          "scorer": "Hwang In-beom",
+          "assist": "Lee Kang-in"
+        },
+        {
+          "minute": 80,
+          "side": "home",
+          "scorer": "Oh Hyeon-gyu",
+          "assist": "Hwang In-beom"
+        }
+      ],
       "possession": [],
       "momentum": 0.5,
       "formation": [
-        "4-2-3-1",
-        "4-3-3"
-      ]
+        "3-4-2-1",
+        "3-4-2-1"
+      ],
+      "lineups": {
+        "home": [
+          {
+            "tag": "GK",
+            "number": 1,
+            "name": "Kim Seung-gyu",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 3,
+            "name": "Lee Gi-hyuk",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 4,
+            "name": "Kim Min-jae",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 2,
+            "name": "Lee Han-beom",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "LM",
+            "number": 13,
+            "name": "Lee Tae-seok",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 8,
+            "name": "Paik Seung-ho",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 6,
+            "name": "Hwang In-beom",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "RM",
+            "number": 22,
+            "name": "Seol Young-woo",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "AM",
+            "number": 10,
+            "name": "Lee Jae-sung",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "AM",
+            "number": 19,
+            "name": "Lee Kang-in",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 7,
+            "name": "Son Heung-min",
+            "flag": "🇰🇷",
+            "nationality": "South Korea",
+            "captain": true
+          }
+        ],
+        "away": [
+          {
+            "tag": "GK",
+            "number": 1,
+            "name": "Matej Kovar",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 7,
+            "name": "Ladislav Krejci",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": true
+          },
+          {
+            "tag": "CB",
+            "number": 4,
+            "name": "Robin Hranac",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 6,
+            "name": "Stepan Chaloupek",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "LM",
+            "number": 20,
+            "name": "Jaroslav Zeleny",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 24,
+            "name": "Alexandr Sojka",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 22,
+            "name": "Tomas Soucek",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "RM",
+            "number": 5,
+            "name": "Vladimir Coufal",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "AM",
+            "number": 15,
+            "name": "Pavel Sulc",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "AM",
+            "number": 17,
+            "name": "Lukas Provod",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 10,
+            "name": "Patrik Schick",
+            "flag": "🇨🇿",
+            "nationality": "Czech Republic",
+            "captain": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "worldcup_group_stage_canada_bosnia",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Saturday 13 Jun",
+      "stadium": "Toronto Stadium",
+      "homeTeamId": "worldcup_canada",
+      "awayTeamId": "worldcup_bosnia",
+      "score": [
+        1,
+        1
+      ],
+      "scorers": [],
+      "goalEvents": [
+        {
+          "minute": 21,
+          "side": "away",
+          "scorer": "Jovo Lukic",
+          "assist": "Sead Kolasinac"
+        },
+        {
+          "minute": 78,
+          "side": "home",
+          "scorer": "Cyle Larin",
+          "assist": "Promise David"
+        }
+      ],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": [
+        "4-4-2",
+        "4-4-2"
+      ],
+      "lineups": {
+        "home": [
+          {
+            "tag": "GK",
+            "number": 16,
+            "name": "Maxime Crepeau",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "LB",
+            "number": 22,
+            "name": "Richie Laryea",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 13,
+            "name": "Derek Cornelius",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 4,
+            "name": "Luc de Fougerolles",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "RB",
+            "number": 2,
+            "name": "Alistair Johnston",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "LM",
+            "number": 11,
+            "name": "Liam Millar",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 7,
+            "name": "Stephen Eustaquio",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": true
+          },
+          {
+            "tag": "CM",
+            "number": 8,
+            "name": "Ismael Kone",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "RM",
+            "number": 17,
+            "name": "Tajon Buchanan",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 12,
+            "name": "Tani Oluwaseyi",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 10,
+            "name": "Jonathan David",
+            "flag": "🇨🇦",
+            "nationality": "Canada",
+            "captain": false
+          }
+        ],
+        "away": [
+          {
+            "tag": "GK",
+            "number": 1,
+            "name": "Nikola Vasilj",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "LB",
+            "number": 5,
+            "name": "Sead Kolasinac",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": true
+          },
+          {
+            "tag": "CB",
+            "number": 4,
+            "name": "Tarik Muharemovic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 18,
+            "name": "Nikola Katic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "RB",
+            "number": 7,
+            "name": "Amar Dedic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "LM",
+            "number": 15,
+            "name": "Amar Memic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 6,
+            "name": "Benjamin Tahirovic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 13,
+            "name": "Ivan Basic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "RM",
+            "number": 20,
+            "name": "Esmir Bajraktarevic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 25,
+            "name": "Jovo Lukic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 10,
+            "name": "Ermedin Demirovic",
+            "flag": "🇧🇦",
+            "nationality": "Bosnia and Herzegovina",
+            "captain": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "worldcup_group_stage_united_states_paraguay",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Saturday 13 Jun",
+      "stadium": "Los Angeles Stadium",
+      "homeTeamId": "worldcup_usa",
+      "awayTeamId": "worldcup_paraguay",
+      "score": [
+        4,
+        1
+      ],
+      "scorers": [],
+      "goalEvents": [
+        {
+          "minute": 7,
+          "side": "away",
+          "scorer": "Damian Bobadilla",
+          "assist": null,
+          "type": "Own Goal"
+        },
+        {
+          "minute": 31,
+          "side": "home",
+          "scorer": "Folarin Balogun",
+          "assist": "Christian Pulisic (C)"
+        },
+        {
+          "minute": 45,
+          "side": "home",
+          "scorer": "Folarin Balogun",
+          "assist": "Malik Tillman"
+        },
+        {
+          "minute": 73,
+          "side": "away",
+          "scorer": "Mauricio",
+          "assist": null
+        },
+        {
+          "minute": 90,
+          "side": "home",
+          "scorer": "Giovanni Reyna",
+          "assist": "Alex Freeman"
+        }
+      ],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": [
+        "4-1-2-3",
+        "4-4-2"
+      ],
+      "lineups": {
+        "home": [
+          {
+            "tag": "GK",
+            "number": 24,
+            "name": "Matt Freese",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "RB",
+            "number": 16,
+            "name": "Alex Freeman",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          }
+        ],
+        "away": []
+      }
     }
   ],
   "miniStandings": [
