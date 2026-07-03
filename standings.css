@@ -157,7 +157,7 @@
   overflow: hidden;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 78% auto;
+  background-size: cover;
 }
 
 .club-cell-name {

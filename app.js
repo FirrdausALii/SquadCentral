@@ -4401,7 +4401,7 @@ function crestStyle(teamId) {
   const logo = t.logo ? String(t.logo) : "";
   const base = `radial-gradient(18px 18px at 35% 25%, rgba(255,255,255,.45), transparent), linear-gradient(135deg, ${c1}, ${c2})`;
   if (!logo) return `style="background: ${base}; border: 1px solid var(--border);"`;
-  return `style="background-image: url('${escapeHtml(logo)}'), ${base}; background-repeat: no-repeat; background-position: center; background-size: 72% auto; border: 1px solid var(--border);"`;
+  return `style="background-image: url('${escapeHtml(logo)}'), ${base}; background-repeat: no-repeat; background-position: center; background-size: cover, cover; border: 1px solid var(--border);"`;
 }
 
 /** Flat club logo (matches Clubs list chips — logo only, neutral tile). */
@@ -5310,7 +5310,11 @@ function formationForTeam(teamId) {
 
 function stadiumForTeam(teamId) {
   const saved = String(teamById.get(teamId)?.stadium ?? "").trim();
-  return saved && saved !== "—" ? saved : "—";
+  if (saved && saved !== "—") return saved;
+  const homeMatch = MATCHES.find(
+    (m) => m.homeTeamId === teamId && String(m.stadium ?? "").trim() && m.stadium !== "—",
+  );
+  return homeMatch ? homeMatch.stadium : "—";
 }
 
 function setLeagueAccent(leagueId) {
@@ -5736,12 +5740,9 @@ function setupHowItWorks() {
 function setupRevealAnimations() {
   const els = $$(".reveal");
   if (!els.length) return;
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    for (const el of els) el.classList.add("is-visible");
-    return;
-  }
-
-  if (!("IntersectionObserver" in window)) {
+  const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  const isMobile = window.matchMedia?.("(max-width: 767.98px)")?.matches;
+  if (prefersReducedMotion || isMobile || !("IntersectionObserver" in window)) {
     for (const el of els) el.classList.add("is-visible");
     return;
   }
@@ -5805,8 +5806,35 @@ function setupTilt() {
 /**
  * Rich goal / assist block for modals. Falls back to nothing if `events` is empty.
  * `events`: { minute?: number|null, side: "home"|"away", scorer: string, assist?: string|null, type?: string }
+ * `matchCtx`: optional { homeTeamId, awayTeamId, lineups } for own-goal credit resolution
  */
-function renderMatchGoalEventsHtml(homeClubName, awayClubName, events) {
+function isOwnGoalType(type) {
+  const t = String(type ?? "").trim().toLowerCase();
+  return t === "own goal" || t === "own-goal" || t === "og";
+}
+
+function findScorerSideInMatch(scorer, matchCtx = {}) {
+  const name = String(scorer ?? "").trim();
+  if (!name) return null;
+  const inList = (list) => (list ?? []).some((p) => String(p.name ?? "").trim() === name);
+  if (inList(matchCtx.lineups?.home)) return "home";
+  if (inList(matchCtx.lineups?.away)) return "away";
+  const { homeTeamId, awayTeamId } = matchCtx;
+  if (homeTeamId && PLAYERS.some((p) => p.teamId === homeTeamId && p.name === name)) return "home";
+  if (awayTeamId && PLAYERS.some((p) => p.teamId === awayTeamId && p.name === name)) return "away";
+  return null;
+}
+
+/** Team that receives the goal on the scoreboard (flips for own goals). */
+function goalCreditedSide(ev, matchCtx = {}) {
+  const stored = ev?.side === "away" ? "away" : "home";
+  if (!isOwnGoalType(ev?.type)) return stored;
+  const scorerSide = findScorerSideInMatch(ev?.scorer, matchCtx);
+  if (scorerSide) return scorerSide === "home" ? "away" : "home";
+  return stored === "home" ? "away" : "home";
+}
+
+function renderMatchGoalEventsHtml(homeClubName, awayClubName, events, matchCtx = {}) {
   if (!events?.length) return "";
 
   const assistLine = (ev) => {
@@ -5820,7 +5848,8 @@ function renderMatchGoalEventsHtml(homeClubName, awayClubName, events) {
 
   const rows = events
     .map((ev) => {
-      const home = ev.side === "home";
+      const creditSide = goalCreditedSide(ev, matchCtx);
+      const home = creditSide === "home";
       const club = home ? homeClubName : awayClubName;
       const min =
         ev.minute != null && Number.isFinite(ev.minute)
@@ -6105,7 +6134,13 @@ function renderMatchCenter(leagueId) {
     const showLineups = leagueFeatureOn(leagueId, "matchLineups");
     const showPitch = showLineups && leagueFeatureOn(leagueId, "matchPitchView");
     const showPossession = leagueFeatureOn(leagueId, "matchPossession");
-    const goalsHtml = showGoals ? renderMatchGoalEventsHtml(ht?.name, at?.name, m.goalEvents) : "";
+    const goalsHtml = showGoals
+      ? renderMatchGoalEventsHtml(ht?.name, at?.name, m.goalEvents, {
+          homeTeamId: m.homeTeamId,
+          awayTeamId: m.awayTeamId,
+          lineups: m.lineups,
+        })
+      : "";
     const venueHtml = renderMatchVenueCoachesHtml(m, ht, at);
 
     const renderLineupSide = (title, formation, list) => {

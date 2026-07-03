@@ -345,7 +345,7 @@ p { margin: 0 0 var(--sp-4); }
   overflow: hidden;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 72% auto;
+  background-size: cover;
 }
 
 .club-card-info { flex: 1; min-width: 0; }
@@ -609,7 +609,7 @@ p { margin: 0 0 var(--sp-4); }
   background-color: var(--bg-surface-3);
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 78% auto;
+  background-size: cover;
 }
 
 .meta-pill {

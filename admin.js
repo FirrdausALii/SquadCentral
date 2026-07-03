@@ -5,6 +5,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "leagues", label: "Leagues" },
+  { id: "stadiums", label: "Stadiums" },
   { id: "league", label: "Matchweek" },
   { id: "teams", label: "Teams" },
   { id: "squaddepth", label: "Squad depth" },
@@ -27,6 +28,7 @@ let squadDepthTeamFilter = "";
 let nationalDutyTeamFilter = "";
 let transferTeamFilter = "";
 let matchEditId = "";
+let stadiumEditName = "";
 /** Preserves matchweek editor fields across renderPanel() (DOM is rebuilt each time). */
 let mwEditorDraft = null;
 /** Preserves squad depth editor across formation change re-renders. */
@@ -58,16 +60,43 @@ function teamsForLeague(leagueId) {
   return state().teams.filter((t) => t.leagueId === leagueId);
 }
 
-function homeStadiumForTeam(teamId) {
-  if (!teamId) return "";
-  const s = String(state().teams.find((t) => t.id === teamId)?.stadium ?? "").trim();
-  return s && s !== "—" ? s : "";
+function stadiumsForLeague(leagueId) {
+  return FCDataStore.getLeagueStadiums(leagueId);
 }
 
-function resolveFixtureStadium(homeTeamId, savedStadium) {
-  const saved = String(savedStadium ?? "").trim();
-  if (saved && saved !== "—") return saved;
-  return homeStadiumForTeam(homeTeamId);
+function stadiumSelectField(leagueId, selected, opts = {}) {
+  const { id = "matchStadium", label = "Stadium", note = "" } = opts;
+  const list = stadiumsForLeague(leagueId);
+  const val = String(selected ?? "").trim();
+  const normalized = val && val !== "—" ? val : "";
+  const options = ['<option value="">— Select stadium —</option>'];
+  const seen = new Set();
+  for (const s of list) {
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    const sel = s === normalized ? " selected" : "";
+    options.push(`<option value="${esc(s)}"${sel}>${esc(s)}</option>`);
+  }
+  if (normalized && !seen.has(normalized)) {
+    options.push(`<option value="${esc(normalized)}" selected>${esc(normalized)} (not in list)</option>`);
+  }
+  const noteHtml = note ? `<p class="mw-field-note admin-muted">${note}</p>` : "";
+  return `<div class="mw-field"><label for="${id}">${label}</label><div class="mw-select-wrap"><select id="${id}" class="mw-select">${options.join("")}</select></div>${noteHtml}</div>`;
+}
+
+function ensureStadiumSelectOption(selectEl, value) {
+  const v = String(value ?? "").trim();
+  if (!selectEl || !v || v === "—") return;
+  if ([...selectEl.options].some((o) => o.value === v)) {
+    selectEl.value = v;
+    return;
+  }
+  const opt = document.createElement("option");
+  opt.value = v;
+  opt.textContent = `${v} (not in list)`;
+  opt.selected = true;
+  selectEl.appendChild(opt);
+  selectEl.value = v;
 }
 
 function esc(s) {
@@ -543,9 +572,17 @@ function renderGoalEventPlayerFields(kind, teamId, value) {
     </div>`;
 }
 
-function renderGoalEventRowHtml(ev, index, homeTeamId, awayTeamId) {
+function goalScorerSideForEditor(ev, homeTeamId, awayTeamId, lineups) {
+  const stored = ev?.side === "away" ? "away" : "home";
+  if (!isOwnGoalType(ev?.type)) return stored;
+  const scorerSide = findScorerSideForGoal(ev?.scorer, homeTeamId, awayTeamId, lineups);
+  if (scorerSide) return scorerSide;
+  return stored === "home" ? "away" : "home";
+}
+
+function renderGoalEventRowHtml(ev, index, homeTeamId, awayTeamId, lineups) {
   const data = ev ?? {};
-  const side = data.side === "away" ? "away" : "home";
+  const side = goalScorerSideForEditor(data, homeTeamId, awayTeamId, lineups);
   const teamId = side === "home" ? homeTeamId : awayTeamId;
   return `<tr class="ge-row" data-i="${index}">
     <td><input class="ge-min" type="number" min="0" max="120" value="${esc(data.minute ?? "")}" placeholder="min" style="width:64px" /></td>
@@ -584,9 +621,9 @@ function refreshGoalEventRowPlayers(row) {
   }
 }
 
-function renderGoalEventsEditor(events, homeTeamId, awayTeamId) {
+function renderGoalEventsEditor(events, homeTeamId, awayTeamId, lineups) {
   const list = events?.length ? events : [{}];
-  const rows = list.map((ev, i) => renderGoalEventRowHtml(ev, i, homeTeamId, awayTeamId)).join("");
+  const rows = list.map((ev, i) => renderGoalEventRowHtml(ev, i, homeTeamId, awayTeamId, lineups)).join("");
 
   return `
     <div class="mw-goals-wrap">
@@ -1096,7 +1133,7 @@ function panelLeague() {
   const at = state().teams.find((t) => t.id === awayId);
   const previewH = src?.score?.[0] ?? 0;
   const previewA = src?.score?.[1] ?? 0;
-  const stadiumVal = resolveFixtureStadium(homeId, src?.stadium);
+  const stadiumVal = src?.stadium ?? "";
   const stageField = isWc
     ? `<div class="col-12 col-md-6"><div class="mw-field"><label for="matchStage">Round / stage</label><input id="matchStage" class="mw-input" value="${esc(src?.matchday ?? meta.matchweekTitle ?? "Group Stage")}" placeholder="Group A · MD 1 / Round of 16" /><p class="mw-field-note admin-muted">All World Cup games stay on the site — use this label for each round.</p></div></div>`
     : "";
@@ -1189,7 +1226,7 @@ function panelLeague() {
           <div class="row g-2 g-md-3 mw-field-grid mw-field-grid--2">
             <div class="col-12 col-md-6"><div class="mw-field"><label>Match day</label><input id="matchTime" class="mw-input" value="${esc(src?.time ?? "")}" placeholder="Sunday 12 May" /></div></div>
             ${stageField}
-            <div class="col-12 col-md-6"><div class="mw-field"><label>Stadium</label><input id="matchStadium" class="mw-input" value="${esc(stadiumVal)}" placeholder="Filled from home team in Teams" /><p class="mw-field-note admin-muted">Autofills from the home team’s stadium (Teams tab). You can override here.</p></div></div>
+            <div class="col-12 col-md-6">${stadiumSelectField(leagueFilter, stadiumVal, { note: "Choose from this league’s stadium list. Add venues in the <strong>Stadiums</strong> tab." })}</div>
             <div class="col-12 col-md-6"><div class="mw-field"><label>Home team</label><div class="mw-select-wrap"><select id="matchHome" class="mw-select">${teamOpts(homeId)}</select></div></div></div>
             <div class="col-12 col-md-6"><div class="mw-field"><label>Away team</label><div class="mw-select-wrap"><select id="matchAway" class="mw-select">${teamOpts(awayId)}</select></div></div></div>
             <div class="col-6 col-md-6"><div class="mw-field"><label>Home goals</label><input id="matchHomeScore" class="mw-input mw-input--score" type="number" min="0" value="${esc(src?.score?.[0] ?? 0)}" /></div></div>
@@ -1201,8 +1238,8 @@ function panelLeague() {
 
         <div class="mw-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">②</span> Goal events</h4>
-          <p class="mw-section-hint">Minute and side — pick scorer and assist from the squad or enter names manually. For <strong>own goals</strong>, set <strong>Side</strong> to the team awarded the goal, pick the scorer (use <strong>Manual</strong> if they’re on the other squad), leave assist blank, and choose <strong>Own Goal</strong> in <strong>Type</strong>.</p>
-          ${renderGoalEventsEditor(src?.goalEvents, homeId, awayId)}
+          <p class="mw-section-hint">Minute and side — pick scorer and assist from the squad or enter names manually. For <strong>own goals</strong>, set <strong>Side</strong> to the scorer’s team, pick the scorer, leave assist blank, and choose <strong>Own Goal</strong>. The goal is credited to the other team on the site.</p>
+          ${renderGoalEventsEditor(src?.goalEvents, homeId, awayId, src?.lineups)}
         </div>
 
         <div class="mw-editor-section">
@@ -1228,6 +1265,90 @@ function panelLeague() {
   `;
 }
 
+function panelStadiums() {
+  const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
+  const list = stadiumsForLeague(leagueFilter);
+  const editing = Boolean(stadiumEditName);
+
+  return `
+    <div class="mw-page">
+      <header class="mw-hero">
+        <div class="row g-3 align-items-start">
+          <div class="col-12 col-lg-8 mw-hero-text">
+            <p class="mw-eyebrow">Venues</p>
+            <h2 class="mw-heading">Stadiums</h2>
+            <p class="mw-lead">Define the stadium list for each league or tournament. Matchweek and Matches editors pick from this list when assigning a venue.</p>
+          </div>
+          <div class="col-12 col-sm-8 col-lg-4">
+            <div class="mw-hero-preview w-100">
+              <span class="mw-hero-preview-label">In this league</span>
+              <strong class="mw-hero-preview-title">${list.length} stadium${list.length === 1 ? "" : "s"}</strong>
+              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="mw-card">
+        <div class="mw-card-head">
+          <h3>League stadiums</h3>
+          <p>${list.length} venue${list.length === 1 ? "" : "s"} available when creating fixtures.</p>
+        </div>
+        <div class="row g-2 g-md-3 mb-3">
+          <div class="col-12 col-md-6 col-lg-4">
+            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+          </div>
+        </div>
+        <div class="teams-table-wrap admin-table-wrap">
+          <table class="admin-table admin-table-compact teams-table">
+            <thead>
+              <tr>
+                <th>Stadium</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${
+              list.length
+                ? list
+                    .map(
+                      (s) => `<tr>
+                <td><strong>${esc(s)}</strong></td>
+                <td class="admin-row-actions">
+                  <button type="button" class="mw-btn-ghost teams-row-btn" data-edit-stadium="${esc(s)}">Edit</button>
+                  <button type="button" class="mw-btn-danger teams-row-btn" data-del-stadium="${esc(s)}">Remove</button>
+                </td></tr>`,
+                    )
+                    .join("")
+                : `<tr><td colspan="2" class="admin-muted">No stadiums yet — add one below.</td></tr>`
+            }</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="mw-card" id="stadiumFormCard">
+        <div class="mw-card-head">
+          <h3 id="stadiumFormTitle">${editing ? "Edit stadium" : "Add stadium"}</h3>
+          <p>${editing ? `Renaming updates fixtures that use “${esc(stadiumEditName)}”.` : "New venues appear in the Matchweek stadium dropdown."}</p>
+        </div>
+        <input type="hidden" id="stadiumEditName" value="${esc(stadiumEditName)}" />
+        <div class="row g-2 g-md-3">
+          <div class="col-12 col-md-8">
+            <div class="mw-field"><label for="stadiumName">Stadium name</label><input id="stadiumName" class="mw-input" value="${editing ? esc(stadiumEditName) : ""}" placeholder="Emirates Stadium" /></div>
+          </div>
+        </div>
+        <div class="teams-form-footer row g-2 mt-1">
+          <div class="col-12 col-sm-auto">
+            <button type="button" class="mw-btn-primary w-100" id="btnSaveStadium">${editing ? "Save changes" : "Add stadium"}</button>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <button type="button" class="mw-btn-ghost w-100" id="btnNewStadium">Clear form</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function panelTeams() {
   const list = teamsForLeague(leagueFilter);
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
@@ -1240,7 +1361,7 @@ function panelTeams() {
           <div class="col-12 col-lg-8 mw-hero-text">
             <p class="mw-eyebrow">Squad setup</p>
             <h2 class="mw-heading">Teams</h2>
-            <p class="mw-lead">Manage clubs for each league — stadium, formation, coach, and branding used across matchweek and squads.</p>
+            <p class="mw-lead">Manage clubs for each league — formation, coach, and branding used across matchweek and squads.</p>
           </div>
           <div class="col-12 col-sm-8 col-lg-4">
             <div class="mw-hero-preview w-100">
@@ -1269,7 +1390,6 @@ function panelTeams() {
                 <th>Name</th>
                 <th class="d-none d-sm-table-cell">ID</th>
                 <th class="d-none d-md-table-cell">Formation</th>
-                <th class="d-none d-lg-table-cell">Stadium</th>
                 <th class="d-none d-xl-table-cell">Coach</th>
                 <th></th>
               </tr>
@@ -1280,7 +1400,6 @@ function panelTeams() {
               <td><strong>${esc(t.name)}</strong></td>
               <td class="d-none d-sm-table-cell"><code>${esc(t.id)}</code></td>
               <td class="d-none d-md-table-cell">${esc(t.formation ?? "—")}</td>
-              <td class="d-none d-lg-table-cell">${esc(t.stadium ?? "—")}</td>
               <td class="d-none d-xl-table-cell">${esc(t.coach ?? "—")}</td>
               <td class="admin-row-actions">
                 <button type="button" class="mw-btn-ghost teams-row-btn" data-edit-team="${esc(t.id)}">Edit</button>
@@ -1295,7 +1414,7 @@ function panelTeams() {
       <section class="mw-card" id="teamFormCard">
         <div class="mw-card-head">
           <h3 id="teamFormTitle">Add team</h3>
-          <p>Stadium autofills matchweek fixtures; formation is used in Club Spotlight and squad depth on the site.</p>
+          <p>Formation is used in Club Spotlight and squad depth on the site. Stadiums are managed per league in the <strong>Stadiums</strong> tab.</p>
         </div>
         <input type="hidden" id="teamEditId" value="" />
         <div class="row g-2 g-md-3">
@@ -1304,9 +1423,6 @@ function panelTeams() {
           </div>
           <div class="col-12 col-md-6">
             <div class="mw-field"><label for="teamCity">City</label><input id="teamCity" class="mw-input" /></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="teamStadium">Stadium</label><input id="teamStadium" class="mw-input" placeholder="Emirates Stadium" /></div>
           </div>
           <div class="col-12 col-md-6">
             <div class="mw-field"><label for="teamFormation">Formation</label><input id="teamFormation" class="mw-input" placeholder="4-3-3" /></div>
@@ -2094,7 +2210,7 @@ function panelMatches() {
       <section class="mw-card" id="matchFormCard">
         <div class="mw-card-head">
           <h3 id="matchFormTitle">Add match</h3>
-          <p>${isWc ? "Creates a World Cup fixture. Set the round/stage label below." : `Creates a fixture for MW ${mw}.`} Stadium and formations are managed in <strong>Matchweek</strong>.</p>
+          <p>${isWc ? "Creates a World Cup fixture. Set the round/stage label below." : `Creates a fixture for MW ${mw}.`} Stadiums are chosen from the <strong>Stadiums</strong> tab list.</p>
         </div>
         <input type="hidden" id="matchEditId" value="" />
         <div class="row g-2 g-md-3">
@@ -2107,7 +2223,7 @@ function panelMatches() {
               : ""
           }
           <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="matchStadium">Stadium</label><input id="matchStadium" class="mw-input" /></div>
+            ${stadiumSelectField(leagueFilter, "", { note: "Manage venues in the Stadiums tab." })}
           </div>
           <div class="col-12 col-md-6">
             <div class="mw-field"><label for="matchHome">Home team</label><div class="mw-select-wrap"><select id="matchHome" class="mw-select">${teamOpts(defaultHome)}</select></div></div>
@@ -2639,6 +2755,7 @@ function renderPanel() {
   const map = {
     overview: panelOverview,
     leagues: panelLeagues,
+    stadiums: panelStadiums,
     league: panelLeague,
     teams: panelTeams,
     squaddepth: panelSquadDepth,
@@ -2673,6 +2790,7 @@ function bindLeagueSelect() {
     nationalDutyTeamFilter = "";
     transferTeamFilter = "";
     matchEditId = "";
+    stadiumEditName = "";
     renderPanel();
   });
 }
@@ -2738,6 +2856,7 @@ function bindPanelHandlers() {
 
   bindLeagues();
   bindMatchweek();
+  bindStadiums();
   bindTeams();
   bindSquadDepth();
   bindNationalDuty();
@@ -2756,6 +2875,37 @@ function bindPanelHandlers() {
     FCDataStore.setPin(p);
     toast("PIN updated");
   });
+}
+
+function isOwnGoalType(type) {
+  const t = String(type ?? "").trim().toLowerCase();
+  return t === "own goal" || t === "own-goal" || t === "og";
+}
+
+function findScorerSideForGoal(scorer, homeTeamId, awayTeamId, lineups) {
+  const name = String(scorer ?? "").trim();
+  if (!name) return null;
+  const inList = (list) => (list ?? []).some((p) => String(p.name ?? "").trim() === name);
+  if (inList(lineups?.home)) return "home";
+  if (inList(lineups?.away)) return "away";
+  if (homeTeamId && playersForTeam(homeTeamId).some((p) => p.name === name)) return "home";
+  if (awayTeamId && playersForTeam(awayTeamId).some((p) => p.name === name)) return "away";
+  return null;
+}
+
+function goalCreditedSideForSave(ev, homeTeamId, awayTeamId, lineups) {
+  const stored = ev?.side === "away" ? "away" : "home";
+  if (!isOwnGoalType(ev?.type)) return stored;
+  const scorerSide = findScorerSideForGoal(ev?.scorer, homeTeamId, awayTeamId, lineups);
+  if (scorerSide) return scorerSide === "home" ? "away" : "home";
+  return stored === "home" ? "away" : "home";
+}
+
+function normalizeGoalEventsForSave(events, homeTeamId, awayTeamId, lineups) {
+  return (events ?? []).map((ev) => ({
+    ...ev,
+    side: goalCreditedSideForSave(ev, homeTeamId, awayTeamId, lineups),
+  }));
 }
 
 function readGoalEventsFromDom() {
@@ -2937,8 +3087,6 @@ function bindMatchweek() {
         lineups: { home: readLineupFromDom("home"), away: readLineupFromDom("away") },
       };
     draft.homeTeamId = homeId;
-    const teamStadium = homeStadiumForTeam(homeId);
-    if (teamStadium) draft.stadium = teamStadium;
     mwEditorDraft = draft;
     renderPanel();
   });
@@ -2958,7 +3106,7 @@ function bindMatchweek() {
     const awayId = $("#matchAway")?.value;
     if (!tbody || !homeId) return toast("Choose home team first");
     const i = tbody.querySelectorAll(".ge-row").length;
-    tbody.insertAdjacentHTML("beforeend", renderGoalEventRowHtml({}, i, homeId, awayId));
+    tbody.insertAdjacentHTML("beforeend", renderGoalEventRowHtml({}, i, homeId, awayId, null));
     bindGoalEventDeletes();
     bindGoalEventRowHandlers();
   });
@@ -3027,6 +3175,7 @@ function bindMatchweek() {
       away: readLineupFromDom("away"),
     };
     const hasLineup = lineups.home.length > 0 || lineups.away.length > 0;
+    const goalEvents = normalizeGoalEventsForSave(readGoalEventsFromDom(), home, away, hasLineup ? lineups : prev?.lineups);
     const matchday =
       typeof matchdayForSavedFixture === "function"
         ? matchdayForSavedFixture(leagueFilter, meta, isWc ? $("#matchStage")?.value : null)
@@ -3045,7 +3194,7 @@ function bindMatchweek() {
       awayTeamId: away,
       score: [Number($("#matchHomeScore")?.value) || 0, Number($("#matchAwayScore")?.value) || 0],
       scorers: prev?.scorers ?? [],
-      goalEvents: readGoalEventsFromDom(),
+      goalEvents,
       possession: prev?.possession ?? [],
       momentum: prev?.momentum ?? 0.5,
       formation: [$("#matchFormHome")?.value.trim() || "—", $("#matchFormAway")?.value.trim() || "—"],
@@ -3139,13 +3288,66 @@ function syncToAppArrays() {
   if (typeof rebuildTeamIndex === "function") rebuildTeamIndex();
 }
 
+function bindStadiums() {
+  if (activeTab !== "stadiums") return;
+
+  $("#btnNewStadium")?.addEventListener("click", () => {
+    stadiumEditName = "";
+    renderPanel();
+  });
+
+  $("#btnSaveStadium")?.addEventListener("click", () => {
+    const name = $("#stadiumName")?.value.trim();
+    if (!name) return alert("Stadium name required");
+    const prev = $("#stadiumEditName")?.value.trim();
+    if (prev) {
+      if (prev === name) {
+        stadiumEditName = "";
+        renderPanel();
+        return toast("No changes");
+      }
+      if (!FCDataStore.renameLeagueStadium(leagueFilter, prev, name)) {
+        return alert("Could not rename — check the name is unique");
+      }
+      syncToAppArrays();
+      stadiumEditName = "";
+      toast("Stadium updated");
+      renderPanel();
+      return;
+    }
+    if (!FCDataStore.addLeagueStadium(leagueFilter, name)) {
+      return alert("That stadium already exists");
+    }
+    toast("Stadium added");
+    renderPanel();
+  });
+
+  document.querySelectorAll("[data-edit-stadium]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      stadiumEditName = btn.getAttribute("data-edit-stadium") || "";
+      renderPanel();
+      $("#stadiumName")?.focus();
+    });
+  });
+
+  document.querySelectorAll("[data-del-stadium]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = btn.getAttribute("data-del-stadium");
+      if (!name || !confirm(`Remove “${name}” from this league?`)) return;
+      FCDataStore.removeLeagueStadium(leagueFilter, name);
+      if (stadiumEditName === name) stadiumEditName = "";
+      toast("Stadium removed");
+      renderPanel();
+    });
+  });
+}
+
 function bindTeams() {
   $("#btnNewTeam")?.addEventListener("click", () => {
     $("#teamEditId").value = "";
     $("#teamFormTitle").textContent = "Add team";
     $("#teamName").value = "";
     $("#teamCity").value = "";
-    $("#teamStadium").value = "";
     $("#teamFormation").value = "";
     $("#teamCoach").value = "";
     $("#teamLogo").value = "";
@@ -3163,7 +3365,6 @@ function bindTeams() {
       leagueId: leagueFilter,
       name,
       city: $("#teamCity").value.trim() || name,
-      stadium: $("#teamStadium").value.trim() || undefined,
       formation: formation || undefined,
       coach: $("#teamCoach").value.trim() || "—",
       colors: [$("#teamC1").value, $("#teamC2").value],
@@ -3184,7 +3385,6 @@ function bindTeams() {
       $("#teamFormTitle").textContent = "Edit team";
       $("#teamName").value = t.name;
       $("#teamCity").value = t.city ?? "";
-      $("#teamStadium").value = t.stadium ?? "";
       $("#teamFormation").value = t.formation ?? "";
       $("#teamCoach").value = t.coach ?? "";
       $("#teamLogo").value = t.logo ?? "";
@@ -3823,7 +4023,7 @@ function bindMatches() {
       $("#matchEditId").value = m.id;
       $("#matchFormTitle").textContent = "Edit match";
       $("#matchTime").value = m.time ?? "";
-      $("#matchStadium").value = m.stadium ?? "";
+      ensureStadiumSelectOption($("#matchStadium"), m.stadium);
       $("#matchHome").value = m.homeTeamId;
       $("#matchAway").value = m.awayTeamId;
       $("#matchHomeScore").value = m.score?.[0] ?? 0;

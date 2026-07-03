@@ -165,14 +165,45 @@ body.fc-app {
   .card {
     padding: var(--sp-4);
   }
+}
+
+@media (max-width: 767.98px) {
+  html.reveal-init .reveal:not(.is-visible) {
+    opacity: 1;
+    transform: none;
+  }
+
+  .home-hub {
+    margin-bottom: var(--sp-4);
+  }
 
   .section {
-    margin-bottom: var(--sp-8);
+    margin-bottom: var(--sp-5);
   }
 
   .section-divider {
-    margin: var(--sp-6) 0 var(--sp-4);
+    margin: var(--sp-4) 0 var(--sp-3);
+  }
+
+  #match-center > .text-secondary.mb-4 {
+    margin-bottom: var(--sp-3) !important;
+  }
+
+  #match-center .grid-2 {
     gap: var(--sp-3);
+  }
+
+  #match-center .mc-stand-groups {
+    gap: var(--sp-3);
+  }
+
+  .table-card {
+    overflow: hidden;
+  }
+
+  .table-card #heroStandings .standings-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -358,8 +389,7 @@ body.fc-app {
   }
 
   .table-card {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
   }
 
   #match-center > .card > .league-tabs,

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1782915000000,
+  "dataRevision": 1783053595248,
   "leagues": [
     {
       "id": "epl",
@@ -4279,7 +4279,88 @@
         "#1fe4a5",
         "#ff4d6d"
       ],
-      "logo": "./images/worldcup/mexico.png"
+      "logo": "./images/worldcup/mexico.png",
+      "formation": "4-1-4-1",
+      "squadDepth": {
+        "formation": "4-1-4-1",
+        "goalkeepers": [
+          "worldcup_mexico_1_Raul_Rangel",
+          "worldcup_mexico_13_Guillermo_Ochoa",
+          "worldcup_mexico_12_Carlos_Acevedo"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "worldcup_mexico_23_Jesus_Gallardo",
+              "worldcup_mexico_20_Mateo_Chavez"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_mexico_5_Johan_Vasquez",
+              ""
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_mexico_3_Cesar_Montes",
+              "worldcup_mexico_4_Edson_Alvarez"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "worldcup_mexico_2_Jorge_Sanchez",
+              "worldcup_mexico_15_Israel_Reyes"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "worldcup_mexico_6_Erik_Lira",
+              "worldcup_mexico_24_Luis_Chavez"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "worldcup_mexico_16_Julian_Quinones",
+              "worldcup_mexico_10_Alexis_Vega"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "worldcup_mexico_7_Luis_Romo",
+              "worldcup_mexico_8_Alvaro_Fidalgo"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "worldcup_mexico_26_Brian_Gutierrez",
+              "worldcup_mexico_19_Gilberto_Mora"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "worldcup_mexico_25_Roberto_Alvarado",
+              "worldcup_mexico_21_Cesar_Huerta"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "worldcup_mexico_9_Raul_Jimenez",
+              "worldcup_mexico_11_Santiago_Gimenez"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "worldcup_morocco",
@@ -43876,7 +43957,7 @@
       "id": "worldcup_usa_13_Tim_Ream",
       "teamId": "worldcup_usa",
       "number": 13,
-      "name": "Tim Ream",
+      "name": "Tim Ream (C)",
       "pos": "DF",
       "role": "CB",
       "club": "Charlotte",
@@ -44020,7 +44101,7 @@
       "id": "worldcup_usa_10_Christian_Pulisic_(C)",
       "teamId": "worldcup_usa",
       "number": 10,
-      "name": "Christian Pulisic (C)",
+      "name": "Christian Pulisic",
       "pos": "FW",
       "role": "LW",
       "club": "AC Milan",
@@ -65579,9 +65660,389 @@
             "flag": "🇺🇸",
             "nationality": "United States",
             "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 13,
+            "name": "Tim Ream",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": true
+          },
+          {
+            "tag": "CB",
+            "number": 3,
+            "name": "Chris Richards",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "LB",
+            "number": 5,
+            "name": "Antonee Robinson",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "DM",
+            "number": 4,
+            "name": "Tyler Adams",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "AM",
+            "number": 17,
+            "name": "Malik Tillman",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "AM",
+            "number": 8,
+            "name": "Weston McKennie",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "RW",
+            "number": 2,
+            "name": "Sergino Dest",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 20,
+            "name": "Folarin Balogun",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
+          },
+          {
+            "tag": "LW",
+            "number": 10,
+            "name": "Christian Pulisic",
+            "flag": "🇺🇸",
+            "nationality": "United States",
+            "captain": false
           }
         ],
-        "away": []
+        "away": [
+          {
+            "tag": "GK",
+            "number": 12,
+            "name": "Orlando Gill",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "RB",
+            "number": 4,
+            "name": "Juan Jose Caceres",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 3,
+            "name": "Omar Alderete",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 15,
+            "name": "Gustavo Gomez",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": true
+          },
+          {
+            "tag": "LB",
+            "number": 6,
+            "name": "Junior Alonso",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "RM",
+            "number": 8,
+            "name": "Diego Gomez",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 16,
+            "name": "Damian Bobadilla",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 14,
+            "name": "Andres Cubas",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "LM",
+            "number": 10,
+            "name": "Miguel Almiron",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 9,
+            "name": "Antonio Sanabria",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 19,
+            "name": "Julio Enciso",
+            "flag": "🇵🇾",
+            "nationality": "Paraguay",
+            "captain": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "worldcup_group_stage_qatar_switzerland",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Sunday 14 Jun",
+      "stadium": "San Francisco Stadium",
+      "homeTeamId": "worldcup_qatar",
+      "awayTeamId": "worldcup_switzerland",
+      "score": [
+        1,
+        1
+      ],
+      "scorers": [],
+      "goalEvents": [
+        {
+          "minute": 17,
+          "side": "away",
+          "scorer": "Breel Embolo",
+          "assist": null,
+          "type": "Penalty"
+        },
+        {
+          "minute": 90,
+          "side": "away",
+          "scorer": "Miro Muheim",
+          "assist": null,
+          "type": "Own Goal"
+        }
+      ],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": [
+        "4-3-3",
+        "4-3-3"
+      ],
+      "lineups": {
+        "home": [
+          {
+            "tag": "GK",
+            "number": 1,
+            "name": "Mahmoud Abunada",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "RB",
+            "number": 13,
+            "name": "Ayoub Al-Oui",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 25,
+            "name": "Al-Hashmi Al-Hussain",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": true
+          },
+          {
+            "tag": "CB",
+            "number": 2,
+            "name": "Pedro Miguel",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "LB",
+            "number": 14,
+            "name": "Homam Al-Amin",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 4,
+            "name": "Issa Laye",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "DM",
+            "number": 23,
+            "name": "Assim Madibo",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 5,
+            "name": "Jassem Gaber",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "RW",
+            "number": 8,
+            "name": "Edmilson Junior",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 15,
+            "name": "Yusuf Abdurisag",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          },
+          {
+            "tag": "LW",
+            "number": 11,
+            "name": "Akram Afif",
+            "flag": "🇶🇦",
+            "nationality": "Qatar",
+            "captain": false
+          }
+        ],
+        "away": [
+          {
+            "tag": "GK",
+            "number": 1,
+            "name": "Gregor Kobel",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "RB",
+            "number": 6,
+            "name": "Denis Zakaria",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 5,
+            "name": "Manuel Akanji",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "CB",
+            "number": 4,
+            "name": "Nico Elvedi",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "LB",
+            "number": 13,
+            "name": "Ricardo Rodríguez",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "CM",
+            "number": 8,
+            "name": "Remo Freuler",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "DM",
+            "number": 10,
+            "name": "Granit Xhaka",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": true
+          },
+          {
+            "tag": "CM",
+            "number": 20,
+            "name": "Michel Aebischer",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "RW",
+            "number": 11,
+            "name": "Dan Ndoye",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "CF",
+            "number": 7,
+            "name": "Breel Embolo",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          },
+          {
+            "tag": "LW",
+            "number": 17,
+            "name": "Ruben Vargas",
+            "flag": "🇨🇭",
+            "nationality": "Switzerland",
+            "captain": false
+          }
+        ]
       }
     }
   ],

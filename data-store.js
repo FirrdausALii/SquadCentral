@@ -34,6 +34,25 @@
     };
   }
 
+  function defaultWorldCupStadiums() {
+    return [
+      "AT&T Stadium",
+      "BC Place",
+      "BMO Field",
+      "Estadio Akron",
+      "Estadio Azteca",
+      "Estadio BBVA",
+      "Gillette Stadium",
+      "Hard Rock Stadium",
+      "Levi's Stadium",
+      "Lumen Field",
+      "Mercedes-Benz Stadium",
+      "MetLife Stadium",
+      "NRG Stadium",
+      "SoFi Stadium",
+    ];
+  }
+
   function buildStateFromSeed(seed) {
     return {
       version: 1,
@@ -42,6 +61,7 @@
       heroLeagueTabs: clone(seed.heroLeagueTabs ?? []),
       leagueUi: clone(seed.leagueUi ?? {}),
       leagueFeatures: clone(seed.leagueFeatures ?? {}),
+      leagueStadiums: clone(seed.leagueStadiums ?? {}),
       teams: clone(seed.teams ?? []),
       players: clone(seed.players ?? []),
       matches: clone(seed.matches ?? []),
@@ -94,6 +114,7 @@
       heroLeagueTabs: patch.heroLeagueTabs ?? base.heroLeagueTabs,
       leagueUi: patch.leagueUi ?? base.leagueUi,
       leagueFeatures: patch.leagueFeatures ?? base.leagueFeatures,
+      leagueStadiums: patch.leagueStadiums ?? base.leagueStadiums ?? {},
       teams: patch.teams ?? base.teams,
       players: patch.players ?? base.players,
       matches: patch.matches ?? base.matches,
@@ -164,10 +185,52 @@
     return next;
   }
 
+  function collectLeagueStadiumsFromCatalog(leagueId) {
+    const names = new Set();
+    for (const t of state.teams ?? []) {
+      if (t.leagueId !== leagueId) continue;
+      const s = String(t.stadium ?? "").trim();
+      if (s && s !== "—") names.add(s);
+    }
+    for (const m of state.matches ?? []) {
+      if (m.leagueId !== leagueId) continue;
+      const s = String(m.stadium ?? "").trim();
+      if (s && s !== "—") names.add(s);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }
+
+  /** Seed leagueStadiums from team/match data when a league has no list yet. */
+  function ensureLeagueStadiums() {
+    if (!state) return;
+    if (!state.leagueStadiums) state.leagueStadiums = {};
+    let dirty = false;
+    for (const league of state.leagues ?? []) {
+      const id = league.id;
+      const existing = state.leagueStadiums[id];
+      if (Array.isArray(existing) && existing.length) continue;
+      if (id === "worldcup") {
+        state.leagueStadiums[id] = defaultWorldCupStadiums();
+        dirty = true;
+        continue;
+      }
+      const seeded = collectLeagueStadiumsFromCatalog(id);
+      if (seeded.length) {
+        state.leagueStadiums[id] = seeded;
+        dirty = true;
+      } else if (!Array.isArray(existing)) {
+        state.leagueStadiums[id] = [];
+        dirty = true;
+      }
+    }
+    if (dirty) save();
+  }
+
   function init(seed) {
     seedSnapshot = buildStateFromSeed(seed);
     const saved = loadFromStorage();
     state = pickState(seedSnapshot, saved, { preferLocal: !isPublicSite() });
+    ensureLeagueStadiums();
     return state;
   }
 
@@ -178,6 +241,7 @@
     const pickOpts = { preferLocal: !isPublicSite() };
     state = pickState(seedSnapshot, saved, pickOpts);
     if (arrays) hydrateInPlace(arrays);
+    ensureLeagueStadiums();
 
     const published = await fetchPublishedData();
     if (published) {
@@ -187,6 +251,7 @@
         applyPublishedCatalog(seedSnapshot);
       }
       if (arrays) hydrateInPlace(arrays);
+      ensureLeagueStadiums();
       global.document?.dispatchEvent(new CustomEvent("fc-data-updated"));
     } else if (isPublicSite()) {
       global.document?.dispatchEvent(new CustomEvent("fc-data-missing"));
@@ -194,6 +259,7 @@
         "Squad Central: data.json was not loaded. MSL squads, logos, and fixtures need a local server (not file://).",
       );
     }
+    ensureLeagueStadiums();
     return state;
   }
 
@@ -290,6 +356,10 @@
     state.heroLeagueTabs = clone(published.heroLeagueTabs ?? state.heroLeagueTabs).filter((id) => !delLeagues.has(id));
     state.leagueUi = clone(published.leagueUi ?? state.leagueUi);
     state.leagueFeatures = clone(published.leagueFeatures ?? state.leagueFeatures ?? {});
+    state.leagueStadiums =
+      savedRev > pubRev
+        ? { ...clone(published.leagueStadiums ?? {}), ...(state.leagueStadiums ?? {}) }
+        : { ...(state.leagueStadiums ?? {}), ...clone(published.leagueStadiums ?? {}) };
 
     const publishedTeams = (published.teams ?? []).filter((pt) => !teamDeleted(pt));
     state.teams = publishedTeams.map((pt) => mergeTeamDetails(pt, localTeamsById.get(pt.id)));
@@ -325,6 +395,7 @@
       state.leagueMeta = { ...defaultLeagueMeta(), ...(published.leagueMeta ?? state.leagueMeta) };
       if (published.dataRevision != null) state.dataRevision = published.dataRevision;
     }
+    ensureLeagueStadiums();
     save();
   }
 
@@ -370,6 +441,8 @@
     }
     if (!state.leagueMeta) state.leagueMeta = {};
     if (!state.leagueMeta[id]) state.leagueMeta[id] = { matchweek: 1, dateRange: "Set date range in admin" };
+    if (!state.leagueStadiums) state.leagueStadiums = {};
+    if (!Array.isArray(state.leagueStadiums[id])) state.leagueStadiums[id] = [];
 
     touchRevision();
     save();
@@ -387,6 +460,7 @@
     if (state.leagueUi) delete state.leagueUi[id];
     if (state.leagueFeatures) delete state.leagueFeatures[id];
     if (state.leagueMeta) delete state.leagueMeta[id];
+    if (state.leagueStadiums) delete state.leagueStadiums[id];
     state.teams = (state.teams ?? []).filter((t) => t.leagueId !== id);
     state.players = (state.players ?? []).filter((p) => !teamIdSet.has(p.teamId));
     state.matches = (state.matches ?? []).filter((m) => m.leagueId !== id);
@@ -415,6 +489,62 @@
     state.leagueFeatures[leagueId] = { ...state.leagueFeatures[leagueId], ...features };
     touchRevision();
     save();
+  }
+
+  function getLeagueStadiums(leagueId) {
+    ensureLeagueStadiums();
+    return clone(state.leagueStadiums?.[leagueId] ?? []);
+  }
+
+  function setLeagueStadiums(leagueId, stadiums) {
+    if (!leagueId) return;
+    if (!state.leagueStadiums) state.leagueStadiums = {};
+    const clean = [
+      ...new Set(
+        (stadiums ?? []).map((s) => String(s).trim()).filter((s) => s && s !== "—"),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+    state.leagueStadiums[leagueId] = clean;
+    touchRevision();
+    save();
+  }
+
+  function addLeagueStadium(leagueId, name) {
+    const n = String(name ?? "").trim();
+    if (!n || n === "—") return false;
+    const list = getLeagueStadiums(leagueId);
+    if (list.includes(n)) return false;
+    list.push(n);
+    setLeagueStadiums(leagueId, list);
+    return true;
+  }
+
+  function renameLeagueStadium(leagueId, oldName, newName) {
+    const from = String(oldName ?? "").trim();
+    const to = String(newName ?? "").trim();
+    if (!from || !to || from === to) return false;
+    const list = getLeagueStadiums(leagueId);
+    const i = list.indexOf(from);
+    if (i < 0) return false;
+    if (list.includes(to)) return false;
+    list[i] = to;
+    setLeagueStadiums(leagueId, list);
+    for (const m of state.matches ?? []) {
+      if (m.leagueId === leagueId && String(m.stadium ?? "").trim() === from) m.stadium = to;
+    }
+    touchRevision();
+    save();
+    return true;
+  }
+
+  function removeLeagueStadium(leagueId, name) {
+    const n = String(name ?? "").trim();
+    if (!n) return false;
+    setLeagueStadiums(
+      leagueId,
+      getLeagueStadiums(leagueId).filter((s) => s !== n),
+    );
+    return true;
   }
 
   function touchRevision() {
@@ -633,6 +763,7 @@
   function importJson(text) {
     const parsed = JSON.parse(text);
     state = mergeState(seedSnapshot ?? buildStateFromSeed(parsed), parsed);
+    ensureLeagueStadiums();
     touchRevision();
     save();
     return state;
@@ -684,6 +815,12 @@
     removeLeague,
     setLeagueUi,
     setLeagueFeatures,
+    getLeagueStadiums,
+    setLeagueStadiums,
+    addLeagueStadium,
+    renameLeagueStadium,
+    removeLeagueStadium,
+    ensureLeagueStadiums,
     defaultLeagueMeta,
     slugify,
     makePlayerId,

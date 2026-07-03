@@ -197,7 +197,7 @@ html.reveal-init .reveal.is-visible {
 @media (min-width: 768px) {
   .mw-row__layout {
     flex-direction: row;
-    align-items: center;
+  align-items: center;
     padding: var(--sp-4) var(--sp-5);
   }
 
