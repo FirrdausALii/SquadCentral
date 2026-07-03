@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1783053595248,
+  "dataRevision": 1783095576261,
   "leagues": [
     {
       "id": "epl",
@@ -4111,7 +4111,88 @@
         "#2de2e6",
         "#111827"
       ],
-      "logo": "./images/worldcup/czech_republic.png"
+      "logo": "./images/worldcup/czech_republic.png",
+      "formation": "3-4-2-1",
+      "squadDepth": {
+        "formation": "3-4-2-1",
+        "goalkeepers": [
+          "worldcup_czech_republic_1_Matej_Kovar",
+          "worldcup_czech_republic_16_Jindrich_Stanek",
+          "worldcup_czech_republic_23_Lukas_Hornicek"
+        ],
+        "slots": [
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_czech_republic_2_David_Zima",
+              "worldcup_czech_republic_3_Tomas_Holes"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_czech_republic_4_Robin_Hranac",
+              "worldcup_czech_republic_7_Ladislav_Krejci"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_czech_republic_6_Stepan_Chaloupek",
+              ""
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "worldcup_czech_republic_14_David_Jurasek",
+              "worldcup_czech_republic_20_Jaroslav_Zeleny"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_czech_republic_8_Vladimir_Darida",
+              "worldcup_czech_republic_12_Lukas_Cerv"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_czech_republic_18_Michal_Sadilek",
+              "worldcup_czech_republic_22_Tomas_Soucek"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "worldcup_czech_republic_6_Vladimir_Coufal",
+              "worldcup_czech_republic_21_David_Doudera"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "worldcup_czech_republic_13_Mojmir_Chytil",
+              "worldcup_czech_republic_15_Pavel_Sulc"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "worldcup_czech_republic_17_Lukas_Provod",
+              "worldcup_czech_republic_26_Denis_Visinsky"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "worldcup_czech_republic_10_Patrik_Schick",
+              "worldcup_czech_republic_9_Adam_Hlozek"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "worldcup_dr_congo",
@@ -4285,8 +4366,8 @@
         "formation": "4-1-4-1",
         "goalkeepers": [
           "worldcup_mexico_1_Raul_Rangel",
-          "worldcup_mexico_13_Guillermo_Ochoa",
-          "worldcup_mexico_12_Carlos_Acevedo"
+          "worldcup_mexico_12_Carlos_Acevedo",
+          "worldcup_mexico_13_Guillermo_Ochoa"
         ],
         "slots": [
           {
@@ -4299,15 +4380,15 @@
           {
             "tag": "CB",
             "players": [
-              "worldcup_mexico_5_Johan_Vasquez",
+              "worldcup_mexico_3_Cesar_Montes",
               ""
             ]
           },
           {
             "tag": "CB",
             "players": [
-              "worldcup_mexico_3_Cesar_Montes",
-              "worldcup_mexico_4_Edson_Alvarez"
+              "worldcup_mexico_5_Johan_Vasquez",
+              ""
             ]
           },
           {
@@ -4320,36 +4401,36 @@
           {
             "tag": "DM",
             "players": [
-              "worldcup_mexico_6_Erik_Lira",
-              "worldcup_mexico_24_Luis_Chavez"
+              "worldcup_mexico_4_Edson_Alvarez",
+              "worldcup_mexico_6_Erik_Lira"
             ]
           },
           {
             "tag": "LW",
             "players": [
-              "worldcup_mexico_16_Julian_Quinones",
-              "worldcup_mexico_10_Alexis_Vega"
+              "worldcup_mexico_10_Alexis_Vega",
+              "worldcup_mexico_16_Julian_Quinones"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_mexico_8_Alvaro_Fidalgo",
+              "worldcup_mexico_17_Orbelin_Pineda"
             ]
           },
           {
             "tag": "AM",
             "players": [
               "worldcup_mexico_7_Luis_Romo",
-              "worldcup_mexico_8_Alvaro_Fidalgo"
-            ]
-          },
-          {
-            "tag": "AM",
-            "players": [
-              "worldcup_mexico_26_Brian_Gutierrez",
-              "worldcup_mexico_19_Gilberto_Mora"
+              "worldcup_mexico_26_Brian_Gutierrez"
             ]
           },
           {
             "tag": "RW",
             "players": [
-              "worldcup_mexico_25_Roberto_Alvarado",
-              "worldcup_mexico_21_Cesar_Huerta"
+              "worldcup_mexico_21_Cesar_Huerta",
+              "worldcup_mexico_25_Roberto_Alvarado"
             ]
           },
           {
@@ -4504,19 +4585,202 @@
         "#2de2e6",
         "#111827"
       ],
-      "logo": "./images/worldcup/south_africa.png"
+      "logo": "./images/worldcup/south_africa.png",
+      "formation": "5-3-2",
+      "squadDepth": {
+        "formation": "5-3-2",
+        "goalkeepers": [
+          "worldcup_south_africa_1_Ronwen_Williams",
+          "worldcup_south_africa_16_Sipho_Chaine",
+          "worldcup_south_africa_22_Ricardo_Goss"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "worldcup_south_africa_6_Aubrey_Modiba",
+              "worldcup_south_africa_18_Samukelo_Kabini"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_south_africa_3_Khulumani_Ndamane",
+              "worldcup_south_africa_14_Mbekezeli_Mbokazi"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_south_africa_19_Nkosinathi_Sibisi",
+              "worldcup_south_africa_21_Ime_Okon"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_south_africa_24_Olwethu_Makhanya",
+              ""
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "worldcup_south_africa_2_Thabang_Matuludi",
+              "worldcup_south_africa_20_Khuliso_Mudau"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "worldcup_south_africa_4_Teboho_Mokoena",
+              "worldcup_south_africa_5_Thalente_Mbatha"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_south_africa_13_Yaya_Sithole",
+              "worldcup_south_africa_23_Jayden_Adams"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "worldcup_south_africa_10_Relebohile_Mofokeng",
+              "worldcup_south_africa_11_Themba_Zwane"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "worldcup_south_africa_12_Thapelo_Maseko",
+              ""
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "worldcup_south_africa_7_Oswin_Appollis",
+              "worldcup_south_africa_8_Tshepang_Moremi"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "worldcup_south_africa_9_Lyle_Foster",
+              "worldcup_south_africa_15_Iqraam_Rayners"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "worldcup_south_korea",
       "leagueId": "worldcup",
       "name": "South Korea",
       "city": "Seoul",
-      "coach": "Hong Myung-bo",
+      "coach": "Hong Myung-Bo",
       "colors": [
         "#ff4d6d",
         "#2de2e6"
       ],
-      "logo": "./images/worldcup/south_korea.png"
+      "logo": "./images/worldcup/south_korea.png",
+      "formation": "3-4-2-1",
+      "squadDepth": {
+        "formation": "3-4-2-1",
+        "goalkeepers": [
+          "worldcup_south_korea_1_Kim_Seung_Gyu",
+          "worldcup_south_korea_12_Song_Bum_Keun",
+          "worldcup_south_korea_21_Jo_Hyeon_Woo"
+        ],
+        "slots": [
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_south_korea_3_Lee_Gi_Hyuk",
+              "worldcup_south_korea_4_Kim_Min_Jae"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_south_korea_2_Lee_Han_Beom",
+              ""
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_south_korea_5_Kim_Tae_Hyeon",
+              "worldcup_south_korea_14_Cho_Wi_Je"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "worldcup_south_korea_13_Lee_Tae_Seok",
+              "worldcup_south_korea_23_Jens_Castrop"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "worldcup_south_korea_6_Hwang_In_Beom",
+              "worldcup_south_korea_8_Paik_Seung_Ho"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_south_korea_16_Park_Jin_Seob",
+              "worldcup_south_korea_24_Kim_Jin_Gyu"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "worldcup_south_korea_22_Seol_Young_Woo",
+              "worldcup_south_korea_15_Kim_Moon_Hwan"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "worldcup_south_korea_19_Lee_Kang_In",
+              "worldcup_south_korea_10_Lee_Jae_Sung"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "worldcup_south_korea_17_Bae_Jun_Ho",
+              ""
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "worldcup_south_korea_20_Yang_Hyun_Jun",
+              "worldcup_south_korea_26_Lee_Dong_Gyeong"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "worldcup_south_korea_11_Hwang_Hee_Chan",
+              "worldcup_south_korea_25_Eom_Ji_Sung"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "worldcup_south_korea_7_Son_Heung_Min",
+              "worldcup_south_korea_9_Cho_Gue_Sung"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "worldcup_spain",
@@ -34455,8 +34719,20 @@
       "flag": "🇲🇾",
       "nationality": "Malaysia"
     },
+        {
+      "id": "worldcup_czech_republic_1_Matej_Kovar",
+      "teamId": "worldcup_czech_republic",
+      "number": 1,
+      "name": "Matej Kovar",
+      "pos": "GK",
+      "role": "GK",
+      "club": "PSV Eindhoven",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 0
+    },
     {
-      "id": "worldcup_czech_republic_1_Jindrich_Stanek",
+      "id": "worldcup_czech_republic_16_Jindrich_Stanek",
       "teamId": "worldcup_czech_republic",
       "number": 16,
       "name": "Jindrich Stanek",
@@ -34464,21 +34740,11 @@
       "role": "GK",
       "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 1
     },
     {
-      "id": "worldcup_czech_republic_16_Matej_Kovar",
-      "teamId": "worldcup_czech_republic",
-      "number": 1,
-      "name": "Matej Kovar",
-      "pos": "GK",
-      "role": "GK",
-      "club": "PSV",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_23_Vitezslav_Jaros",
+      "id": "worldcup_czech_republic_23_Lukas_Hornicek",
       "teamId": "worldcup_czech_republic",
       "number": 23,
       "name": "Lukas Hornicek",
@@ -34486,21 +34752,11 @@
       "role": "GK",
       "club": "Braga",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 2
     },
     {
-      "id": "worldcup_czech_republic_3_Ladislav_Krejci",
-      "teamId": "worldcup_czech_republic",
-      "number": 7,
-      "name": "Ladislav Krejci (C)",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Wolves",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_4_David_Zima",
+      "id": "worldcup_czech_republic_2_David_Zima",
       "teamId": "worldcup_czech_republic",
       "number": 2,
       "name": "David Zima",
@@ -34508,10 +34764,11 @@
       "role": "CB",
       "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 3
     },
     {
-      "id": "worldcup_czech_republic_5_Tomas_Holes",
+      "id": "worldcup_czech_republic_3_Tomas_Holes",
       "teamId": "worldcup_czech_republic",
       "number": 3,
       "name": "Tomas Holes",
@@ -34519,21 +34776,11 @@
       "role": "CB",
       "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 4
     },
     {
-      "id": "worldcup_czech_republic_13_Martin_Vitik",
-      "teamId": "worldcup_czech_republic",
-      "number": 6,
-      "name": "Stepan Chaloupek",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Slavia Prague",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_15_Robin_Hranac",
+      "id": "worldcup_czech_republic_4_Robin_Hranac",
       "teamId": "worldcup_czech_republic",
       "number": 4,
       "name": "Robin Hranac",
@@ -34541,66 +34788,96 @@
       "role": "CB",
       "club": "Hoffenheim",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 5
     },
     {
-      "id": "worldcup_czech_republic_2_Vladimir_Coufal",
+      "id": "worldcup_czech_republic_6_Stepan_Chaloupek",
       "teamId": "worldcup_czech_republic",
-      "number": 5,
-      "name": "Vladimir Coufal",
-      "pos": "DF",
-      "role": "RB",
-      "club": "Hoffenheim",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_22_David_Doudera",
-      "teamId": "worldcup_czech_republic",
-      "number": 20,
-      "name": "Jaroslav Zeleny",
+      "number": 6,
+      "name": "Stepan Chaloupek",
       "pos": "DF",
       "role": "CB",
-      "club": "Sparta Prague",
+      "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 6
     },
     {
-      "id": "worldcup_czech_republic_18_Jan_Boril",
+      "id": "worldcup_czech_republic_7_Ladislav_Krejci",
+      "teamId": "worldcup_czech_republic",
+      "number": 7,
+      "name": "Ladislav Krejci",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Wolverhampton Wanderers",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 7,
+      "captain": true
+    },
+    {
+      "id": "worldcup_czech_republic_6_Vladimir_Coufal",
+      "teamId": "worldcup_czech_republic",
+      "number": 6,
+      "name": "Vladimir Coufal",
+      "pos": "DF",
+      "role": "RM",
+      "club": "Hoffenheim",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 8
+    },
+    {
+      "id": "worldcup_czech_republic_21_David_Doudera",
+      "teamId": "worldcup_czech_republic",
+      "number": 21,
+      "name": "David Doudera",
+      "pos": "DF",
+      "role": "RM",
+      "club": "Slavia Prague",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 9
+    },
+    {
+      "id": "worldcup_czech_republic_14_David_Jurasek",
       "teamId": "worldcup_czech_republic",
       "number": 14,
       "name": "David Jurasek",
       "pos": "DF",
-      "role": "LB",
+      "role": "LM",
       "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 10
     },
     {
-      "id": "worldcup_czech_republic_8_Tomas_Soucek",
+      "id": "worldcup_czech_republic_20_Jaroslav_Zeleny",
       "teamId": "worldcup_czech_republic",
-      "number": 22,
-      "name": "Tomas Soucek",
-      "pos": "MF",
-      "role": "DM",
-      "club": "West Ham",
-      "captain": true,
+      "number": 20,
+      "name": "Jaroslav Zeleny",
+      "pos": "DF",
+      "role": "LM",
+      "club": "Sparta Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 11
     },
     {
-      "id": "worldcup_czech_republic_6_Michal_Sadilek",
+      "id": "worldcup_czech_republic_24_Alexander_Sojka",
       "teamId": "worldcup_czech_republic",
-      "number": 18,
-      "name": "Michal Sadilek",
-      "pos": "MF",
-      "role": "CM",
-      "club": "Slavia Prague",
+      "number": 24,
+      "name": "Alexander Sojka",
+      "pos": "DF",
+      "role": "LM",
+      "club": "Viktoria Plzen",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 12
     },
     {
-      "id": "worldcup_czech_republic_14_Lukas_Provod",
+      "id": "worldcup_czech_republic_8_Vladimir_Darida",
       "teamId": "worldcup_czech_republic",
       "number": 8,
       "name": "Vladimir Darida",
@@ -34608,21 +34885,11 @@
       "role": "CM",
       "club": "Hradec Kralove",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 13
     },
     {
-      "id": "worldcup_czech_republic_19_Petr_Sevcik",
-      "teamId": "worldcup_czech_republic",
-      "number": 24,
-      "name": "Alexandr Sojka",
-      "pos": "MF",
-      "role": "CM",
-      "club": "Viktoria Plzen",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_24_Lukas_Cerv",
+      "id": "worldcup_czech_republic_12_Lukas_Cerv",
       "teamId": "worldcup_czech_republic",
       "number": 12,
       "name": "Lukas Cerv",
@@ -34630,21 +34897,35 @@
       "role": "CM",
       "club": "Viktoria Plzen",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 14
     },
     {
-      "id": "worldcup_czech_republic_20_Pavel_Sulc",
+      "id": "worldcup_czech_republic_18_Michal_Sadilek",
       "teamId": "worldcup_czech_republic",
-      "number": 15,
-      "name": "Pavel Sulc",
+      "number": 18,
+      "name": "Michal Sadilek",
       "pos": "MF",
-      "role": "AM",
-      "club": "Lyon",
+      "role": "CM",
+      "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 15
     },
     {
-      "id": "worldcup_czech_republic_21_Antonin_Barak",
+      "id": "worldcup_czech_republic_22_Tomas_Soucek",
+      "teamId": "worldcup_czech_republic",
+      "number": 22,
+      "name": "Tomas Soucek",
+      "pos": "MF",
+      "role": "CM",
+      "club": "West Ham",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 16
+    },
+    {
+      "id": "worldcup_czech_republic_25_Hugo_Sochurek",
       "teamId": "worldcup_czech_republic",
       "number": 25,
       "name": "Hugo Sochurek",
@@ -34652,32 +34933,59 @@
       "role": "CM",
       "club": "Sparta Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 17
     },
     {
-      "id": "worldcup_czech_republic_26_Ondrej_Lingr",
+      "id": "worldcup_czech_republic_13_Mojmir_Chytil",
       "teamId": "worldcup_czech_republic",
-      "number": 21,
-      "name": "David Doudera",
-      "pos": "MF",
-      "role": "RB",
+      "number": 13,
+      "name": "Mojmir Chytil",
+      "pos": "FW",
+      "role": "RW",
       "club": "Slavia Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 18
     },
     {
-      "id": "worldcup_czech_republic_7_Vaclav_Cerny",
+      "id": "worldcup_czech_republic_15_Pavel_Sulc",
+      "teamId": "worldcup_czech_republic",
+      "number": 15,
+      "name": "Pavel Sulc",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Lyon",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 19
+    },
+    {
+      "id": "worldcup_czech_republic_17_Lukas_Provod",
+      "teamId": "worldcup_czech_republic",
+      "number": 17,
+      "name": "Lukas Provod",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Slavia Prague",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 20
+    },
+    {
+      "id": "worldcup_czech_republic_26_Denis_Visinsky",
       "teamId": "worldcup_czech_republic",
       "number": 26,
       "name": "Denis Visinsky",
       "pos": "FW",
-      "role": "AM",
+      "role": "LW",
       "club": "Viktoria Plzen",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 21
     },
     {
-      "id": "worldcup_czech_republic_11_Adam_Hlozek",
+      "id": "worldcup_czech_republic_9_Adam_Hlozek",
       "teamId": "worldcup_czech_republic",
       "number": 9,
       "name": "Adam Hlozek",
@@ -34685,18 +34993,8 @@
       "role": "CF",
       "club": "Hoffenheim",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_12_Vasil_Kusej",
-      "teamId": "worldcup_czech_republic",
-      "number": 17,
-      "name": "Lukas Provod",
-      "pos": "DF",
-      "role": "LB",
-      "club": "Slavia Prague",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 22
     },
     {
       "id": "worldcup_czech_republic_10_Patrik_Schick",
@@ -34707,32 +35005,11 @@
       "role": "CF",
       "club": "Bayer Leverkusen",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 23
     },
     {
-      "id": "worldcup_czech_republic_9_Tomas_Chory",
-      "teamId": "worldcup_czech_republic",
-      "number": 19,
-      "name": "Tomas Chory",
-      "pos": "FW",
-      "role": "CF",
-      "club": "Slavia Prague",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_17_Mojmir_Chytil",
-      "teamId": "worldcup_czech_republic",
-      "number": 13,
-      "name": "Mojmir Chytil",
-      "pos": "FW",
-      "role": "CF",
-      "club": "Slavia Prague",
-      "flag": "🇨🇿",
-      "nationality": "Czech Republic"
-    },
-    {
-      "id": "worldcup_czech_republic_25_Jan_Kuchta",
+      "id": "worldcup_czech_republic_11_Jan_Kuchta",
       "teamId": "worldcup_czech_republic",
       "number": 11,
       "name": "Jan Kuchta",
@@ -34740,7 +35017,20 @@
       "role": "CF",
       "club": "Sparta Prague",
       "flag": "🇨🇿",
-      "nationality": "Czech Republic"
+      "nationality": "Czech Republic",
+      "sortOrder": 24
+    },
+    {
+      "id": "worldcup_czech_republic_19_Tomas_Chory",
+      "teamId": "worldcup_czech_republic",
+      "number": 19,
+      "name": "Tomas Chory",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Slavia Prague",
+      "flag": "🇨🇿",
+      "nationality": "Czech Republic",
+      "sortOrder": 25
     },
     {
       "id": "msl_melaka_20_Dino_Kalesic",
@@ -34752,127 +35042,7 @@
       "flag": "🇧🇦",
       "nationality": "Bosnia"
     },
-    {
-      "id": "worldcup_mexico_6_Erik_Lira",
-      "teamId": "worldcup_mexico",
-      "number": 6,
-      "name": "Erik Lira",
-      "pos": "MF",
-      "role": "DM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 11,
-      "club": "Cruz Azul"
-    },
-    {
-      "id": "worldcup_mexico_24_Luis_Chavez",
-      "teamId": "worldcup_mexico",
-      "number": 24,
-      "name": "Luis Chavez",
-      "pos": "MF",
-      "role": "DM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 12,
-      "club": "Dynamo Moscow"
-    },
-    {
-      "id": "worldcup_mexico_8_Alvaro_Fidalgo",
-      "teamId": "worldcup_mexico",
-      "number": 8,
-      "name": "Alvaro Fidalgo",
-      "pos": "MF",
-      "role": "CM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 13,
-      "club": "Real Betis"
-    },
-    {
-      "id": "worldcup_mexico_17_Orbelin_Pineda",
-      "teamId": "worldcup_mexico",
-      "number": 17,
-      "name": "Orbelin Pineda",
-      "pos": "MF",
-      "role": "CM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 14,
-      "club": "AEK Athens"
-    },
-    {
-      "id": "worldcup_mexico_18_Obed_Vargas",
-      "teamId": "worldcup_mexico",
-      "number": 18,
-      "name": "Obed Vargas",
-      "pos": "MF",
-      "role": "CM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 15,
-      "club": "Atletico Madrid"
-    },
-    {
-      "id": "worldcup_mexico_19_Gilberto_Mora",
-      "teamId": "worldcup_mexico",
-      "number": 19,
-      "name": "Gilberto Mora",
-      "pos": "MF",
-      "role": "AM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 16,
-      "club": "Tijuana"
-    },
-    {
-      "id": "worldcup_mexico_26_Brian_Gutierrez",
-      "teamId": "worldcup_mexico",
-      "number": 26,
-      "name": "Brian Gutierrez",
-      "pos": "MF",
-      "role": "AM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 17,
-      "club": "Guadalajara"
-    },
-    {
-      "id": "worldcup_mexico_25_Roberto_Alvarado",
-      "teamId": "worldcup_mexico",
-      "number": 25,
-      "name": "Roberto Alvarado",
-      "pos": "FW",
-      "role": "RW",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 18,
-      "club": "Guadalajara"
-    },
-    {
-      "id": "worldcup_mexico_10_Alexis_Vega",
-      "teamId": "worldcup_mexico",
-      "number": 10,
-      "name": "Alexis Vega",
-      "pos": "FW",
-      "role": "LW",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 19,
-      "club": "Toluca"
-    },
-    {
-      "id": "worldcup_mexico_21_Cesar_Huerta",
-      "teamId": "worldcup_mexico",
-      "number": 21,
-      "name": "Cesar Huerta",
-      "pos": "FW",
-      "role": "LW",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 20,
-      "club": "Anderlecht"
-    },
-    {
+        {
       "id": "worldcup_mexico_1_Raul_Rangel",
       "teamId": "worldcup_mexico",
       "number": 1,
@@ -34882,91 +35052,7 @@
       "flag": "🇲🇽",
       "nationality": "Mexico",
       "sortOrder": 0,
-      "club": "Guadalajara"
-    },
-    {
-      "id": "worldcup_mexico_2_Jorge_Sanchez",
-      "teamId": "worldcup_mexico",
-      "number": 2,
-      "name": "Jorge Sanchez",
-      "pos": "DF",
-      "role": "RB",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 6,
-      "club": "PAOK"
-    },
-    {
-      "id": "worldcup_mexico_3_Cesar_Montes",
-      "teamId": "worldcup_mexico",
-      "number": 3,
-      "name": "Cesar Montes",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 3,
-      "club": "Lokomotiv Moscow"
-    },
-    {
-      "id": "worldcup_mexico_4_Edson_Alvarez",
-      "teamId": "worldcup_mexico",
-      "number": 4,
-      "name": "Edson Alvarez (C)",
-      "pos": "MF",
-      "role": "DM",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 10,
-      "club": "Fenerbahce"
-    },
-    {
-      "id": "worldcup_mexico_5_Johan_Vasquez",
-      "teamId": "worldcup_mexico",
-      "number": 5,
-      "name": "Johan Vasquez",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 4,
-      "club": "Genoa"
-    },
-    {
-      "id": "worldcup_mexico_7_Luis_Romo",
-      "teamId": "worldcup_mexico",
-      "number": 7,
-      "name": "Luis Romo",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 5,
-      "club": "Guadalajara"
-    },
-    {
-      "id": "worldcup_mexico_9_Raul_Jimenez",
-      "teamId": "worldcup_mexico",
-      "number": 9,
-      "name": "Raul Jimenez",
-      "pos": "FW",
-      "role": "CF",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 21,
-      "club": "Fulham"
-    },
-    {
-      "id": "worldcup_mexico_11_Santiago_Gimenez",
-      "teamId": "worldcup_mexico",
-      "number": 11,
-      "name": "Santiago Gimenez",
-      "pos": "FW",
-      "role": "CF",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 22,
-      "club": "AC Milan"
+      "club": "Chivas"
     },
     {
       "id": "worldcup_mexico_12_Carlos_Acevedo",
@@ -34990,19 +35076,43 @@
       "flag": "🇲🇽",
       "nationality": "Mexico",
       "sortOrder": 2,
-      "club": "AEK Limassol"
+      "club": "AEL Limassol"
     },
     {
-      "id": "worldcup_mexico_14_Armando_Gonzalez",
+      "id": "worldcup_mexico_3_Cesar_Montes",
       "teamId": "worldcup_mexico",
-      "number": 14,
-      "name": "Armando Gonzalez",
-      "pos": "FW",
-      "role": "CF",
+      "number": 3,
+      "name": "Cesar Montes",
+      "pos": "DF",
+      "role": "CB",
       "flag": "🇲🇽",
       "nationality": "Mexico",
-      "sortOrder": 23,
-      "club": "Guadalajara"
+      "sortOrder": 3,
+      "club": "Lokomotiv Moscow"
+    },
+    {
+      "id": "worldcup_mexico_5_Johan_Vasquez",
+      "teamId": "worldcup_mexico",
+      "number": 5,
+      "name": "Johan Vasquez",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 4,
+      "club": "Genoa"
+    },
+    {
+      "id": "worldcup_mexico_2_Jorge_Sanchez",
+      "teamId": "worldcup_mexico",
+      "number": 2,
+      "name": "Jorge Sanchez",
+      "pos": "DF",
+      "role": "RB",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 5,
+      "club": "PAOK"
     },
     {
       "id": "worldcup_mexico_15_Israel_Reyes",
@@ -35013,20 +35123,8 @@
       "role": "RB",
       "flag": "🇲🇽",
       "nationality": "Mexico",
-      "sortOrder": 7,
-      "club": "America"
-    },
-    {
-      "id": "worldcup_mexico_16_Julian_Quinones",
-      "teamId": "worldcup_mexico",
-      "number": 16,
-      "name": "Julian Quinones",
-      "pos": "FW",
-      "role": "CF",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 24,
-      "club": "Al Qadsiah"
+      "sortOrder": 6,
+      "club": "CF America"
     },
     {
       "id": "worldcup_mexico_20_Mateo_Chavez",
@@ -35037,8 +35135,213 @@
       "role": "LB",
       "flag": "🇲🇽",
       "nationality": "Mexico",
+      "sortOrder": 7,
+      "club": "AZ Alkmaar"
+    },
+    {
+      "id": "worldcup_mexico_23_Jesus_Gallardo",
+      "teamId": "worldcup_mexico",
+      "number": 23,
+      "name": "Jesus Gallardo",
+      "pos": "DF",
+      "role": "LB",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
       "sortOrder": 8,
-      "club": "Az Alkmaar"
+      "club": "Toluca"
+    },
+    {
+      "id": "worldcup_mexico_4_Edson_Alvarez",
+      "teamId": "worldcup_mexico",
+      "number": 4,
+      "name": "Edson Alvarez",
+      "pos": "MF",
+      "role": "DM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 9,
+      "club": "West Ham",
+      "captain": true
+    },
+    {
+      "id": "worldcup_mexico_6_Erik_Lira",
+      "teamId": "worldcup_mexico",
+      "number": 6,
+      "name": "Erik Lira",
+      "pos": "MF",
+      "role": "DM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 10,
+      "club": "Cruz Azul"
+    },
+    {
+      "id": "worldcup_mexico_24_Luis_Chavez",
+      "teamId": "worldcup_mexico",
+      "number": 24,
+      "name": "Luis Chavez",
+      "pos": "MF",
+      "role": "DM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 11,
+      "club": "Dynamo Moscow"
+    },
+    {
+      "id": "worldcup_mexico_8_Alvaro_Fidalgo",
+      "teamId": "worldcup_mexico",
+      "number": 8,
+      "name": "Alvaro Fidalgo",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 12,
+      "club": "Real Betis"
+    },
+    {
+      "id": "worldcup_mexico_17_Orbelin_Pineda",
+      "teamId": "worldcup_mexico",
+      "number": 17,
+      "name": "Orbelin Pineda",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 13,
+      "club": "AEK Athens"
+    },
+    {
+      "id": "worldcup_mexico_18_Obed_Vargas",
+      "teamId": "worldcup_mexico",
+      "number": 18,
+      "name": "Obed Vargas",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 14,
+      "club": "Atletico Madrid"
+    },
+    {
+      "id": "worldcup_mexico_7_Luis_Romo",
+      "teamId": "worldcup_mexico",
+      "number": 7,
+      "name": "Luis Romo",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 15,
+      "club": "Chivas"
+    },
+    {
+      "id": "worldcup_mexico_19_Gilberto_Mora",
+      "teamId": "worldcup_mexico",
+      "number": 19,
+      "name": "Gilberto Mora",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 16,
+      "club": "Tijuana"
+    },
+    {
+      "id": "worldcup_mexico_26_Brian_Gutierrez",
+      "teamId": "worldcup_mexico",
+      "number": 26,
+      "name": "Brian Gutierrez",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 17,
+      "club": "Chivas"
+    },
+    {
+      "id": "worldcup_mexico_21_Cesar_Huerta",
+      "teamId": "worldcup_mexico",
+      "number": 21,
+      "name": "Cesar Huerta",
+      "pos": "FW",
+      "role": "RW",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 18,
+      "club": "Anderlecht"
+    },
+    {
+      "id": "worldcup_mexico_25_Roberto_Alvarado",
+      "teamId": "worldcup_mexico",
+      "number": 25,
+      "name": "Roberto Alvarado",
+      "pos": "FW",
+      "role": "RW",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 19,
+      "club": "Chivas"
+    },
+    {
+      "id": "worldcup_mexico_10_Alexis_Vega",
+      "teamId": "worldcup_mexico",
+      "number": 10,
+      "name": "Alexis Vega",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 20,
+      "club": "Toluca"
+    },
+    {
+      "id": "worldcup_mexico_16_Julian_Quinones",
+      "teamId": "worldcup_mexico",
+      "number": 16,
+      "name": "Julian Quinones",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 21,
+      "club": "Al Qadsiah"
+    },
+    {
+      "id": "worldcup_mexico_9_Raul_Jimenez",
+      "teamId": "worldcup_mexico",
+      "number": 9,
+      "name": "Raul Jimenez",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 22,
+      "club": "Fulham"
+    },
+    {
+      "id": "worldcup_mexico_11_Santiago_Gimenez",
+      "teamId": "worldcup_mexico",
+      "number": 11,
+      "name": "Santiago Gimenez",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 23,
+      "club": "AC Milan"
+    },
+    {
+      "id": "worldcup_mexico_14_Armando_Gonzalez",
+      "teamId": "worldcup_mexico",
+      "number": 14,
+      "name": "Armando Gonzalez",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 24,
+      "club": "Chivas"
     },
     {
       "id": "worldcup_mexico_22_Guillermo_Martinez",
@@ -35053,16 +35356,17 @@
       "club": "Pumas"
     },
     {
-      "id": "worldcup_mexico_23_Jesus_Gallardo",
-      "teamId": "worldcup_mexico",
-      "number": 23,
-      "name": "Jesus Gallardo",
-      "pos": "DF",
-      "role": "LB",
-      "flag": "🇲🇽",
-      "nationality": "Mexico",
-      "sortOrder": 9,
-      "club": "Toluca"
+      "id": "worldcup_south_africa_1_Ronwen_Williams",
+      "teamId": "worldcup_south_africa",
+      "number": 1,
+      "name": "Ronwen Williams",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 0,
+      "club": "Mamelodi Sundowns",
+      "captain": true
     },
     {
       "id": "worldcup_south_africa_16_Sipho_Chaine",
@@ -35077,18 +35381,6 @@
       "club": "Orlando Pirates"
     },
     {
-      "id": "worldcup_south_africa_1_Ronwen_Williams",
-      "teamId": "worldcup_south_africa",
-      "number": 1,
-      "name": "Ronwen Williams (C)",
-      "pos": "GK",
-      "role": "GK",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 0,
-      "club": "Sundowns"
-    },
-    {
       "id": "worldcup_south_africa_22_Ricardo_Goss",
       "teamId": "worldcup_south_africa",
       "number": 22,
@@ -35099,6 +35391,66 @@
       "nationality": "South Africa",
       "sortOrder": 2,
       "club": "Siwelele"
+    },
+    {
+      "id": "worldcup_south_africa_3_Khulumani_Ndamane",
+      "teamId": "worldcup_south_africa",
+      "number": 3,
+      "name": "Khulumani Ndamane",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 3,
+      "club": "Mamelodi Sundowns"
+    },
+    {
+      "id": "worldcup_south_africa_14_Mbekezeli_Mbokazi",
+      "teamId": "worldcup_south_africa",
+      "number": 14,
+      "name": "Mbekezeli Mbokazi",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 4,
+      "club": "Chicago Fire"
+    },
+    {
+      "id": "worldcup_south_africa_19_Nkosinathi_Sibisi",
+      "teamId": "worldcup_south_africa",
+      "number": 19,
+      "name": "Nkosinathi Sibisi",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 5,
+      "club": "Orlando Pirates"
+    },
+    {
+      "id": "worldcup_south_africa_21_Ime_Okon",
+      "teamId": "worldcup_south_africa",
+      "number": 21,
+      "name": "Ime Okon",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 6,
+      "club": "Hannover 96"
+    },
+    {
+      "id": "worldcup_south_africa_24_Olwethu_Makhanya",
+      "teamId": "worldcup_south_africa",
+      "number": 24,
+      "name": "Olwethu Makhanya",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 7,
+      "club": "Philadelphia Union"
     },
     {
       "id": "worldcup_south_africa_2_Thabang_Matuludi",
@@ -35113,16 +35465,64 @@
       "club": "Polokwane City"
     },
     {
-      "id": "worldcup_south_africa_3_Khulumani_Ndamane",
+      "id": "worldcup_south_africa_20_Khuliso_Mudau",
       "teamId": "worldcup_south_africa",
-      "number": 3,
-      "name": "Khulumani Ndamane",
+      "number": 20,
+      "name": "Khuliso Mudau",
       "pos": "DF",
-      "role": "CB",
+      "role": "RB",
       "flag": "🇿🇦",
       "nationality": "South Africa",
-      "sortOrder": 3,
-      "club": "Sundowns"
+      "sortOrder": 9,
+      "club": "Mamelodi Sundowns"
+    },
+    {
+      "id": "worldcup_south_africa_25_Kamogelo_Sebelebele",
+      "teamId": "worldcup_south_africa",
+      "number": 25,
+      "name": "Kamogelo Sebelebele",
+      "pos": "DF",
+      "role": "RB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 10,
+      "club": "Orlando Pirates"
+    },
+    {
+      "id": "worldcup_south_africa_6_Aubrey_Modiba",
+      "teamId": "worldcup_south_africa",
+      "number": 6,
+      "name": "Aubrey Modiba",
+      "pos": "DF",
+      "role": "LB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 11,
+      "club": "Mamelodi Sundowns"
+    },
+    {
+      "id": "worldcup_south_africa_18_Samukelo_Kabini",
+      "teamId": "worldcup_south_africa",
+      "number": 18,
+      "name": "Samukelo Kabini",
+      "pos": "DF",
+      "role": "LB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 12,
+      "club": "Molde"
+    },
+    {
+      "id": "worldcup_south_africa_26_Bradley_Cross",
+      "teamId": "worldcup_south_africa",
+      "number": 26,
+      "name": "Bradley Cross",
+      "pos": "DF",
+      "role": "LB",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 13,
+      "club": "Kaizer Chiefs"
     },
     {
       "id": "worldcup_south_africa_4_Teboho_Mokoena",
@@ -35134,7 +35534,7 @@
       "flag": "🇿🇦",
       "nationality": "South Africa",
       "sortOrder": 14,
-      "club": "Sundowns"
+      "club": "Mamelodi Sundowns"
     },
     {
       "id": "worldcup_south_africa_5_Thalente_Mbatha",
@@ -35149,16 +35549,64 @@
       "club": "Orlando Pirates"
     },
     {
-      "id": "worldcup_south_africa_6_Aubrey_Modiba",
+      "id": "worldcup_south_africa_13_Yaya_Sithole",
       "teamId": "worldcup_south_africa",
-      "number": 6,
-      "name": "Aubrey Modiba",
-      "pos": "DF",
-      "role": "LB",
+      "number": 13,
+      "name": "Yaya Sithole",
+      "pos": "MF",
+      "role": "CM",
       "flag": "🇿🇦",
       "nationality": "South Africa",
-      "sortOrder": 11,
-      "club": "Sundowns"
+      "sortOrder": 16,
+      "club": "Tondela"
+    },
+    {
+      "id": "worldcup_south_africa_23_Jayden_Adams",
+      "teamId": "worldcup_south_africa",
+      "number": 23,
+      "name": "Jayden Adams",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 17,
+      "club": "Mamelodi Sundowns"
+    },
+    {
+      "id": "worldcup_south_africa_10_Relebohile_Mofokeng",
+      "teamId": "worldcup_south_africa",
+      "number": 10,
+      "name": "Relebohile Mofokeng",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 18,
+      "club": "Orlando Pirates"
+    },
+    {
+      "id": "worldcup_south_africa_11_Themba_Zwane",
+      "teamId": "worldcup_south_africa",
+      "number": 11,
+      "name": "Themba Zwane",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 19,
+      "club": "Mamelodi Sundowns"
+    },
+    {
+      "id": "worldcup_south_africa_12_Thapelo_Maseko",
+      "teamId": "worldcup_south_africa",
+      "number": 12,
+      "name": "Thapelo Maseko",
+      "pos": "FW",
+      "role": "RW",
+      "flag": "🇿🇦",
+      "nationality": "South Africa",
+      "sortOrder": 20,
+      "club": "Mamelodi Sundowns"
     },
     {
       "id": "worldcup_south_africa_7_Oswin_Appollis",
@@ -35166,10 +35614,10 @@
       "number": 7,
       "name": "Oswin Appollis",
       "pos": "FW",
-      "role": "RW",
+      "role": "LW",
       "flag": "🇿🇦",
       "nationality": "South Africa",
-      "sortOrder": 19,
+      "sortOrder": 21,
       "club": "Orlando Pirates"
     },
     {
@@ -35181,7 +35629,7 @@
       "role": "LW",
       "flag": "🇿🇦",
       "nationality": "South Africa",
-      "sortOrder": 20,
+      "sortOrder": 22,
       "club": "Orlando Pirates"
     },
     {
@@ -35197,66 +35645,6 @@
       "club": "Burnley"
     },
     {
-      "id": "worldcup_south_africa_10_Relebohile_Mofokeng",
-      "teamId": "worldcup_south_africa",
-      "number": 10,
-      "name": "Relebohile Mofokeng",
-      "pos": "FW",
-      "role": "LW",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 21,
-      "club": "Orlando Pirates"
-    },
-    {
-      "id": "worldcup_south_africa_11_Themba_Zwane",
-      "teamId": "worldcup_south_africa",
-      "number": 11,
-      "name": "Themba Zwane",
-      "pos": "MF",
-      "role": "AM",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 18,
-      "club": "Sundowns"
-    },
-    {
-      "id": "worldcup_south_africa_12_Thapelo_Maseko",
-      "teamId": "worldcup_south_africa",
-      "number": 12,
-      "name": "Thapelo Maseko",
-      "pos": "FW",
-      "role": "LW",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 22,
-      "club": "AEL Limassol"
-    },
-    {
-      "id": "worldcup_south_africa_13_Yaya_Sithole",
-      "teamId": "worldcup_south_africa",
-      "number": 13,
-      "name": "Yaya Sithole",
-      "pos": "MF",
-      "role": "DM",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 16,
-      "club": "Tondela"
-    },
-    {
-      "id": "worldcup_south_africa_14_Mbekezeli_Mbokazi",
-      "teamId": "worldcup_south_africa",
-      "number": 14,
-      "name": "Mbekezeli Mbokazi",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 4,
-      "club": "Chicago Fire"
-    },
-    {
       "id": "worldcup_south_africa_15_Iqraam_Rayners",
       "teamId": "worldcup_south_africa",
       "number": 15,
@@ -35266,7 +35654,7 @@
       "flag": "🇿🇦",
       "nationality": "South Africa",
       "sortOrder": 24,
-      "club": "Sundows"
+      "club": "Mamelodi Sundowns"
     },
     {
       "id": "worldcup_south_africa_17_Evidence_Makgopa",
@@ -35279,102 +35667,6 @@
       "nationality": "South Africa",
       "sortOrder": 25,
       "club": "Orlando Pirates"
-    },
-    {
-      "id": "worldcup_south_africa_18_Samukelo_Kabini",
-      "teamId": "worldcup_south_africa",
-      "number": 18,
-      "name": "Samukelo Kabini",
-      "pos": "DF",
-      "role": "LB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 12,
-      "club": "Molde"
-    },
-    {
-      "id": "worldcup_south_africa_19_Nkosinathi_Sibisi",
-      "teamId": "worldcup_south_africa",
-      "number": 19,
-      "name": "Nkosinathi Sibisi",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 5,
-      "club": "Orlando Pirates"
-    },
-    {
-      "id": "worldcup_south_africa_20_Khuliso_Mudau",
-      "teamId": "worldcup_south_africa",
-      "number": 20,
-      "name": "Khuliso Mudau",
-      "pos": "DF",
-      "role": "RB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 9,
-      "club": "Sundowns"
-    },
-    {
-      "id": "worldcup_south_africa_21_Ime_Okon",
-      "teamId": "worldcup_south_africa",
-      "number": 21,
-      "name": "Ime Okon",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 6,
-      "club": "Hannover 96"
-    },
-    {
-      "id": "worldcup_south_africa_23_Jayden_Adams",
-      "teamId": "worldcup_south_africa",
-      "number": 23,
-      "name": "Jayden Adams",
-      "pos": "MF",
-      "role": "DM",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 17,
-      "club": "Sundowns"
-    },
-    {
-      "id": "worldcup_south_africa_24_Olwethu_Makhanya",
-      "teamId": "worldcup_south_africa",
-      "number": 24,
-      "name": "Olwethu Makhanya",
-      "pos": "DF",
-      "role": "CB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 7,
-      "club": "Philadelphia Union"
-    },
-    {
-      "id": "worldcup_south_africa_25_Kamogelo_Sebelebele",
-      "teamId": "worldcup_south_africa",
-      "number": 25,
-      "name": "Kamogelo Sebelebele",
-      "pos": "DF",
-      "role": "RB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 10,
-      "club": "Orlando Pirates"
-    },
-    {
-      "id": "worldcup_south_africa_26_Bradley_Cross",
-      "teamId": "worldcup_south_africa",
-      "number": 26,
-      "name": "Bradley Cross",
-      "pos": "DF",
-      "role": "LB",
-      "flag": "🇿🇦",
-      "nationality": "South Africa",
-      "sortOrder": 13,
-      "club": "Kaizer Chiefs"
     },
     {
       "id": "worldcup_bosnia_1_Nikola_Vasilj",
@@ -41404,147 +41696,136 @@
       "nationality": "Croatia"
     },
     {
-      "id": "worldcup_south_korea_1_Kim_Seung_gyu",
+      "id": "worldcup_south_korea_1_Kim_Seung_Gyu",
       "teamId": "worldcup_south_korea",
       "number": 1,
-      "name": "Kim Seung-gyu",
+      "name": "Kim Seung-Gyu",
       "pos": "GK",
       "role": "GK",
       "club": "FC Tokyo",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 0
     },
     {
-      "id": "worldcup_south_korea_12_Song_Bum_keun",
+      "id": "worldcup_south_korea_12_Song_Bum_Keun",
       "teamId": "worldcup_south_korea",
       "number": 12,
-      "name": "Song Bum-keun",
+      "name": "Song Bum-Keun",
       "pos": "GK",
       "role": "GK",
-      "club": "Jeonbuk Hyundai",
+      "club": "Jeonbuk Hyundai Motors",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 1
     },
     {
-      "id": "worldcup_south_korea_21_Jo_Hyeon_woo",
+      "id": "worldcup_south_korea_21_Jo_Hyeon_Woo",
       "teamId": "worldcup_south_korea",
       "number": 21,
-      "name": "Jo Hyeon-woo",
+      "name": "Jo Hyeon-Woo",
       "pos": "GK",
       "role": "GK",
       "club": "Ulsan HD",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 2
     },
     {
-      "id": "worldcup_south_korea_4_Kim_Min_jae",
+      "id": "worldcup_south_korea_2_Lee_Han_Beom",
+      "teamId": "worldcup_south_korea",
+      "number": 2,
+      "name": "Lee Han-Beom",
+      "pos": "DF",
+      "role": "CB",
+      "club": "FC Midtjylland",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 3
+    },
+    {
+      "id": "worldcup_south_korea_3_Lee_Gi_Hyuk",
+      "teamId": "worldcup_south_korea",
+      "number": 3,
+      "name": "Lee Gi-Hyuk",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Gangwon FC",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 4
+    },
+    {
+      "id": "worldcup_south_korea_4_Kim_Min_Jae",
       "teamId": "worldcup_south_korea",
       "number": 4,
-      "name": "Kim Min-jae",
+      "name": "Kim Min-Jae",
       "pos": "DF",
       "role": "CB",
       "club": "Bayern Munich",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 5
     },
     {
-      "id": "worldcup_south_korea_2_Lee_Han_beom",
-      "teamId": "worldcup_south_korea",
-      "number": 2,
-      "name": "Lee Han-beom",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Midtjylland",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_5_Kim_Tae_hyeon",
+      "id": "worldcup_south_korea_5_Kim_Tae_Hyeon",
       "teamId": "worldcup_south_korea",
       "number": 5,
-      "name": "Kim Tae-hyeon",
+      "name": "Kim Tae-Hyeon",
       "pos": "DF",
       "role": "CB",
       "club": "Kashima Antlers",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 6
     },
     {
-      "id": "worldcup_south_korea_3_Lee_Gi_hyuk",
-      "teamId": "worldcup_south_korea",
-      "number": 3,
-      "name": "Lee Gi-hyuk",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Gangwon",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_14_Cho_Wi_je",
+      "id": "worldcup_south_korea_14_Cho_Wi_Je",
       "teamId": "worldcup_south_korea",
       "number": 14,
-      "name": "Cho Wi-je",
+      "name": "Cho Wi-Je",
       "pos": "DF",
       "role": "CB",
-      "club": "Jeonbuk Hyundai",
+      "club": "Jeonbuk Hyundai Motors",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 7
     },
     {
-      "id": "worldcup_south_korea_13_Lee_Tae_seok",
-      "teamId": "worldcup_south_korea",
-      "number": 13,
-      "name": "Lee Tae-seok",
-      "pos": "DF",
-      "role": "LB",
-      "club": "Austria Vienna",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_22_Seol_Young_woo",
-      "teamId": "worldcup_south_korea",
-      "number": 22,
-      "name": "Seol Young-woo",
-      "pos": "DF",
-      "role": "RB",
-      "club": "Red Star Belgrade",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_15_Kim_Moon_hwan",
+      "id": "worldcup_south_korea_15_Kim_Moon_Hwan",
       "teamId": "worldcup_south_korea",
       "number": 15,
-      "name": "Kim Moon-hwan",
+      "name": "Kim Moon-Hwan",
       "pos": "DF",
-      "role": "RB",
+      "role": "RM",
       "club": "Daejeon Hana Citizen",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 8
     },
     {
-      "id": "worldcup_south_korea_6_Hwang_In_beom",
+      "id": "worldcup_south_korea_22_Seol_Young_Woo",
       "teamId": "worldcup_south_korea",
-      "number": 6,
-      "name": "Hwang In-beom",
-      "pos": "MF",
-      "role": "DM",
-      "club": "Feyenoord",
+      "number": 22,
+      "name": "Seol Young-Woo",
+      "pos": "DF",
+      "role": "RM",
+      "club": "FK Crvena Zvezda",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 9
     },
     {
-      "id": "worldcup_south_korea_16_Park_Jin_seob",
+      "id": "worldcup_south_korea_13_Lee_Tae_Seok",
       "teamId": "worldcup_south_korea",
-      "number": 16,
-      "name": "Park Jin-seob",
-      "pos": "MF",
-      "role": "DM",
-      "club": "Zhejiang",
+      "number": 13,
+      "name": "Lee Tae-Seok",
+      "pos": "DF",
+      "role": "LM",
+      "club": "Austria Wien",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 10
     },
     {
       "id": "worldcup_south_korea_23_Jens_Castrop",
@@ -41552,143 +41833,180 @@
       "number": 23,
       "name": "Jens Castrop",
       "pos": "MF",
-      "role": "CM",
+      "role": "LM",
       "club": "Borussia Monchengladbach",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 11
     },
     {
-      "id": "worldcup_south_korea_8_Paik_Seung_ho",
+      "id": "worldcup_south_korea_6_Hwang_In_Beom",
+      "teamId": "worldcup_south_korea",
+      "number": 6,
+      "name": "Hwang In-Beom",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Feyenoord",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 12
+    },
+    {
+      "id": "worldcup_south_korea_8_Paik_Seung_Ho",
       "teamId": "worldcup_south_korea",
       "number": 8,
-      "name": "Paik Seung-ho",
+      "name": "Paik Seung-Ho",
       "pos": "MF",
-      "role": "CM",
+      "role": "DM",
       "club": "Birmingham City",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 13
     },
     {
-      "id": "worldcup_south_korea_24_Kim_Jin_gyu",
+      "id": "worldcup_south_korea_16_Park_Jin_Seob",
+      "teamId": "worldcup_south_korea",
+      "number": 16,
+      "name": "Park Jin-Seob",
+      "pos": "MF",
+      "role": "DM",
+      "club": "Zhejiang Professional",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 14
+    },
+    {
+      "id": "worldcup_south_korea_24_Kim_Jin_Gyu",
       "teamId": "worldcup_south_korea",
       "number": 24,
-      "name": "Kim Jin-gyu",
+      "name": "Kim Jin-Gyu",
       "pos": "MF",
-      "role": "CM",
-      "club": "Jeonbuk Hyundai",
+      "role": "DM",
+      "club": "Jeonbuk Hyundai Motors",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 15
     },
     {
-      "id": "worldcup_south_korea_19_Lee_Kang_in",
-      "teamId": "worldcup_south_korea",
-      "number": 19,
-      "name": "Lee Kang-in",
-      "pos": "MF",
-      "role": "AM",
-      "club": "PSG",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_17_Bae_Jun_ho",
-      "teamId": "worldcup_south_korea",
-      "number": 17,
-      "name": "Bae Jun-ho",
-      "pos": "MF",
-      "role": "AM",
-      "club": "Stoke City",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_10_Lee_Jae_sung",
+      "id": "worldcup_south_korea_10_Lee_Jae_Sung",
       "teamId": "worldcup_south_korea",
       "number": 10,
-      "name": "Lee Jae-sung",
+      "name": "Lee Jae-Sung",
       "pos": "MF",
       "role": "AM",
       "club": "Mainz 05",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 16
     },
     {
-      "id": "worldcup_south_korea_26_Lee_Dong_gyeong",
+      "id": "worldcup_south_korea_17_Bae_Jun_Ho",
       "teamId": "worldcup_south_korea",
-      "number": 26,
-      "name": "Lee Dong-gyeong",
+      "number": 17,
+      "name": "Bae Jun-Ho",
       "pos": "MF",
       "role": "AM",
-      "club": "Ulsan HD",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_7_Son_Heung_min",
-      "teamId": "worldcup_south_korea",
-      "number": 7,
-      "name": "Son Heung-min (C)",
-      "pos": "FW",
-      "role": "LW",
-      "club": "Los Angeles",
+      "club": "Stoke City",
       "flag": "🇰🇷",
       "nationality": "South Korea",
-      "captain": true
+      "sortOrder": 17
     },
     {
-      "id": "worldcup_south_korea_25_Eom_Ji_sung",
+      "id": "worldcup_south_korea_19_Lee_Kang_In",
       "teamId": "worldcup_south_korea",
-      "number": 25,
-      "name": "Eom Ji-sung",
-      "pos": "FW",
-      "role": "LW",
-      "club": "Swansea City",
+      "number": 19,
+      "name": "Lee Kang-In",
+      "pos": "MF",
+      "role": "AM",
+      "club": "Paris Saint-Germain",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 18
     },
     {
-      "id": "worldcup_south_korea_20_Yang_Hyun_jun",
+      "id": "worldcup_south_korea_20_Yang_Hyun_Jun",
       "teamId": "worldcup_south_korea",
       "number": 20,
-      "name": "Yang Hyun-jun",
+      "name": "Yang Hyun-Jun",
       "pos": "FW",
       "role": "RW",
       "club": "Celtic",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 19
     },
     {
-      "id": "worldcup_south_korea_18_Oh_Hyeon_gyu",
+      "id": "worldcup_south_korea_26_Lee_Dong_Gyeong",
+      "teamId": "worldcup_south_korea",
+      "number": 26,
+      "name": "Lee Dong-Gyeong",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Ulsan HD",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 20
+    },
+    {
+      "id": "worldcup_south_korea_11_Hwang_Hee_Chan",
+      "teamId": "worldcup_south_korea",
+      "number": 11,
+      "name": "Hwang Hee-Chan",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Wolverhampton Wanderers",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 21
+    },
+    {
+      "id": "worldcup_south_korea_25_Eom_Ji_Sung",
+      "teamId": "worldcup_south_korea",
+      "number": 25,
+      "name": "Eom Ji-Sung",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Swansea City",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 22
+    },
+    {
+      "id": "worldcup_south_korea_7_Son_Heung_Min",
+      "teamId": "worldcup_south_korea",
+      "number": 7,
+      "name": "Son Heung-Min",
+      "pos": "FW",
+      "role": "CF",
+      "club": "Los Angeles FC",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 23,
+      "captain": true
+    },
+    {
+      "id": "worldcup_south_korea_9_Cho_Gue_Sung",
+      "teamId": "worldcup_south_korea",
+      "number": 9,
+      "name": "Cho Gue-Sung",
+      "pos": "FW",
+      "role": "CF",
+      "club": "FC Midtjylland",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 24
+    },
+    {
+      "id": "worldcup_south_korea_18_Oh_Hyeon_Gyu",
       "teamId": "worldcup_south_korea",
       "number": 18,
-      "name": "Oh Hyeon-gyu",
+      "name": "Oh Hyeon-Gyu",
       "pos": "FW",
       "role": "CF",
       "club": "Besiktas",
       "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_11_Hwang_Hee_chan",
-      "teamId": "worldcup_south_korea",
-      "number": 11,
-      "name": "Hwang Hee-chan",
-      "pos": "FW",
-      "role": "CF",
-      "club": "Wolves",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
-    },
-    {
-      "id": "worldcup_south_korea_9_Cho_Gue_sung",
-      "teamId": "worldcup_south_korea",
-      "number": 9,
-      "name": "Cho Gue-sung",
-      "pos": "FW",
-      "role": "CF",
-      "club": "Midtjylland",
-      "flag": "🇰🇷",
-      "nationality": "South Korea"
+      "nationality": "South Korea",
+      "sortOrder": 25
     },
     {
       "id": "worldcup_canada_1_Dayne_St._Clair",
@@ -65151,6 +65469,70 @@
       }
     },
     {
+      "id": "worldcup_group_stage_mexico_south_korea",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Friday 19 Jun",
+      "stadium": "Estadio Guadalajara",
+      "homeTeamId": "worldcup_mexico",
+      "awayTeamId": "worldcup_south_korea",
+      "score": [1, 0],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["4-1-4-1", "3-4-2-1"]
+    },
+    {
+      "id": "worldcup_group_stage_czech_republic_mexico",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Thursday 25 Jun",
+      "stadium": "Estadio Guadalajara",
+      "homeTeamId": "worldcup_czech_republic",
+      "awayTeamId": "worldcup_mexico",
+      "score": [0, 3],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["3-4-2-1", "4-1-4-1"]
+    },
+    {
+      "id": "worldcup_group_stage_czech_republic_south_africa",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Friday 19 Jun",
+      "stadium": "Guadalajara Stadium",
+      "homeTeamId": "worldcup_czech_republic",
+      "awayTeamId": "worldcup_south_africa",
+      "score": [1, 1],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["3-4-2-1", "5-3-2"]
+    },
+    {
+      "id": "worldcup_group_stage_south_africa_south_korea",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Thursday 25 Jun",
+      "stadium": "Guadalajara Stadium",
+      "homeTeamId": "worldcup_south_africa",
+      "awayTeamId": "worldcup_south_korea",
+      "score": [1, 0],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["5-3-2", "3-4-2-1"]
+    },
+    {
       "id": "worldcup_group_stage_south_korea_czech_republic",
       "leagueId": "worldcup",
       "matchday": "Group Stage",
@@ -65168,20 +65550,20 @@
         {
           "minute": 59,
           "side": "away",
-          "scorer": "Ladislav Krejci (C)",
+          "scorer": "Ladislav Krejci",
           "assist": "Vladimir Coufal"
         },
         {
           "minute": 67,
           "side": "home",
-          "scorer": "Hwang In-beom",
-          "assist": "Lee Kang-in"
+          "scorer": "Hwang In-Beom",
+          "assist": "Lee Kang-In"
         },
         {
           "minute": 80,
           "side": "home",
-          "scorer": "Oh Hyeon-gyu",
-          "assist": "Hwang In-beom"
+          "scorer": "Oh Hyeon-Gyu",
+          "assist": "Hwang In-Beom"
         }
       ],
       "possession": [],
@@ -65195,7 +65577,7 @@
           {
             "tag": "GK",
             "number": 1,
-            "name": "Kim Seung-gyu",
+            "name": "Kim Seung-Gyu",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65203,7 +65585,7 @@
           {
             "tag": "CB",
             "number": 3,
-            "name": "Lee Gi-hyuk",
+            "name": "Lee Gi-Hyuk",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65211,7 +65593,7 @@
           {
             "tag": "CB",
             "number": 4,
-            "name": "Kim Min-jae",
+            "name": "Kim Min-Jae",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65219,7 +65601,7 @@
           {
             "tag": "CB",
             "number": 2,
-            "name": "Lee Han-beom",
+            "name": "Lee Han-Beom",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65227,7 +65609,7 @@
           {
             "tag": "LM",
             "number": 13,
-            "name": "Lee Tae-seok",
+            "name": "Lee Tae-Seok",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65235,7 +65617,7 @@
           {
             "tag": "CM",
             "number": 8,
-            "name": "Paik Seung-ho",
+            "name": "Paik Seung-Ho",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65243,7 +65625,7 @@
           {
             "tag": "CM",
             "number": 6,
-            "name": "Hwang In-beom",
+            "name": "Hwang In-Beom",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65251,7 +65633,7 @@
           {
             "tag": "RM",
             "number": 22,
-            "name": "Seol Young-woo",
+            "name": "Seol Young-Woo",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65259,7 +65641,7 @@
           {
             "tag": "AM",
             "number": 10,
-            "name": "Lee Jae-sung",
+            "name": "Lee Jae-Sung",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65267,7 +65649,7 @@
           {
             "tag": "AM",
             "number": 19,
-            "name": "Lee Kang-in",
+            "name": "Lee Kang-In",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": false
@@ -65275,7 +65657,7 @@
           {
             "tag": "CF",
             "number": 7,
-            "name": "Son Heung-min",
+            "name": "Son Heung-Min",
             "flag": "🇰🇷",
             "nationality": "South Korea",
             "captain": true
@@ -65325,7 +65707,7 @@
           {
             "tag": "CM",
             "number": 24,
-            "name": "Alexandr Sojka",
+            "name": "Alexander Sojka",
             "flag": "🇨🇿",
             "nationality": "Czech Republic",
             "captain": false
@@ -65340,7 +65722,7 @@
           },
           {
             "tag": "RM",
-            "number": 5,
+            "number": 6,
             "name": "Vladimir Coufal",
             "flag": "🇨🇿",
             "nationality": "Czech Republic",
@@ -66219,26 +66601,10 @@
         {
           "id": "A",
           "rows": [
-            [
-              1,
-              "Mexico",
-              0
-            ],
-            [
-              2,
-              "South Africa",
-              0
-            ],
-            [
-              3,
-              "South Korea",
-              0
-            ],
-            [
-              4,
-              "Czech Republic",
-              0
-            ]
+            [1, "Mexico", 9],
+            [2, "South Africa", 4],
+            [3, "South Korea", 3],
+            [4, "Czech Republic", 1]
           ]
         },
         {
