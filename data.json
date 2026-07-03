@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1782910588169,
+  "dataRevision": 1782915000000,
   "leagues": [
     {
       "id": "epl",
@@ -3966,7 +3966,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/algeria.png"
     },
     {
       "id": "worldcup_argentina",
@@ -3977,7 +3978,8 @@
       "colors": [
         "#75aadb",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/argentina.png"
     },
     {
       "id": "worldcup_australia",
@@ -3988,7 +3990,8 @@
       "colors": [
         "#ffd166",
         "#2de2e6"
-      ]
+      ],
+      "logo": "./images/worldcup/australia.png"
     },
     {
       "id": "worldcup_austria",
@@ -3999,7 +4002,8 @@
       "colors": [
         "#ff4d6d",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/austria.png"
     },
     {
       "id": "worldcup_belgium",
@@ -4010,7 +4014,8 @@
       "colors": [
         "#ffd166",
         "#ff4d6d"
-      ]
+      ],
+      "logo": "./images/worldcup/belgium.png"
     },
     {
       "id": "worldcup_bosnia",
@@ -4033,7 +4038,8 @@
       "colors": [
         "#1fe4a5",
         "#ffd166"
-      ]
+      ],
+      "logo": "./images/worldcup/brazil.png"
     },
     {
       "id": "worldcup_canada",
@@ -4056,7 +4062,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/cape_verde.png"
     },
     {
       "id": "worldcup_colombia",
@@ -4067,7 +4074,8 @@
       "colors": [
         "#ffd166",
         "#2de2e6"
-      ]
+      ],
+      "logo": "./images/worldcup/colombia.png"
     },
     {
       "id": "worldcup_croatia",
@@ -4078,7 +4086,8 @@
       "colors": [
         "#ff4d6d",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/croatia.png"
     },
     {
       "id": "worldcup_curacao",
@@ -4089,7 +4098,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/curacao.png"
     },
     {
       "id": "worldcup_czech_republic",
@@ -4112,7 +4122,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/dr_congo.png"
     },
     {
       "id": "worldcup_ecuador",
@@ -4123,7 +4134,8 @@
       "colors": [
         "#ffd166",
         "#2de2e6"
-      ]
+      ],
+      "logo": "./images/worldcup/ecuador.png"
     },
     {
       "id": "worldcup_egypt",
@@ -4134,7 +4146,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/egypt.png"
     },
     {
       "id": "worldcup_england",
@@ -4145,7 +4158,8 @@
       "colors": [
         "#ffffff",
         "#ff4d6d"
-      ]
+      ],
+      "logo": "./images/worldcup/england.png"
     },
     {
       "id": "worldcup_france",
@@ -4156,7 +4170,8 @@
       "colors": [
         "#2de2e6",
         "#ff4d6d"
-      ]
+      ],
+      "logo": "./images/worldcup/france.png"
     },
     {
       "id": "worldcup_germany",
@@ -4167,7 +4182,8 @@
       "colors": [
         "#111827",
         "#ffd166"
-      ]
+      ],
+      "logo": "./images/worldcup/germany.png"
     },
     {
       "id": "worldcup_ghana",
@@ -4178,7 +4194,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/ghana.png"
     },
     {
       "id": "worldcup_haiti",
@@ -4189,7 +4206,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/haiti.png"
     },
     {
       "id": "worldcup_iran",
@@ -4200,7 +4218,8 @@
       "colors": [
         "#ffffff",
         "#ff4d6d"
-      ]
+      ],
+      "logo": "./images/worldcup/iran.png"
     },
     {
       "id": "worldcup_iraq",
@@ -4211,7 +4230,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/iraq.png"
     },
     {
       "id": "worldcup_ivory_coast",
@@ -4222,7 +4242,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/ivory_coast.png"
     },
     {
       "id": "worldcup_japan",
@@ -4233,7 +4254,8 @@
       "colors": [
         "#2de2e6",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/japan.png"
     },
     {
       "id": "worldcup_jordan",
@@ -4244,7 +4266,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/jordan.png"
     },
     {
       "id": "worldcup_mexico",
@@ -4267,7 +4290,8 @@
       "colors": [
         "#ff4d6d",
         "#1fe4a5"
-      ]
+      ],
+      "logo": "./images/worldcup/morocco.png"
     },
     {
       "id": "worldcup_netherlands",
@@ -4278,7 +4302,8 @@
       "colors": [
         "#ff4d6d",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/netherlands.png"
     },
     {
       "id": "worldcup_new_zealand",
@@ -4289,7 +4314,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/new_zealand.png"
     },
     {
       "id": "worldcup_norway",
@@ -4300,7 +4326,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/norway.png"
     },
     {
       "id": "worldcup_panama",
@@ -4311,7 +4338,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/panama.png"
     },
     {
       "id": "worldcup_paraguay",
@@ -4322,7 +4350,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/paraguay.png"
     },
     {
       "id": "worldcup_portugal",
@@ -4333,7 +4362,8 @@
       "colors": [
         "#1fe4a5",
         "#ff4d6d"
-      ]
+      ],
+      "logo": "./images/worldcup/portugal.png"
     },
     {
       "id": "worldcup_qatar",
@@ -4356,7 +4386,8 @@
       "colors": [
         "#1fe4a5",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/saudi_arabia.png"
     },
     {
       "id": "worldcup_scotland",
@@ -4367,7 +4398,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/scotland.png"
     },
     {
       "id": "worldcup_senegal",
@@ -4378,7 +4410,8 @@
       "colors": [
         "#1fe4a5",
         "#ffd166"
-      ]
+      ],
+      "logo": "./images/worldcup/senegal.png"
     },
     {
       "id": "worldcup_south_africa",
@@ -4413,7 +4446,8 @@
       "colors": [
         "#ff4d6d",
         "#ffd166"
-      ]
+      ],
+      "logo": "./images/worldcup/spain.png"
     },
     {
       "id": "worldcup_sweden",
@@ -4424,7 +4458,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/sweden.png"
     },
     {
       "id": "worldcup_switzerland",
@@ -4435,7 +4470,8 @@
       "colors": [
         "#ff4d6d",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/switzerland.png"
     },
     {
       "id": "worldcup_tunisia",
@@ -4446,7 +4482,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/tunisia.png"
     },
     {
       "id": "worldcup_turkey",
@@ -4457,7 +4494,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/turkey.png"
     },
     {
       "id": "worldcup_usa",
@@ -4468,7 +4506,8 @@
       "colors": [
         "#2de2e6",
         "#ff4d6d"
-      ]
+      ],
+      "logo": "./images/worldcup/usa.png"
     },
     {
       "id": "worldcup_uruguay",
@@ -4479,7 +4518,8 @@
       "colors": [
         "#2de2e6",
         "#ffffff"
-      ]
+      ],
+      "logo": "./images/worldcup/uruguay.png"
     },
     {
       "id": "worldcup_uzbekistan",
@@ -4490,7 +4530,8 @@
       "colors": [
         "#2de2e6",
         "#111827"
-      ]
+      ],
+      "logo": "./images/worldcup/uzbekistan.png"
     }
   ],
   "players": [
