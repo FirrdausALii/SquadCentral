@@ -766,6 +766,29 @@ html.reveal-init .reveal.is-visible {
   padding: 0 var(--sp-5) var(--sp-4);
   font-size: 12px;
 }
+.share-btn {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.share-btn:hover:not(:disabled),
+.share-btn:focus-visible {
+  background: var(--bg-surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  outline: none;
+}
+.share-btn:disabled,
+.share-btn[aria-busy="true"] {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .roster-view-toggle {
   flex-shrink: 0;
 }

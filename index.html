@@ -266,7 +266,10 @@
                   <div class="mw-kicker" id="mwTitle">Matchweek —</div>
                   <div class="mw-range text-truncate" id="mwRange">—</div>
                 </div>
-                <div class="col-auto">
+                <div class="col-auto d-flex align-items-center gap-2">
+                  <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareGameweekBtn" aria-label="Share gameweek image">
+                    Share
+                  </button>
                   <button class="mw-nav" type="button" id="mwNext" aria-label="Next matchweek">›</button>
                 </div>
               </div>
@@ -378,9 +381,14 @@
 
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div class="d-flex flex-wrap gap-2" id="rosterChips" aria-live="polite"></div>
-            <div class="lineup-toggle lineup-view-toggle roster-view-toggle" id="rosterViewBar" role="tablist" aria-label="Squad view">
-              <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">List</button>
-              <button type="button" class="lineup-toggle-btn lineup-view-btn" data-roster-view="depth" role="tab" aria-selected="false">Depth</button>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareSquadBtn" aria-label="Share squad image">
+                Share
+              </button>
+              <div class="lineup-toggle lineup-view-toggle roster-view-toggle" id="rosterViewBar" role="tablist" aria-label="Squad view">
+                <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">List</button>
+                <button type="button" class="lineup-toggle-btn lineup-view-btn" data-roster-view="depth" role="tab" aria-selected="false">Depth</button>
+              </div>
             </div>
           </div>
 
@@ -462,6 +470,7 @@
     <script src="./nationality-flags.js"></script>
     <script src="./squad-depth.js"></script>
     <script src="./national-duty.js"></script>
+    <script src="./share-image.js"></script>
     <script src="./app.js" defer></script>
     <script>
       document.addEventListener("fc-data-missing", () => {

@@ -5733,6 +5733,125 @@ function setupRosterControls() {
   search?.addEventListener("input", renderRoster);
 }
 
+function shareFilenameSlug(text, suffix) {
+  const slug = String(text ?? "team")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${slug || "team"}-${suffix}.png`;
+}
+
+function setShareBusy(btn, busy) {
+  if (!btn) return;
+  btn.disabled = busy;
+  if (busy) btn.setAttribute("aria-busy", "true");
+  else btn.removeAttribute("aria-busy");
+}
+
+async function handleShareSquad() {
+  if (typeof ShareImage === "undefined") {
+    alert("Share image module did not load. Refresh the page.");
+    return;
+  }
+  const btn = $("#shareSquadBtn");
+  const state = getRosterState();
+  const team = teamById.get(state.teamId);
+  if (!team) return;
+
+  const league = LEAGUES.find((l) => l.id === state.leagueId);
+  const players = playersForTeam(state.teamId);
+  if (!players.length) {
+    alert("This team has no players to share.");
+    return;
+  }
+
+  setShareBusy(btn, true);
+  try {
+    const canvas = await ShareImage.renderSquadShareImage({
+      team,
+      leagueName: league?.name ?? state.leagueId,
+      formation: formationForTeam(state.teamId),
+      players,
+      dutyIds: nationalDutyPlayerIdsForTeam(team),
+      showNumber: leagueFeatureOn(state.leagueId, "playerNumber"),
+      showPos: leagueFeatureOn(state.leagueId, "playerPosition"),
+      showNat: leagueFeatureOn(state.leagueId, "playerNationality"),
+      showClub: isWorldCupLeague(state.leagueId) && leagueFeatureOn(state.leagueId, "playerClub"),
+      helpers: { playerFlagEmoji },
+    });
+    await ShareImage.exportShareImage(canvas, shareFilenameSlug(team.name, "squad"));
+  } catch (err) {
+    console.error(err);
+    alert("Could not generate squad image. Use a local server (http://) and try again.");
+  } finally {
+    setShareBusy(btn, false);
+  }
+}
+
+function getMatchCenterShareState() {
+  const leagueId = renderMatchCenter._leagueId ?? $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
+  const meta =
+    typeof FCDataStore !== "undefined"
+      ? FCDataStore.getLeagueMeta(leagueId)
+      : { matchweek: 36, dateRange: "—", matchweekTitle: "" };
+  const publishedWeek = meta.matchweek ?? 36;
+  const showAll = leagueShowsAllFixtures(leagueId);
+  const viewWeek = showAll ? publishedWeek : renderMatchCenter._viewWeek ?? publishedWeek;
+  const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
+  const league = LEAGUES.find((l) => l.id === leagueId);
+  const title = showAll
+    ? meta.matchweekTitle || "World Cup"
+    : viewWeek === publishedWeek
+      ? meta.matchweekTitle || `Matchweek ${publishedWeek}`
+      : `Matchweek ${viewWeek}`;
+  const dateRange =
+    showAll || viewWeek === publishedWeek ? meta.dateRange ?? "—" : "Browse earlier / later gameweeks";
+
+  const shareMatches = matches.map((m) => ({
+    ...m,
+    dayLabel: showAll
+      ? [m.matchday, m.time].filter((x) => x && x !== "—").join(" · ") || "—"
+      : m.time || "—",
+  }));
+
+  return { leagueId, leagueName: league?.name ?? leagueId, title, dateRange, matches: shareMatches };
+}
+
+async function handleShareGameweek() {
+  if (typeof ShareImage === "undefined") {
+    alert("Share image module did not load. Refresh the page.");
+    return;
+  }
+  const btn = $("#shareGameweekBtn");
+  const { leagueId, leagueName, title, dateRange, matches } = getMatchCenterShareState();
+
+  setShareBusy(btn, true);
+  try {
+    const canvas = await ShareImage.renderGameweekShareImage({
+      leagueName,
+      title,
+      dateRange,
+      matches,
+      teamById,
+      showStatus: leagueFeatureOn(leagueId, "matchStatus"),
+    });
+    await ShareImage.exportShareImage(
+      canvas,
+      shareFilenameSlug(`${leagueName}-${title}`, "gameweek"),
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Could not generate gameweek image. Use a local server (http://) and try again.");
+  } finally {
+    setShareBusy(btn, false);
+  }
+}
+
+function setupShareButtons() {
+  $("#shareSquadBtn")?.addEventListener("click", handleShareSquad);
+  $("#shareGameweekBtn")?.addEventListener("click", handleShareGameweek);
+}
+
 function setupHowItWorks() {
   // Button removed from UI; keep function for future use.
 }
@@ -6114,6 +6233,7 @@ function bindLineupViewToggle() {
 }
 
 function renderMatchCenter(leagueId) {
+  renderMatchCenter._leagueId = leagueId;
   const tabs = $("#matchTabs");
   const listEl = $("#matchList");
   const titleEl = $("#mwTitle");
@@ -6448,6 +6568,7 @@ function main() {
 
   renderLeagueOptions();
   setupRosterControls();
+  setupShareButtons();
   setupTransferControls();
   setupLeagueSwitcherLayout();
 

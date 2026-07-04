@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1783095576261,
+  "dataRevision": 1783144567514,
   "leagues": [
     {
       "id": "epl",
@@ -4051,7 +4051,81 @@
         "#ff4d6d",
         "#ffffff"
       ],
-      "logo": "./images/worldcup/canada.png"
+      "logo": "./images/worldcup/canada.png",
+      "formation": "4-4-2",
+      "squadDepth": {
+        "formation": "4-4-2",
+        "goalkeepers": [
+          "worldcup_canada_1_Dayne_St_Clair",
+          "worldcup_canada_16_Maxime_Crepeau",
+          "worldcup_canada_18_Owen_Goodman"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "worldcup_canada_19_Alphonso_Davies",
+              "worldcup_canada_22_Richie_Laryea"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_canada_13_Derek_Cornelius",
+              "worldcup_canada_4_Luc_De_Fougerolles"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_canada_3_Alfie_Jones",
+              "worldcup_canada_5_Joel_Waterman"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "worldcup_canada_2_Alistair_Johnston",
+              "worldcup_canada_23_Niko_Sigur"
+            ]
+          },
+          {
+            "tag": "LM",
+            "players": [
+              "worldcup_canada_11_Liam_Millar",
+              "worldcup_canada_20_Ali_Ahmed"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_canada_7_Stephen_Eustaquio",
+              "worldcup_canada_8_Ismael_Kone"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_canada_6_Mathieu_Choiniere",
+              "worldcup_canada_21_Jonathan_Osorio"
+            ]
+          },
+          {
+            "tag": "RM",
+            "players": [
+              "worldcup_canada_17_Tajon_Buchanan",
+              "worldcup_canada_14_Jacob_Shaffelburg"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "worldcup_canada_9_Cyle_Larin",
+              "worldcup_canada_10_Jonathan_David"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "worldcup_cape_verde",
@@ -4816,7 +4890,88 @@
         "#ff4d6d",
         "#ffffff"
       ],
-      "logo": "./images/worldcup/switzerland.png"
+      "logo": "./images/worldcup/switzerland.png",
+      "formation": "4-2-3-1",
+      "squadDepth": {
+        "formation": "4-2-3-1",
+        "goalkeepers": [
+          "worldcup_switzerland_1_Gregor_Kobel",
+          "worldcup_switzerland_12_Yvon_Mvogo",
+          "worldcup_switzerland_21_Marvin_Keller"
+        ],
+        "slots": [
+          {
+            "tag": "LB",
+            "players": [
+              "worldcup_switzerland_2_Miro_Muheim",
+              "worldcup_switzerland_13_Ricardo_Rodriguez"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_switzerland_4_Nico_Elvedi",
+              "worldcup_switzerland_5_Manuel_Akanji"
+            ]
+          },
+          {
+            "tag": "CB",
+            "players": [
+              "worldcup_switzerland_18_Eray_Comert",
+              "worldcup_switzerland_24_Aurele_Amenda"
+            ]
+          },
+          {
+            "tag": "RB",
+            "players": [
+              "worldcup_switzerland_3_Silvan_Widmer",
+              "worldcup_switzerland_6_Denis_Zakaria"
+            ]
+          },
+          {
+            "tag": "DM",
+            "players": [
+              "worldcup_switzerland_10_Granit_Xhaka",
+              "worldcup_switzerland_14_Ardon_Jashari"
+            ]
+          },
+          {
+            "tag": "CM",
+            "players": [
+              "worldcup_switzerland_8_Remo_Freuler",
+              "worldcup_switzerland_15_Djibril_Sow"
+            ]
+          },
+          {
+            "tag": "AM",
+            "players": [
+              "worldcup_switzerland_9_Johan_Manzambi",
+              "worldcup_switzerland_22_Fabian_Rieder"
+            ]
+          },
+          {
+            "tag": "RW",
+            "players": [
+              "worldcup_switzerland_11_Dan_Ndoye",
+              "worldcup_switzerland_16_Christian_Fassnacht"
+            ]
+          },
+          {
+            "tag": "LW",
+            "players": [
+              "worldcup_switzerland_17_Ruben_Vargas",
+              "worldcup_switzerland_19_Noah_Okafor"
+            ]
+          },
+          {
+            "tag": "CF",
+            "players": [
+              "worldcup_switzerland_7_Breel_Embolo",
+              "worldcup_switzerland_23_Zeki_Amdouni"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "worldcup_tunisia",
@@ -9678,7 +9833,7 @@
       "id": "epl_sunderland_34_Granit_Xhaka_(C)",
       "teamId": "epl_sunderland",
       "number": 34,
-      "name": "Granit Xhaka (C)",
+      "name": "Granit Xhaka",
       "pos": "MF",
       "role": "DM",
       "flag": "🇨🇭",
@@ -42008,8 +42163,8 @@
       "nationality": "South Korea",
       "sortOrder": 25
     },
-    {
-      "id": "worldcup_canada_1_Dayne_St._Clair",
+        {
+      "id": "worldcup_canada_1_Dayne_St_Clair",
       "teamId": "worldcup_canada",
       "number": 1,
       "name": "Dayne St. Clair",
@@ -42039,22 +42194,10 @@
       "name": "Owen Goodman",
       "pos": "GK",
       "role": "GK",
-      "club": "Barnsley",
+      "club": "Crystal Palace U18",
       "flag": "🇨🇦",
       "nationality": "Canada",
       "sortOrder": 2
-    },
-    {
-      "id": "worldcup_canada_15_Moise_Bombito",
-      "teamId": "worldcup_canada",
-      "number": 15,
-      "name": "Moise Bombito",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Nice",
-      "flag": "🇨🇦",
-      "nationality": "Canada",
-      "sortOrder": 7
     },
     {
       "id": "worldcup_canada_3_Alfie_Jones",
@@ -42069,16 +42212,16 @@
       "sortOrder": 3
     },
     {
-      "id": "worldcup_canada_13_Derek_Cornelius",
+      "id": "worldcup_canada_4_Luc_De_Fougerolles",
       "teamId": "worldcup_canada",
-      "number": 13,
-      "name": "Derek Cornelius",
+      "number": 4,
+      "name": "Luc De Fougerolles",
       "pos": "DF",
       "role": "CB",
-      "club": "Marseille",
+      "club": "Fulham U21",
       "flag": "🇨🇦",
       "nationality": "Canada",
-      "sortOrder": 6
+      "sortOrder": 4
     },
     {
       "id": "worldcup_canada_5_Joel_Waterman",
@@ -42093,16 +42236,28 @@
       "sortOrder": 5
     },
     {
-      "id": "worldcup_canada_4_Luc_de_Fougerolles",
+      "id": "worldcup_canada_13_Derek_Cornelius",
       "teamId": "worldcup_canada",
-      "number": 4,
-      "name": "Luc de Fougerolles",
+      "number": 13,
+      "name": "Derek Cornelius",
       "pos": "DF",
       "role": "CB",
-      "club": "FCV Dender",
+      "club": "Marseille",
       "flag": "🇨🇦",
       "nationality": "Canada",
-      "sortOrder": 4
+      "sortOrder": 6
+    },
+    {
+      "id": "worldcup_canada_15_Moise_Bombito",
+      "teamId": "worldcup_canada",
+      "number": 15,
+      "name": "Moise Bombito",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Nice",
+      "flag": "🇨🇦",
+      "nationality": "Canada",
+      "sortOrder": 7
     },
     {
       "id": "worldcup_canada_2_Alistair_Johnston",
@@ -42117,22 +42272,22 @@
       "sortOrder": 8
     },
     {
-      "id": "worldcup_canada_22_Richie_Laryea",
+      "id": "worldcup_canada_23_Niko_Sigur",
       "teamId": "worldcup_canada",
-      "number": 22,
-      "name": "Richie Laryea",
+      "number": 23,
+      "name": "Niko Sigur",
       "pos": "DF",
       "role": "RB",
-      "club": "Toronto",
+      "club": "Hajduk Split",
       "flag": "🇨🇦",
       "nationality": "Canada",
       "sortOrder": 9
     },
     {
-      "id": "worldcup_canada_19_Alphonso_Davies_(C)",
+      "id": "worldcup_canada_19_Alphonso_Davies",
       "teamId": "worldcup_canada",
       "number": 19,
-      "name": "Alphonso Davies (C)",
+      "name": "Alphonso Davies",
       "pos": "DF",
       "role": "LB",
       "club": "Bayern Munich",
@@ -42142,52 +42297,16 @@
       "captain": true
     },
     {
-      "id": "worldcup_canada_23_Niko_Sigur",
+      "id": "worldcup_canada_22_Richie_Laryea",
       "teamId": "worldcup_canada",
-      "number": 23,
-      "name": "Niko Sigur",
-      "pos": "MF",
-      "role": "DM",
-      "club": "Hajduk Split",
+      "number": 22,
+      "name": "Richie Laryea",
+      "pos": "DF",
+      "role": "LB",
+      "club": "Toronto FC",
       "flag": "🇨🇦",
       "nationality": "Canada",
-      "sortOrder": 12
-    },
-    {
-      "id": "worldcup_canada_8_Ismael_Kone",
-      "teamId": "worldcup_canada",
-      "number": 8,
-      "name": "Ismael Kone",
-      "pos": "MF",
-      "role": "CM",
-      "club": "Sassuolo",
-      "flag": "🇨🇦",
-      "nationality": "Canada",
-      "sortOrder": 15
-    },
-    {
-      "id": "worldcup_canada_7_Stephen_Eustaquio",
-      "teamId": "worldcup_canada",
-      "number": 7,
-      "name": "Stephen Eustaquio",
-      "pos": "MF",
-      "role": "CM",
-      "club": "Los Angeles",
-      "flag": "🇨🇦",
-      "nationality": "Canada",
-      "sortOrder": 14
-    },
-    {
-      "id": "worldcup_canada_21_Jonathan_Osorio",
-      "teamId": "worldcup_canada",
-      "number": 21,
-      "name": "Jonathan Osorio",
-      "pos": "MF",
-      "role": "CM",
-      "club": "Toronto",
-      "flag": "🇨🇦",
-      "nationality": "Canada",
-      "sortOrder": 16
+      "sortOrder": 11
     },
     {
       "id": "worldcup_canada_6_Mathieu_Choiniere",
@@ -42199,19 +42318,79 @@
       "club": "Los Angeles",
       "flag": "🇨🇦",
       "nationality": "Canada",
+      "sortOrder": 12
+    },
+    {
+      "id": "worldcup_canada_7_Stephen_Eustaquio",
+      "teamId": "worldcup_canada",
+      "number": 7,
+      "name": "Stephen Eustaquio",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Porto",
+      "flag": "🇨🇦",
+      "nationality": "Canada",
       "sortOrder": 13
     },
     {
-      "id": "worldcup_canada_20_Ali_Ahmed",
+      "id": "worldcup_canada_8_Ismael_Kone",
       "teamId": "worldcup_canada",
-      "number": 20,
-      "name": "Ali Ahmed",
-      "pos": "DF",
-      "role": "LB",
-      "club": "Norwich",
+      "number": 8,
+      "name": "Ismael Kone",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Sassuolo",
       "flag": "🇨🇦",
       "nationality": "Canada",
-      "sortOrder": 11
+      "sortOrder": 14
+    },
+    {
+      "id": "worldcup_canada_21_Jonathan_Osorio",
+      "teamId": "worldcup_canada",
+      "number": 21,
+      "name": "Jonathan Osorio",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Toronto FC",
+      "flag": "🇨🇦",
+      "nationality": "Canada",
+      "sortOrder": 15
+    },
+    {
+      "id": "worldcup_canada_25_Nathan_Saliba",
+      "teamId": "worldcup_canada",
+      "number": 25,
+      "name": "Nathan Saliba",
+      "pos": "MF",
+      "role": "CM",
+      "club": "Anderlecht",
+      "flag": "🇨🇦",
+      "nationality": "Canada",
+      "sortOrder": 16
+    },
+    {
+      "id": "worldcup_canada_14_Jacob_Shaffelburg",
+      "teamId": "worldcup_canada",
+      "number": 14,
+      "name": "Jacob Shaffelburg",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Los Angeles",
+      "flag": "🇨🇦",
+      "nationality": "Canada",
+      "sortOrder": 17
+    },
+    {
+      "id": "worldcup_canada_17_Tajon_Buchanan",
+      "teamId": "worldcup_canada",
+      "number": 17,
+      "name": "Tajon Buchanan",
+      "pos": "FW",
+      "role": "RW",
+      "club": "Villarreal",
+      "flag": "🇨🇦",
+      "nationality": "Canada",
+      "sortOrder": 18
     },
     {
       "id": "worldcup_canada_11_Liam_Millar",
@@ -42226,13 +42405,13 @@
       "sortOrder": 19
     },
     {
-      "id": "worldcup_canada_14_Jacob_Shaffelburg",
+      "id": "worldcup_canada_20_Ali_Ahmed",
       "teamId": "worldcup_canada",
-      "number": 14,
-      "name": "Jacob Shaffelburg",
+      "number": 20,
+      "name": "Ali Ahmed",
       "pos": "FW",
       "role": "LW",
-      "club": "Los Angeles",
+      "club": "Norwich City",
       "flag": "🇨🇦",
       "nationality": "Canada",
       "sortOrder": 20
@@ -42250,16 +42429,16 @@
       "sortOrder": 21
     },
     {
-      "id": "worldcup_canada_17_Tajon_Buchanan",
+      "id": "worldcup_canada_9_Cyle_Larin",
       "teamId": "worldcup_canada",
-      "number": 17,
-      "name": "Tajon Buchanan",
+      "number": 9,
+      "name": "Cyle Larin",
       "pos": "FW",
-      "role": "RW",
-      "club": "Villarreal",
+      "role": "CF",
+      "club": "Southampton",
       "flag": "🇨🇦",
       "nationality": "Canada",
-      "sortOrder": 18
+      "sortOrder": 22
     },
     {
       "id": "worldcup_canada_10_Jonathan_David",
@@ -42274,18 +42453,6 @@
       "sortOrder": 23
     },
     {
-      "id": "worldcup_canada_24_Promise_David",
-      "teamId": "worldcup_canada",
-      "number": 24,
-      "name": "Promise David",
-      "pos": "FW",
-      "role": "CF",
-      "club": "Union SG",
-      "flag": "🇨🇦",
-      "nationality": "Canada",
-      "sortOrder": 25
-    },
-    {
       "id": "worldcup_canada_12_Tani_Oluwaseyi",
       "teamId": "worldcup_canada",
       "number": 12,
@@ -42298,16 +42465,16 @@
       "sortOrder": 24
     },
     {
-      "id": "worldcup_canada_9_Cyle_Larin",
+      "id": "worldcup_canada_24_Promise_David",
       "teamId": "worldcup_canada",
-      "number": 9,
-      "name": "Cyle Larin",
+      "number": 24,
+      "name": "Promise David",
       "pos": "FW",
       "role": "CF",
-      "club": "Southampton",
+      "club": "Union St. Gilloise",
       "flag": "🇨🇦",
       "nationality": "Canada",
-      "sortOrder": 22
+      "sortOrder": 25
     },
     {
       "id": "worldcup_qatar_22_Meshaal_Barsham",
@@ -42622,7 +42789,7 @@
       "nationality": "Qatar",
       "sortOrder": 24
     },
-    {
+        {
       "id": "worldcup_switzerland_1_Gregor_Kobel",
       "teamId": "worldcup_switzerland",
       "number": 1,
@@ -42633,18 +42800,6 @@
       "flag": "🇨🇭",
       "nationality": "Switzerland",
       "sortOrder": 0
-    },
-    {
-      "id": "worldcup_switzerland_21_Marvin_Keller",
-      "teamId": "worldcup_switzerland",
-      "number": 21,
-      "name": "Marvin Keller",
-      "pos": "GK",
-      "role": "GK",
-      "club": "Young Boys",
-      "flag": "🇨🇭",
-      "nationality": "Switzerland",
-      "sortOrder": 2
     },
     {
       "id": "worldcup_switzerland_12_Yvon_Mvogo",
@@ -42659,6 +42814,30 @@
       "sortOrder": 1
     },
     {
+      "id": "worldcup_switzerland_21_Marvin_Keller",
+      "teamId": "worldcup_switzerland",
+      "number": 21,
+      "name": "Marvin Keller",
+      "pos": "GK",
+      "role": "GK",
+      "club": "Young Boys",
+      "flag": "🇨🇭",
+      "nationality": "Switzerland",
+      "sortOrder": 2
+    },
+    {
+      "id": "worldcup_switzerland_4_Nico_Elvedi",
+      "teamId": "worldcup_switzerland",
+      "number": 4,
+      "name": "Nico Elvedi",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Borussia Monchengladbach",
+      "flag": "🇨🇭",
+      "nationality": "Switzerland",
+      "sortOrder": 3
+    },
+    {
       "id": "worldcup_switzerland_5_Manuel_Akanji",
       "teamId": "worldcup_switzerland",
       "number": 5,
@@ -42671,7 +42850,19 @@
       "sortOrder": 4
     },
     {
-      "id": "worldcup_switzerland_24_Aurèle_Amenda",
+      "id": "worldcup_switzerland_18_Eray_Comert",
+      "teamId": "worldcup_switzerland",
+      "number": 18,
+      "name": "Eray Comert",
+      "pos": "DF",
+      "role": "CB",
+      "club": "Valencia",
+      "flag": "🇨🇭",
+      "nationality": "Switzerland",
+      "sortOrder": 5
+    },
+    {
+      "id": "worldcup_switzerland_24_Aurele_Amenda",
       "teamId": "worldcup_switzerland",
       "number": 24,
       "name": "Aurele Amenda",
@@ -42695,30 +42886,6 @@
       "sortOrder": 7
     },
     {
-      "id": "worldcup_switzerland_4_Nico_Elvedi",
-      "teamId": "worldcup_switzerland",
-      "number": 4,
-      "name": "Nico Elvedi",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Borussia Monchengladbach",
-      "flag": "🇨🇭",
-      "nationality": "Switzerland",
-      "sortOrder": 3
-    },
-    {
-      "id": "worldcup_switzerland_18_Eray_Cömert",
-      "teamId": "worldcup_switzerland",
-      "number": 18,
-      "name": "Eray Comert",
-      "pos": "DF",
-      "role": "CB",
-      "club": "Valencia",
-      "flag": "🇨🇭",
-      "nationality": "Switzerland",
-      "sortOrder": 5
-    },
-    {
       "id": "worldcup_switzerland_3_Silvan_Widmer",
       "teamId": "worldcup_switzerland",
       "number": 3,
@@ -42731,6 +42898,18 @@
       "sortOrder": 8
     },
     {
+      "id": "worldcup_switzerland_6_Denis_Zakaria",
+      "teamId": "worldcup_switzerland",
+      "number": 6,
+      "name": "Denis Zakaria",
+      "pos": "DF",
+      "role": "RB",
+      "club": "AS Monaco",
+      "flag": "🇨🇭",
+      "nationality": "Switzerland",
+      "sortOrder": 9
+    },
+    {
       "id": "worldcup_switzerland_2_Miro_Muheim",
       "teamId": "worldcup_switzerland",
       "number": 2,
@@ -42740,31 +42919,32 @@
       "club": "Hamburg",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 9
+      "sortOrder": 10
     },
     {
-      "id": "worldcup_switzerland_13_Ricardo_Rodríguez",
+      "id": "worldcup_switzerland_13_Ricardo_Rodriguez",
       "teamId": "worldcup_switzerland",
       "number": 13,
-      "name": "Ricardo Rodríguez",
+      "name": "Ricardo Rodriguez",
       "pos": "DF",
       "role": "LB",
       "club": "Real Betis",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 10
+      "sortOrder": 11
     },
     {
-      "id": "worldcup_switzerland_6_Denis_Zakaria",
+      "id": "worldcup_switzerland_10_Granit_Xhaka",
       "teamId": "worldcup_switzerland",
-      "number": 6,
-      "name": "Denis Zakaria",
+      "number": 10,
+      "name": "Granit Xhaka",
       "pos": "MF",
       "role": "DM",
-      "club": "AS Monaco",
+      "club": "Sunderland",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 11
+      "sortOrder": 12,
+      "captain": true
     },
     {
       "id": "worldcup_switzerland_14_Ardon_Jashari",
@@ -42779,29 +42959,16 @@
       "sortOrder": 13
     },
     {
-      "id": "worldcup_switzerland_10_Granit_Xhaka_(C)",
+      "id": "worldcup_switzerland_8_Remo_Freuler",
       "teamId": "worldcup_switzerland",
-      "number": 10,
-      "name": "Granit Xhaka (C)",
-      "pos": "MF",
-      "role": "DM",
-      "club": "Sunderland",
-      "flag": "🇨🇭",
-      "nationality": "Switzerland",
-      "sortOrder": 12,
-      "captain": true
-    },
-    {
-      "id": "worldcup_switzerland_9_Johan_Manzambi",
-      "teamId": "worldcup_switzerland",
-      "number": 9,
-      "name": "Johan Manzambi",
+      "number": 8,
+      "name": "Remo Freuler",
       "pos": "MF",
       "role": "CM",
-      "club": "Freiburg",
+      "club": "Bologna",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 15
+      "sortOrder": 14
     },
     {
       "id": "worldcup_switzerland_15_Djibril_Sow",
@@ -42813,7 +42980,7 @@
       "club": "Sevilla",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 16
+      "sortOrder": 15
     },
     {
       "id": "worldcup_switzerland_20_Michel_Aebischer",
@@ -42825,19 +42992,19 @@
       "club": "Pisa",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 17
+      "sortOrder": 16
     },
     {
-      "id": "worldcup_switzerland_8_Remo_Freuler",
+      "id": "worldcup_switzerland_9_Johan_Manzambi",
       "teamId": "worldcup_switzerland",
-      "number": 8,
-      "name": "Remo Freuler",
+      "number": 9,
+      "name": "Johan Manzambi",
       "pos": "MF",
-      "role": "CM",
-      "club": "Bologna",
+      "role": "AM",
+      "club": "Freiburg",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
-      "sortOrder": 14
+      "sortOrder": 17
     },
     {
       "id": "worldcup_switzerland_22_Fabian_Rieder",
@@ -42876,19 +43043,7 @@
       "sortOrder": 20
     },
     {
-      "id": "worldcup_switzerland_19_Noah_Okafor",
-      "teamId": "worldcup_switzerland",
-      "number": 19,
-      "name": "Noah Okafor",
-      "pos": "FW",
-      "role": "LW",
-      "club": "Leeds",
-      "flag": "🇨🇭",
-      "nationality": "Switzerland",
-      "sortOrder": 22
-    },
-    {
-      "id": "worldcup_switzerland_17_Rubén_Vargas",
+      "id": "worldcup_switzerland_17_Ruben_Vargas",
       "teamId": "worldcup_switzerland",
       "number": 17,
       "name": "Ruben Vargas",
@@ -42898,6 +43053,18 @@
       "flag": "🇨🇭",
       "nationality": "Switzerland",
       "sortOrder": 21
+    },
+    {
+      "id": "worldcup_switzerland_19_Noah_Okafor",
+      "teamId": "worldcup_switzerland",
+      "number": 19,
+      "name": "Noah Okafor",
+      "pos": "FW",
+      "role": "LW",
+      "club": "Leeds United",
+      "flag": "🇨🇭",
+      "nationality": "Switzerland",
+      "sortOrder": 22
     },
     {
       "id": "worldcup_switzerland_7_Breel_Embolo",
@@ -42930,7 +43097,7 @@
       "name": "Cedric Itten",
       "pos": "FW",
       "role": "CF",
-      "club": "Fortuna Dusseldorf",
+      "club": "Werder Bremen",
       "flag": "🇨🇭",
       "nationality": "Switzerland",
       "sortOrder": 25
@@ -55048,7 +55215,7 @@
           {
             "tag": "CM",
             "number": 34,
-            "name": "Granit Xhaka (C)",
+            "name": "Granit Xhaka",
             "flag": "🇨🇭",
             "nationality": "Switzerland",
             "captain": true
@@ -65760,7 +65927,7 @@
       "leagueId": "worldcup",
       "matchday": "Group Stage",
       "status": "FT",
-      "time": "Saturday 13 Jun",
+      "time": "Friday 13 Jun",
       "stadium": "Toronto Stadium",
       "homeTeamId": "worldcup_canada",
       "awayTeamId": "worldcup_bosnia",
@@ -65818,7 +65985,7 @@
           {
             "tag": "CB",
             "number": 4,
-            "name": "Luc de Fougerolles",
+            "name": "Luc De Fougerolles",
             "flag": "🇨🇦",
             "nationality": "Canada",
             "captain": false
@@ -65971,6 +66138,22 @@
           }
         ]
       }
+    },
+    {
+      "id": "worldcup_group_stage_canada_qatar",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Friday 19 Jun",
+      "stadium": "Toronto Stadium",
+      "homeTeamId": "worldcup_canada",
+      "awayTeamId": "worldcup_qatar",
+      "score": [6, 0],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["4-4-2", "4-3-3"]
     },
     {
       "id": "worldcup_group_stage_united_states_paraguay",
@@ -66213,7 +66396,7 @@
       "leagueId": "worldcup",
       "matchday": "Group Stage",
       "status": "FT",
-      "time": "Sunday 14 Jun",
+      "time": "Friday 14 Jun",
       "stadium": "San Francisco Stadium",
       "homeTeamId": "worldcup_qatar",
       "awayTeamId": "worldcup_switzerland",
@@ -66242,7 +66425,7 @@
       "momentum": 0.5,
       "formation": [
         "4-3-3",
-        "4-3-3"
+        "4-2-3-1"
       ],
       "lineups": {
         "home": [
@@ -66371,7 +66554,7 @@
           {
             "tag": "LB",
             "number": 13,
-            "name": "Ricardo Rodríguez",
+            "name": "Ricardo Rodriguez",
             "flag": "🇨🇭",
             "nationality": "Switzerland",
             "captain": false
@@ -66426,6 +66609,38 @@
           }
         ]
       }
+    },
+    {
+      "id": "worldcup_group_stage_switzerland_bosnia",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Friday 19 Jun",
+      "stadium": "Vancouver Stadium",
+      "homeTeamId": "worldcup_switzerland",
+      "awayTeamId": "worldcup_bosnia",
+      "score": [4, 1],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["4-2-3-1", "4-4-2"]
+    },
+    {
+      "id": "worldcup_group_stage_switzerland_canada",
+      "leagueId": "worldcup",
+      "matchday": "Group Stage",
+      "status": "FT",
+      "time": "Thursday 25 Jun",
+      "stadium": "Vancouver Stadium",
+      "homeTeamId": "worldcup_switzerland",
+      "awayTeamId": "worldcup_canada",
+      "score": [2, 1],
+      "scorers": [],
+      "goalEvents": [],
+      "possession": [],
+      "momentum": 0.5,
+      "formation": ["4-2-3-1", "4-4-2"]
     }
   ],
   "miniStandings": [
@@ -66610,26 +66825,10 @@
         {
           "id": "B",
           "rows": [
-            [
-              1,
-              "Canada",
-              0
-            ],
-            [
-              2,
-              "Bosnia",
-              0
-            ],
-            [
-              3,
-              "Qatar",
-              0
-            ],
-            [
-              4,
-              "Switzerland",
-              0
-            ]
+            [1, "Switzerland", 7],
+            [2, "Canada", 4],
+            [3, "Bosnia", 4],
+            [4, "Qatar", 1]
           ]
         },
         {
