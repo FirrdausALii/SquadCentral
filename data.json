@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1783144567514,
+  "dataRevision": 1783167151206,
   "leagues": [
     {
       "id": "epl",
@@ -78,6 +78,182 @@
     }
   },
   "leagueFeatures": {},
+  "leagueStadiums": {
+    "epl": [
+      "Amex Stadium",
+      "Anfield",
+      "City Ground",
+      "Craven Cottage",
+      "Elland Road",
+      "Emirates Stadium",
+      "Etihad Stadium",
+      "Gtech Community Stadium",
+      "Hill Dickinson Stadium",
+      "London Stadium",
+      "Molineux Stadium",
+      "Old Trafford",
+      "Selhurst Park",
+      "St James Park",
+      "Stadium of Light",
+      "Stamford Bridge",
+      "The City Ground",
+      "Tottenham Hotspur Stadium",
+      "Turf Moor",
+      "Villa Park",
+      "Vitality Stadium"
+    ],
+    "laliga": [
+      "Abanca Balaidos",
+      "Anoeta",
+      "Benito Villamarin",
+      "Camp Nou",
+      "Carlos Tartiere",
+      "Ciudad de Valencia",
+      "Ciutat de Valencia",
+      "Estadi Mallorca Son Moix",
+      "Estadi Municipal Montilivi",
+      "Estadio Abanca-Balaidos",
+      "Estadio Bernabeu",
+      "Estadio Carlos Tartiere",
+      "Estadio Coliseum",
+      "Estadio de la Ceramica",
+      "Estadio De La Ceramica",
+      "Estadio de Mendizorroza",
+      "Estadio de Vallecas",
+      "Estadio El Sadar",
+      "Estadio La Cartuja",
+      "Estadio Martinez Valero",
+      "Estadio Mestalla",
+      "Mendizorroza",
+      "Mestalla",
+      "Metropolitano Stadium",
+      "Municipal Montilivi",
+      "Ramon Sanchez Pizjuan",
+      "Ramon Sanchez-Pizjuan",
+      "RCDE Stadium",
+      "Reale Arena",
+      "Riyadh Air Metropolitano",
+      "San Mames",
+      "Santiago Bernabeu",
+      "Spotify Camp Nou"
+    ],
+    "seriea": [
+      "Allianz Stadium",
+      "Arena Garibaldi",
+      "Artemio Franchi",
+      "Bluenergy Stadium",
+      "Diego Armando Maradona",
+      "Ennio Tardini",
+      "Giuseppe Meazza",
+      "MAPEI Stadium",
+      "Marcantonio Bentegodi",
+      "New Balance Arena",
+      "San Siro",
+      "Stadio Armando Maradona",
+      "Stadio Artemio Franchi",
+      "Stadio Diego Armando Maradona",
+      "Stadio Ennio Tardini",
+      "Stadio Giovanni Zini",
+      "Stadio Giuseppe Meazza",
+      "Stadio Giuseppe Sinigaglia",
+      "Stadio Luigi Ferraris",
+      "Stadio Marcantonio Bentegodi",
+      "Stadio Olimpico",
+      "Stadio Olimpico di Roma",
+      "Stadio Olimpico Grande Torino",
+      "Stadio Olimpico Torino",
+      "Stadio Renato Dall'Ara",
+      "Stadio Renato Dall’Ara",
+      "Stadio Via del Mare",
+      "Stadio Via Del Mare",
+      "Unipol Domus",
+      "Via del Mare",
+      "Zini"
+    ],
+    "bundesliga": [
+      "Allianz Arena",
+      "An der Alten Forsterei",
+      "BayArena",
+      "Borussia Park",
+      "Borussia-Park",
+      "Deutsche Bank Park",
+      "Europa Park Stadion",
+      "Europa-Park Stadion",
+      "Mewa Arena",
+      "MHPArena",
+      "Millerntor Stadion",
+      "Millerntor-Stadion",
+      "PreZero Arena",
+      "Red Bull Arena",
+      "Rhein-Energie-Stadion",
+      "Signal Iduna Park",
+      "Stadion An der Alten Forsterei",
+      "Voith Arena",
+      "Voith-Arena",
+      "Volksparkstadion",
+      "Volkswagen-Arena",
+      "Weserstadion",
+      "WWK Arena"
+    ],
+    "ligue1": [
+      "Allianz Riviera",
+      "Decathlon Arena",
+      "Decathon Arena",
+      "Groupama Stadium",
+      "Orange Velodrome",
+      "Parc des Princes",
+      "Roazhon Park",
+      "Stade Bollaert-Delelis",
+      "Stade de l'Abbe Deschamps",
+      "Stade de la Beaujoire",
+      "Stade de la Meinau",
+      "Stade du Moustoir",
+      "Stade Francis-Le Ble",
+      "Stade Jean Bouin",
+      "Stade Louis-II",
+      "Stade Oceane",
+      "Stade Raymond-Kopa",
+      "Stade Saint-Symphorien",
+      "Stadium de Toulouse"
+    ],
+    "msl": [
+      "City Stadium",
+      "Hang Jebat Stadium",
+      "Hassanal Bolkiah National",
+      "Kuala Lumpur Stadium",
+      "Likas Stadium",
+      "MBPJ Stadium",
+      "Selayang Stadium",
+      "Stadium Bandaraya",
+      "Stadium Likas",
+      "Stadium MBPJ",
+      "Stadium Negeri Kuching",
+      "Stadium Paroi",
+      "Stadium Tuanku Syed Putra",
+      "Sultan Ibrahim Stadium",
+      "Sultan Mizan Zainal Abidin Stadium",
+      "Sultan Muhammad IV Stadium",
+      "Taha Ariffin Stadium",
+      "Tuanku Abdul Rahman Stadium",
+      "Tuanku Syed Putra Stadium"
+    ],
+    "worldcup": [
+      "AT&T Stadium",
+      "BC Place",
+      "BMO Field",
+      "Estadio Akron",
+      "Estadio Azteca",
+      "Estadio BBVA",
+      "Gillette Stadium",
+      "Hard Rock Stadium",
+      "Levi's Stadium",
+      "Lumen Field",
+      "Mercedes-Benz Stadium",
+      "MetLife Stadium",
+      "NRG Stadium",
+      "SoFi Stadium"
+    ]
+  },
   "teams": [
     {
       "id": "epl_arsenal",
@@ -34874,7 +35050,7 @@
       "flag": "🇲🇾",
       "nationality": "Malaysia"
     },
-        {
+    {
       "id": "worldcup_czech_republic_1_Matej_Kovar",
       "teamId": "worldcup_czech_republic",
       "number": 1,
@@ -35197,7 +35373,7 @@
       "flag": "🇧🇦",
       "nationality": "Bosnia"
     },
-        {
+    {
       "id": "worldcup_mexico_1_Raul_Rangel",
       "teamId": "worldcup_mexico",
       "number": 1,
@@ -35852,7 +36028,7 @@
       "name": "Martin Zlomislic",
       "pos": "GK",
       "role": "GK",
-      "club": "HNK Rijeka",
+      "club": "Qarabag FK",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35896,7 +36072,7 @@
       "name": "Dennis Hadzikadunic",
       "pos": "DF",
       "role": "CB",
-      "club": "Sampdoria",
+      "club": "FC Rostov",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35918,7 +36094,7 @@
       "name": "Nihad Mujakic",
       "pos": "DF",
       "role": "CB",
-      "club": "Gaziantep",
+      "club": "Partizan Beograd",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35929,7 +36105,7 @@
       "name": "Stjepan Radeljic",
       "pos": "DF",
       "role": "CB",
-      "club": "HNK Rijeka",
+      "club": "Dinamo Zagreb",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35951,7 +36127,7 @@
       "name": "Amir Hadziahmetovic",
       "pos": "MF",
       "role": "DM",
-      "club": "Hull City",
+      "club": "Besiktas",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35962,7 +36138,7 @@
       "name": "Ivan Sunjic",
       "pos": "MF",
       "role": "DM",
-      "club": "Pafos",
+      "club": "Pafos FC",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35973,7 +36149,7 @@
       "name": "Benjamin Tahirovic",
       "pos": "MF",
       "role": "CM",
-      "club": "Brondby",
+      "club": "Brondby IF",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -35983,8 +36159,8 @@
       "number": 17,
       "name": "Dzenis Burnic",
       "pos": "MF",
-      "role": "DM",
-      "club": "Karlsruher",
+      "role": "CM",
+      "club": "Karlsruher SC",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -36006,7 +36182,7 @@
       "name": "Ivan Basic",
       "pos": "MF",
       "role": "CM",
-      "club": "Astana",
+      "club": "FC Astana",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -36026,8 +36202,8 @@
       "teamId": "worldcup_bosnia",
       "number": 26,
       "name": "Ermin Mahmic",
-      "pos": "MF",
-      "role": "AM",
+      "pos": "FW",
+      "role": "LW",
       "club": "Slovan Liberec",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
@@ -36039,7 +36215,7 @@
       "name": "Esmir Bajraktarevic",
       "pos": "FW",
       "role": "RW",
-      "club": "PSV",
+      "club": "PSV Eindhoven",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -36050,7 +36226,7 @@
       "name": "Kerim Alajbegovic",
       "pos": "FW",
       "role": "LW",
-      "club": "RB Salzburg",
+      "club": "Bayer Leverkusen",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -36061,7 +36237,7 @@
       "name": "Haris Tabakovic",
       "pos": "FW",
       "role": "CF",
-      "club": "Borussia Monchengladbach",
+      "club": "Hoffenheim",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -36106,7 +36282,7 @@
       "name": "Samed Bazdar",
       "pos": "FW",
       "role": "CF",
-      "club": "Jagiellonia Bialystok",
+      "club": "Real Zaragoza",
       "flag": "🇧🇦",
       "nationality": "Bosnia and Herzegovina"
     },
@@ -42163,7 +42339,7 @@
       "nationality": "South Korea",
       "sortOrder": 25
     },
-        {
+    {
       "id": "worldcup_canada_1_Dayne_St_Clair",
       "teamId": "worldcup_canada",
       "number": 1,
@@ -42614,7 +42790,7 @@
       "number": 5,
       "name": "Jassem Gaber",
       "pos": "MF",
-      "role": "DM",
+      "role": "CM",
       "club": "Al-Rayyan",
       "flag": "🇶🇦",
       "nationality": "Qatar",
@@ -42685,8 +42861,8 @@
       "teamId": "worldcup_qatar",
       "number": 10,
       "name": "Hasan Al-Haydos (C)",
-      "pos": "MF",
-      "role": "AM",
+      "pos": "FW",
+      "role": "LW",
       "club": "Al-Sadd",
       "flag": "🇶🇦",
       "nationality": "Qatar",
@@ -42723,7 +42899,7 @@
       "number": 8,
       "name": "Edmilson Junior",
       "pos": "FW",
-      "role": "LW",
+      "role": "RW",
       "club": "Al-Duhail",
       "flag": "🇶🇦",
       "nationality": "Qatar",
@@ -42789,7 +42965,7 @@
       "nationality": "Qatar",
       "sortOrder": 24
     },
-        {
+    {
       "id": "worldcup_switzerland_1_Gregor_Kobel",
       "teamId": "worldcup_switzerland",
       "number": 1,
@@ -65644,12 +65820,18 @@
       "stadium": "Estadio Guadalajara",
       "homeTeamId": "worldcup_mexico",
       "awayTeamId": "worldcup_south_korea",
-      "score": [1, 0],
+      "score": [
+        1,
+        0
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["4-1-4-1", "3-4-2-1"]
+      "formation": [
+        "4-1-4-1",
+        "3-4-2-1"
+      ]
     },
     {
       "id": "worldcup_group_stage_czech_republic_mexico",
@@ -65660,12 +65842,18 @@
       "stadium": "Estadio Guadalajara",
       "homeTeamId": "worldcup_czech_republic",
       "awayTeamId": "worldcup_mexico",
-      "score": [0, 3],
+      "score": [
+        0,
+        3
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["3-4-2-1", "4-1-4-1"]
+      "formation": [
+        "3-4-2-1",
+        "4-1-4-1"
+      ]
     },
     {
       "id": "worldcup_group_stage_czech_republic_south_africa",
@@ -65676,12 +65864,18 @@
       "stadium": "Guadalajara Stadium",
       "homeTeamId": "worldcup_czech_republic",
       "awayTeamId": "worldcup_south_africa",
-      "score": [1, 1],
+      "score": [
+        1,
+        1
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["3-4-2-1", "5-3-2"]
+      "formation": [
+        "3-4-2-1",
+        "5-3-2"
+      ]
     },
     {
       "id": "worldcup_group_stage_south_africa_south_korea",
@@ -65692,12 +65886,18 @@
       "stadium": "Guadalajara Stadium",
       "homeTeamId": "worldcup_south_africa",
       "awayTeamId": "worldcup_south_korea",
-      "score": [1, 0],
+      "score": [
+        1,
+        0
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["5-3-2", "3-4-2-1"]
+      "formation": [
+        "5-3-2",
+        "3-4-2-1"
+      ]
     },
     {
       "id": "worldcup_group_stage_south_korea_czech_republic",
@@ -66148,12 +66348,18 @@
       "stadium": "Toronto Stadium",
       "homeTeamId": "worldcup_canada",
       "awayTeamId": "worldcup_qatar",
-      "score": [6, 0],
+      "score": [
+        6,
+        0
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["4-4-2", "4-3-3"]
+      "formation": [
+        "4-4-2",
+        "4-3-3"
+      ]
     },
     {
       "id": "worldcup_group_stage_united_states_paraguay",
@@ -66619,12 +66825,18 @@
       "stadium": "Vancouver Stadium",
       "homeTeamId": "worldcup_switzerland",
       "awayTeamId": "worldcup_bosnia",
-      "score": [4, 1],
+      "score": [
+        4,
+        1
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["4-2-3-1", "4-4-2"]
+      "formation": [
+        "4-2-3-1",
+        "4-4-2"
+      ]
     },
     {
       "id": "worldcup_group_stage_switzerland_canada",
@@ -66635,12 +66847,18 @@
       "stadium": "Vancouver Stadium",
       "homeTeamId": "worldcup_switzerland",
       "awayTeamId": "worldcup_canada",
-      "score": [2, 1],
+      "score": [
+        2,
+        1
+      ],
       "scorers": [],
       "goalEvents": [],
       "possession": [],
       "momentum": 0.5,
-      "formation": ["4-2-3-1", "4-4-2"]
+      "formation": [
+        "4-2-3-1",
+        "4-4-2"
+      ]
     }
   ],
   "miniStandings": [
@@ -66816,19 +67034,51 @@
         {
           "id": "A",
           "rows": [
-            [1, "Mexico", 9],
-            [2, "South Africa", 4],
-            [3, "South Korea", 3],
-            [4, "Czech Republic", 1]
+            [
+              1,
+              "Mexico",
+              9
+            ],
+            [
+              2,
+              "South Africa",
+              4
+            ],
+            [
+              3,
+              "South Korea",
+              3
+            ],
+            [
+              4,
+              "Czech Republic",
+              1
+            ]
           ]
         },
         {
           "id": "B",
           "rows": [
-            [1, "Switzerland", 7],
-            [2, "Canada", 4],
-            [3, "Bosnia", 4],
-            [4, "Qatar", 1]
+            [
+              1,
+              "Switzerland",
+              7
+            ],
+            [
+              2,
+              "Canada",
+              4
+            ],
+            [
+              3,
+              "Bosnia",
+              4
+            ],
+            [
+              4,
+              "Qatar",
+              1
+            ]
           ]
         },
         {

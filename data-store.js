@@ -1,6 +1,6 @@
 /**
  * Squad Central — data layer.
- * Load order: app.js seed → data.json (GitHub) → localStorage (local admin edits).
+ * Load order: app.js seed → Firestore (optional) → data.json → localStorage (local admin edits).
  */
 (function (global) {
   const STORAGE_KEY = "fc_data_v1";
@@ -162,7 +162,7 @@
     }
   }
 
-  async function fetchPublishedData() {
+  async function fetchPublishedDataFromJson() {
     if (global.location?.protocol === "file:") return null;
     for (let attempt = 1; attempt <= FETCH_MAX_ATTEMPTS; attempt += 1) {
       const data = await fetchPublishedDataOnce();
@@ -172,6 +172,38 @@
       }
     }
     return null;
+  }
+
+  async function fetchPublishedFromFirebase() {
+    if (global.location?.protocol === "file:") return null;
+    if (!global.FCFirebase?.isConfigured?.()) return null;
+    try {
+      await global.FCFirebase.init();
+      return await global.FCFirebase.fetchPublished();
+    } catch (err) {
+      console.warn("Firestore fetch failed:", err?.message || err);
+      return null;
+    }
+  }
+
+  function pickNewerPublished(firebaseData, jsonData) {
+    if (!firebaseData && !jsonData) return null;
+    if (!firebaseData) return jsonData;
+    if (!jsonData) return firebaseData;
+    const fbRev = firebaseData.dataRevision ?? 0;
+    const jsonRev = jsonData.dataRevision ?? 0;
+    if (fbRev > jsonRev) return firebaseData;
+    if (jsonRev > fbRev) return jsonData;
+    return firebaseData;
+  }
+
+  async function fetchPublishedData() {
+    if (global.location?.protocol === "file:") return null;
+    const [jsonData, firebaseData] = await Promise.all([
+      fetchPublishedDataFromJson(),
+      fetchPublishedFromFirebase(),
+    ]);
+    return pickNewerPublished(firebaseData, jsonData);
   }
 
   function loadFromStorage() {
@@ -263,6 +295,12 @@
     state = pickState(seedSnapshot, saved, pickOpts);
     if (arrays) hydrateInPlace(arrays);
     ensureLeagueStadiums();
+
+    if (global.FCFirebase?.init) {
+      await global.FCFirebase.init().catch((err) => {
+        console.warn("Firebase init skipped:", err?.message || err);
+      });
+    }
 
     const published = await fetchPublishedData();
     if (published) {

@@ -274,7 +274,10 @@ function panelOverview() {
   const s = state();
   const leagueCount = new Set(s.teams.map((t) => t.leagueId)).size;
   const rev = s.dataRevision ? new Date(s.dataRevision).toLocaleString() : "Built-in seed";
-  const storageNote = "Saved in this browser (localStorage) until you export.";
+  const storageNote = "Saved in this browser (localStorage) until you export or publish.";
+  const firebaseReady = typeof FCFirebase !== "undefined" && FCFirebase.isConfigured();
+  const firebaseSignedIn = firebaseReady && FCFirebase.isSignedIn();
+  const firebaseStatus = typeof FCFirebase !== "undefined" ? FCFirebase.statusLabel() : "Firebase module not loaded";
 
   return `
     <div class="overview-page">
@@ -283,7 +286,7 @@ function panelOverview() {
           <div class="col-12 col-lg-8 overview-hero-text">
             <p class="overview-eyebrow">Dashboard</p>
             <h2 class="overview-heading">Overview</h2>
-            <p class="overview-lead">${storageNote} Publish updates with <code>data.json</code> on GitHub.</p>
+            <p class="overview-lead">${storageNote} Publish live with <strong>Firebase</strong> or commit <code>data.json</code> to GitHub.</p>
           </div>
           <div class="col-12 col-sm-8 col-lg-4">
             <div class="overview-hero-badge w-100">
@@ -345,6 +348,62 @@ function panelOverview() {
           <li><span class="overview-step-n">4</span><span>Wait 2–5 min · test live site in Incognito</span></li>
         </ol>
         <a class="overview-doc-link" href="./DATA.md" target="_blank" rel="noopener">Read DATA.md guide →</a>
+      </section>
+
+      <section class="overview-card overview-publish" id="firebasePublishCard">
+        <div class="overview-card-head">
+          <h3>Publish to Firebase</h3>
+          <p>Push live data to Firestore — visitors sync instantly without a git deploy.</p>
+        </div>
+        <p class="overview-firebase-status" id="firebaseStatus">${esc(firebaseStatus)}</p>
+        ${
+          firebaseReady
+            ? `
+        <div class="row g-2 mb-3${firebaseSignedIn ? " admin-hidden" : ""}" id="firebaseSignInBlock">
+          <div class="col-12 col-md-6">
+            <div class="mw-field">
+              <label for="firebaseEmail">Firebase admin email</label>
+              <input id="firebaseEmail" class="mw-input" type="email" autocomplete="username" placeholder="admin@example.com" />
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="mw-field">
+              <label for="firebasePassword">Password</label>
+              <input id="firebasePassword" class="mw-input" type="password" autocomplete="current-password" placeholder="••••••••" />
+            </div>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <button type="button" class="mw-btn-primary w-100" id="btnFirebaseSignIn">Sign in to Firebase</button>
+          </div>
+        </div>
+        <div class="row g-2 overview-actions${firebaseSignedIn ? "" : " admin-hidden"}" id="firebaseSignedInBlock">
+          <div class="col-12 col-md-6">
+            <button type="button" class="overview-action overview-action--primary w-100" id="btnPublishFirebase">
+              <span class="overview-action-icon" aria-hidden="true">☁</span>
+              <span class="overview-action-text">
+                <strong>Publish live to Firebase</strong>
+                <small>Updates Firestore published/site</small>
+              </span>
+            </button>
+          </div>
+          <div class="col-12 col-md-6">
+            <button type="button" class="overview-action w-100" id="btnFirebaseSignOut">
+              <span class="overview-action-icon" aria-hidden="true">⎋</span>
+              <span class="overview-action-text">
+                <strong>Sign out of Firebase</strong>
+                <small>${esc(FCFirebase.currentUser()?.email ?? "")}</small>
+              </span>
+            </button>
+          </div>
+        </div>`
+            : `
+        <ol class="overview-steps">
+          <li><span class="overview-step-n">1</span><span>Register the web app in Firebase Console (project <strong>squadcentral-12a3d</strong>)</span></li>
+          <li><span class="overview-step-n">2</span><span>Paste config into <code>firebase-config.js</code> and set <code>enabled: true</code></span></li>
+          <li><span class="overview-step-n">3</span><span>Enable Firestore + Email/Password auth</span></li>
+        </ol>
+        <a class="overview-doc-link" href="./FIREBASE.md" target="_blank" rel="noopener">Read FIREBASE.md setup guide →</a>`
+        }
       </section>
 
       <section class="overview-card">
@@ -2901,6 +2960,57 @@ function bindPanelHandlers() {
     toast("Reset complete");
     renderPanel();
   });
+
+  $("#btnFirebaseSignIn")?.addEventListener("click", async () => {
+    if (typeof FCFirebase === "undefined") return toast("Firebase module not loaded");
+    const email = $("#firebaseEmail")?.value ?? "";
+    const password = $("#firebasePassword")?.value ?? "";
+    if (!email || !password) return toast("Enter Firebase email and password");
+    try {
+      await FCFirebase.signIn(email, password);
+      toast("Signed in to Firebase");
+      renderPanel();
+    } catch (err) {
+      alert(err?.message || "Firebase sign-in failed");
+    }
+  });
+
+  $("#btnFirebaseSignOut")?.addEventListener("click", async () => {
+    try {
+      await FCFirebase?.signOut?.();
+      toast("Signed out of Firebase");
+      renderPanel();
+    } catch (err) {
+      alert(err?.message || "Sign-out failed");
+    }
+  });
+
+  $("#btnPublishFirebase")?.addEventListener("click", async () => {
+    if (typeof FCFirebase === "undefined" || !FCFirebase.isConfigured()) {
+      return toast("Configure firebase-config.js first");
+    }
+    if (!FCFirebase.isSignedIn()) return toast("Sign in to Firebase first");
+    const btn = $("#btnPublishFirebase");
+    if (btn) btn.disabled = true;
+    try {
+      const payload = JSON.parse(FCDataStore.exportJson());
+      await FCFirebase.publishState(payload);
+      toast("Published to Firebase — live site will pick up on refresh");
+      renderPanel();
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || "Firebase publish failed");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+
+  if (typeof FCFirebase !== "undefined" && FCFirebase.isConfigured() && !globalThis.__FC_FIREBASE_AUTH_BOUND__) {
+    globalThis.__FC_FIREBASE_AUTH_BOUND__ = true;
+    FCFirebase.onAuthChange(() => {
+      if (activeTab === "overview") renderPanel();
+    });
+  }
 
   $("#btnSaveMeta")?.addEventListener("click", () => {
     const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);

@@ -3,12 +3,13 @@
 The site loads data in this order:
 
 1. **Built-in seed** — `app.js` (default squads)
-2. **`data.json`** — committed file (what everyone sees on GitHub Pages)
-3. **localStorage** — your local admin edits (this browser only)
+2. **Firestore** — `published/site` (optional; see **FIREBASE.md**)
+3. **`data.json`** — committed file (GitHub Pages fallback)
+4. **localStorage** — your local admin edits (this browser only)
 
-You do **not** paste export JSON into `app.js`. Use **`data.json`** instead.
+You do **not** paste export JSON into `app.js`. Use **Firebase** and/or **`data.json`**.
 
-## Workflow
+## Workflow (GitHub)
 
 1. Run `serve.bat` and open admin (`http://127.0.0.1:…/admin.html`).
 2. Make changes in admin (squads, matchweek, standings, scorers, **Transfers** tab).
@@ -23,6 +24,12 @@ You do **not** paste export JSON into `app.js`. Use **`data.json`** instead.
    ```
 
 6. After GitHub Pages deploys, visitors load the new `data.json`.
+
+## Workflow (Firebase — instant live updates)
+
+See **[FIREBASE.md](./FIREBASE.md)**. After setup: admin **Overview → Publish live to Firebase**.
+
+The site uses whichever source has the higher **`dataRevision`** (Firestore vs `data.json`).
 
 ## Notes
 
