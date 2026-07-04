@@ -67504,37 +67504,51 @@
           "date": "1 September 2025"
         }
       ],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     },
     {
       "leagueId": "laliga",
       "in": [],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     },
     {
       "leagueId": "seriea",
       "in": [],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     },
     {
       "leagueId": "bundesliga",
       "in": [],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     },
     {
       "leagueId": "ligue1",
       "in": [],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     },
     {
       "leagueId": "msl",
       "in": [],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     },
     {
       "leagueId": "worldcup",
       "in": [],
-      "out": []
+      "out": [],
+      "loanReturn": [],
+      "loanRecall": []
     }
   ],
   "leagueMeta": {

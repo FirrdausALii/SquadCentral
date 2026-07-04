@@ -164,8 +164,20 @@ html.reveal-init .reveal.is-visible {
 .mw-nav:hover { border-color: var(--accent); color: var(--accent); }
 .mw-kicker { font-weight: 700; color: var(--text-primary); font-size: 15px; }
 .mw-range { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.mw-week-nav { padding-bottom: var(--sp-3); border-bottom: 0.5px solid var(--border-subtle); }
+.mw-date-nav { padding-top: var(--sp-3); }
+.mw-date-kicker { font-weight: 700; color: var(--text-primary); font-size: 14px; }
+.mw-date-meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.mw-nav:disabled,
+.mw-nav.opacity-50 { opacity: 0.45; cursor: not-allowed; }
 
 .mw-list { background: var(--bg-surface-2); }
+.mw-empty {
+  padding: var(--sp-5) var(--sp-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
 .mw-day {
   padding: var(--sp-2) var(--sp-4);
   font-size: 10px;
@@ -355,6 +367,8 @@ html.reveal-init .reveal.is-visible {
 }
 .transfer-empty-state__icon--in { color: var(--color-win); }
 .transfer-empty-state__icon--out { color: #5aabdd; }
+.transfer-empty-state__icon--loan-return { color: #fbbf24; }
+.transfer-empty-state__icon--loan-recall { color: #c084fc; }
 .transfer-empty-state__title {
   margin: 0;
   font-size: 14px;

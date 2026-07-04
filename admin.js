@@ -2350,7 +2350,14 @@ function scorersRows(leagueId) {
 }
 
 function transfersBlock(leagueId) {
-  return state().transfers?.find((x) => x.leagueId === leagueId) ?? { leagueId, in: [], out: [] };
+  const block = state().transfers?.find((x) => x.leagueId === leagueId);
+  return typeof FCDataStore !== "undefined"
+    ? FCDataStore.normalizeTransfersBlock(block ?? { leagueId })
+    : { leagueId, in: [], out: [], loanReturn: [], loanRecall: [] };
+}
+
+function transferDirectionIncoming(mode) {
+  return mode === "in" || mode === "loanReturn";
 }
 
 function transferDateToInputValue(dateStr) {
@@ -2380,16 +2387,25 @@ function transfersForTeam(leagueId, teamId) {
   const club = team?.name ?? "";
   const block = transfersBlock(leagueId);
   const match = (t) => t.club === club;
-  return { in: (block.in ?? []).filter(match), out: (block.out ?? []).filter(match) };
+  return {
+    in: (block.in ?? []).filter(match),
+    out: (block.out ?? []).filter(match),
+    loanReturn: (block.loanReturn ?? []).filter(match),
+    loanRecall: (block.loanRecall ?? []).filter(match),
+  };
 }
 
-function mergeTeamTransfersIntoLeague(leagueId, teamId, teamIns, teamOuts) {
+function mergeTeamTransfersIntoLeague(leagueId, teamId, teamLists) {
   const teamName = state().teams.find((t) => t.id === teamId)?.name ?? "";
   const block = transfersBlock(leagueId);
-  const othersIn = (block.in ?? []).filter((t) => t.club !== teamName);
-  const othersOut = (block.out ?? []).filter((t) => t.club !== teamName);
+  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "loanReturn", "loanRecall"];
   const stamp = (rows) => rows.map((t) => ({ ...t, club: teamName }));
-  return { in: [...othersIn, ...stamp(teamIns)], out: [...othersOut, ...stamp(teamOuts)] };
+  const merged = { leagueId };
+  for (const key of keys) {
+    const others = (block[key] ?? []).filter((t) => t.club !== teamName);
+    merged[key] = [...others, ...stamp(teamLists[key] ?? [])];
+  }
+  return merged;
 }
 
 function rosterPlayerByName(teamId, name) {
@@ -2410,13 +2426,13 @@ function nextSquadShirtNumber(teamId) {
 function transferPlayerFieldHtml(mode, teamId, playerName) {
   const name = String(playerName ?? "").trim();
   const onSquad = Boolean(teamId && name && rosterPlayerByName(teamId, name));
-  const isIn = mode === "in";
-  const btnLabel = isIn ? (onSquad ? "Already on squad" : "Add to squad") : onSquad ? "Remove from squad" : "Not on squad";
-  const disabled = isIn ? !name || onSquad : !name || !onSquad;
+  const isIncoming = transferDirectionIncoming(mode);
+  const btnLabel = isIncoming ? (onSquad ? "Already on squad" : "Add to squad") : onSquad ? "Remove from squad" : "Not on squad";
+  const disabled = isIncoming ? !name || onSquad : !name || !onSquad;
   return `
     <div class="tr-player-field">
       <input class="tr-player transfers-input mw-input" value="${esc(name)}" placeholder="Player name" aria-label="Player" />
-      <button type="button" class="mw-btn-ghost tr-roster-btn ${isIn ? "tr-add-squad" : "tr-remove-squad"}" title="${esc(btnLabel)}"${disabled ? " disabled" : ""}>${isIn ? "+ Squad" : "− Squad"}</button>
+      <button type="button" class="mw-btn-ghost tr-roster-btn ${isIncoming ? "tr-add-squad" : "tr-remove-squad"}" title="${esc(btnLabel)}"${disabled ? " disabled" : ""}>${isIncoming ? "+ Squad" : "− Squad"}</button>
     </div>`;
 }
 
@@ -2427,8 +2443,8 @@ function syncTransferRosterBtn(row, teamId, mode) {
   if (!input || !btn) return;
   const name = input.value.trim();
   const onSquad = Boolean(name && rosterPlayerByName(teamId, name));
-  const isIn = mode === "in";
-  if (isIn) {
+  const isIncoming = transferDirectionIncoming(mode);
+  if (isIncoming) {
     btn.disabled = !name || onSquad;
     btn.textContent = onSquad ? "On squad" : "+ Squad";
     btn.title = onSquad ? "Already on squad" : "Add to squad";
@@ -2473,24 +2489,74 @@ function removeTransferPlayerFromSquad(teamId, playerName) {
   toast(`${player.name} removed from squad`);
 }
 
-function transferInRowHtml(teamId, t, i) {
-  return `<tr data-i="${i}" data-dir="in" data-id="${esc(t.id ?? "")}">
-    <td class="transfers-player-col">${transferPlayerFieldHtml("in", teamId, t.player)}</td>
-    <td class="transfers-club-col"><input class="tr-from transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="Previous club" /></td>
-    <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="€5m / Free" /></td>
+const ADMIN_TRANSFER_SECTIONS = [
+  {
+    key: "in",
+    title: "Transfers In",
+    hint: "Type the incoming player name. Use <strong>+ Squad</strong> to add them to the club roster (edit details later in Players).",
+    tableId: "transfersInTable",
+    btnId: "btnAddTransferIn",
+    btnLabel: "+ In",
+    clubHeader: "From",
+    clubPlaceholder: "Previous club",
+    feePlaceholder: "€5m / Free",
+  },
+  {
+    key: "out",
+    title: "Transfers Out",
+    hint: "Type the outgoing player name. Use <strong>− Squad</strong> to remove them from the club roster.",
+    tableId: "transfersOutTable",
+    btnId: "btnAddTransferOut",
+    btnLabel: "+ Out",
+    clubHeader: "To",
+    clubPlaceholder: "Destination club",
+    feePlaceholder: "€5m / Loan",
+  },
+  {
+    key: "loanReturn",
+    title: "Loan Return",
+    hint: "Player returning from a loan spell elsewhere. Use <strong>+ Squad</strong> when they rejoin the roster.",
+    tableId: "transfersLoanReturnTable",
+    btnId: "btnAddTransferLoanReturn",
+    btnLabel: "+ Loan Return",
+    clubHeader: "From",
+    clubPlaceholder: "Loan club",
+    feePlaceholder: "Loan / Free",
+  },
+  {
+    key: "loanRecall",
+    title: "Recall",
+    hint: "Player loaned to this club sent back to their parent club. Use <strong>− Squad</strong> to remove them from the roster.",
+    tableId: "transfersLoanRecallTable",
+    btnId: "btnAddTransferLoanRecall",
+    btnLabel: "+ Recall",
+    clubHeader: "To",
+    clubPlaceholder: "Parent club",
+    feePlaceholder: "Loan / Free",
+  },
+];
+
+function transferTableRowHtml(mode, teamId, t, i) {
+  const isIncoming = transferDirectionIncoming(mode);
+  const clubInput = isIncoming
+    ? `<input class="tr-from transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`
+    : `<input class="tr-to transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`;
+  const feePlaceholder = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.feePlaceholder ?? "Fee";
+  return `<tr data-i="${i}" data-dir="${esc(mode)}" data-id="${esc(t.id ?? "")}">
+    <td class="transfers-player-col">${transferPlayerFieldHtml(mode, teamId, t.player)}</td>
+    <td class="transfers-club-col">${clubInput}</td>
+    <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="${esc(feePlaceholder)}" /></td>
     <td class="transfers-date-col"><input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" /></td>
     <td class="transfers-del-col"><button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove row">×</button></td>
   </tr>`;
 }
 
+function transferInRowHtml(teamId, t, i) {
+  return transferTableRowHtml("in", teamId, t, i);
+}
+
 function transferOutRowHtml(t, i) {
-  return `<tr data-i="${i}" data-dir="out" data-id="${esc(t.id ?? "")}">
-    <td class="transfers-player-col">${transferPlayerFieldHtml("out", transferTeamFilter, t.player)}</td>
-    <td class="transfers-club-col"><input class="tr-to transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="Destination club" /></td>
-    <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="€5m / Loan" /></td>
-    <td class="transfers-date-col"><input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" /></td>
-    <td class="transfers-del-col"><button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove row">×</button></td>
-  </tr>`;
+  return transferTableRowHtml("out", transferTeamFilter, t, i);
 }
 
 function panelTransfers() {
@@ -2532,9 +2598,35 @@ function panelTransfers() {
 
   const team = state().teams.find((t) => t.id === transferTeamFilter);
   const teamOpts = teamOptionTags(teams, transferTeamFilter);
-  const scoped = transferTeamFilter ? transfersForTeam(leagueFilter, transferTeamFilter) : { in: [], out: [] };
+  const scoped = transferTeamFilter ? transfersForTeam(leagueFilter, transferTeamFilter) : { in: [], out: [], loanReturn: [], loanRecall: [] };
   const inCount = scoped.in.length;
   const outCount = scoped.out.length;
+  const loanReturnCount = scoped.loanReturn.length;
+  const loanRecallCount = scoped.loanRecall.length;
+
+  const transferSectionsHtml = ADMIN_TRANSFER_SECTIONS.map((section) => {
+    const rows = scoped[section.key] ?? [];
+    const rowHtml =
+      section.key === "in"
+        ? rows.map((t, i) => transferInRowHtml(transferTeamFilter, t, i)).join("")
+        : rows.map((t, i) => transferTableRowHtml(section.key, transferTeamFilter, t, i)).join("");
+    return `
+        <div class="transfers-section">
+          <h4 class="transfers-section-title">${esc(section.title)}${team ? ` · ${esc(team.name)}` : ""}</h4>
+          <p class="transfers-section-hint">${section.hint}</p>
+          <div class="transfers-table-wrap">
+            <table class="admin-table admin-table-compact transfers-table" id="${esc(section.tableId)}">
+              <thead><tr><th>Player</th><th>${esc(section.clubHeader)}</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
+              <tbody>${rowHtml}</tbody>
+            </table>
+          </div>
+          <div class="transfers-section-actions row g-2 mt-2">
+            <div class="col-12 col-sm-auto">
+              <button type="button" class="mw-btn-ghost w-100" id="${esc(section.btnId)}">${esc(section.btnLabel)}</button>
+            </div>
+          </div>
+        </div>`;
+  }).join("");
 
   return `
     <div class="mw-page transfers-page">
@@ -2543,12 +2635,12 @@ function panelTransfers() {
           <div class="col-12 col-lg-8 mw-hero-text">
             <p class="mw-eyebrow">Market moves</p>
             <h2 class="mw-heading">Transfers</h2>
-            <p class="mw-lead">Choose league and club — set <strong>In</strong> (incoming) and <strong>Out</strong> (outgoing) for that team. Use <strong>+ Squad</strong> / <strong>− Squad</strong> to update the roster.</p>
+            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Use <strong>+ Squad</strong> / <strong>− Squad</strong> to update the roster.</p>
           </div>
           <div class="col-12 col-sm-8 col-lg-4">
             <div class="mw-hero-preview w-100">
               <span class="mw-hero-preview-label">${esc(team?.name ?? "Select club")}</span>
-              <strong class="mw-hero-preview-title">${inCount} in · ${outCount} out</strong>
+              <strong class="mw-hero-preview-title">${inCount} in · ${outCount} out · ${loanReturnCount} return · ${loanRecallCount} recall</strong>
               <span class="mw-hero-preview-range">${esc(leagueName)}</span>
             </div>
           </div>
@@ -2558,7 +2650,7 @@ function panelTransfers() {
       <section class="mw-card">
         <div class="mw-card-head">
           <h3>Club transfers</h3>
-          <p>Edits apply to the selected club only. Save when both In and Out lists are ready.</p>
+          <p>Edits apply to the selected club only. Save when all four lists are ready.</p>
         </div>
         <div class="row g-2 g-md-3 mb-3">
           <div class="col-12 col-md-6 col-lg-4">
@@ -2574,37 +2666,7 @@ function panelTransfers() {
           </div>
         </div>
 
-        <div class="transfers-section">
-          <h4 class="transfers-section-title">Transfers In${team ? ` · ${esc(team.name)}` : ""}</h4>
-          <p class="transfers-section-hint">Type the incoming player name. Use <strong>+ Squad</strong> to add them to the club roster (edit details later in Players).</p>
-          <div class="transfers-table-wrap">
-            <table class="admin-table admin-table-compact transfers-table" id="transfersInTable">
-              <thead><tr><th>Player</th><th>From</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
-              <tbody>${scoped.in.map((t, i) => transferInRowHtml(transferTeamFilter, t, i)).join("")}</tbody>
-            </table>
-          </div>
-          <div class="transfers-section-actions row g-2 mt-2">
-            <div class="col-12 col-sm-auto">
-              <button type="button" class="mw-btn-ghost w-100" id="btnAddTransferIn">+ In</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="transfers-section">
-          <h4 class="transfers-section-title">Transfers Out${team ? ` · ${esc(team.name)}` : ""}</h4>
-          <p class="transfers-section-hint">Type the outgoing player name. Use <strong>− Squad</strong> to remove them from the club roster.</p>
-          <div class="transfers-table-wrap">
-            <table class="admin-table admin-table-compact transfers-table" id="transfersOutTable">
-              <thead><tr><th>Player</th><th>To</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
-              <tbody>${scoped.out.map((t, i) => transferOutRowHtml(t, i)).join("")}</tbody>
-            </table>
-          </div>
-          <div class="transfers-section-actions row g-2 mt-2">
-            <div class="col-12 col-sm-auto">
-              <button type="button" class="mw-btn-ghost w-100" id="btnAddTransferOut">+ Out</button>
-            </div>
-          </div>
-        </div>
+        ${transferSectionsHtml}
 
         <div class="transfers-form-footer row g-2 mt-3">
           <div class="col-12 col-sm-auto">
@@ -4163,48 +4225,38 @@ function bindScorerDel() {
 }
 
 function bindTransferRosterActions() {
-  const inTable = $("#transfersInTable");
-  const outTable = $("#transfersOutTable");
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    const table = $(`#${section.tableId}`);
+    const mode = section.key;
+    const isIncoming = transferDirectionIncoming(mode);
 
-  inTable?.querySelectorAll("tbody tr").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, "in"));
-  outTable?.querySelectorAll("tbody tr").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, "out"));
+    table?.querySelectorAll("tbody tr").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, mode));
 
-  if (inTable && inTable.dataset.trRosterBound !== "1") {
-    inTable.dataset.trRosterBound = "1";
-    inTable.addEventListener("input", (e) => {
+    if (!table || table.dataset.trRosterBound === "1") continue;
+    table.dataset.trRosterBound = "1";
+    table.addEventListener("input", (e) => {
       if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-player")) return;
-      syncTransferRosterBtn(e.target.closest("tr"), transferTeamFilter, "in");
+      syncTransferRosterBtn(e.target.closest("tr"), transferTeamFilter, mode);
     });
-    inTable.addEventListener("click", (e) => {
-      const btn = e.target instanceof Element ? e.target.closest(".tr-add-squad") : null;
+    table.addEventListener("click", (e) => {
+      const selector = isIncoming ? ".tr-add-squad" : ".tr-remove-squad";
+      const btn = e.target instanceof Element ? e.target.closest(selector) : null;
       if (!btn || btn.disabled) return;
       const row = btn.closest("tr");
       const name = row?.querySelector(".tr-player")?.value ?? "";
-      addTransferPlayerToSquad(transferTeamFilter, name);
-      syncTransferRosterBtn(row, transferTeamFilter, "in");
-    });
-  }
-
-  if (outTable && outTable.dataset.trRosterBound !== "1") {
-    outTable.dataset.trRosterBound = "1";
-    outTable.addEventListener("input", (e) => {
-      if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-player")) return;
-      syncTransferRosterBtn(e.target.closest("tr"), transferTeamFilter, "out");
-    });
-    outTable.addEventListener("click", (e) => {
-      const btn = e.target instanceof Element ? e.target.closest(".tr-remove-squad") : null;
-      if (!btn || btn.disabled) return;
-      const row = btn.closest("tr");
-      const name = row?.querySelector(".tr-player")?.value ?? "";
-      removeTransferPlayerFromSquad(transferTeamFilter, name);
-      syncTransferRosterBtn(row, transferTeamFilter, "out");
+      if (isIncoming) {
+        addTransferPlayerToSquad(transferTeamFilter, name);
+      } else {
+        removeTransferPlayerFromSquad(transferTeamFilter, name);
+      }
+      syncTransferRosterBtn(row, transferTeamFilter, mode);
     });
   }
 }
 
 function bindTransferDel() {
-  for (const sel of ["#transfersInTable", "#transfersOutTable"]) {
-    const table = $(sel);
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    const table = $(`#${section.tableId}`);
     if (!table || table.dataset.trDelBound === "1") continue;
     table.dataset.trDelBound = "1";
     table.addEventListener("click", (e) => {
@@ -4218,12 +4270,13 @@ function bindTransferDel() {
 function readTransfersTable(tableId, dir, clubName) {
   const tbody = $(tableId)?.querySelector("tbody");
   if (!tbody) return [];
+  const isIncoming = transferDirectionIncoming(dir);
   return Array.from(tbody.querySelectorAll("tr"))
     .map((tr, i) => {
       const playerEl = tr.querySelector(".tr-player");
       const player = playerEl?.value.trim() ?? "";
       const otherClub =
-        (dir === "in" ? tr.querySelector(".tr-from") : tr.querySelector(".tr-to"))?.value.trim() ?? "";
+        (isIncoming ? tr.querySelector(".tr-from") : tr.querySelector(".tr-to"))?.value.trim() ?? "";
       const fee = tr.querySelector(".tr-fee")?.value.trim() ?? "";
       const dateRaw = tr.querySelector(".tr-date")?.value.trim() ?? "";
       const date = transferDateFromInputValue(dateRaw) || dateRaw || undefined;
@@ -4248,31 +4301,27 @@ function bindTransfers() {
     renderPanel();
   });
 
-  $("#btnAddTransferIn")?.addEventListener("click", () => {
-    const tbody = $("#transfersInTable tbody");
-    if (!tbody || !transferTeamFilter) return toast("Choose a club first");
-    const i = tbody.querySelectorAll("tr").length;
-    tbody.insertAdjacentHTML("beforeend", transferInRowHtml(transferTeamFilter, {}, i));
-    syncTransferRosterBtn(tbody.lastElementChild, transferTeamFilter, "in");
-  });
-
-  $("#btnAddTransferOut")?.addEventListener("click", () => {
-    const tbody = $("#transfersOutTable tbody");
-    if (!tbody || !transferTeamFilter) return toast("Choose a club first");
-    const i = tbody.querySelectorAll("tr").length;
-    tbody.insertAdjacentHTML("beforeend", transferOutRowHtml({}, i));
-    syncTransferRosterBtn(tbody.lastElementChild, transferTeamFilter, "out");
-  });
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    $(`#${section.btnId}`)?.addEventListener("click", () => {
+      const tbody = $(`#${section.tableId} tbody`);
+      if (!tbody || !transferTeamFilter) return toast("Choose a club first");
+      const i = tbody.querySelectorAll("tr").length;
+      tbody.insertAdjacentHTML(
+        "beforeend",
+        transferTableRowHtml(section.key, transferTeamFilter, {}, i),
+      );
+      syncTransferRosterBtn(tbody.lastElementChild, transferTeamFilter, section.key);
+    });
+  }
 
   $("#btnSaveTransfers")?.addEventListener("click", () => {
     if (!transferTeamFilter) return toast("Choose a club first");
     const teamName = state().teams.find((t) => t.id === transferTeamFilter)?.name ?? "";
-    const merged = mergeTeamTransfersIntoLeague(
-      leagueFilter,
-      transferTeamFilter,
-      readTransfersTable("#transfersInTable", "in", teamName),
-      readTransfersTable("#transfersOutTable", "out", teamName),
-    );
+    const teamLists = {};
+    for (const section of ADMIN_TRANSFER_SECTIONS) {
+      teamLists[section.key] = readTransfersTable(`#${section.tableId}`, section.key, teamName);
+    }
+    const merged = mergeTeamTransfersIntoLeague(leagueFilter, transferTeamFilter, teamLists);
     FCDataStore.setTransfers(leagueFilter, merged);
     syncToAppArrays();
     toast(`Transfers saved for ${teamName}`);

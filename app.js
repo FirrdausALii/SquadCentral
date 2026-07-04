@@ -136,6 +136,74 @@ function filterMatchesForLeagueWeek(matches, leagueId, weekNum) {
   return list.filter((m) => m.matchday === mwLabel || !m.matchday);
 }
 
+function matchListDateKey(match, showAll) {
+  const time = String(match?.time ?? "").trim() || "—";
+  if (!showAll) return time;
+  const stage = String(match?.matchday ?? "").trim();
+  return stage && stage !== "—" ? `${stage}|${time}` : time;
+}
+
+function matchListDateLabel(key, showAll) {
+  const raw = String(key ?? "");
+  if (showAll && raw.includes("|")) {
+    const [stage, time] = raw.split("|");
+    return [stage, time].filter((x) => x && x !== "—").join(" · ") || raw;
+  }
+  return raw || "—";
+}
+
+function parseMatchListDateSortValue(key) {
+  const timePart = String(key ?? "").includes("|") ? String(key).split("|").pop() : String(key ?? "");
+  const cleaned = timePart.trim();
+  if (!cleaned || cleaned === "—") return 0;
+  for (const year of [2026, 2025, 2027]) {
+    const ts = Date.parse(`${cleaned} ${year}`);
+    if (!Number.isNaN(ts)) return ts;
+  }
+  return 0;
+}
+
+function groupMatchesByListDate(matches, showAll) {
+  const groups = new Map();
+  for (const m of matches) {
+    const key = matchListDateKey(m, showAll);
+    const list = groups.get(key) ?? [];
+    list.push(m);
+    groups.set(key, list);
+  }
+  return Array.from(groups.entries())
+    .map(([key, items]) => ({
+      key,
+      label: matchListDateLabel(key, showAll),
+      sortValue: parseMatchListDateSortValue(key),
+      items,
+    }))
+    .sort((a, b) => a.sortValue - b.sortValue || a.label.localeCompare(b.label));
+}
+
+function defaultMatchListDateKey(groups) {
+  if (!groups.length) return "";
+  return groups[groups.length - 1].key;
+}
+
+function matchCenterDateStorageKey(leagueId, viewWeek) {
+  return `${leagueId}:${viewWeek}`;
+}
+
+function resolveMatchCenterDateView(leagueId, viewWeek, matches, showAll) {
+  if (!renderMatchCenter._viewDateByWeek) renderMatchCenter._viewDateByWeek = {};
+  const dateGroups = groupMatchesByListDate(matches, showAll);
+  const storageKey = matchCenterDateStorageKey(leagueId, viewWeek);
+  let viewDateKey = renderMatchCenter._viewDateByWeek[storageKey];
+  if (!viewDateKey || !dateGroups.some((g) => g.key === viewDateKey)) {
+    viewDateKey = defaultMatchListDateKey(dateGroups);
+    renderMatchCenter._viewDateByWeek[storageKey] = viewDateKey;
+  }
+  const activeIndex = dateGroups.findIndex((g) => g.key === viewDateKey);
+  const activeGroup = activeIndex >= 0 ? dateGroups[activeIndex] : null;
+  return { dateGroups, viewDateKey, activeIndex, activeGroup };
+}
+
 function matchdayForSavedFixture(leagueId, meta, stageLabel) {
   if (leagueShowsAllFixtures(leagueId)) {
     return String(stageLabel ?? "").trim() || meta.matchweekTitle?.trim() || "Group Stage";
@@ -1358,10 +1426,33 @@ const TOP_SCORERS = [
   },
 ];
 
-/** Per league: { leagueId, in: Transfer[], out: Transfer[] } */
+/** Per league: { leagueId, in, out, loanReturn, loanRecall: Transfer[] } */
 function emptyTransfersBlock(leagueId) {
-  return { leagueId, in: [], out: [] };
+  return { leagueId, in: [], out: [], loanReturn: [], loanRecall: [] };
 }
+
+const TRANSFER_PANELS = [
+  { key: "in", label: "In", badge: "badge-green", card: "transfer-card--in", elId: "transferIn", symbol: "↓", dirClass: "in" },
+  { key: "out", label: "Out", badge: "badge-blue", card: "transfer-card--out", elId: "transferOut", symbol: "↑", dirClass: "out" },
+  {
+    key: "loanReturn",
+    label: "Loan Return",
+    badge: "badge-amber",
+    card: "transfer-card--loan-return",
+    elId: "transferLoanReturn",
+    symbol: "↩",
+    dirClass: "loan-return",
+  },
+  {
+    key: "loanRecall",
+    label: "Recall",
+    badge: "badge-purple",
+    card: "transfer-card--loan-recall",
+    elId: "transferLoanRecall",
+    symbol: "↪",
+    dirClass: "loan-recall",
+  },
+];
 
 /** @typedef {{ id: string, player: string, club: string, otherClub: string, fee?: string, date?: string }} Transfer */
 const TRANSFERS = [
@@ -5480,6 +5571,7 @@ function setFeaturedTeam(teamId) {
 /** Keep hero, squads, and Match Center on the same league. */
 function setActiveLeague(leagueId, preferredTeamId) {
   renderMatchCenter._viewWeek = null;
+  renderMatchCenter._viewDateByWeek = {};
   if (!leagueId) return;
   const leagueSel = $("#leagueSelect");
   if (leagueSel) leagueSel.value = leagueId;
@@ -5532,18 +5624,23 @@ function applyLeagueSectionToggles(leagueId) {
 let transferViewTeamId = "";
 
 function transfersForLeague(leagueId) {
-  return TRANSFERS.find((t) => t.leagueId === leagueId) ?? { leagueId, in: [], out: [] };
+  const block = TRANSFERS.find((t) => t.leagueId === leagueId);
+  return typeof FCDataStore !== "undefined"
+    ? FCDataStore.normalizeTransfersBlock(block ?? { leagueId })
+    : { leagueId, in: [], out: [], loanReturn: [], loanRecall: [] };
 }
 
 function transfersForTeam(leagueId, teamId) {
   const team = teamById.get(teamId);
   const club = (team?.name ?? "").trim();
   const block = transfersForLeague(leagueId);
-  if (!club) return { in: [], out: [] };
+  if (!club) return { in: [], out: [], loanReturn: [], loanRecall: [] };
   const match = (t) => (t.club ?? "").trim() === club;
   return {
     in: (block.in ?? []).filter(match),
     out: (block.out ?? []).filter(match),
+    loanReturn: (block.loanReturn ?? []).filter(match),
+    loanRecall: (block.loanRecall ?? []).filter(match),
   };
 }
 
@@ -5595,42 +5692,70 @@ function transferEmptyIconHtml(direction) {
       <path d="M12 5v10"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/>
     </svg>`;
   }
+  if (direction === "out") {
+    return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 19V9"/><path d="M8 13l4-4 4 4"/><path d="M5 5h14"/>
+    </svg>`;
+  }
+  if (direction === "loanReturn") {
+    return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v1"/>
+    </svg>`;
+  }
   return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M12 19V9"/><path d="M8 13l4-4 4 4"/><path d="M5 5h14"/>
+    <path d="M15 10l5 5-5 5"/><path d="M20 15H9a5 5 0 0 1-5-5V9"/>
   </svg>`;
 }
 
 function transferEmptyHtml(direction, clubName) {
-  const isIn = direction === "in";
   const club = String(clubName ?? "").trim() && clubName !== "—" ? clubName : "this club";
-  const title = isIn ? "No incoming transfers yet" : "No outgoing transfers yet";
-  const hint = isIn
-    ? `Players signed by ${club} will appear here once they are recorded.`
-    : `Players who left ${club} will appear here once they are recorded.`;
+  const panel = TRANSFER_PANELS.find((p) => p.key === direction);
+  const iconClass = panel?.dirClass ?? direction;
+  const copy = {
+    in: {
+      title: "No incoming transfers yet",
+      hint: `Players signed by ${club} will appear here once they are recorded.`,
+    },
+    out: {
+      title: "No outgoing transfers yet",
+      hint: `Players who left ${club} will appear here once they are recorded.`,
+    },
+    loanReturn: {
+      title: "No loan returns yet",
+      hint: `Players returning from loan to ${club} will appear here once they are recorded.`,
+    },
+    loanRecall: {
+      title: "No recalls yet",
+      hint: `Players sent back to their parent club from ${club} will appear here once they are recorded.`,
+    },
+  }[direction] ?? { title: "Nothing here yet", hint: "" };
   return `
     <div class="transfer-empty-state" role="status">
-      <div class="transfer-empty-state__icon transfer-empty-state__icon--${isIn ? "in" : "out"}" aria-hidden="true">
+      <div class="transfer-empty-state__icon transfer-empty-state__icon--${iconClass}" aria-hidden="true">
         ${transferEmptyIconHtml(direction)}
       </div>
-      <p class="transfer-empty-state__title">${escapeHtml(title)}</p>
-      <p class="transfer-empty-state__hint">${escapeHtml(hint)}</p>
+      <p class="transfer-empty-state__title">${escapeHtml(copy.title)}</p>
+      <p class="transfer-empty-state__hint">${escapeHtml(copy.hint)}</p>
     </div>`;
 }
 
 function transferPanelMetaText(count, direction) {
   if (!count) return "";
-  if (direction === "in") return `${count} arrival${count === 1 ? "" : "s"}`;
-  return `${count} departure${count === 1 ? "" : "s"}`;
+  const labels = {
+    in: `${count} arrival${count === 1 ? "" : "s"}`,
+    out: `${count} departure${count === 1 ? "" : "s"}`,
+    loanReturn: `${count} return${count === 1 ? "" : "s"}`,
+    loanRecall: `${count} recall${count === 1 ? "" : "s"}`,
+  };
+  return labels[direction] ?? `${count} move${count === 1 ? "" : "s"}`;
 }
 
-function setTransferPanelMeta(inCount, outCount) {
-  for (const [count, direction, sel] of [
-    [inCount, "in", ".transfer-card--in .transfer-panel-head__meta"],
-    [outCount, "out", ".transfer-card--out .transfer-panel-head__meta"],
-  ]) {
-    const el = document.querySelector(sel);
+function setTransferPanelMeta(block) {
+  for (const panel of TRANSFER_PANELS) {
+    const el = document.querySelector(`.${panel.card} .transfer-panel-head__meta`);
     if (!el) continue;
-    const text = transferPanelMetaText(count, direction);
+    const count = block[panel.key]?.length ?? 0;
+    const text = transferPanelMetaText(count, panel.key);
     el.textContent = text;
     el.hidden = !text;
   }
@@ -5640,8 +5765,9 @@ function renderTransferRows(items, direction, clubName) {
   if (!items?.length) {
     return transferEmptyHtml(direction, clubName);
   }
-  const dirClass = direction === "in" ? "in" : "out";
-  const dirSymbol = direction === "in" ? "↓" : "↑";
+  const panel = TRANSFER_PANELS.find((p) => p.key === direction);
+  const dirClass = panel?.dirClass ?? direction;
+  const dirSymbol = panel?.symbol ?? "•";
   return items
     .map((t) => {
       const fee = t.fee ? escapeHtml(t.fee) : "—";
@@ -5673,11 +5799,9 @@ function toggleTransfersSection(leagueId) {
 function renderTransfers(leagueId, preferredTeamId) {
   if (!leagueHasTransfers(leagueId)) return;
   const tabs = $("#transferTabs");
-  const inEl = $("#transferIn");
-  const outEl = $("#transferOut");
   const labelEl = $("#transferLeagueLabel");
   const clubLabelEl = $("#transferClubLabel");
-  if (!inEl || !outEl) return;
+  if (!TRANSFER_PANELS.every((p) => $(`#${p.elId}`))) return;
 
   const league = LEAGUES.find((l) => l.id === leagueId);
   if (labelEl) labelEl.textContent = league?.name ?? leagueId;
@@ -5690,9 +5814,11 @@ function renderTransfers(leagueId, preferredTeamId) {
   if (clubLabelEl) clubLabelEl.textContent = clubName;
 
   const block = transfersForTeam(leagueId, teamId);
-  setTransferPanelMeta(block.in.length, block.out.length);
-  inEl.innerHTML = renderTransferRows(block.in, "in", clubName);
-  outEl.innerHTML = renderTransferRows(block.out, "out", clubName);
+  setTransferPanelMeta(block);
+  for (const panel of TRANSFER_PANELS) {
+    const el = $(`#${panel.elId}`);
+    if (el) el.innerHTML = renderTransferRows(block[panel.key], panel.key, clubName);
+  }
 }
 
 function setupTransferControls() {
@@ -5797,15 +5923,16 @@ function getMatchCenterShareState() {
   const publishedWeek = meta.matchweek ?? 36;
   const showAll = leagueShowsAllFixtures(leagueId);
   const viewWeek = showAll ? publishedWeek : renderMatchCenter._viewWeek ?? publishedWeek;
-  const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
+  const weekMatches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
+  const { activeGroup } = resolveMatchCenterDateView(leagueId, viewWeek, weekMatches, showAll);
+  const matches = activeGroup?.items ?? [];
   const league = LEAGUES.find((l) => l.id === leagueId);
   const title = showAll
     ? meta.matchweekTitle || "World Cup"
     : viewWeek === publishedWeek
       ? meta.matchweekTitle || `Matchweek ${publishedWeek}`
       : `Matchweek ${viewWeek}`;
-  const dateRange =
-    showAll || viewWeek === publishedWeek ? meta.dateRange ?? "—" : "Browse earlier / later gameweeks";
+  const dateRange = activeGroup?.label ?? meta.dateRange ?? "—";
 
   const shareMatches = matches.map((m) => ({
     ...m,
@@ -5847,9 +5974,55 @@ async function handleShareGameweek() {
   }
 }
 
+function getTransferShareState() {
+  const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
+  const teamId = transferViewTeamId || $("#transferTeamSelect")?.value || $("#teamSelect")?.value || "";
+  const team = teamById.get(teamId);
+  const league = LEAGUES.find((l) => l.id === leagueId);
+  const block = transfersForTeam(leagueId, teamId);
+  return {
+    leagueId,
+    leagueName: league?.name ?? leagueId,
+    team,
+    panels: TRANSFER_PANELS.map((panel) => ({
+      key: panel.key,
+      label: panel.label,
+      symbol: panel.symbol,
+      items: block[panel.key] ?? [],
+    })),
+  };
+}
+
+async function handleShareTransfers() {
+  if (typeof ShareImage === "undefined") {
+    alert("Share image module did not load. Refresh the page.");
+    return;
+  }
+  const btn = $("#shareTransfersBtn");
+  const { leagueId, leagueName, team, panels } = getTransferShareState();
+  if (!leagueHasTransfers(leagueId)) return;
+  if (!team) return;
+
+  setShareBusy(btn, true);
+  try {
+    const canvas = await ShareImage.renderTransfersShareImage({
+      team,
+      leagueName,
+      panels,
+    });
+    await ShareImage.exportShareImage(canvas, shareFilenameSlug(`${team.name}-transfers`, "transfers"));
+  } catch (err) {
+    console.error(err);
+    alert("Could not generate transfers image. Use a local server (http://) and try again.");
+  } finally {
+    setShareBusy(btn, false);
+  }
+}
+
 function setupShareButtons() {
   $("#shareSquadBtn")?.addEventListener("click", handleShareSquad);
   $("#shareGameweekBtn")?.addEventListener("click", handleShareGameweek);
+  $("#shareTransfersBtn")?.addEventListener("click", handleShareTransfers);
 }
 
 function setupHowItWorks() {
@@ -6240,7 +6413,24 @@ function renderMatchCenter(leagueId) {
   const rangeEl = $("#mwRange");
   const prevBtn = $("#mwPrev");
   const nextBtn = $("#mwNext");
-  if (!tabs || !listEl || !titleEl || !rangeEl || !prevBtn || !nextBtn) return;
+  const weekNavRow = $("#mwWeekNavRow");
+  const dateTitleEl = $("#mwDateTitle");
+  const dateMetaEl = $("#mwDateMeta");
+  const datePrevBtn = $("#mwDatePrev");
+  const dateNextBtn = $("#mwDateNext");
+  if (
+    !tabs ||
+    !listEl ||
+    !titleEl ||
+    !rangeEl ||
+    !prevBtn ||
+    !nextBtn ||
+    !dateTitleEl ||
+    !dateMetaEl ||
+    !datePrevBtn ||
+    !dateNextBtn
+  )
+    return;
 
   renderLeagueTabBar(tabs, leagueId, "data-match-tab");
 
@@ -6414,16 +6604,16 @@ function renderMatchCenter(leagueId) {
   };
 
   if (showAll) {
+    weekNavRow?.classList.add("d-none");
     prevBtn.disabled = true;
     nextBtn.disabled = true;
-    prevBtn.classList.add("opacity-50");
-    nextBtn.classList.add("opacity-50");
     titleEl.textContent = meta.matchweekTitle || "World Cup";
     rangeEl.textContent = meta.dateRange ?? "—";
   } else {
+    weekNavRow?.classList.remove("d-none");
     prevBtn.disabled = viewWeek <= 1;
     nextBtn.disabled = false;
-    prevBtn.classList.remove("opacity-50");
+    prevBtn.classList.toggle("opacity-50", viewWeek <= 1);
     nextBtn.classList.remove("opacity-50");
     prevBtn.onclick = () => setWeek(Math.max(1, viewWeek - 1));
     nextBtn.onclick = () => setWeek(viewWeek + 1);
@@ -6434,16 +6624,37 @@ function renderMatchCenter(leagueId) {
     rangeEl.textContent = viewWeek === publishedWeek ? meta.dateRange ?? "—" : "Browse earlier / later gameweeks";
   }
 
-  const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
-  const groups = new Map();
-  for (const m of matches) {
-    const day = showAll
-      ? [m.matchday, m.time].filter((x) => x && x !== "—").join(" · ") || "—"
-      : m.time || "—";
-    const list = groups.get(day) ?? [];
-    list.push(m);
-    groups.set(day, list);
-  }
+  const weekMatches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
+  const { dateGroups, activeIndex, activeGroup } = resolveMatchCenterDateView(
+    leagueId,
+    viewWeek,
+    weekMatches,
+    showAll,
+  );
+  const storageKey = matchCenterDateStorageKey(leagueId, viewWeek);
+  const displayMatches = activeGroup?.items ?? [];
+  const fixtureWord = displayMatches.length === 1 ? "fixture" : "fixtures";
+
+  dateTitleEl.textContent = activeGroup?.label ?? "No dates";
+  dateMetaEl.textContent = displayMatches.length
+    ? `${displayMatches.length} ${fixtureWord}`
+    : weekMatches.length
+      ? "No fixtures on this date"
+      : "No fixtures this gameweek";
+
+  const setDateIndex = (index) => {
+    const group = dateGroups[index];
+    if (!group) return;
+    renderMatchCenter._viewDateByWeek[storageKey] = group.key;
+    renderMatchCenter(leagueId);
+  };
+
+  datePrevBtn.disabled = activeIndex <= 0;
+  dateNextBtn.disabled = activeIndex < 0 || activeIndex >= dateGroups.length - 1;
+  datePrevBtn.classList.toggle("opacity-50", datePrevBtn.disabled);
+  dateNextBtn.classList.toggle("opacity-50", dateNextBtn.disabled);
+  datePrevBtn.onclick = () => setDateIndex(activeIndex - 1);
+  dateNextBtn.onclick = () => setDateIndex(activeIndex + 1);
 
   const showStatus = leagueFeatureOn(leagueId, "matchStatus");
   const rowHtml = (m) => {
@@ -6475,11 +6686,9 @@ function renderMatchCenter(leagueId) {
     `;
   };
 
-  listEl.innerHTML = Array.from(groups.entries())
-    .map(([day, list]) => {
-      return `<div class="mw-day">${escapeHtml(day)}</div>${list.map(rowHtml).join("")}`;
-    })
-    .join("");
+  listEl.innerHTML = displayMatches.length
+    ? displayMatches.map(rowHtml).join("")
+    : `<div class="mw-empty">${escapeHtml(dateMetaEl.textContent)}</div>`;
 
   for (const row of $$("[data-match]", listEl)) {
     const id = row.getAttribute("data-match");

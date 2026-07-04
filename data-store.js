@@ -53,6 +53,27 @@
     ];
   }
 
+  const TRANSFER_LIST_KEYS = ["in", "out", "loanReturn", "loanRecall"];
+
+  function emptyTransferLists() {
+    return { in: [], out: [], loanReturn: [], loanRecall: [] };
+  }
+
+  function normalizeTransfersBlock(block) {
+    if (!block) return { leagueId: "", ...emptyTransferLists() };
+    return {
+      leagueId: block.leagueId,
+      in: block.in ?? [],
+      out: block.out ?? [],
+      loanReturn: block.loanReturn ?? [],
+      loanRecall: block.loanRecall ?? [],
+    };
+  }
+
+  function normalizeTransfersList(list) {
+    return (list ?? []).map(normalizeTransfersBlock);
+  }
+
   function buildStateFromSeed(seed) {
     return {
       version: 1,
@@ -67,7 +88,7 @@
       matches: clone(seed.matches ?? []),
       miniStandings: clone(seed.miniStandings ?? []),
       topScorers: clone(seed.topScorers ?? []),
-      transfers: clone(seed.transfers ?? []),
+      transfers: normalizeTransfersList(seed.transfers ?? []),
       leagueMeta: { ...defaultLeagueMeta(), ...(seed.leagueMeta ?? {}) },
       deleted: emptyTombstones(seed.deleted),
     };
@@ -737,13 +758,14 @@
     save();
   }
 
-  function setTransfers(leagueId, { in: ins, out: outs }) {
+  function setTransfers(leagueId, patch) {
     const block = state.transfers.find((x) => x.leagueId === leagueId);
     if (block) {
-      if (ins != null) block.in = ins;
-      if (outs != null) block.out = outs;
+      for (const key of TRANSFER_LIST_KEYS) {
+        if (patch[key] != null) block[key] = patch[key];
+      }
     } else {
-      state.transfers.push({ leagueId, in: ins ?? [], out: outs ?? [] });
+      state.transfers.push(normalizeTransfersBlock({ leagueId, ...patch }));
     }
     touchRevision();
     save();
@@ -835,6 +857,10 @@
     setStandings,
     setTopScorers,
     setTransfers,
+    TRANSFER_LIST_KEYS,
+    emptyTransferLists,
+    normalizeTransfersBlock,
+    normalizeTransfersList,
     resetToSeed,
     exportJson,
     importJson,

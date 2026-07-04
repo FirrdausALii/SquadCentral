@@ -258,7 +258,7 @@
 
           <div class="card mb-4" style="padding: 0; overflow: hidden">
             <div class="matchweek-head">
-              <div class="row align-items-center justify-content-between g-2 mx-0">
+              <div class="row align-items-center justify-content-between g-2 mx-0 mw-week-nav" id="mwWeekNavRow">
                 <div class="col-auto">
                   <button class="mw-nav" type="button" id="mwPrev" aria-label="Previous matchweek">‹</button>
                 </div>
@@ -266,11 +266,23 @@
                   <div class="mw-kicker" id="mwTitle">Matchweek —</div>
                   <div class="mw-range text-truncate" id="mwRange">—</div>
                 </div>
+                <div class="col-auto">
+                  <button class="mw-nav" type="button" id="mwNext" aria-label="Next matchweek">›</button>
+                </div>
+              </div>
+              <div class="row align-items-center justify-content-between g-2 mx-0 mw-date-nav">
+                <div class="col-auto">
+                  <button class="mw-nav" type="button" id="mwDatePrev" aria-label="Previous date">‹</button>
+                </div>
+                <div class="col mw-title min-w-0 px-1 text-center">
+                  <div class="mw-date-kicker text-truncate" id="mwDateTitle">—</div>
+                  <div class="mw-date-meta text-truncate" id="mwDateMeta">—</div>
+                </div>
                 <div class="col-auto d-flex align-items-center gap-2">
                   <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareGameweekBtn" aria-label="Share gameweek image">
                     Share
                   </button>
-                  <button class="mw-nav" type="button" id="mwNext" aria-label="Next matchweek">›</button>
+                  <button class="mw-nav" type="button" id="mwDateNext" aria-label="Next date">›</button>
                 </div>
               </div>
             </div>
@@ -300,15 +312,20 @@
 
           <div class="card mb-4">
             <div class="league-tabs mb-4" aria-label="League filter" id="transferTabs"></div>
-            <label class="d-grid gap-1">
-              <span class="field-label">Club</span>
-              <div class="fc-select-wrap">
-                <select id="transferTeamSelect" class="fc-select form-select" aria-label="Club for transfers"></select>
-              </div>
-            </label>
+            <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+              <label class="d-grid gap-1 flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
+                <span class="field-label">Club</span>
+                <div class="fc-select-wrap">
+                  <select id="transferTeamSelect" class="fc-select form-select" aria-label="Club for transfers"></select>
+                </div>
+              </label>
+              <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareTransfersBtn" aria-label="Share transfers image">
+                Share
+              </button>
+            </div>
           </div>
 
-          <div class="grid-2">
+          <div class="grid-2 transfers-grid">
             <div class="card transfer-panel transfer-card--in">
               <div class="transfer-panel-head">
                 <span class="badge badge-green">In</span>
@@ -329,6 +346,28 @@
               <div class="transfer-panel-body" id="transferOut" aria-live="polite">
                 <div class="transfer-skeleton" aria-busy="true" aria-label="Loading transfers">
                   <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                  <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="card transfer-panel transfer-card--loan-return">
+              <div class="transfer-panel-head">
+                <span class="badge badge-amber">Loan Return</span>
+                <span class="transfer-panel-head__meta small text-secondary" hidden></span>
+              </div>
+              <div class="transfer-panel-body" id="transferLoanReturn" aria-live="polite">
+                <div class="transfer-skeleton" aria-busy="true" aria-label="Loading loan returns">
+                  <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="card transfer-panel transfer-card--loan-recall">
+              <div class="transfer-panel-head">
+                <span class="badge badge-purple">Recall</span>
+                <span class="transfer-panel-head__meta small text-secondary" hidden></span>
+              </div>
+              <div class="transfer-panel-body" id="transferLoanRecall" aria-live="polite">
+                <div class="transfer-skeleton" aria-busy="true" aria-label="Loading recalls">
                   <div class="transfer-skeleton__row"><span class="transfer-skeleton__chip"></span><span class="transfer-skeleton__line transfer-skeleton__line--name"></span><span class="transfer-skeleton__line transfer-skeleton__line--club"></span><span class="transfer-skeleton__line transfer-skeleton__line--fee"></span></div>
                 </div>
               </div>
