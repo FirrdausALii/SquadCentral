@@ -643,15 +643,49 @@
     save();
   }
 
+  function stripCaptainSuffix(name) {
+    return String(name ?? "").replace(/\s*\(C\)\s*$/i, "").trim();
+  }
+
+  function playerNameMarksCaptain(name) {
+    return /\s*\(C\)\s*$/i.test(String(name ?? "").trim());
+  }
+
+  function clearOtherCaptains(teamId, keepPlayerId) {
+    if (!teamId) return;
+    for (const p of state.players) {
+      if (p.teamId !== teamId || p.id === keepPlayerId) continue;
+      if (p.captain) delete p.captain;
+      if (playerNameMarksCaptain(p.name)) p.name = stripCaptainSuffix(p.name);
+    }
+  }
+
+  function normalizePlayerCaptainFields(player) {
+    const next = { ...player };
+    if (playerNameMarksCaptain(next.name)) {
+      next.captain = true;
+      next.name = stripCaptainSuffix(next.name);
+    }
+    if (next.captain && next.teamId) clearOtherCaptains(next.teamId, next.id);
+    else if (next.captain === false) delete next.captain;
+    return next;
+  }
+
   function upsertPlayer(player) {
-    const i = state.players.findIndex((p) => p.id === player.id);
+    const normalized = normalizePlayerCaptainFields(player);
+    const i = state.players.findIndex((p) => p.id === normalized.id);
     if (i >= 0) {
-      const merged = { ...state.players[i], ...player };
-      if (Object.prototype.hasOwnProperty.call(player, "instagram") && !player.instagram) delete merged.instagram;
+      const merged = { ...state.players[i], ...normalized };
+      if (Object.prototype.hasOwnProperty.call(normalized, "instagram") && !normalized.instagram) {
+        delete merged.instagram;
+      }
+      if (merged.captain) clearOtherCaptains(merged.teamId, merged.id);
+      else if (merged.captain === false) delete merged.captain;
       state.players[i] = merged;
     } else {
-      const next = { ...player };
+      const next = { ...normalized };
       if (!next.instagram) delete next.instagram;
+      if (next.captain) clearOtherCaptains(next.teamId, next.id);
       state.players.push(next);
     }
     untombstone("players", player.id);

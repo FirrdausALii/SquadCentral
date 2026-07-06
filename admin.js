@@ -156,6 +156,9 @@ function playerRosterCardHtml(p, isWorldCup) {
     `<span class="player-roster-role">${esc(p.role ?? "")}</span>`,
     clubMeta,
   ].filter(Boolean);
+  const capBadge = rosterPlayerIsCaptain(p)
+    ? `<span class="player-roster-cap" title="Club captain">C</span>`
+    : "";
   return `<article class="player-roster-card player-sort-row" draggable="true" data-player-id="${esc(p.id)}" data-search="${esc(adminPlayerSearchHaystack(p))}">
     <span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
     <div class="player-roster-body">
@@ -163,7 +166,7 @@ function playerRosterCardHtml(p, isWorldCup) {
         <span class="player-roster-num">${esc(p.number)}</span>
         <div class="player-roster-copy">
           <div class="admin-player-name-inner">
-            <strong class="admin-player-name">${esc(p.name)}</strong>${adminPlayerInstagramBadge(p)}
+            <strong class="admin-player-name">${esc(stripCaptainSuffix(p.name))}</strong>${capBadge}${adminPlayerInstagramBadge(p)}
           </div>
           <div class="player-roster-meta">${metaParts.join('<span class="player-roster-meta-sep" aria-hidden="true">·</span>')}</div>
         </div>
@@ -701,6 +704,12 @@ function stripCaptainSuffix(name) {
 
 function playerNameMarksCaptain(name) {
   return /\s*\(C\)\s*$/i.test(String(name ?? "").trim());
+}
+
+function rosterPlayerIsCaptain(p) {
+  if (!p) return false;
+  if (p.captain) return true;
+  return playerNameMarksCaptain(p.name);
 }
 
 function lineupSlotIsCaptain(data, rosterPlayer) {
@@ -2112,7 +2121,7 @@ function panelPlayers() {
       <section class="mw-card" id="playerFormCard">
         <div class="mw-card-head">
           <h3 id="playerFormTitle">Add player</h3>
-          <p>Role controls default sort order on the public squad page (GK → CB → … → CF).</p>
+          <p>Role controls default sort order on the public squad page (GK → CB → … → CF). Mark <strong>Captain</strong> with the toggle — do not add (C) to the name.</p>
         </div>
         <input type="hidden" id="playerEditId" value="" />
         <div class="row g-2 g-md-3">
@@ -2129,6 +2138,17 @@ function panelPlayers() {
           </div>
           <div class="col-12 col-md-6 col-lg-4">
             <div class="mw-field"><label for="playerName">Name</label><input id="playerName" class="mw-input" /></div>
+          </div>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="mw-field players-captain-field">
+              <span class="mw-field-label">Captain</span>
+              <label class="players-captain-toggle" for="playerCaptain">
+                <input id="playerCaptain" type="checkbox" />
+                <span class="players-captain-badge" aria-hidden="true">C</span>
+                <span class="players-captain-text">Club captain</span>
+              </label>
+              <p class="mw-field-note admin-muted">Only one captain per team. Others are cleared automatically.</p>
+            </div>
           </div>
           <div class="col-6 col-md-6 col-lg-4">
             <div class="mw-field"><label for="playerPos">Pos (GK/DF/MF/FW)</label><input id="playerPos" class="mw-input" /></div>
@@ -2971,7 +2991,11 @@ function bindPanelHandlers() {
       toast("Signed in to Firebase");
       renderPanel();
     } catch (err) {
-      alert(err?.message || "Firebase sign-in failed");
+      const text =
+        typeof FCFirebase.formatAuthError === "function"
+          ? FCFirebase.formatAuthError(err)
+          : err?.message || "Firebase sign-in failed";
+      alert(text);
     }
   });
 
@@ -4080,7 +4104,7 @@ function bindPlayers() {
   $("#btnSavePlayer")?.addEventListener("click", () => {
     const teamId = $("#playerTeam").value;
     const number = Number($("#playerNumber").value);
-    const name = $("#playerName").value.trim();
+    const name = stripCaptainSuffix($("#playerName").value.trim());
     if (!teamId || !name) return alert("Team and name required");
     const editId = $("#playerEditId").value;
     const id = editId || FCDataStore.makePlayerId(teamId, number, name);
@@ -4090,6 +4114,7 @@ function bindPlayers() {
       const maxOrder = playersForTeam(teamId).reduce((m, p) => Math.max(m, p.sortOrder ?? -1), -1);
       sortOrder = maxOrder + 1;
     }
+    const isCaptain = !!$("#playerCaptain")?.checked;
     const playerPayload = {
       id,
       teamId,
@@ -4100,6 +4125,7 @@ function bindPlayers() {
       flag: $("#playerFlag").value.trim(),
       nationality: $("#playerNat").value.trim(),
       sortOrder,
+      captain: isCaptain,
     };
     if (teamId.startsWith("worldcup_")) {
       playerPayload.club = $("#playerClub")?.value.trim() || undefined;
@@ -4122,7 +4148,8 @@ function bindPlayers() {
       $("#playerFormTitle").textContent = "Edit player";
       $("#playerTeam").value = p.teamId;
       $("#playerNumber").value = p.number;
-      $("#playerName").value = p.name;
+      $("#playerName").value = stripCaptainSuffix(p.name);
+      if ($("#playerCaptain")) $("#playerCaptain").checked = rosterPlayerIsCaptain(p);
       $("#playerPos").value = p.pos;
       $("#playerRole").value = p.role ?? "";
       $("#playerNat").value = p.nationality ?? "";

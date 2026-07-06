@@ -2478,6 +2478,78 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   color: var(--admin-muted);
 }
 
+.player-roster-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.players-captain-field .mw-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-muted);
+}
+
+.players-captain-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.players-captain-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.players-captain-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-1);
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 800;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.players-captain-toggle input:checked + .players-captain-badge {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.players-captain-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .player-roster-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

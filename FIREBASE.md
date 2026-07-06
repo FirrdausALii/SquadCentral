@@ -57,6 +57,34 @@ If Firestore is empty, either use **Publish live to Firebase** in admin, or impo
 3. **`data.json`** (GitHub Pages)
 4. **localStorage** (admin browser only)
 
+## 6. GitHub Pages (required for admin sign-in)
+
+If admin shows **`auth/requests-from-referer-…-are-blocked`** on  
+`https://firrdausalii.github.io/SquadCentral/admin.html`, the Firebase **browser API key** only allows localhost.
+
+### A. Google Cloud — API key website restrictions
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → project **squadcentral-12a3d**
+2. **APIs & Services → Credentials**
+3. Open **Browser key (auto created by Firebase)**
+4. **Application restrictions → Websites**
+5. **Add** (keep local dev entries):
+
+   ```
+   https://firrdausalii.github.io/*
+   http://127.0.0.1/*
+   http://localhost/*
+   ```
+
+6. **Save** — changes can take a few minutes to apply.
+
+### B. Firebase — authorized domain
+
+1. [Firebase Console](https://console.firebase.google.com/) → **Authentication → Settings → Authorized domains**
+2. **Add domain:** `firrdausalii.github.io`
+
+Then reload admin and sign in again.
+
 ## Security notes
 
 - Client Firebase keys are public by design; protect writes with **Firestore rules** + **Auth**.

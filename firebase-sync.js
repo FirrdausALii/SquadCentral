@@ -148,6 +148,36 @@
     return `Signed in as ${email}`;
   }
 
+  function formatAuthError(err) {
+    const code = err?.code ?? "";
+    const msg = err?.message ?? String(err ?? "Firebase sign-in failed");
+    const host = typeof location !== "undefined" ? location.hostname : "your-site.github.io";
+
+    if (code.includes("requests-from-referer") || msg.includes("requests-from-referer")) {
+      return (
+        "This domain is blocked by your Google Cloud API key.\n\n" +
+        "Google Cloud Console → APIs & Services → Credentials → " +
+        '"Browser key (auto created by Firebase)" → Application restrictions → Websites.\n\n' +
+        "Add these referrers, then Save:\n" +
+        `  https://${host}/*\n` +
+        "  http://127.0.0.1/*\n" +
+        "  http://localhost/*\n\n" +
+        `Also add ${host} in Firebase Console → Authentication → Settings → Authorized domains.\n\n` +
+        "See FIREBASE.md section 6."
+      );
+    }
+
+    if (code === "auth/unauthorized-domain") {
+      return (
+        `${host} is not an authorized domain.\n\n` +
+        "Firebase Console → Authentication → Settings → Authorized domains → Add domain:\n" +
+        `  ${host}`
+      );
+    }
+
+    return msg;
+  }
+
   global.FCFirebase = {
     init,
     isConfigured,
@@ -159,5 +189,6 @@
     currentUser,
     onAuthChange,
     statusLabel,
+    formatAuthError,
   };
 })(typeof window !== "undefined" ? window : globalThis);
