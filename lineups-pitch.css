@@ -9,7 +9,24 @@
   border-radius: var(--radius-md);
   padding: 4px;
   width: fit-content;
+}
+
+.lineup-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
   margin-bottom: var(--sp-4);
+}
+
+.lineup-toolbar--share-only {
+  justify-content: flex-end;
+}
+
+.lineup-toolbar .lineup-toggle,
+.lineup-toolbar .lineup-view-toggle {
+  margin-bottom: 0;
 }
 
 .lineup-toggle-btn,

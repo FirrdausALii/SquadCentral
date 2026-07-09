@@ -3148,6 +3148,8 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 
 .transfers-table-wrap {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: min(520px, 62vh);
   -webkit-overflow-scrolling: touch;
   border-radius: 12px;
   border: 1px solid var(--admin-border);
@@ -3180,6 +3182,58 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 .tr-roster-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.tr-squad-details {
+  margin-top: 4px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-2);
+}
+
+.tr-squad-details-lead {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--admin-muted);
+  line-height: 1.35;
+}
+
+.tr-squad-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tr-squad-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tr-squad-field--wide {
+  grid-column: 1 / -1;
+}
+
+.tr-squad-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+}
+
+.tr-squad-details-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tr-squad-details-actions .mw-btn-primary,
+.tr-squad-details-actions .mw-btn-ghost {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
 }
 
 .transfers-club-col {

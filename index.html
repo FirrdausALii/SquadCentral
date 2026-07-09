@@ -66,7 +66,7 @@
       </ul>
 
       <div class="topbar-actions d-none d-lg-flex align-items-center gap-2">
-        <a class="btn btn-primary btn-sm" href="#squads">Browse squads</a>
+        <a class="btn btn-primary topbar-cta" href="#squads">Browse squads</a>
       </div>
     </header>
 
@@ -94,16 +94,31 @@
       </div>
     </div>
 
-    <div class="page-wrapper">
-      <aside class="sidebar" aria-label="Sections">
-        <span class="sidebar-section-label">Navigate</span>
-        <a class="sidebar-item active" href="#main" data-nav="main">Home</a>
-        <a class="sidebar-item" href="#squads" data-nav="squads">Squads</a>
-        <a class="sidebar-item" href="#match-center" data-nav="match-center">Match Center</a>
-        <a class="sidebar-item" href="#transfers" data-nav="transfers">Transfers</a>
-        <a class="sidebar-item" href="#about" data-nav="about">About</a>
-        <span class="sidebar-section-label">Tools</span>
-        <a class="sidebar-item" href="./admin.html">Admin</a>
+    <div class="page-wrapper page-wrapper--home">
+      <aside class="sidebar sidebar--context" id="contextSidebar" aria-label="Section tools" hidden>
+        <div class="sidebar-panel" data-sidebar-panel="squads" hidden>
+          <span class="sidebar-section-label">Squads</span>
+          <p class="sidebar-context-lead">Filter rosters by league, club, and position.</p>
+          <a class="sidebar-item" href="#squads" data-sidebar-focus="leagueSelect">League &amp; team</a>
+          <a class="sidebar-item" href="#squads" data-sidebar-focus="playerSearch">Search players</a>
+          <a class="sidebar-item" href="#squads" data-sidebar-focus="rosterPanel">Roster table</a>
+        </div>
+        <div class="sidebar-panel" data-sidebar-panel="match-center" hidden>
+          <span class="sidebar-section-label">Match Center</span>
+          <p class="sidebar-context-lead">Browse gameweeks, results, and league tables.</p>
+          <a class="sidebar-item" href="#match-center" data-sidebar-focus="matchTabs">League filter</a>
+          <a class="sidebar-item" href="#match-center" data-sidebar-focus="matchList">Gameweek results</a>
+          <a class="sidebar-item" href="#match-center" data-sidebar-focus="miniStandings">Standings</a>
+          <a class="sidebar-item" href="#match-center" data-sidebar-focus="topScorers">Top scorers</a>
+        </div>
+        <div class="sidebar-panel" data-sidebar-panel="transfers" hidden>
+          <span class="sidebar-section-label">Transfers</span>
+          <p class="sidebar-context-lead">Track moves in and out by club.</p>
+          <a class="sidebar-item" href="#transfers" data-sidebar-focus="transferTabs">League filter</a>
+          <a class="sidebar-item" href="#transfers" data-sidebar-focus="transferTeamSelect">Club selector</a>
+          <a class="sidebar-item" href="#transfers" data-sidebar-focus="transferIn">Incoming</a>
+          <a class="sidebar-item" href="#transfers" data-sidebar-focus="transferOut">Outgoing</a>
+        </div>
       </aside>
 
       <div class="main-content">
@@ -122,27 +137,33 @@
                 </span>
                 <h1 class="home-hero__title">Every squad. Every score. One hub.</h1>
                 <p class="home-hero__lede">
-                  Switch leagues instantly, skim the latest results, and dive into full rosters — clean, fast, and dark-first.
+                  Switch leagues instantly, skim the latest results, and dive into full rosters - clean, fast, and dark-first.
                 </p>
                 <div class="home-hero__actions">
                   <a class="btn btn-primary" href="#match-center">Match center</a>
-                  <a class="btn btn-ghost" href="#squads">Explore squads</a>
+                  <a class="btn btn-secondary" href="#squads">Explore squads</a>
                 </div>
               </div>
 
               <aside class="home-hero__panel" aria-label="Platform snapshot">
                 <div class="home-stats home-stats--hero">
                   <article class="stat-card stat-card--hero">
-                    <span class="stat-label">Leagues</span>
-                    <span class="stat-value" id="statLeagues">—</span>
+                    <div class="stat-card__row">
+                      <span class="stat-label">Leagues</span>
+                      <span class="stat-value" id="statLeagues">—</span>
+                    </div>
                   </article>
                   <article class="stat-card stat-card--hero">
-                    <span class="stat-label">Clubs</span>
-                    <span class="stat-value" id="statTeams">—</span>
+                    <div class="stat-card__row">
+                      <span class="stat-label">Clubs</span>
+                      <span class="stat-value" id="statTeams">—</span>
+                    </div>
                   </article>
                   <article class="stat-card stat-card--hero">
-                    <span class="stat-label">Players</span>
-                    <span class="stat-value" id="statPlayers">—</span>
+                    <div class="stat-card__row">
+                      <span class="stat-label">Players</span>
+                      <span class="stat-value" id="statPlayers">—</span>
+                    </div>
                   </article>
                 </div>
 
@@ -163,13 +184,17 @@
           <div class="home-shell">
             <aside class="home-rail" aria-label="Select competition">
               <span class="home-rail__label">Competitions</span>
-              <div class="home-rail__scroll-wrap">
+              <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
+                <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
                 <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
                 <div class="home-rail__scroll" id="leaguePillsScroll">
                   <div class="league-tabs home-rail__pills" id="leaguePills"></div>
                 </div>
+                <div class="home-rail__more-mount" id="homeRailMoreMount"></div>
                 <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
+                <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
               </div>
+              <p class="home-rail__scroll-hint" id="homeRailScrollHint" hidden>Scroll for more leagues →</p>
             </aside>
 
             <div class="home-main">
@@ -184,7 +209,11 @@
                   </div>
                   <a class="home-spotlight__link" href="#match-center">Full center →</a>
                 </div>
-                <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
+                <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
+                  <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
+                  <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
+                </div>
+                <p class="home-spotlight__scroll-hint" id="heroSpotlightHint" hidden>Scroll sideways for more matches →</p>
               </section>
 
               <div class="home-bento">
@@ -256,34 +285,32 @@
             <div class="league-tabs" aria-label="League filter tabs" id="matchTabs"></div>
           </div>
 
-          <div class="card mb-4" style="padding: 0; overflow: hidden">
+          <div class="card mb-4 mw-panel" style="padding: 0; overflow: hidden">
             <div class="matchweek-head">
-              <div class="row align-items-center justify-content-between g-2 mx-0 mw-week-nav" id="mwWeekNavRow">
-                <div class="col-auto">
-                  <button class="mw-nav" type="button" id="mwPrev" aria-label="Previous matchweek">‹</button>
+              <div class="mw-nav-bar" id="mwNavBar">
+                <button type="button" class="mw-nav" id="mwDatePrev" aria-label="Previous date">‹</button>
+                <div class="mw-nav-bar__center min-w-0">
+                  <div class="mw-nav-bar__title-line" id="mwWeekNavRow">
+                    <button type="button" class="mw-nav mw-nav--sub" id="mwPrev" aria-label="Previous matchweek">‹</button>
+                    <span class="mw-kicker" id="mwTitle">Matchweek —</span>
+                    <button type="button" class="mw-nav mw-nav--sub" id="mwNext" aria-label="Next matchweek">›</button>
+                  </div>
+                  <div class="mw-nav-bar__meta">
+                    <span class="mw-date-kicker" id="mwDateTitle">—</span>
+                    <span class="mw-nav-bar__sep" aria-hidden="true">·</span>
+                    <span class="mw-date-meta" id="mwDateMeta">—</span>
+                  </div>
+                  <p class="mw-range mw-nav-bar__range" id="mwRange">—</p>
                 </div>
-                <div class="col mw-title min-w-0 px-1 text-center">
-                  <div class="mw-kicker" id="mwTitle">Matchweek —</div>
-                  <div class="mw-range text-truncate" id="mwRange">—</div>
-                </div>
-                <div class="col-auto">
-                  <button class="mw-nav" type="button" id="mwNext" aria-label="Next matchweek">›</button>
-                </div>
-              </div>
-              <div class="row align-items-center justify-content-between g-2 mx-0 mw-date-nav">
-                <div class="col-auto">
-                  <button class="mw-nav" type="button" id="mwDatePrev" aria-label="Previous date">‹</button>
-                </div>
-                <div class="col mw-title min-w-0 px-1 text-center">
-                  <div class="mw-date-kicker text-truncate" id="mwDateTitle">—</div>
-                  <div class="mw-date-meta text-truncate" id="mwDateMeta">—</div>
-                </div>
-                <div class="col-auto d-flex align-items-center gap-2">
-                  <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareGameweekBtn" aria-label="Share gameweek image">
-                    Share
-                  </button>
-                  <button class="mw-nav" type="button" id="mwDateNext" aria-label="Next date">›</button>
-                </div>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm share-btn mw-nav-bar__share"
+                  id="shareGameweekBtn"
+                  aria-label="Share gameweek image"
+                >
+                  Share
+                </button>
+                <button type="button" class="mw-nav" id="mwDateNext" aria-label="Next date">›</button>
               </div>
             </div>
             <div class="mw-list" id="matchList" aria-label="Matchweek results"></div>
@@ -476,7 +503,7 @@
               <a href="#squads">Squads</a>
               <a href="#transfers">Transfers</a>
               <a href="#about">About</a>
-              <a href="./admin.html">Admin</a>
+              <a href="./admin.html" data-admin-only hidden>Admin</a>
             </nav>
           </div>
         </footer>

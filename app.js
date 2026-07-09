@@ -15,6 +15,7 @@ const LEAGUES = [
 ];
 
 const HERO_LEAGUE_TABS = LEAGUES.map((l) => l.id);
+const HOME_RAIL_INLINE_MAX = 5;
 const LEAGUE_UI = {
   epl: { c1: "#2de2e6", c2: "#7c5cff", mask: "trophy" },
   laliga: { c1: "#ff4d6d", c2: "#ffd166", mask: "sun" },
@@ -4325,6 +4326,8 @@ const FC_ARRAYS = {
 function markSeedReady() {
   syncLeagueConfigFromStore();
   refreshNationalityFlagsLearn();
+  rebuildTeamIndex();
+  rebuildLineupRosterIndex();
   window.__FC_SEED_READY__ = true;
   document.dispatchEvent(new CustomEvent("fc-data-ready"));
 }
@@ -4360,9 +4363,52 @@ function byId(arr) {
 }
 
 let teamById = byId(TEAMS);
+let lineupRosterIndex = new Map();
 
 function rebuildTeamIndex() {
   teamById = byId(TEAMS);
+}
+
+function rebuildLineupRosterIndex() {
+  lineupRosterIndex = new Map();
+  for (const p of PLAYERS) {
+    if (!p?.teamId) continue;
+    if (!lineupRosterIndex.has(p.teamId)) lineupRosterIndex.set(p.teamId, new Map());
+    const key = `${p.number}|${normLineupName(p.name)}`;
+    lineupRosterIndex.get(p.teamId).set(key, p);
+  }
+}
+
+function resolveLineupRosterPlayer(teamId, slot) {
+  if (!teamId || !slot) return null;
+  return lineupRosterIndex.get(teamId)?.get(`${slot.number}|${normLineupName(slot.name)}`) ?? null;
+}
+
+const DISPLAY_LAST_NAME_MAX = 20;
+
+function deriveLastNameFromFullName(name) {
+  const clean = stripCaptainSuffix(name);
+  const parts = clean.split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1] : clean;
+}
+
+/** Short label for pitch/lineup views — uses roster displayLastName when set. */
+function playerDisplayLastName({ player, teamId, lineupSlot } = {}) {
+  const roster = player ?? (teamId && lineupSlot ? resolveLineupRosterPlayer(teamId, lineupSlot) : null);
+  const custom = String(roster?.displayLastName ?? "").trim();
+  if (custom) return custom.slice(0, DISPLAY_LAST_NAME_MAX);
+  const fullName = roster?.name ?? lineupSlot?.name ?? "";
+  return deriveLastNameFromFullName(fullName);
+}
+
+function enrichFormationRowsDisplay(teamId, rows) {
+  if (!rows?.length) return rows;
+  return rows.map((row) =>
+    row.map((slot) => ({
+      ...slot,
+      displayLastName: playerDisplayLastName({ teamId, lineupSlot: slot }),
+    })),
+  );
 }
 
 function escapeHtml(s) {
@@ -4425,38 +4471,92 @@ function setupTheme() {
 }
 
 function setupSidebarNav() {
-  const links = $$(".sidebar-item[data-nav], .topbar-nav a[href^='#']");
-  if (!links.length) return;
-
+  const topLinks = $$(".topbar-nav a[href^='#']");
+  const sidebar = $("#contextSidebar");
+  const panels = $$("[data-sidebar-panel]");
+  const pageWrapper = $(".page-wrapper");
+  const contextualSections = new Set(["squads", "match-center", "transfers"]);
   const sectionIds = ["main", "squads", "match-center", "transfers", "about"];
   const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
 
-  const setActive = (id) => {
-    for (const link of links) {
+  const setNavActive = (id) => {
+    const sectionId = id || "main";
+    for (const link of topLinks) {
       const href = link.getAttribute("href") ?? "";
-      const match = href === `#${id}` || (id === "main" && (href === "#" || href === "#main"));
+      const match = href === `#${sectionId}` || (sectionId === "main" && (href === "#" || href === "#main"));
       link.classList.toggle("active", match);
       link.closest("li")?.classList.toggle("active", match);
     }
+  };
+
+  const setSectionLayout = (id) => {
+    const sectionId = id || "main";
+    const onHome = sectionId === "main" || sectionId === "about";
+    const showSidebar = contextualSections.has(sectionId);
+    pageWrapper?.classList.toggle("page-wrapper--home", onHome);
+    pageWrapper?.classList.toggle("page-wrapper--section", showSidebar);
+    if (sidebar) sidebar.hidden = !showSidebar;
+
+    for (const panel of panels) {
+      const panelId = panel.getAttribute("data-sidebar-panel");
+      panel.hidden = !showSidebar || panelId !== sectionId;
+    }
+  };
+
+  const activateSection = (id, { layout = true } = {}) => {
+    const sectionId = id || "main";
+    setNavActive(sectionId);
+    if (layout) setSectionLayout(sectionId);
   };
 
   if ("IntersectionObserver" in window && sections.length) {
     const io = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]?.target?.id) setActive(visible[0].target.id);
+        const id = visible[0]?.target?.id;
+        if (!id) return;
+        setNavActive(id);
+        if (id === "main" || id === "about") setSectionLayout("main");
       },
       { rootMargin: "-40% 0px -45% 0px", threshold: [0, 0.12, 0.3] },
     );
     for (const sec of sections) io.observe(sec);
   }
 
-  for (const link of links) {
+  for (const link of topLinks) {
     link.addEventListener("click", () => {
       const id = (link.getAttribute("href") ?? "#main").replace("#", "") || "main";
-      setActive(id);
+      activateSection(id, { layout: true });
     });
   }
+
+  for (const link of $$(".sidebar-item[data-sidebar-focus]")) {
+    link.addEventListener("click", (e) => {
+      const targetId = link.getAttribute("data-sidebar-focus");
+      if (!targetId) return;
+      const target = document.getElementById(targetId);
+      if (!(target instanceof HTMLElement)) return;
+      e.preventDefault();
+      const sectionHref = link.getAttribute("href") ?? "";
+      if (sectionHref.startsWith("#")) {
+        const section = document.getElementById(sectionHref.slice(1));
+        section?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      window.setTimeout(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (target.matches("input, select, textarea, button")) target.focus({ preventScroll: true });
+        else target.querySelector("input, select, textarea, button")?.focus({ preventScroll: true });
+      }, 280);
+    });
+  }
+
+  const initial = (location.hash || "#main").replace("#", "") || "main";
+  activateSection(initial, { layout: true });
+}
+
+function setupAdminNavVisibility() {
+  const show = globalThis.FCDataStore?.isAuthed?.() === true;
+  for (const el of $$("[data-admin-only]")) el.hidden = !show;
 }
 
 function setupNav() {
@@ -4485,6 +4585,27 @@ function setupNav() {
   });
 }
 
+function teamCrestHtml(team, { className = "", size = 32, attrs = "" } = {}) {
+  const shellSize = size >= 40 ? "team-crest-shell--md" : "team-crest-shell--sm";
+  const extraClass = className ? ` ${className}` : "";
+  const extra = attrs ? ` ${attrs}` : "";
+  if (!team) {
+    return `<span class="team-crest-shell ${shellSize} team-crest-shell--empty${extraClass}"${extra} aria-hidden="true"></span>`;
+  }
+  const logo = team.logo ? String(team.logo).trim() : "";
+  if (logo) {
+    return `<span class="team-crest-shell ${shellSize}${extraClass}"${extra} aria-hidden="true"><img class="team-crest-shell__img" src="${escapeHtml(logo)}" alt="" width="64" height="64" loading="lazy" decoding="async" /></span>`;
+  }
+  const [c1, c2] = team.colors ?? ["#1e2d45", "#253d5e"];
+  const initials = String(team.name ?? "?")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return `<span class="team-crest-shell ${shellSize} team-crest-shell--fallback${extraClass}"${extra} style="background:linear-gradient(135deg,${c1},${c2})" aria-hidden="true">${escapeHtml(initials)}</span>`;
+}
+
 function crestStyle(teamId) {
   const t = teamById.get(teamId);
   if (!t) return "";
@@ -4496,14 +4617,10 @@ function crestStyle(teamId) {
 }
 
 /** Flat club logo (matches Clubs list chips — logo only, neutral tile). */
-function clubLogoStyleAttr(teamOrId) {
-  const t = typeof teamOrId === "string" ? teamById.get(teamOrId) : teamOrId;
-  const logo = t?.logo ? String(t.logo) : "";
-  return logo ? `style="background-image:url('${escapeHtml(logo)}');"` : "";
-}
-
 function clubLogoHtml(teamOrId, classes = "club-crest") {
-  return `<div class="${classes}" ${clubLogoStyleAttr(teamOrId)} aria-hidden="true"></div>`;
+  const t = typeof teamOrId === "string" ? teamById.get(teamOrId) : teamOrId;
+  const size = classes.includes("club-crest") && !classes.includes("squad-crest") ? 40 : 32;
+  return teamCrestHtml(t, { className: classes, size });
 }
 
 function teamsForLeague(leagueId) {
@@ -4561,38 +4678,97 @@ function renderLeagueOptions() {
   sel.innerHTML = LEAGUES.map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join("");
 }
 
+function splitHomeRailLeagues(list, activeLeagueId) {
+  if (list.length <= HOME_RAIL_INLINE_MAX) {
+    return { visible: list, overflow: [] };
+  }
+  let visible = list.slice(0, HOME_RAIL_INLINE_MAX);
+  if (!visible.some((l) => l.id === activeLeagueId)) {
+    const active = list.find((l) => l.id === activeLeagueId);
+    if (active) visible = [...list.slice(0, HOME_RAIL_INLINE_MAX - 1), active];
+  }
+  const visibleIds = new Set(visible.map((l) => l.id));
+  const overflow = list.filter((l) => !visibleIds.has(l.id));
+  return { visible, overflow };
+}
+
+function leaguePillButtonHtml(l, activeLeagueId) {
+  const selected = l.id === activeLeagueId;
+  return `
+    <button
+      type="button"
+      class="league-tab${selected ? " active" : ""}"
+      data-league-pill="${escapeHtml(l.id)}"
+      aria-selected="${selected ? "true" : "false"}"
+    >
+      ${escapeHtml(l.name)}
+    </button>
+  `;
+}
+
 function renderLeaguePills(activeLeagueId) {
   const wrap = $("#leaguePills");
+  const moreMount = $("#homeRailMoreMount");
   if (!wrap) return;
 
   const list = LEAGUES.filter((l) => HERO_LEAGUE_TABS.includes(l.id));
-  wrap.innerHTML = list
-    .map((l) => {
-    const selected = l.id === activeLeagueId;
-    return `
-      <button
-        type="button"
-        class="league-tab${selected ? " active" : ""}"
-        data-league-pill="${escapeHtml(l.id)}"
-        aria-selected="${selected ? "true" : "false"}"
-      >
-        ${escapeHtml(l.name)}
-      </button>
-    `;
-    })
-    .join("");
+  const { visible, overflow } = splitHomeRailLeagues(list, activeLeagueId);
+
+  wrap.innerHTML = visible.map((l) => leaguePillButtonHtml(l, activeLeagueId)).join("");
 
   for (const btn of $$("[data-league-pill]", wrap)) {
     btn.addEventListener("click", () => {
       const leagueId = btn.getAttribute("data-league-pill");
-      if (leagueId) setActiveLeague(leagueId);
+      if (leagueId) {
+        closeHomeRailMore();
+        setActiveLeague(leagueId);
+      }
     });
+  }
+
+  if (moreMount) {
+    if (overflow.length) {
+      moreMount.innerHTML = `
+        <div class="home-rail__more" id="homeRailMore">
+          <button
+            type="button"
+            class="league-tab league-tab--more"
+            id="homeRailMoreBtn"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-label="${overflow.length} more competitions"
+          >+${overflow.length} more</button>
+          <div class="home-rail__more-menu" id="homeRailMoreMenu" role="list" hidden>
+            ${overflow
+              .map((l) => {
+                const selected = l.id === activeLeagueId;
+                return `
+                  <button
+                    type="button"
+                    class="home-rail__more-item${selected ? " active" : ""}"
+                    data-league-pill="${escapeHtml(l.id)}"
+                    role="listitem"
+                  >
+                    ${escapeHtml(l.name)}
+                  </button>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+      `;
+      moreMount.hidden = false;
+      wireHomeRailMore();
+    } else {
+      moreMount.innerHTML = "";
+      moreMount.hidden = true;
+    }
   }
 
   updateHomeRailArrows();
 
   const scroller = $("#leaguePillsScroll");
-  if (scroller && window.matchMedia("(max-width: 767.98px)").matches) {
+  if (scroller) {
     const active = $(`[data-league-pill="${CSS.escape(activeLeagueId)}"]`, wrap);
     if (active instanceof HTMLElement) {
       requestAnimationFrame(() => {
@@ -4602,8 +4778,72 @@ function renderLeaguePills(activeLeagueId) {
   }
 }
 
+function closeHomeRailMore() {
+  const wrap = $("#homeRailMore");
+  if (!wrap) return;
+  wrap.classList.remove("home-rail__more--open");
+  const menu = $("#homeRailMoreMenu");
+  const btn = $("#homeRailMoreBtn");
+  if (menu) menu.hidden = true;
+  if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
+let homeRailMoreIgnoreClose = false;
+
+function wireHomeRailMore() {
+  const btn = $("#homeRailMoreBtn");
+  const menu = $("#homeRailMoreMenu");
+  const wrap = $("#homeRailMore");
+  if (!btn || !menu || !wrap) return;
+
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    homeRailMoreIgnoreClose = true;
+    const opening = !wrap.classList.contains("home-rail__more--open");
+    closeHomeRailMore();
+    if (opening) {
+      wrap.classList.add("home-rail__more--open");
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+    }
+    window.setTimeout(() => {
+      homeRailMoreIgnoreClose = false;
+    }, 0);
+  });
+
+  for (const item of $$("[data-league-pill]", menu)) {
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const leagueId = item.getAttribute("data-league-pill");
+      if (!leagueId) return;
+      closeHomeRailMore();
+      setActiveLeague(leagueId);
+    });
+  }
+}
+
+function bindHomeRailMore() {
+  if (document.documentElement.dataset.homeRailMoreBound === "1") return;
+  document.documentElement.dataset.homeRailMoreBound = "1";
+
+  document.addEventListener("click", (e) => {
+    if (homeRailMoreIgnoreClose) return;
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest(".home-rail__more")) return;
+    closeHomeRailMore();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeHomeRailMore();
+  });
+}
+
 function setupLeagueSwitcherLayout() {
   bindHomeRailScroll();
+  bindHomeSpotlightScroll();
+  bindHomeRailMore();
 
   const reposition = () => {
     updateHomeRailArrows();
@@ -4639,16 +4879,22 @@ function bindHomeRailScroll() {
 
 function updateHomeRailArrows() {
   const rail = $(".home-rail");
+  const wrap = $("#homeRailScrollWrap");
   const scroller = $("#leaguePillsScroll");
   const prev = $("#homeRailPrev");
   const next = $("#homeRailNext");
+  const hint = $("#homeRailScrollHint");
   if (!rail || !scroller || !prev || !next) return;
 
-  const horizontal = window.matchMedia("(max-width: 991.98px)").matches;
   const overflow = scroller.scrollWidth > scroller.clientWidth + 4;
-  const show = horizontal && overflow;
+  const show = overflow;
+  const atStart = scroller.scrollLeft <= 2;
+  const atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 2;
 
   rail.classList.toggle("home-rail--scrollable", show);
+  wrap?.classList.toggle("home-rail__scroll-wrap--fade-start", show && !atStart);
+  wrap?.classList.toggle("home-rail__scroll-wrap--fade-end", show && !atEnd);
+  if (hint) hint.hidden = !show;
   prev.hidden = !show;
   next.hidden = !show;
   if (!show) {
@@ -4657,8 +4903,29 @@ function updateHomeRailArrows() {
     return;
   }
 
-  prev.disabled = scroller.scrollLeft <= 2;
-  next.disabled = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 2;
+  prev.disabled = atStart;
+  next.disabled = atEnd;
+}
+
+function updateHomeSpotlightScroll() {
+  const wrap = $("#heroSpotlightWrap");
+  const track = $("#heroSpotlight");
+  const hint = $("#heroSpotlightHint");
+  if (!wrap || !track) return;
+
+  const overflow = track.scrollWidth > track.clientWidth + 4;
+  const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+  wrap.classList.toggle("home-spotlight__track-wrap--overflow-end", overflow && !atEnd);
+  if (hint) hint.hidden = !overflow;
+}
+
+function bindHomeSpotlightScroll() {
+  const track = $("#heroSpotlight");
+  if (!track) return;
+  const update = () => updateHomeSpotlightScroll();
+  track.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
 }
 
 function renderTeamOptions(leagueId) {
@@ -4867,7 +5134,7 @@ function renderSquadDepthPosNode(tag, players, isGk = false) {
   const namesHtml = players.length
     ? players
         .map((p) => {
-          const short = lineupShortName(p.name);
+          const short = playerDisplayLastName({ player: p });
           const cap = isCaptainPlayer(p) ? `<span class="depth-pos-cap" aria-hidden="true">C</span>` : "";
           return `<button type="button" class="depth-pos-name" data-player="${escapeHtml(p.id)}" aria-label="${escapeHtml(stripCaptainSuffix(p.name))}">${cap}${escapeHtml(short)}</button>`;
         })
@@ -5189,10 +5456,6 @@ function renderRoster() {
   bindSquadRowClicks(grid, startsMap, state.leagueId);
 }
 
-function heroMatchBadgeCss(team) {
-  return team?.logo ? `background-image:url('${escapeHtml(team.logo)}')` : "";
-}
-
 function matchCardStatusClass(status) {
   const live = String(status ?? "").toLowerCase() === "live";
   return live ? "meta-pill live match-card__status" : "meta-pill match-card__status";
@@ -5208,6 +5471,54 @@ function matchCardVenueHtml(m, ht, at, { list = false } = {}) {
   return `<div class="match-card__venue">${raw}</div>`;
 }
 
+function matchCenterFixtureHtml(m, { showStatus = true, matchId = m.id } = {}) {
+  const ht = teamById.get(m.homeTeamId);
+  const at = teamById.get(m.awayTeamId);
+  const crestClass = "team-crest team-crest--sm";
+  const headerKicker = m.matchday || "";
+  const datetime = m.time || "";
+  const status = String(m.status ?? "").trim();
+  const venueHtml = matchCardVenueHtml(m, ht, at, { list: true });
+  const homeName = ht?.name ?? "Home";
+  const awayName = at?.name ?? "Away";
+
+  const headerHtml =
+    headerKicker || (showStatus && status)
+      ? `<div class="match-card__header">
+          ${headerKicker ? `<span class="match-card__kicker">${escapeHtml(headerKicker)}</span>` : ""}
+          ${showStatus && status ? `<span class="${matchCardStatusClass(status)}">${escapeHtml(status)}</span>` : ""}
+        </div>`
+      : "";
+
+  const scoreHtml = `
+    <div class="match-card__score" aria-label="Score">
+      <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
+      <span class="match-card__score-sep" aria-hidden="true">:</span>
+      <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
+    </div>`;
+
+  return `
+    <div class="match-card match-card--fixture">
+      ${headerHtml}
+      <div class="match-card__fixture">
+        <span class="match-card__team match-card__team--home" title="${escapeHtml(homeName)}">${escapeHtml(homeName)}</span>
+        ${teamCrestHtml(ht, { className: crestClass })}
+        ${scoreHtml}
+        ${teamCrestHtml(at, { className: crestClass })}
+        <span class="match-card__team match-card__team--away" title="${escapeHtml(awayName)}">${escapeHtml(awayName)}</span>
+        <div class="match-card__action">
+          <button class="live-blog" type="button" data-open="${escapeHtml(matchId)}">
+            Live blog <span class="arr" aria-hidden="true">›</span>
+          </button>
+        </div>
+      </div>
+      <div class="match-card__details">
+        ${datetime ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>` : ""}
+        ${venueHtml}
+      </div>
+    </div>`;
+}
+
 function matchCardHtml(m, options = {}) {
   const {
     variant = "card",
@@ -5220,7 +5531,7 @@ function matchCardHtml(m, options = {}) {
 
   const ht = teamById.get(m.homeTeamId);
   const at = teamById.get(m.awayTeamId);
-  const badgeCss = heroMatchBadgeCss;
+  const crestClass = "team-crest team-crest--sm";
   const headerKicker = kicker || m.matchday || "";
   const datetime = m.time || "";
   const status = String(m.status ?? "").trim();
@@ -5249,23 +5560,23 @@ function matchCardHtml(m, options = {}) {
     variant === "list"
       ? `<div class="match-card__stack">
           <div class="match-card__row match-card__row--home">
-            <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
+            ${teamCrestHtml(ht, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
           </div>
           ${scoreHtml}
           <div class="match-card__row match-card__row--away">
-            <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
+            ${teamCrestHtml(at, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
           </div>
         </div>`
       : `<div class="match-card__main">
           <div class="match-card__side match-card__side--home">
-            <span class="match-badge" style="${badgeCss(ht)}" aria-hidden="true"></span>
+            ${teamCrestHtml(ht, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
           </div>
           ${scoreHtml}
           <div class="match-card__side match-card__side--away">
-            <span class="match-badge" style="${badgeCss(at)}" aria-hidden="true"></span>
+            ${teamCrestHtml(at, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
           </div>
         </div>`;
@@ -5485,6 +5796,7 @@ function renderHeroSpotlight(leagueId) {
 
   track.innerHTML = matches.map((m) => heroMatchCardHtml(m)).join("");
   bindHeroMatchCards(track, leagueId);
+  updateHomeSpotlightScroll();
 }
 
 function updateHeroLeagueContext(leagueId) {
@@ -5510,7 +5822,7 @@ function renderLeagueTrending(leagueId) {
       const squad = playersForTeam(t.id).length;
       return `
         <div class="club-card" role="button" tabindex="0" data-club="${escapeHtml(t.id)}" aria-label="Open ${escapeHtml(t.name)} roster">
-          <div class="club-crest" ${clubLogoStyleAttr(t)}></div>
+          ${clubLogoHtml(t)}
           <div class="club-card-info">
             <div class="club-card-name">${escapeHtml(t.name)}</div>
             <div class="club-card-meta">${escapeHtml(squad)} players</div>
@@ -5551,7 +5863,11 @@ function setFeaturedTeam(teamId) {
 
   const homeCrest = $('[data-crest="home"]');
   if (homeCrest) {
-    homeCrest.outerHTML = `<div class="club-crest featured-crest" data-crest="home" aria-hidden="true" ${clubLogoStyleAttr(teamId)}></div>`;
+    homeCrest.outerHTML = teamCrestHtml(team, {
+      className: "club-crest featured-crest",
+      size: 40,
+      attrs: 'data-crest="home"',
+    });
   }
 
   const featuredBtn = $("#featuredBtn");
@@ -5865,6 +6181,89 @@ function shareFilenameSlug(text, suffix) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
   return `${slug || "team"}-${suffix}.png`;
+}
+
+let matchLineupSharePayload = null;
+
+function buildLineupSharePayload(m, ht, at, leagueId) {
+  const league = LEAGUES.find((l) => l.id === leagueId);
+  const showFormation = leagueFeatureOn(leagueId, "matchFormation");
+  const stadium = String(m?.stadium ?? "").trim();
+  const venue =
+    leagueFeatureOn(leagueId, "matchStadium") && stadium && stadium !== "—" ? stadium : "";
+  return {
+    homeTeam: { name: ht?.name ?? "Home", logo: ht?.logo ?? "" },
+    awayTeam: { name: at?.name ?? "Away", logo: at?.logo ?? "" },
+    score: m.score ?? [0, 0],
+    matchday: m.matchday ?? "",
+    time: m.time ?? "",
+    venue,
+    leagueName: league?.name ?? leagueId,
+    homeFormation: showFormation ? m.formation?.[0] ?? "" : "",
+    awayFormation: showFormation ? m.formation?.[1] ?? "" : "",
+    homeRows: enrichFormationRowsDisplay(
+      m.homeTeamId,
+      buildFormationRows(m.formation?.[0], m.lineups?.home),
+    ),
+    awayRows: enrichFormationRowsDisplay(
+      m.awayTeamId,
+      buildFormationRows(m.formation?.[1], m.lineups?.away),
+    ),
+  };
+}
+
+function lineupShareToolbarHtml({ showPitchToggle = false } = {}) {
+  const toggle = showPitchToggle
+    ? `<div class="lineup-toggle lineup-view-toggle" role="tablist" aria-label="Lineup view">
+          <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-view="pitch" role="tab">Pitch</button>
+          <button type="button" class="lineup-toggle-btn lineup-view-btn" data-view="list" role="tab">List</button>
+        </div>`
+    : "";
+  return `
+    <div class="lineup-toolbar">
+      ${toggle}
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm share-btn"
+        id="shareLineupBtn"
+        aria-label="Share lineup image"
+      >
+        Share
+      </button>
+    </div>`;
+}
+
+async function handleShareLineup() {
+  if (typeof ShareImage === "undefined") {
+    alert("Share image module did not load. Refresh the page.");
+    return;
+  }
+  const btn = $("#shareLineupBtn");
+  const payload = matchLineupSharePayload;
+  if (!payload) return;
+  if (!payload.homeRows.length && !payload.awayRows.length) {
+    alert("No lineup data to share for this match.");
+    return;
+  }
+
+  setShareBusy(btn, true);
+  try {
+    const canvas = await ShareImage.renderLineupShareImage(payload);
+    const slug = `${payload.homeTeam.name}-vs-${payload.awayTeam.name}`;
+    await ShareImage.exportShareImage(canvas, shareFilenameSlug(slug, "lineup"));
+  } catch (err) {
+    console.error(err);
+    alert("Could not generate lineup image. Use a local server (http://) and try again.");
+  } finally {
+    setShareBusy(btn, false);
+  }
+}
+
+function bindLineupShareButton() {
+  const btn = $("#shareLineupBtn");
+  if (!btn || btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+  btn.addEventListener("click", handleShareLineup);
 }
 
 function setShareBusy(btn, busy) {
@@ -6293,9 +6692,7 @@ function buildFormationRows(formation, lineup) {
 
 /** Short label for a pitch token: surname only, falling back to the full name. */
 function lineupShortName(name) {
-  const clean = stripCaptainSuffix(name);
-  const parts = clean.split(/\s+/).filter(Boolean);
-  return parts.length > 1 ? parts[parts.length - 1] : clean;
+  return deriveLastNameFromFullName(name);
 }
 
 /** SVG pitch markings overlay (portrait, viewBox 0 0 100 155). */
@@ -6323,7 +6720,7 @@ function pitchMarkingsSvg() {
 }
 
 /** One team's interactive XI rendered on a glassmorphic pitch. */
-function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true) {
+function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true, teamId = "") {
   const formationBadge =
     showFormation && formation
       ? `<span class="lineup-formation-badge">${escapeHtml(formation)}</span>`
@@ -6351,7 +6748,7 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
           const left = ((c + 1) / (row.length + 1)) * 100;
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
           const fullName = formatLineupDisplayName(p.name, p.captain);
-          const short = lineupShortName(p.name);
+          const short = playerDisplayLastName({ teamId, lineupSlot: p });
           const num = escapeHtml(p.number ?? "");
           const tag = escapeHtml(String(p.tag ?? "").toUpperCase() || (isGk ? "GK" : "—"));
           const nat = escapeHtml(String(p.nationality ?? "").trim());
@@ -6413,7 +6810,6 @@ function renderMatchCenter(leagueId) {
   const rangeEl = $("#mwRange");
   const prevBtn = $("#mwPrev");
   const nextBtn = $("#mwNext");
-  const weekNavRow = $("#mwWeekNavRow");
   const dateTitleEl = $("#mwDateTitle");
   const dateMetaEl = $("#mwDateMeta");
   const datePrevBtn = $("#mwDatePrev");
@@ -6507,14 +6903,11 @@ function renderMatchCenter(leagueId) {
       const lineupBlock = showPitch
         ? `
           <div class="lineup-views-wrap">
-            <div class="lineup-toggle lineup-view-toggle" role="tablist" aria-label="Lineup view">
-              <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-view="pitch" role="tab">Pitch</button>
-              <button type="button" class="lineup-toggle-btn lineup-view-btn" data-view="list" role="tab">List</button>
-            </div>
+            ${lineupShareToolbarHtml({ showPitchToggle: true })}
             <div class="lineup-view" data-view-panel="pitch">
               <div class="lineups-wrapper pitch-grid">
-                ${renderPitchSideHtml(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home", showFormation)}
-                ${renderPitchSideHtml(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away", showFormation)}
+                ${renderPitchSideHtml(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home", showFormation, m.homeTeamId)}
+                ${renderPitchSideHtml(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away", showFormation, m.awayTeamId)}
               </div>
             </div>
             <div class="lineup-view is-hidden" data-view-panel="list">
@@ -6522,7 +6915,14 @@ function renderMatchCenter(leagueId) {
             </div>
           </div>
         `
-        : listGrid;
+        : `
+          <div class="lineup-views-wrap">
+            ${lineupShareToolbarHtml({ showPitchToggle: false })}
+            ${listGrid}
+          </div>
+        `;
+
+      matchLineupSharePayload = buildLineupSharePayload(m, ht, at, leagueId);
 
       openModal({
         title: `${ht?.name ?? "Home"} ${m.score?.[0] ?? "—"}–${m.score?.[1] ?? "—"} ${at?.name ?? "Away"}`,
@@ -6539,8 +6939,11 @@ function renderMatchCenter(leagueId) {
         primaryLabel: "Done",
       });
       if (showPitch) bindLineupViewToggle();
+      bindLineupShareButton();
       return;
     }
+
+    matchLineupSharePayload = null;
 
     const possessionCard = showPossession
       ? `<div class="card" style="padding:12px">
@@ -6604,13 +7007,16 @@ function renderMatchCenter(leagueId) {
   };
 
   if (showAll) {
-    weekNavRow?.classList.add("d-none");
+    prevBtn.classList.add("d-none");
+    nextBtn.classList.add("d-none");
     prevBtn.disabled = true;
     nextBtn.disabled = true;
     titleEl.textContent = meta.matchweekTitle || "World Cup";
     rangeEl.textContent = meta.dateRange ?? "—";
+    rangeEl.classList.add("is-visible");
   } else {
-    weekNavRow?.classList.remove("d-none");
+    prevBtn.classList.remove("d-none");
+    nextBtn.classList.remove("d-none");
     prevBtn.disabled = viewWeek <= 1;
     nextBtn.disabled = false;
     prevBtn.classList.toggle("opacity-50", viewWeek <= 1);
@@ -6622,6 +7028,7 @@ function renderMatchCenter(leagueId) {
         ? meta.matchweekTitle || `Matchweek ${publishedWeek}`
         : `Matchweek ${viewWeek}`;
     rangeEl.textContent = viewWeek === publishedWeek ? meta.dateRange ?? "—" : "Browse earlier / later gameweeks";
+    rangeEl.classList.toggle("is-visible", viewWeek !== publishedWeek);
   }
 
   const weekMatches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
@@ -6660,12 +7067,6 @@ function renderMatchCenter(leagueId) {
   const rowHtml = (m) => {
     const ht = teamById.get(m.homeTeamId);
     const at = teamById.get(m.awayTeamId);
-    const cardHtml = matchCardHtml(m, {
-      variant: "list",
-      showVenue: true,
-      showStatus,
-      tag: "div",
-    });
     return `
       <div
         class="mw-row"
@@ -6674,14 +7075,7 @@ function renderMatchCenter(leagueId) {
         tabindex="0"
         aria-label="${escapeHtml(matchCardAriaLabel(m, ht, at))}"
       >
-        <div class="mw-row__layout">
-          ${cardHtml}
-          <div class="mw-action">
-            <button class="live-blog w-100 w-md-auto justify-content-center" type="button" data-open="${escapeHtml(m.id)}">
-              Live blog <span class="arr" aria-hidden="true">›</span>
-            </button>
-          </div>
-        </div>
+        ${matchCenterFixtureHtml(m, { showStatus, matchId: m.id })}
       </div>
     `;
   };
@@ -6757,6 +7151,7 @@ function refreshSiteFromStore() {
   syncLeagueConfigFromStore();
   refreshNationalityFlagsLearn();
   rebuildTeamIndex();
+  rebuildLineupRosterIndex();
   renderLeagueOptions();
   updateHeroSummary();
   const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
@@ -6770,6 +7165,7 @@ function main() {
   setupNav();
   setupTheme();
   setupSidebarNav();
+  setupAdminNavVisibility();
   setupBackToTop();
   setupBootstrapUI();
   setupHowItWorks();

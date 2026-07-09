@@ -17,8 +17,10 @@
   --color-live:     #4ade80;
   --text-primary:   #e8f0f8;
   --text-secondary: #c8d8ea;
-  --text-muted:     #6b8aaa;
-  --text-faint:     #4a6a8a;
+  --text-muted:     #b0c0d4;
+  --text-faint:     #94a8be;
+  --text-meta:      #e2ebf4;
+  --text-card-meta: #b8c8dc;
   --pos-gk-bg:   #1a3320;  --pos-gk-text:  #5dca82;
   --pos-def-bg:  #0e2540;  --pos-def-text: #5aabdd;
   --pos-mid-bg:  #221a3a;  --pos-mid-text: #a78bfa;
@@ -141,8 +143,35 @@ p { margin: 0 0 var(--sp-4); }
 }
 
 .page-wrapper {
-  display: flex;
+  display: block;
   min-height: calc(100vh - 52px);
+  position: relative;
+}
+
+.page-wrapper--home .sidebar,
+.page-wrapper--section .sidebar--context[hidden] {
+  display: none;
+}
+
+.page-wrapper--home .main-content,
+.page-wrapper--section .main-content {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.page-wrapper--section .sidebar--context:not([hidden]) {
+  position: fixed;
+  top: 52px;
+  left: 0;
+  z-index: 90;
+}
+
+@media (min-width: 1520px) {
+  .page-wrapper--section .sidebar--context:not([hidden]) {
+    left: max(0px, calc((100vw - 1200px) / 2 - 216px));
+  }
 }
 
 .topbar {
@@ -228,6 +257,26 @@ p { margin: 0 0 var(--sp-4); }
   top: 52px;
   height: calc(100vh - 52px);
   overflow-y: auto;
+}
+
+.sidebar--context[hidden] {
+  display: none;
+}
+
+.sidebar-panel[hidden] {
+  display: none;
+}
+
+.sidebar-context-lead {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  padding: 0 var(--sp-3) var(--sp-3);
+  margin: 0;
+}
+
+.sidebar-panel > .sidebar-section-label:first-child {
+  padding-top: 0;
 }
 
 .sidebar-item {
@@ -332,20 +381,59 @@ p { margin: 0 0 var(--sp-4); }
   border-color: var(--border-strong);
 }
 
-.club-crest {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background-color: var(--bg-surface-3);
-  border: 1.5px solid var(--border-strong);
-  display: flex;
+.club-crest,
+.team-crest-shell {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-3);
+  border: 1px solid var(--border-default);
   overflow: hidden;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
+  box-sizing: border-box;
+}
+
+.club-crest,
+.team-crest-shell--md {
+  width: 40px;
+  height: 40px;
+  padding: 6px;
+}
+
+.team-crest-shell--sm {
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+}
+
+.team-crest-shell__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  pointer-events: none;
+}
+
+.team-crest-shell--empty {
+  background-color: var(--bg-surface-3);
+}
+
+.team-crest-shell--fallback {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.team-crest-shell--fallback.team-crest-shell--sm {
+  font-size: 9px;
+}
+
+.team-crest,
+.team-crest--sm {
+  flex-shrink: 0;
 }
 
 .club-card-info { flex: 1; min-width: 0; }
@@ -470,20 +558,21 @@ p { margin: 0 0 var(--sp-4); }
 }
 
 .match-card__time {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-card-meta);
 }
 
 .match-card__venue {
-  font-size: 11px;
-  color: var(--text-faint);
-  line-height: 1.45;
+  font-size: 12px;
+  color: var(--text-card-meta);
+  line-height: 1.5;
 }
 
 .match-card__venue .mw-venue-meta {
   margin-top: 0;
   padding-left: 0;
+  color: inherit;
 }
 
 .match-card--list {
@@ -598,18 +687,6 @@ p { margin: 0 0 var(--sp-4); }
   flex: 1 1 auto;
   width: 100%;
   max-width: none;
-}
-
-.match-badge {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-default);
-  background-color: var(--bg-surface-3);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
 }
 
 .meta-pill {
@@ -789,6 +866,8 @@ p { margin: 0 0 var(--sp-4); }
 .input::placeholder { color: var(--text-faint); }
 
 /* Select styling — see dropdowns.css */
+
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -798,6 +877,7 @@ p { margin: 0 0 var(--sp-4); }
   border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 500;
+  line-height: 1;
   cursor: pointer;
   transition: all var(--transition);
   border: 0.5px solid transparent;
@@ -816,6 +896,17 @@ p { margin: 0 0 var(--sp-4); }
   border-color: var(--border-default);
 }
 .btn-ghost:hover { background-color: var(--bg-surface-3); color: var(--text-primary); }
+
+.btn-secondary {
+  background-color: transparent;
+  border: 0.5px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover {
+  background-color: var(--bg-surface-3);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
 .btn-sm { height: 28px; padding: 0 var(--sp-3); font-size: 12px; }
 
 .badge {

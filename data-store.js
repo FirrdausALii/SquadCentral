@@ -353,6 +353,11 @@
     if (local.sortOrder != null) out.sortOrder = local.sortOrder;
     if (local.instagram != null && String(local.instagram).trim()) out.instagram = String(local.instagram).trim();
     else if (local.instagram === "" || local.instagram === null) delete out.instagram;
+    if (local.displayLastName != null) {
+      const label = String(local.displayLastName ?? "").trim().slice(0, 20);
+      if (label) out.displayLastName = label;
+      else delete out.displayLastName;
+    }
     return out;
   }
 
@@ -679,12 +684,18 @@
       if (Object.prototype.hasOwnProperty.call(normalized, "instagram") && !normalized.instagram) {
         delete merged.instagram;
       }
+      if (Object.prototype.hasOwnProperty.call(normalized, "displayLastName")) {
+        const label = String(normalized.displayLastName ?? "").trim().slice(0, 20);
+        if (label) merged.displayLastName = label;
+        else delete merged.displayLastName;
+      }
       if (merged.captain) clearOtherCaptains(merged.teamId, merged.id);
       else if (merged.captain === false) delete merged.captain;
       state.players[i] = merged;
     } else {
       const next = { ...normalized };
       if (!next.instagram) delete next.instagram;
+      if (!next.displayLastName) delete next.displayLastName;
       if (next.captain) clearOtherCaptains(next.teamId, next.id);
       state.players.push(next);
     }

@@ -654,6 +654,309 @@
     return canvas;
   }
 
+  function lineupShortName(name) {
+    const clean = String(name ?? "")
+      .replace(/\s*\(C\)\s*$/i, "")
+      .trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : clean;
+  }
+
+  function isCaptainPlayer(p) {
+    if (!p) return false;
+    if (p.captain) return true;
+    return /\s*\(C\)\s*$/i.test(String(p.name ?? "").trim());
+  }
+
+  function drawPitchStripes(ctx, x, y, w, h) {
+    const stripes = 12;
+    const stripeH = h / stripes;
+    for (let i = 0; i < stripes; i++) {
+      ctx.fillStyle = i % 2 === 0 ? "#1e7a3e" : "#1a6e37";
+      ctx.fillRect(x, y + i * stripeH, w, stripeH);
+    }
+  }
+
+  function drawPitchMarkings(ctx, x, y, w, h) {
+    const sx = w / 100;
+    const sy = h / 155;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sx, sy);
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.lineWidth = 0.75;
+    ctx.strokeRect(3, 3, 94, 149);
+    ctx.beginPath();
+    ctx.moveTo(3, 77.5);
+    ctx.lineTo(97, 77.5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(50, 77.5, 13, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeRect(22, 3, 56, 22);
+    ctx.strokeRect(35, 3, 30, 10);
+    ctx.strokeRect(22, 130, 56, 22);
+    ctx.strokeRect(35, 142, 30, 10);
+    ctx.restore();
+  }
+
+  function drawPlayerToken(ctx, cx, cy, player, { tokenR = 18, isGk = false } = {}) {
+    const num = String(player?.number ?? "").trim();
+    const short =
+      String(player?.displayLastName ?? "").trim() || lineupShortName(player?.name);
+    const captain = isCaptainPlayer(player);
+
+    const grad = ctx.createLinearGradient(cx - tokenR, cy - tokenR, cx + tokenR, cy + tokenR);
+    if (isGk) {
+      grad.addColorStop(0, "#d97706");
+      grad.addColorStop(1, "#b45309");
+    } else {
+      grad.addColorStop(0, "#2a6fcf");
+      grad.addColorStop(1, "#1a4fa0");
+    }
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, tokenR, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.75)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "#fff";
+    ctx.font = `800 ${Math.round(tokenR * 0.62)}px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(num || "—", cx, cy + 1);
+
+    if (captain) {
+      const capR = Math.round(tokenR * 0.36);
+      const capX = cx + tokenR * 0.62;
+      const capY = cy - tokenR * 0.62;
+      ctx.beginPath();
+      ctx.arc(capX, capY, capR, 0, Math.PI * 2);
+      ctx.fillStyle = "#facc15";
+      ctx.fill();
+      ctx.strokeStyle = "#0b1120";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = "#422006";
+      ctx.font = `800 ${Math.max(8, Math.round(capR * 1.1))}px ${FONT}`;
+      ctx.fillText("C", capX, capY + 1);
+    }
+
+    const label = truncateText(ctx, short, tokenR * 3.2);
+    const pillW = Math.max(ctx.measureText(label).width + 14, tokenR * 1.6);
+    const pillH = Math.round(tokenR * 0.72);
+    const pillX = cx - pillW / 2;
+    const pillY = cy + tokenR + 6;
+    roundRect(ctx, pillX, pillY, pillW, pillH, 5);
+    ctx.fillStyle = "rgba(11, 17, 32, 0.9)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = THEME.text;
+    ctx.font = `600 ${Math.round(tokenR * 0.48)}px ${FONT}`;
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, cx, pillY + pillH / 2);
+    ctx.textBaseline = "alphabetic";
+  }
+
+  function drawPitchSide(ctx, x, y, w, h, teamName, formation, rows) {
+    drawPitchStripes(ctx, x, y, w, h);
+    roundRect(ctx, x, y, w, h, 12);
+    ctx.save();
+    ctx.clip();
+    drawPitchStripes(ctx, x, y, w, h);
+    drawPitchMarkings(ctx, x, y, w, h);
+    ctx.restore();
+    roundRect(ctx, x, y, w, h, 12);
+    ctx.strokeStyle = "#155a2c";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    if (!rows?.length) {
+      ctx.fillStyle = THEME.muted;
+      ctx.font = `600 22px ${FONT}`;
+      ctx.textAlign = "center";
+      ctx.fillText("Lineup not available", x + w / 2, y + h / 2);
+      return;
+    }
+
+    const rowCount = rows.length;
+    const tokenR = Math.max(14, Math.min(20, Math.floor(w / 28)));
+    const padTop = tokenR + 8;
+    const padBottom = tokenR + 22;
+    const innerY = y + padTop;
+    const innerH = h - padTop - padBottom;
+
+    rows.forEach((row, r) => {
+      const topPct = rowCount > 1 ? 90 - (r / (rowCount - 1)) * 78 : 50;
+      const isGkRow = r === 0;
+      row.forEach((p, c) => {
+        const leftPct = ((c + 1) / (row.length + 1)) * 100;
+        const px = x + (leftPct / 100) * w;
+        const py = innerY + (topPct / 100) * innerH;
+        const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
+        drawPlayerToken(ctx, px, py, p, { tokenR, isGk });
+      });
+    });
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = THEME.text;
+    ctx.font = `800 26px ${FONT}`;
+    ctx.fillText(truncateText(ctx, teamName, w * 0.55), x, y - 14);
+
+    if (formation) {
+      const formLabel = String(formation);
+      ctx.font = `700 16px ${FONT}`;
+      const badgeW = ctx.measureText(formLabel).width + 22;
+      const badgeH = 26;
+      const badgeX = x + w - badgeW;
+      const badgeY = y - 30;
+      roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 6);
+      ctx.fillStyle = "#12263d";
+      ctx.fill();
+      ctx.strokeStyle = "#1a3a5c";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = THEME.accent;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(formLabel, badgeX + badgeW / 2, badgeY + badgeH / 2);
+      ctx.textBaseline = "alphabetic";
+    }
+  }
+
+  async function drawBrandWatermark(ctx, logo) {
+    const y = H - PAD - 8;
+    ctx.fillStyle = THEME.faint;
+    ctx.font = `600 22px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText("Squad Central", PAD, y);
+
+    if (logo) {
+      const size = 34;
+      roundRect(ctx, W - PAD - size, y - size + 4, size, size, 8);
+      ctx.save();
+      ctx.clip();
+      ctx.drawImage(logo, W - PAD - size, y - size + 4, size, size);
+      ctx.restore();
+    } else {
+      ctx.textAlign = "right";
+      ctx.font = `500 20px ${FONT}`;
+      ctx.fillText(`${W} × ${H}`, W - PAD, y);
+    }
+  }
+
+  async function renderLineupShareImage(options) {
+    const {
+      homeTeam = {},
+      awayTeam = {},
+      score = [0, 0],
+      matchday = "",
+      time = "",
+      venue = "",
+      leagueName = "",
+      homeFormation = "",
+      awayFormation = "",
+      homeRows = [],
+      awayRows = [],
+      logoSrc = "./logo.png",
+    } = options;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not supported");
+
+    const logo = await loadImage(logoSrc);
+    const homeLogo = await loadImage(homeTeam.logo);
+    const awayLogo = await loadImage(awayTeam.logo);
+
+    ctx.fillStyle = THEME.page;
+    ctx.fillRect(0, 0, W, H);
+
+    const headerH = 196;
+    drawPanel(ctx, PAD, PAD, W - PAD * 2, headerH);
+
+    const crestSize = 72;
+    const crestY = PAD + (headerH - crestSize) / 2;
+    const homeCrestX = PAD + 24;
+    const awayCrestX = W - PAD - 24 - crestSize;
+
+    for (const [logoImg, cx] of [
+      [homeLogo, homeCrestX],
+      [awayLogo, awayCrestX],
+    ]) {
+      roundRect(ctx, cx, crestY, crestSize, crestSize, 10);
+      if (logoImg) {
+        ctx.save();
+        ctx.clip();
+        ctx.drawImage(logoImg, cx, crestY, crestSize, crestSize);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = THEME.surface2;
+        ctx.fill();
+      }
+    }
+
+    const [hs, as] = score ?? [0, 0];
+    const centerX = W / 2;
+    ctx.textAlign = "center";
+    ctx.fillStyle = THEME.muted;
+    ctx.font = `700 16px ${FONT}`;
+    ctx.fillText(String(leagueName).toUpperCase(), centerX, PAD + 42);
+
+    ctx.fillStyle = THEME.text;
+    ctx.font = `800 34px ${FONT}`;
+    const homeName = truncateText(ctx, homeTeam.name ?? "Home", 280);
+    const awayName = truncateText(ctx, awayTeam.name ?? "Away", 280);
+    ctx.textAlign = "right";
+    ctx.fillText(homeName, centerX - 72, PAD + 88);
+    ctx.textAlign = "left";
+    ctx.fillText(awayName, centerX + 72, PAD + 88);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = THEME.accent;
+    ctx.font = `800 44px ${FONT}`;
+    ctx.fillText(`${hs} – ${as}`, centerX, PAD + 92);
+
+    const metaParts = [matchday, time, venue].map((s) => String(s ?? "").trim()).filter(Boolean);
+    ctx.fillStyle = THEME.muted;
+    ctx.font = `500 22px ${FONT}`;
+    ctx.fillText(truncateText(ctx, metaParts.join("  ·  ") || "—", W - PAD * 2 - 80), centerX, PAD + 138);
+
+    if (logo) {
+      const wm = 40;
+      roundRect(ctx, W - PAD - wm - 8, PAD + 16, wm, wm, 8);
+      ctx.save();
+      ctx.clip();
+      ctx.drawImage(logo, W - PAD - wm - 8, PAD + 16, wm, wm);
+      ctx.restore();
+    }
+
+    const bodyTop = PAD + headerH + 24;
+    const bodyBottom = H - PAD - 44;
+    const bodyH = bodyBottom - bodyTop;
+    const pitchGap = 18;
+    const labelSpace = 34;
+    const pitchH = Math.floor((bodyH - pitchGap - labelSpace * 2) / 2);
+    const pitchW = W - PAD * 2 - 48;
+    const pitchX = PAD + 24;
+    let y = bodyTop + labelSpace;
+
+    drawPanel(ctx, PAD, bodyTop, W - PAD * 2, bodyH);
+    drawPitchSide(ctx, pitchX, y, pitchW, pitchH, homeTeam.name ?? "Home", homeFormation, homeRows);
+    y += pitchH + pitchGap + labelSpace;
+    drawPitchSide(ctx, pitchX, y, pitchW, pitchH, awayTeam.name ?? "Away", awayFormation, awayRows);
+
+    await drawBrandWatermark(ctx, logo);
+    return canvas;
+  }
+
   async function exportShareImage(canvas, filename) {
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Export failed"))), "image/png");
@@ -685,6 +988,7 @@
     renderSquadShareImage,
     renderGameweekShareImage,
     renderTransfersShareImage,
+    renderLineupShareImage,
     exportShareImage,
   };
 })(typeof window !== "undefined" ? window : global);
