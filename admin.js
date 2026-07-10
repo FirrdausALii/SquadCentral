@@ -3068,7 +3068,10 @@ function renderPanel() {
 
   mwEditorDraft = activeTab === "league" ? readMwEditorDraft() : null;
   if (activeTab === "transfers" && transferTeamFilter && $("#transfersInTable")) {
-    transferEditorDraft = readTransfersDraftFromDom() ?? transferEditorDraft;
+    const domClub = $("#transferTeamFilter")?.value ?? "";
+    if (domClub === transferTeamFilter) {
+      transferEditorDraft = readTransfersDraftFromDom() ?? transferEditorDraft;
+    }
   }
   if (activeTab !== "squaddepth") squadDepthDraft = null;
   main.innerHTML = map[activeTab]?.() ?? "";
