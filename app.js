@@ -4323,6 +4323,29 @@ const FC_ARRAYS = {
   transfers: TRANSFERS,
 };
 
+function byId(arr) {
+  const map = new Map();
+  for (const item of arr) map.set(item.id, item);
+  return map;
+}
+
+let teamById = byId(TEAMS);
+let lineupRosterIndex = new Map();
+
+function rebuildTeamIndex() {
+  teamById = byId(TEAMS);
+}
+
+function rebuildLineupRosterIndex() {
+  lineupRosterIndex = new Map();
+  for (const p of PLAYERS) {
+    if (!p?.teamId) continue;
+    if (!lineupRosterIndex.has(p.teamId)) lineupRosterIndex.set(p.teamId, new Map());
+    const key = `${p.number}|${normLineupName(p.name)}`;
+    lineupRosterIndex.get(p.teamId).set(key, p);
+  }
+}
+
 function markSeedReady() {
   syncLeagueConfigFromStore();
   refreshNationalityFlagsLearn();
@@ -4354,29 +4377,6 @@ if (typeof FCDataStore !== "undefined") {
   }
 } else {
   markSeedReady();
-}
-
-function byId(arr) {
-  const map = new Map();
-  for (const item of arr) map.set(item.id, item);
-  return map;
-}
-
-let teamById = byId(TEAMS);
-let lineupRosterIndex = new Map();
-
-function rebuildTeamIndex() {
-  teamById = byId(TEAMS);
-}
-
-function rebuildLineupRosterIndex() {
-  lineupRosterIndex = new Map();
-  for (const p of PLAYERS) {
-    if (!p?.teamId) continue;
-    if (!lineupRosterIndex.has(p.teamId)) lineupRosterIndex.set(p.teamId, new Map());
-    const key = `${p.number}|${normLineupName(p.name)}`;
-    lineupRosterIndex.get(p.teamId).set(key, p);
-  }
 }
 
 function resolveLineupRosterPlayer(teamId, slot) {
