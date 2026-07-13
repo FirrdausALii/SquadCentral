@@ -2483,12 +2483,12 @@ function transfersForTeam(leagueId, teamId) {
   const team = state().teams.find((t) => t.id === teamId);
   const club = team?.name ?? "";
   const block = transfersBlock(leagueId);
-  const match = (t) => transferRowBelongsToTeam(leagueId, teamId, t) && t.club === club;
+  const match = (dir) => (t) => transferRowBelongsToTeam(leagueId, teamId, t, dir);
   return {
-    in: (block.in ?? []).filter(match),
-    out: (block.out ?? []).filter(match),
-    loanReturn: (block.loanReturn ?? []).filter(match),
-    loanRecall: (block.loanRecall ?? []).filter(match),
+    in: (block.in ?? []).filter(match("in")),
+    out: (block.out ?? []).filter(match("out")),
+    loanReturn: (block.loanReturn ?? []).filter(match("loanReturn")),
+    loanRecall: (block.loanRecall ?? []).filter(match("loanRecall")),
   };
 }
 
@@ -2509,11 +2509,13 @@ function playerOnOtherLeagueTeam(leagueId, teamId, playerName) {
   });
 }
 
-/** Drop rows stamped for this club when the player clearly belongs to another squad. */
-function transferRowBelongsToTeam(leagueId, teamId, row) {
+/** Drop misfiled rows for outgoing lists; incoming rows may name players still at other clubs. */
+function transferRowBelongsToTeam(leagueId, teamId, row, direction) {
   const team = state().teams.find((t) => t.id === teamId);
   const club = team?.name ?? "";
   if (!row?.player || row.club !== club) return false;
+  if (transferDirectionIncoming(direction)) return true;
+
   const onThis = playerOnLeagueTeam(leagueId, teamId, row.player);
   const onOther = playerOnOtherLeagueTeam(leagueId, teamId, row.player);
   if (onOther && !onThis) return false;
@@ -2534,6 +2536,7 @@ function repairLeagueTransfers(leagueId) {
   const merged = { leagueId };
   for (const key of keys) {
     merged[key] = (block[key] ?? []).map((row) => {
+      if (transferDirectionIncoming(key)) return row;
       const resolved = resolveTransferRowClub(leagueId, row);
       if (resolved && resolved !== row.club) {
         changed = true;
@@ -2808,7 +2811,7 @@ function transferListsForEditor(leagueId, teamId) {
   const cached = transferEditsByTeam.get(transferTeamKey(leagueId, teamId));
   if (!cached) return fromStore;
   const pick = (key) =>
-    (cached[key] ?? []).filter((row) => transferRowBelongsToTeam(leagueId, teamId, row));
+    (cached[key] ?? []).filter((row) => transferRowBelongsToTeam(leagueId, teamId, row, key));
   return {
     in: pick("in"),
     out: pick("out"),

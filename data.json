@@ -65655,6 +65655,14 @@
           "club": "Aston Villa",
           "otherClub": "LASK",
           "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_illan_meslier_0",
+          "player": "Illan Meslier",
+          "club": "Arsenal",
+          "otherClub": "Leeds United",
+          "fee": "Free",
+          "date": "9 July 2026"
         }
       ],
       "leagueId": "epl",
