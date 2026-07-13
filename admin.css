@@ -2105,23 +2105,27 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 }
 
 .player-sort-row,
-.nd-sort-row {
+.nd-sort-row,
+.tr-sort-row {
   transition: background 0.15s ease;
 }
 
 .player-sort-row.is-dragging,
-.nd-sort-row.is-dragging {
+.nd-sort-row.is-dragging,
+.tr-sort-row.is-dragging {
   opacity: 0.45;
   background: rgba(55, 138, 221, 0.08);
 }
 
 .player-sort-row.is-drag-over,
-.nd-sort-row.is-drag-over {
+.nd-sort-row.is-drag-over,
+.tr-sort-row.is-drag-over {
   background: rgba(55, 138, 221, 0.12);
 }
 
 .player-sort-row:active .admin-drag-cell,
-.nd-sort-row:active .admin-drag-cell {
+.nd-sort-row:active .admin-drag-cell,
+.tr-sort-row:active .admin-drag-cell {
   cursor: grabbing;
 }
 

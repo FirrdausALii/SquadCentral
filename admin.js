@@ -2875,7 +2875,8 @@ function transferTableRowHtml(mode, teamId, t, i) {
     ? `<input class="tr-from transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`
     : `<input class="tr-to transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`;
   const feePlaceholder = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.feePlaceholder ?? "Fee";
-  return `<tr data-i="${i}" data-dir="${esc(mode)}" data-id="${esc(t.id ?? "")}">
+  return `<tr class="tr-sort-row" data-i="${i}" data-dir="${esc(mode)}" data-id="${esc(t.id ?? "")}" data-tr-sort-key="${esc(t.id || `${mode}-${i}`)}">
+    <td class="admin-drag-cell"><span class="player-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
     <td class="transfers-player-col">${transferPlayerFieldHtml(mode, teamId, t.player)}</td>
     <td class="transfers-club-col">${clubInput}</td>
     <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="${esc(feePlaceholder)}" /></td>
@@ -2951,7 +2952,7 @@ function panelTransfers() {
           <p class="transfers-section-hint">${section.hint}</p>
           <div class="transfers-table-wrap">
             <table class="admin-table admin-table-compact transfers-table" id="${esc(section.tableId)}">
-              <thead><tr><th>Player</th><th>${esc(section.clubHeader)}</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
+              <thead><tr><th class="admin-drag-col" aria-label="Reorder"></th><th>Player</th><th>${esc(section.clubHeader)}</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
               <tbody>${rowHtml}</tbody>
             </table>
           </div>
@@ -2970,7 +2971,7 @@ function panelTransfers() {
           <div class="col-12 col-lg-8 mw-hero-text">
             <p class="mw-eyebrow">Market moves</p>
             <h2 class="mw-heading">Transfers</h2>
-            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Incoming moves need full squad details via <strong>+ Squad</strong>.</p>
+            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Drag the <strong>⋮⋮</strong> handle to reorder rows within each list.</p>
           </div>
           <div class="col-12 col-sm-8 col-lg-4">
             <div class="mw-hero-preview w-100">
@@ -4675,6 +4676,105 @@ function bindTransferRosterActions() {
   }
 }
 
+function bindTransferRowDragSort(tableId) {
+  const tbody = $(tableId)?.querySelector("tbody");
+  if (!tbody || tbody.dataset.trDragBound === "1") return;
+  tbody.dataset.trDragBound = "1";
+
+  let draggedRow = null;
+  let touchRow = null;
+
+  const rowFromPoint = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest(".tr-sort-row") : null;
+  };
+
+  const finishDrag = () => {
+    if (draggedRow) draggedRow.classList.remove("is-dragging");
+    draggedRow = null;
+    tbody.querySelectorAll(".tr-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    stashTransferEditsFromDom();
+  };
+
+  tbody.addEventListener("dragstart", (e) => {
+    const handle = e.target.closest(".player-drag-handle");
+    if (!handle) return;
+    const row = handle.closest(".tr-sort-row");
+    if (!row) return;
+    draggedRow = row;
+    row.classList.add("is-dragging");
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", row.getAttribute("data-tr-sort-key") ?? "");
+    }
+  });
+
+  tbody.addEventListener("dragend", finishDrag);
+
+  tbody.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const target = e.target.closest(".tr-sort-row");
+    if (!target || !draggedRow || target === draggedRow) return;
+
+    tbody.querySelectorAll(".tr-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    target.classList.add("is-drag-over");
+
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    if (before) tbody.insertBefore(draggedRow, target);
+    else tbody.insertBefore(draggedRow, target.nextSibling);
+  });
+
+  tbody.addEventListener("dragleave", (e) => {
+    const row = e.target.closest(".tr-sort-row");
+    if (row) row.classList.remove("is-drag-over");
+  });
+
+  tbody.addEventListener("drop", (e) => {
+    e.preventDefault();
+    finishDrag();
+  });
+
+  tbody.addEventListener(
+    "touchstart",
+    (e) => {
+      const handle = e.target.closest(".player-drag-handle");
+      if (!handle || !tbody.contains(handle)) return;
+      touchRow = handle.closest(".tr-sort-row");
+      touchRow?.classList.add("is-dragging");
+    },
+    { passive: true },
+  );
+
+  tbody.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!touchRow) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const target = rowFromPoint(touch.clientX, touch.clientY);
+      if (!target || target === touchRow) return;
+
+      const rect = target.getBoundingClientRect();
+      const before = touch.clientY < rect.top + rect.height / 2;
+      if (before) tbody.insertBefore(touchRow, target);
+      else tbody.insertBefore(touchRow, target.nextSibling);
+    },
+    { passive: false },
+  );
+
+  const endTouch = () => {
+    if (!touchRow) return;
+    touchRow.classList.remove("is-dragging");
+    touchRow = null;
+    stashTransferEditsFromDom();
+  };
+
+  tbody.addEventListener("touchend", endTouch);
+  tbody.addEventListener("touchcancel", endTouch);
+}
+
 function bindTransferDel() {
   for (const section of ADMIN_TRANSFER_SECTIONS) {
     const table = $(`#${section.tableId}`);
@@ -4775,6 +4875,9 @@ function bindTransfers() {
 }
 
 function bindTransferTableHandlers() {
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    bindTransferRowDragSort(`#${section.tableId}`);
+  }
   bindTransferDel();
   bindTransferRosterActions();
 }
