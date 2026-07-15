@@ -129,9 +129,13 @@
         <!-- Home -->
         <section id="main" class="home-hub reveal" aria-label="Home" tabindex="-1">
           <header class="home-hero">
+            <div class="home-hero__atmosphere" aria-hidden="true">
+              <div class="home-hero__glow"></div>
+              <div class="home-hero__texture"></div>
+            </div>
             <div class="home-hero__grid">
               <div class="home-hero__copy">
-                <span class="home-hero__eyebrow">
+                <span class="home-hero__eyebrow home-hero__eyebrow--live">
                   <span class="dot" aria-hidden="true"></span>
                   Matchday live
                 </span>
@@ -150,19 +154,19 @@
                   <article class="stat-card stat-card--hero">
                     <div class="stat-card__row">
                       <span class="stat-label">Leagues</span>
-                      <span class="stat-value" id="statLeagues">—</span>
+                      <span class="stat-value stat-value--count" id="statLeagues" data-count-target="">—</span>
                     </div>
                   </article>
                   <article class="stat-card stat-card--hero">
                     <div class="stat-card__row">
                       <span class="stat-label">Clubs</span>
-                      <span class="stat-value" id="statTeams">—</span>
+                      <span class="stat-value stat-value--count" id="statTeams" data-count-target="">—</span>
                     </div>
                   </article>
                   <article class="stat-card stat-card--hero">
                     <div class="stat-card__row">
                       <span class="stat-label">Players</span>
-                      <span class="stat-value" id="statPlayers">—</span>
+                      <span class="stat-value stat-value--count" id="statPlayers" data-count-target="">—</span>
                     </div>
                   </article>
                 </div>

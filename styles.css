@@ -602,7 +602,7 @@ html.reveal-init .reveal.is-visible {
   align-items: center;
   gap: var(--sp-4);
 }
-.squad-crest { width: 32px; height: 32px; padding: 5px; }
+.squad-crest { width: 32px; height: 32px; padding: 2px; }
 .squad-team-name {
   margin: 0 0 2px;
 }

@@ -59,7 +59,14 @@ function leagueName(id) {
 }
 
 function teamsForLeague(leagueId) {
-  return state().teams.filter((t) => t.leagueId === leagueId);
+  return state().teams.filter((t) => t.leagueId === leagueId).sort(compareTeamOrder);
+}
+
+function compareTeamOrder(a, b) {
+  const ao = a.sortOrder ?? 1e9;
+  const bo = b.sortOrder ?? 1e9;
+  if (ao !== bo) return ao - bo;
+  return String(a.name ?? "").localeCompare(String(b.name ?? ""));
 }
 
 function stadiumsForLeague(leagueId) {
@@ -1422,6 +1429,20 @@ function panelStadiums() {
   `;
 }
 
+function teamTableRowHtml(t) {
+  return `<tr class="team-sort-row" data-team-id="${esc(t.id)}">
+    <td class="admin-drag-cell"><span class="player-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
+    <td><strong>${esc(t.name)}</strong></td>
+    <td class="d-none d-sm-table-cell"><code>${esc(t.id)}</code></td>
+    <td class="d-none d-md-table-cell">${esc(t.formation ?? "—")}</td>
+    <td class="d-none d-xl-table-cell">${esc(t.coach ?? "—")}</td>
+    <td class="admin-row-actions">
+      <button type="button" class="mw-btn-ghost teams-row-btn" data-edit-team="${esc(t.id)}">Edit</button>
+      <button type="button" class="mw-btn-danger teams-row-btn" data-del-team="${esc(t.id)}">Remove</button>
+    </td>
+  </tr>`;
+}
+
 function panelTeams() {
   const list = teamsForLeague(leagueFilter);
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
@@ -1449,7 +1470,7 @@ function panelTeams() {
       <section class="mw-card">
         <div class="mw-card-head">
           <h3>Club roster</h3>
-          <p>${teamCount} team${teamCount === 1 ? "" : "s"} · edit or remove existing clubs below.</p>
+          <p>${teamCount} team${teamCount === 1 ? "" : "s"} · drag the <strong>⋮⋮</strong> handle to set list order on the public site.</p>
         </div>
         <div class="row g-2 g-md-3 mb-3">
           <div class="col-12 col-md-6 col-lg-4">
@@ -1460,6 +1481,7 @@ function panelTeams() {
           <table class="admin-table admin-table-compact teams-table">
             <thead>
               <tr>
+                <th class="admin-drag-col" aria-label="Reorder"></th>
                 <th>Name</th>
                 <th class="d-none d-sm-table-cell">ID</th>
                 <th class="d-none d-md-table-cell">Formation</th>
@@ -1467,19 +1489,7 @@ function panelTeams() {
                 <th></th>
               </tr>
             </thead>
-            <tbody>${list
-              .map(
-                (t) => `<tr>
-              <td><strong>${esc(t.name)}</strong></td>
-              <td class="d-none d-sm-table-cell"><code>${esc(t.id)}</code></td>
-              <td class="d-none d-md-table-cell">${esc(t.formation ?? "—")}</td>
-              <td class="d-none d-xl-table-cell">${esc(t.coach ?? "—")}</td>
-              <td class="admin-row-actions">
-                <button type="button" class="mw-btn-ghost teams-row-btn" data-edit-team="${esc(t.id)}">Edit</button>
-                <button type="button" class="mw-btn-danger teams-row-btn" data-del-team="${esc(t.id)}">Remove</button>
-              </td></tr>`,
-              )
-              .join("")}</tbody>
+            <tbody>${list.map((t) => teamTableRowHtml(t)).join("")}</tbody>
           </table>
         </div>
       </section>
@@ -2483,76 +2493,20 @@ function transfersForTeam(leagueId, teamId) {
   const team = state().teams.find((t) => t.id === teamId);
   const club = team?.name ?? "";
   const block = transfersBlock(leagueId);
-  const match = (dir) => (t) => transferRowBelongsToTeam(leagueId, teamId, t, dir);
+  const match = (t) => transferRowBelongsToTeam(leagueId, teamId, t);
   return {
-    in: (block.in ?? []).filter(match("in")),
-    out: (block.out ?? []).filter(match("out")),
-    loanReturn: (block.loanReturn ?? []).filter(match("loanReturn")),
-    loanRecall: (block.loanRecall ?? []).filter(match("loanRecall")),
+    in: (block.in ?? []).filter(match),
+    out: (block.out ?? []).filter(match),
+    loanReturn: (block.loanReturn ?? []).filter(match),
+    loanRecall: (block.loanRecall ?? []).filter(match),
   };
 }
 
-function playerOnLeagueTeam(leagueId, teamId, playerName) {
-  const name = stripCaptainSuffix(String(playerName ?? "").trim());
-  if (!name || !teamId) return false;
-  const team = state().teams.find((t) => t.id === teamId);
-  if (!team || team.leagueId !== leagueId) return false;
-  return playersForTeam(teamId).some((p) => stripCaptainSuffix(p.name) === name || p.name === name);
-}
-
-function playerOnOtherLeagueTeam(leagueId, teamId, playerName) {
-  const name = stripCaptainSuffix(String(playerName ?? "").trim());
-  if (!name) return false;
-  return teamsForLeague(leagueId).some((t) => {
-    if (t.id === teamId) return false;
-    return playersForTeam(t.id).some((p) => stripCaptainSuffix(p.name) === name || p.name === name);
-  });
-}
-
-/** Drop misfiled rows for outgoing lists; incoming rows may name players still at other clubs. */
-function transferRowBelongsToTeam(leagueId, teamId, row, direction) {
+/** Trust the saved club stamp — rows stay valid after squad changes (recall, transfer out, etc.). */
+function transferRowBelongsToTeam(leagueId, teamId, row) {
   const team = state().teams.find((t) => t.id === teamId);
   const club = team?.name ?? "";
-  if (!row?.player || row.club !== club) return false;
-  if (transferDirectionIncoming(direction)) return true;
-
-  const onThis = playerOnLeagueTeam(leagueId, teamId, row.player);
-  const onOther = playerOnOtherLeagueTeam(leagueId, teamId, row.player);
-  if (onOther && !onThis) return false;
-  return true;
-}
-
-function resolveTransferRowClub(leagueId, row) {
-  const hits = teamsForLeague(leagueId).filter((t) => playerOnLeagueTeam(leagueId, t.id, row?.player));
-  if (hits.length === 1) return hits[0].name;
-  return row?.club ?? "";
-}
-
-function repairLeagueTransfers(leagueId) {
-  if (!leagueId || leagueId === "worldcup") return false;
-  const block = transfersBlock(leagueId);
-  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "loanReturn", "loanRecall"];
-  let changed = false;
-  const merged = { leagueId };
-  for (const key of keys) {
-    merged[key] = (block[key] ?? []).map((row) => {
-      if (transferDirectionIncoming(key)) return row;
-      const resolved = resolveTransferRowClub(leagueId, row);
-      if (resolved && resolved !== row.club) {
-        changed = true;
-        return { ...row, club: resolved };
-      }
-      return row;
-    });
-  }
-  if (changed) {
-    FCDataStore.setTransfers(leagueId, merged);
-    syncToAppArrays();
-    for (const cacheKey of [...transferEditsByTeam.keys()]) {
-      if (cacheKey.startsWith(`${leagueId}|`)) transferEditsByTeam.delete(cacheKey);
-    }
-  }
-  return changed;
+  return Boolean(row?.player && row.club === club);
 }
 
 function mergeTeamTransfersIntoLeague(leagueId, teamId, teamLists) {
@@ -2797,6 +2751,28 @@ function transferTeamKey(leagueId, teamId) {
   return `${leagueId}|${teamId}`;
 }
 
+function transferRowKey(row) {
+  const id = String(row?.id ?? "").trim();
+  if (id) return `id:${id}`;
+  const player = stripCaptainSuffix(String(row?.player ?? "").trim());
+  const other = String(row?.otherClub ?? "").trim();
+  return `p:${player}|o:${other}`;
+}
+
+function mergeTransferDirectionLists(storeRows, cachedRows, leagueId, teamId) {
+  const store = storeRows ?? [];
+  const cached = (cachedRows ?? []).filter((row) => transferRowBelongsToTeam(leagueId, teamId, row));
+  if (!cached.length) return store;
+
+  const seen = new Set(cached.map(transferRowKey));
+  const merged = [...cached];
+  for (const row of store) {
+    const key = transferRowKey(row);
+    if (!seen.has(key)) merged.push(row);
+  }
+  return merged;
+}
+
 function stashTransferEditsFromDom() {
   if (!transferTeamFilter || leagueFilter === "worldcup" || !$("#transfersInTable")) return;
   const sel = $("#transferTeamFilter");
@@ -2810,14 +2786,13 @@ function transferListsForEditor(leagueId, teamId) {
   const fromStore = transfersForTeam(leagueId, teamId);
   const cached = transferEditsByTeam.get(transferTeamKey(leagueId, teamId));
   if (!cached) return fromStore;
-  const pick = (key) =>
-    (cached[key] ?? []).filter((row) => transferRowBelongsToTeam(leagueId, teamId, row, key));
-  return {
-    in: pick("in"),
-    out: pick("out"),
-    loanReturn: pick("loanReturn"),
-    loanRecall: pick("loanRecall"),
-  };
+
+  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "loanReturn", "loanRecall"];
+  const merged = {};
+  for (const key of keys) {
+    merged[key] = mergeTransferDirectionLists(fromStore[key], cached[key], leagueId, teamId);
+  }
+  return merged;
 }
 
 function clearTransferEditsForTeam(leagueId, teamId) {
@@ -3804,6 +3779,121 @@ function bindStadiums() {
   });
 }
 
+function bindTeamRowDragSort() {
+  const tbody = $(".teams-table tbody");
+  if (!tbody || tbody.dataset.teamDragBound === "1") return;
+  tbody.dataset.teamDragBound = "1";
+
+  let draggedId = null;
+  let touchRow = null;
+  let touchMoved = false;
+
+  const rowFromPoint = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest(".team-sort-row") : null;
+  };
+
+  const persistOrder = () => {
+    const ids = [...tbody.querySelectorAll(".team-sort-row")]
+      .map((r) => r.getAttribute("data-team-id"))
+      .filter(Boolean);
+    if (!ids.length || !leagueFilter) return;
+    FCDataStore.reorderLeagueTeams(leagueFilter, ids);
+    syncToAppArrays();
+    toast("Club order saved");
+    tbody.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+  };
+
+  tbody.addEventListener("dragstart", (e) => {
+    const handle = e.target.closest(".player-drag-handle");
+    if (!handle) return;
+    const row = handle.closest(".team-sort-row");
+    if (!row) return;
+    draggedId = row.getAttribute("data-team-id");
+    row.classList.add("is-dragging");
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", draggedId ?? "");
+    }
+  });
+
+  tbody.addEventListener("dragend", (e) => {
+    const row = e.target.closest(".team-sort-row");
+    row?.classList.remove("is-dragging");
+    draggedId = null;
+    tbody.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+  });
+
+  tbody.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const target = e.target.closest(".team-sort-row");
+    if (!target || !draggedId || target.getAttribute("data-team-id") === draggedId) return;
+
+    const dragged = tbody.querySelector(`[data-team-id="${CSS.escape(draggedId)}"]`);
+    if (!dragged) return;
+
+    tbody.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    target.classList.add("is-drag-over");
+
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    if (before) tbody.insertBefore(dragged, target);
+    else tbody.insertBefore(dragged, target.nextSibling);
+  });
+
+  tbody.addEventListener("dragleave", (e) => {
+    const row = e.target.closest(".team-sort-row");
+    if (row) row.classList.remove("is-drag-over");
+  });
+
+  tbody.addEventListener("drop", (e) => {
+    e.preventDefault();
+    persistOrder();
+  });
+
+  tbody.addEventListener(
+    "touchstart",
+    (e) => {
+      const handle = e.target.closest(".player-drag-handle");
+      if (!handle || !tbody.contains(handle)) return;
+      touchRow = handle.closest(".team-sort-row");
+      touchMoved = false;
+      touchRow?.classList.add("is-dragging");
+    },
+    { passive: true },
+  );
+
+  tbody.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!touchRow) return;
+      e.preventDefault();
+      touchMoved = true;
+      const touch = e.touches[0];
+      const target = rowFromPoint(touch.clientX, touch.clientY);
+      if (!target || target === touchRow) return;
+
+      const rect = target.getBoundingClientRect();
+      const before = touch.clientY < rect.top + rect.height / 2;
+      if (before) tbody.insertBefore(touchRow, target);
+      else tbody.insertBefore(touchRow, target.nextSibling);
+    },
+    { passive: false },
+  );
+
+  const endTouch = () => {
+    if (!touchRow) return;
+    touchRow.classList.remove("is-dragging");
+    if (touchMoved) persistOrder();
+    touchRow = null;
+    touchMoved = false;
+  };
+
+  tbody.addEventListener("touchend", endTouch);
+  tbody.addEventListener("touchcancel", endTouch);
+}
+
 function bindTeams() {
   $("#btnNewTeam")?.addEventListener("click", () => {
     $("#teamEditId").value = "";
@@ -3822,6 +3912,11 @@ function bindTeams() {
     const id = editId || `${leagueFilter}_${FCDataStore.slugify(name)}`;
     const formation = $("#teamFormation").value.trim();
     const prev = editId ? state().teams.find((t) => t.id === editId) : null;
+    let sortOrder = prev?.sortOrder;
+    if (sortOrder == null && !editId) {
+      const maxOrder = teamsForLeague(leagueFilter).reduce((m, t) => Math.max(m, t.sortOrder ?? -1), -1);
+      sortOrder = maxOrder + 1;
+    }
     const team = {
       id,
       leagueId: leagueFilter,
@@ -3832,6 +3927,7 @@ function bindTeams() {
       colors: [$("#teamC1").value, $("#teamC2").value],
       logo: $("#teamLogo").value.trim() || undefined,
     };
+    if (sortOrder != null) team.sortOrder = sortOrder;
     if (prev?.squadDepth) team.squadDepth = prev.squadDepth;
     FCDataStore.upsertTeam(team);
     syncToAppArrays();
@@ -3865,6 +3961,8 @@ function bindTeams() {
       renderPanel();
     });
   });
+
+  bindTeamRowDragSort();
 }
 
 function bindSquadDepth() {
@@ -4820,11 +4918,6 @@ function readTransfersTable(tableId, dir, clubName) {
 }
 
 function bindTransfers() {
-  if (leagueFilter && leagueFilter !== "worldcup") {
-    const repaired = repairLeagueTransfers(leagueFilter);
-    if (repaired) toast(`Fixed misfiled ${leagueName(leagueFilter)} transfers`);
-  }
-
   const teamSel = $("#transferTeamFilter");
   if (teamSel && teamSel.dataset.trBound !== "1") {
     teamSel.dataset.trBound = "1";
@@ -4976,18 +5069,8 @@ function initAuth() {
   });
 }
 
-function repairAllLeagueTransfers() {
-  let changed = false;
-  for (const lg of state().leagues ?? []) {
-    if (lg.id === "worldcup") continue;
-    if (repairLeagueTransfers(lg.id)) changed = true;
-  }
-  return changed;
-}
-
 function finishBoot() {
   setSeedLoading(false);
-  repairAllLeagueTransfers();
   initAuth();
   bindAdminNavScroll();
   if (FCDataStore.isAuthed()) {

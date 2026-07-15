@@ -145,7 +145,7 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-full);
-  background-color: var(--bg-surface-3);
+  background-color: #fff;
   border: 1px solid var(--border-strong);
   display: flex;
   align-items: center;

@@ -281,7 +281,7 @@ const MATCHES = [
     time: "Saturday 9 May",
     stadium: "Amex Stadium",
     homeTeamId: "epl_brighton",
-    awayTeamId: "epl_wolves",
+    awayTeamId: "epl_hull_city",
     score: [3, 0],
     scorers: [],
     goalEvents: [
@@ -467,7 +467,7 @@ const MATCHES = [
     status: "FT",
     time: "Sunday 10 May",
     stadium: "Turf Moor",
-    homeTeamId: "epl_burnley",
+    homeTeamId: "epl_coventry_city",
     awayTeamId: "epl_aston_villa",
     score: [2, 2],
     scorers: [],
@@ -612,7 +612,7 @@ const MATCHES = [
     status: "FT",
     time: "Sunday 10 May",
     stadium: "London Stadium",
-    homeTeamId: "epl_west_ham",
+    homeTeamId: "epl_ipswich_town",
     awayTeamId: "epl_arsenal",
     score: [0, 1],
     scorers: [],
@@ -1499,7 +1499,7 @@ const TEAMS = [
   { id: "epl_bournemouth", leagueId: "epl", name: "Bournemouth", city: "Bournemouth", coach: "Andoni Iraola", colors: ["#ff4d6d", "#111827"], logo: "./images/premierleague/bournemouth.png" },
   { id: "epl_brentford", leagueId: "epl", name: "Brentford", city: "London", coach: "Keith Andrews", colors: ["#ff4d6d", "#ffd166"], logo: "./images/premierleague/brentford.png" },
   { id: "epl_brighton", leagueId: "epl", name: "Brighton", city: "Brighton", coach: "Fabian Hurzeler", colors: ["#2de2e6", "#ffd166"], logo: "./images/premierleague/brighton.png" },
-  { id: "epl_burnley", leagueId: "epl", name: "Burnley", city: "Burnley", coach: "Scott Parker", colors: ["#7c5cff", "#ffd166"], logo: "./images/premierleague/burnley.png" },
+  { id: "epl_coventry_city", leagueId: "epl", name: "Coventry City", city: "Coventry", coach: "Frank Lampard", colors: ["#69b3e7", "#111827"], logo: "./images/premierleague/coventry_city.png" },
   { id: "epl_chelsea", leagueId: "epl", name: "Chelsea", city: "London", coach: "Calum McFarlane", colors: ["#2de2e6", "#7c5cff"], logo: "./images/premierleague/chelsea.png" },
   { id: "epl_crystal_palace", leagueId: "epl", name: "Crystal Palace", city: "London", coach: "Oliver Glasner", colors: ["#ff4d6d", "#2de2e6"], logo: "./images/premierleague/crystalpalace.png" },
   { id: "epl_everton", leagueId: "epl", name: "Everton", city: "Liverpool", coach: "David Moyes", colors: ["#2de2e6", "#7c5cff"], logo: "./images/premierleague/everton.png" },
@@ -1512,8 +1512,8 @@ const TEAMS = [
   { id: "epl_nottingham", leagueId: "epl", name: "Nottingham", city: "Nottingham", coach: "Vitor Pereira", colors: ["#ff4d6d", "#ffd166"], logo: "./images/premierleague/nottingham.png" },
   { id: "epl_sunderland", leagueId: "epl", name: "Sunderland", city: "Sunderland", coach: "Regis Le Bris", colors: ["#ff4d6d", "#ffd166"], logo: "./images/premierleague/sunderland.png" },
   { id: "epl_tottenham", leagueId: "epl", name: "Tottenham", city: "London", coach: "Roberto De Zerbi", colors: ["#2de2e6", "#111827"], logo: "./images/premierleague/tottenham.png" },
-  { id: "epl_west_ham", leagueId: "epl", name: "West Ham", city: "London", coach: "Nuno Espirito Santo", colors: ["#7c5cff", "#ffd166"], logo: "./images/premierleague/westham.png" },
-  { id: "epl_wolves", leagueId: "epl", name: "Wolves", city: "Wolverhampton", coach: "Rob Edwards", colors: ["#ffd166", "#111827"], logo: "./images/premierleague/wolves.png" },
+  { id: "epl_ipswich_town", leagueId: "epl", name: "Ipswich Town", city: "Ipswich", coach: "Kieran McKenna", colors: ["#003399", "#ffffff"], logo: "./images/premierleague/ipswich_town.png" },
+  { id: "epl_hull_city", leagueId: "epl", name: "Hull City", city: "Hull", coach: "Ruben Selles", colors: ["#f5a623", "#111827"], logo: "./images/premierleague/hull_city.png" },
 
   // La Liga
   { id: "laliga_athletic_bilbao", leagueId: "laliga", name: "Athletic Bilbao", city: "Bilbao", coach: "Ernesto Valverde", colors: ["#ff4d6d", "#ffd166"], logo: "./images/laliga/athletic_bilbao.png" },
@@ -4585,6 +4585,22 @@ function setupNav() {
   });
 }
 
+function teamBrandColor(team) {
+  const c = team?.colors?.[0];
+  return typeof c === "string" && /^#[0-9a-fA-F]{3,8}$/.test(c.trim()) ? c.trim() : "#378ADD";
+}
+
+function matchCardBrandAttrs(ht, at, { featured = false } = {}) {
+  const home = teamBrandColor(ht);
+  const away = teamBrandColor(at);
+  let classExtra = "match-card--branded";
+  if (featured) classExtra += " match-card--featured";
+  return {
+    classExtra,
+    styleAttr: `style="--mc-home:${home};--mc-away:${away}"`,
+  };
+}
+
 function teamCrestHtml(team, { className = "", size = 32, attrs = "" } = {}) {
   const shellSize = size >= 40 ? "team-crest-shell--md" : "team-crest-shell--sm";
   const extraClass = className ? ` ${className}` : "";
@@ -4624,7 +4640,14 @@ function clubLogoHtml(teamOrId, classes = "club-crest") {
 }
 
 function teamsForLeague(leagueId) {
-  return TEAMS.filter((t) => t.leagueId === leagueId);
+  return TEAMS.filter((t) => t.leagueId === leagueId).sort(compareTeamOrder);
+}
+
+function compareTeamOrder(a, b) {
+  const ao = a.sortOrder ?? 1e9;
+  const bo = b.sortOrder ?? 1e9;
+  if (ao !== bo) return ao - bo;
+  return String(a.name ?? "").localeCompare(String(b.name ?? ""));
 }
 
 const PLAYER_ROLE_ORDER = ["GK", "CB", "RB", "LB", "RM", "LM", "DM", "CM", "AM", "RAM", "LAM", "RW", "LW", "CF"];
@@ -4766,6 +4789,7 @@ function renderLeaguePills(activeLeagueId) {
   }
 
   updateHomeRailArrows();
+  refreshHomeEntranceAnimations();
 
   const scroller = $("#leaguePillsScroll");
   if (scroller) {
@@ -5527,10 +5551,12 @@ function matchCardHtml(m, options = {}) {
     kicker = "",
     attrs = "",
     tag = "article",
+    featured = false,
   } = options;
 
   const ht = teamById.get(m.homeTeamId);
   const at = teamById.get(m.awayTeamId);
+  const brand = matchCardBrandAttrs(ht, at, { featured });
   const crestClass = "team-crest team-crest--sm";
   const headerKicker = kicker || m.matchday || "";
   const datetime = m.time || "";
@@ -5583,7 +5609,8 @@ function matchCardHtml(m, options = {}) {
 
   return `
     <${tag}
-      class="match-card match-card--${variant}"
+      class="match-card match-card--${variant} ${brand.classExtra}"
+      ${brand.styleAttr}
       ${attrs}
     >
       ${headerHtml}
@@ -5593,12 +5620,13 @@ function matchCardHtml(m, options = {}) {
     </${tag}>`;
 }
 
-function heroMatchCardHtml(m) {
+function heroMatchCardHtml(m, options = {}) {
   const ht = teamById.get(m.homeTeamId);
   const at = teamById.get(m.awayTeamId);
   return matchCardHtml(m, {
     variant: "hero",
     showVenue: true,
+    featured: Boolean(options.featured),
     attrs: `
       data-hero-match="${escapeHtml(m.id)}"
       role="button"
@@ -5672,29 +5700,98 @@ function renderHeroFeaturedMatch(leagueId) {
     return;
   }
 
-  wrap.innerHTML = heroMatchCardHtml(featured);
+  wrap.innerHTML = heroMatchCardHtml(featured, { featured: true });
   bindHeroMatchCards(wrap, leagueId);
+  triggerFeaturedScoreReveal(wrap);
+  refreshHomeEntranceAnimations(wrap);
+}
+
+function triggerFeaturedScoreReveal(root) {
+  const score = root?.querySelector(".match-card__score");
+  if (!score) return;
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  score.classList.remove("match-card__score--reveal");
+  if (reduce) return;
+  void score.offsetWidth;
+  score.classList.add("match-card__score--reveal");
+}
+
+let heroStatsCounted = false;
+let heroStatsObserver = null;
+let homeEnterObserver = null;
+let homeRailEnterSeeded = false;
+
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+}
+
+function runHeroStatCounters() {
+  animateCounter($("#statLeagues"), LEAGUES.length);
+  animateCounter($("#statTeams"), TEAMS.length);
+  animateCounter($("#statPlayers"), PLAYERS.length);
+  heroStatsCounted = true;
+}
+
+function setHeroStatValues(values) {
+  const els = [$("#statLeagues"), $("#statTeams"), $("#statPlayers")];
+  els.forEach((el, i) => {
+    if (!el) return;
+    el.textContent = String(values[i]);
+    el.dataset.countTarget = String(values[i]);
+  });
+}
+
+function observeHeroStatCounters() {
+  const wrap = $(".home-stats--hero");
+  if (!wrap) return;
+
+  const values = [LEAGUES.length, TEAMS.length, PLAYERS.length];
+  if (heroStatsCounted) {
+    setHeroStatValues(values);
+    return;
+  }
+
+  if (prefersReducedMotion()) {
+    setHeroStatValues(values);
+    heroStatsCounted = true;
+    return;
+  }
+
+  if (!("IntersectionObserver" in window)) {
+    runHeroStatCounters();
+    return;
+  }
+
+  if (heroStatsObserver) heroStatsObserver.disconnect();
+  heroStatsObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        runHeroStatCounters();
+        heroStatsObserver?.disconnect();
+        heroStatsObserver = null;
+      }
+    },
+    { threshold: 0.35, rootMargin: "0px 0px -8% 0px" },
+  );
+  heroStatsObserver.observe(wrap);
 }
 
 function updateHeroSummary() {
-  const totalPlayers = PLAYERS.length;
-  const totalTeams = TEAMS.length;
-  animateCounter($("#statLeagues"), LEAGUES.length);
-  animateCounter($("#statTeams"), totalTeams);
-  animateCounter($("#statPlayers"), totalPlayers);
+  observeHeroStatCounters();
 }
 
 function animateCounter(el, target) {
   if (!(el instanceof HTMLElement)) return;
   const to = Number(target) || 0;
-  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduce) {
+  el.dataset.countTarget = String(to);
+  if (prefersReducedMotion()) {
     el.textContent = String(to);
     return;
   }
   const from = 0;
   const start = performance.now();
-  const dur = 680;
+  const dur = 1200;
   const tick = (t) => {
     const p = Math.min(1, (t - start) / dur);
     const eased = 1 - Math.pow(1 - p, 3);
@@ -5703,6 +5800,66 @@ function animateCounter(el, target) {
     if (p < 1) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+}
+
+function getHomeEnterObserver() {
+  if (homeEnterObserver) return homeEnterObserver;
+  if (prefersReducedMotion() || !("IntersectionObserver" in window)) return null;
+
+  document.documentElement.classList.add("home-enter-init");
+  homeEnterObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add("is-entered");
+        homeEnterObserver?.unobserve(entry.target);
+      }
+    },
+    { threshold: 0.1, rootMargin: "0px 0px -6% 0px" },
+  );
+  return homeEnterObserver;
+}
+
+function stampHomeEnter(el, index, staggerMs = 65) {
+  if (!(el instanceof HTMLElement)) return;
+  el.classList.add("home-enter");
+  el.style.setProperty("--home-enter-delay", `${index * staggerMs}ms`);
+  const io = getHomeEnterObserver();
+  if (!io) {
+    el.classList.add("is-entered");
+    return;
+  }
+  if (el.getBoundingClientRect().top < window.innerHeight * 0.94) {
+    el.classList.add("is-entered");
+    return;
+  }
+  io.observe(el);
+}
+
+function refreshHomeEntranceAnimations(scope) {
+  const root = scope ?? document;
+
+  if (!scope && !homeRailEnterSeeded) {
+    const pills = [
+      ...$$("#leaguePills .league-tab", root),
+      ...$$("#homeRailMoreMount .league-tab--more", root),
+    ];
+    pills.forEach((el, i) => stampHomeEnter(el, i, 60));
+    homeRailEnterSeeded = true;
+  }
+
+  const cards = [
+    ...$$("#heroSpotlight .match-card", root),
+    ...$$("#heroFeaturedMatch .match-card", root),
+  ];
+  cards.forEach((el, i) => {
+    if (el.classList.contains("is-entered")) return;
+    stampHomeEnter(el, i, 75);
+  });
+}
+
+function setupHomeEntranceAnimations() {
+  getHomeEnterObserver();
 }
 
 function formationForTeam(teamId) {
@@ -5797,6 +5954,7 @@ function renderHeroSpotlight(leagueId) {
   track.innerHTML = matches.map((m) => heroMatchCardHtml(m)).join("");
   bindHeroMatchCards(track, leagueId);
   updateHomeSpotlightScroll();
+  refreshHomeEntranceAnimations(track);
 }
 
 function updateHeroLeagueContext(leagueId) {
@@ -7170,6 +7328,7 @@ function main() {
   setupBootstrapUI();
   setupHowItWorks();
   setupRevealAnimations();
+  setupHomeEntranceAnimations();
 
   renderLeagueOptions();
   setupRosterControls();
@@ -7179,6 +7338,7 @@ function main() {
 
   updateHeroSummary();
   setActiveLeague(LEAGUES[0].id);
+  refreshHomeEntranceAnimations();
 }
 
 document.addEventListener("fc-data-updated", refreshSiteFromStore);

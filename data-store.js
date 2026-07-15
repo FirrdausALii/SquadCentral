@@ -373,6 +373,7 @@
     if (local.squadDepth) out.squadDepth = clone(local.squadDepth);
     if (local.nationalDuty?.length) out.nationalDuty = clone(local.nationalDuty);
     else if (Array.isArray(local.nationalDuty)) out.nationalDuty = [];
+    if (local.sortOrder != null) out.sortOrder = local.sortOrder;
     return out;
   }
 
@@ -796,6 +797,18 @@
     save();
   }
 
+  /** Persist drag-and-drop order for clubs within a league (Teams tab + public site). */
+  function reorderLeagueTeams(leagueId, orderedTeamIds) {
+    if (!leagueId || !orderedTeamIds?.length) return;
+    const orderMap = new Map(orderedTeamIds.map((id, i) => [id, i]));
+    for (const t of state.teams) {
+      if (t.leagueId !== leagueId) continue;
+      if (orderMap.has(t.id)) t.sortOrder = orderMap.get(t.id);
+    }
+    touchRevision();
+    save();
+  }
+
   function upsertMatch(match) {
     const i = state.matches.findIndex((m) => m.id === match.id);
     if (i >= 0) state.matches[i] = match;
@@ -935,6 +948,7 @@
     removePlayer,
     transferPlayer,
     reorderTeamPlayers,
+    reorderLeagueTeams,
     upsertMatch,
     removeMatch,
     setStandings,

@@ -388,7 +388,7 @@ p { margin: 0 0 var(--sp-4); }
   justify-content: center;
   flex-shrink: 0;
   border-radius: var(--radius-full);
-  background-color: var(--bg-surface-3);
+  background-color: #fff;
   border: 1px solid var(--border-default);
   overflow: hidden;
   box-sizing: border-box;
@@ -398,13 +398,13 @@ p { margin: 0 0 var(--sp-4); }
 .team-crest-shell--md {
   width: 40px;
   height: 40px;
-  padding: 6px;
+  padding: 2px;
 }
 
 .team-crest-shell--sm {
   width: 32px;
   height: 32px;
-  padding: 5px;
+  padding: 2px;
 }
 
 .team-crest-shell__img {
@@ -463,14 +463,58 @@ p { margin: 0 0 var(--sp-4); }
   border: 0.5px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: var(--sp-4) var(--sp-5);
-  transition: border-color var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition);
   cursor: pointer;
   flex: 0 0 min(280px, 82vw);
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  position: relative;
+  overflow: hidden;
 }
 .match-card:hover { border-color: var(--border-strong); }
+
+.match-card--branded {
+  --mc-home: #378add;
+  --mc-away: #378add;
+}
+
+.match-card--branded::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: linear-gradient(
+    90deg,
+    var(--mc-home) 0%,
+    var(--mc-home) 46%,
+    transparent 46%,
+    transparent 54%,
+    var(--mc-away) 54%,
+    var(--mc-away) 100%
+  );
+  opacity: 0.28;
+  pointer-events: none;
+  transition: opacity 0.28s ease, box-shadow 0.28s ease;
+}
+
+.match-card--branded:hover::before {
+  opacity: 0.88;
+  box-shadow:
+    0 -1px 10px color-mix(in srgb, var(--mc-home) 42%, transparent),
+    0 -1px 10px color-mix(in srgb, var(--mc-away) 42%, transparent);
+}
+
+.match-card--featured::before {
+  opacity: 0.52;
+}
+
+.match-card--featured:hover::before {
+  opacity: 0.92;
+}
 
 .match-card__header {
   display: flex;

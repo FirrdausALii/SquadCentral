@@ -2,9 +2,47 @@
 
 .home-hub { margin-bottom: var(--sp-8); padding-bottom: var(--sp-6); }
 
-.home-hero { margin-bottom: var(--sp-8); }
+.home-hero {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: var(--sp-8);
+  padding: var(--sp-5) 0 var(--sp-2);
+}
+
+.home-hero__atmosphere {
+  position: absolute;
+  inset: -12px -8px 0;
+  overflow: hidden;
+  border-radius: calc(var(--radius-lg) + 4px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-hero__glow {
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 72%;
+  background:
+    radial-gradient(ellipse 68% 58% at 50% 0%, rgba(55, 138, 221, 0.18) 0%, transparent 68%),
+    radial-gradient(ellipse 42% 36% at 72% 8%, rgba(120, 92, 255, 0.1) 0%, transparent 70%);
+  opacity: 0.95;
+}
+
+.home-hero__texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.065;
+  background-image:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.45) 0.55px, transparent 0.65px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 220' preserveAspectRatio='none'%3E%3Ccircle cx='200' cy='110' r='78' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='1'/%3E%3Cline x1='0' y1='110' x2='400' y2='110' stroke='rgba(255,255,255,0.22)' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 22px 22px, 100% 100%;
+  background-position: 0 0, center 42%;
+  mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+}
 
 .home-hero__grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
   gap: var(--sp-6);
@@ -57,6 +95,12 @@
   font-size: clamp(1.35rem, 3vw, 1.75rem);
   line-height: 1;
   margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value--count {
+  display: inline-block;
+  min-width: 1.5ch;
 }
 
 .home-hero-feature {
@@ -153,7 +197,22 @@
 }
 
 .home-hero-feature .match-card__score-num {
-  font-size: clamp(1.85rem, 5vw, 2.35rem);
+  font-size: clamp(2.1rem, 5.5vw, 2.75rem);
+}
+
+.home-hero-feature .match-card__score--reveal {
+  animation: home-score-reveal 0.48s ease-out both;
+}
+
+@keyframes home-score-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .home-hero__eyebrow {
@@ -174,11 +233,44 @@
   border: 0.5px solid #1a3a28;
   margin-bottom: var(--sp-3);
 }
+
+.home-hero__eyebrow--live {
+  animation: home-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes home-badge-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 16px 2px rgba(74, 222, 128, 0.22);
+  }
+}
+
 .home-hero__eyebrow .dot {
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
   background: var(--color-live);
+}
+
+.home-hero__eyebrow--live .dot {
+  animation: home-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes home-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
 }
 
 .home-hero__title {
@@ -756,6 +848,43 @@
 
 @media (max-width: 575.98px) {
   .home-clubs { grid-template-columns: 1fr; }
+}
+
+/* Scroll-triggered homepage entrances */
+.home-enter {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.42s ease, transform 0.42s ease;
+  transition-delay: var(--home-enter-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+html.home-enter-init .home-enter:not(.is-entered) {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+html.home-enter-init .home-enter.is-entered {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero__eyebrow--live,
+  .home-hero__eyebrow--live .dot {
+    animation: none !important;
+  }
+
+  .home-hero-feature .match-card__score--reveal {
+    animation: none !important;
+  }
+
+  .home-enter,
+  html.home-enter-init .home-enter:not(.is-entered) {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
