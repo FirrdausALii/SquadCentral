@@ -161,6 +161,12 @@ p { margin: 0 0 var(--sp-4); }
   width: 100%;
 }
 
+@media (min-width: 1200px) {
+  .page-wrapper--home .main-content {
+    max-width: 1280px;
+  }
+}
+
 .page-wrapper--section .sidebar--context:not([hidden]) {
   position: fixed;
   top: 52px;
@@ -365,6 +371,7 @@ p { margin: 0 0 var(--sp-4); }
 }
 
 .club-card {
+  position: relative;
   background-color: var(--bg-surface-2);
   border: 0.5px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -372,13 +379,39 @@ p { margin: 0 0 var(--sp-4); }
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  transition: border-color var(--transition), background-color var(--transition);
+  transition: border-color var(--transition), background-color var(--transition), transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
   text-decoration: none;
+  overflow: hidden;
 }
+
+.club-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--league-accent, var(--accent));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
 .club-card:hover {
   background-color: var(--bg-surface-3);
-  border-color: var(--border-strong);
+  border-color: color-mix(in srgb, var(--league-accent, var(--accent)) 35%, var(--border-strong));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.club-card:hover::before {
+  opacity: 1;
+}
+
+.club-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .club-crest,

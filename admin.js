@@ -155,13 +155,50 @@ function applyPlayerRosterSearch() {
   if (clearBtn) clearBtn.classList.toggle("admin-hidden", !q);
 }
 
+function squadPositionBreakdown(players) {
+  const counts = { GK: 0, DF: 0, MF: 0, FW: 0 };
+  for (const p of players) {
+    const pos = String(p.pos ?? "").trim().toUpperCase();
+    if (Object.prototype.hasOwnProperty.call(counts, pos)) counts[pos]++;
+  }
+  return counts;
+}
+
+function adminTeamCrestHtml(team) {
+  if (!team) {
+    return `<span class="players-team-crest players-team-crest--empty" aria-hidden="true">?</span>`;
+  }
+  const logo = team.logo ? String(team.logo).trim() : "";
+  if (logo) {
+    return `<span class="players-team-crest" aria-hidden="true"><img src="${esc(logo)}" alt="" width="48" height="48" loading="lazy" decoding="async" /></span>`;
+  }
+  const initials = String(team.name ?? "?")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return `<span class="players-team-crest players-team-crest--fallback" aria-hidden="true">${esc(initials)}</span>`;
+}
+
 function playerRosterCardHtml(p, isWorldCup) {
   const clubMeta =
     isWorldCup && p.club
       ? `<span class="player-roster-club">${esc(p.club)}</span>`
       : "";
+  const posKey = String(p.pos ?? "").trim().toUpperCase();
+  const posClass =
+    posKey === "GK"
+      ? "player-roster-card--gk"
+      : posKey === "DF"
+        ? "player-roster-card--df"
+        : posKey === "MF"
+          ? "player-roster-card--mf"
+          : posKey === "FW"
+            ? "player-roster-card--fw"
+            : "";
   const metaParts = [
-    `<span class="player-roster-pos">${esc(p.pos)}</span>`,
+    `<span class="player-roster-pos player-roster-pos--${esc(posKey.toLowerCase() || "na")}">${esc(p.pos)}</span>`,
     `<span class="player-roster-role">${esc(p.role ?? "")}</span>`,
     p.displayLastName
       ? `<span class="player-roster-pitch-label" title="Pitch label">Pitch: ${esc(p.displayLastName)}</span>`
@@ -171,14 +208,15 @@ function playerRosterCardHtml(p, isWorldCup) {
   const capBadge = rosterPlayerIsCaptain(p)
     ? `<span class="player-roster-cap" title="Club captain">C</span>`
     : "";
-  return `<article class="player-roster-card player-sort-row" draggable="true" data-player-id="${esc(p.id)}" data-search="${esc(adminPlayerSearchHaystack(p))}">
+  const flag = p.flag ? `<span class="player-roster-flag" aria-hidden="true">${esc(p.flag)}</span>` : "";
+  return `<article class="player-roster-card player-sort-row ${posClass}" draggable="true" data-player-id="${esc(p.id)}" data-search="${esc(adminPlayerSearchHaystack(p))}">
     <span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
     <div class="player-roster-body">
       <div class="player-roster-line">
         <span class="player-roster-num">${esc(p.number)}</span>
         <div class="player-roster-copy">
           <div class="admin-player-name-inner">
-            <strong class="admin-player-name">${esc(stripCaptainSuffix(p.name))}</strong>${capBadge}${adminPlayerInstagramBadge(p)}
+            ${flag}<strong class="admin-player-name">${esc(stripCaptainSuffix(p.name))}</strong>${capBadge}${adminPlayerInstagramBadge(p)}
           </div>
           <div class="player-roster-meta">${metaParts.join('<span class="player-roster-meta-sep" aria-hidden="true">·</span>')}</div>
         </div>
@@ -297,52 +335,68 @@ function panelOverview() {
   return `
     <div class="overview-page">
       <header class="overview-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 overview-hero-text">
-            <p class="overview-eyebrow">Dashboard</p>
+        <div class="overview-hero__atmosphere" aria-hidden="true">
+          <div class="overview-hero__glow"></div>
+          <div class="overview-hero__pitch"></div>
+          <div class="overview-hero__markings"></div>
+        </div>
+        <div class="overview-hero__grid">
+          <div class="overview-hero__copy">
+            <p class="overview-eyebrow">Matchday control room</p>
             <h2 class="overview-heading">Overview</h2>
             <p class="overview-lead">${storageNote} Publish live with <strong>Firebase</strong> or commit <code>data.json</code> to GitHub.</p>
+            <nav class="overview-quicknav" aria-label="Jump to admin section">
+              <button type="button" class="overview-quicknav__btn" data-overview-tab="teams">Teams</button>
+              <button type="button" class="overview-quicknav__btn" data-overview-tab="players">Players</button>
+              <button type="button" class="overview-quicknav__btn" data-overview-tab="matches">Matches</button>
+              <button type="button" class="overview-quicknav__btn" data-overview-tab="transfers">Transfers</button>
+              <button type="button" class="overview-quicknav__btn" data-overview-tab="settings">Settings</button>
+            </nav>
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="overview-hero-badge w-100">
+          <aside class="overview-hero__aside">
+            <div class="overview-hero-badge">
               <span class="overview-hero-badge-label">Last data revision</span>
               <span class="overview-hero-badge-value">${esc(String(rev))}</span>
             </div>
-          </div>
+            <div class="overview-status-row">
+              <span class="overview-status-chip overview-status-chip--local">Local storage active</span>
+              <span class="overview-status-chip overview-status-chip--firebase${firebaseSignedIn ? " is-live" : ""}">${esc(firebaseSignedIn ? "Firebase connected" : "Firebase offline")}</span>
+            </div>
+          </aside>
         </div>
       </header>
 
       <div class="row g-2 g-md-3 overview-stats">
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-xl-3">
           <article class="overview-stat overview-stat--teams h-100">
-            <span class="overview-stat-icon" aria-hidden="true">⚽</span>
+            <span class="overview-stat-icon overview-stat-icon--teams" aria-hidden="true"></span>
             <div class="overview-stat-body">
               <span class="overview-stat-num">${s.teams.length}</span>
               <span class="overview-stat-label">Teams</span>
             </div>
           </article>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-xl-3">
           <article class="overview-stat overview-stat--players h-100">
-            <span class="overview-stat-icon" aria-hidden="true">👤</span>
+            <span class="overview-stat-icon overview-stat-icon--players" aria-hidden="true"></span>
             <div class="overview-stat-body">
               <span class="overview-stat-num">${s.players.length}</span>
               <span class="overview-stat-label">Players</span>
             </div>
           </article>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-xl-3">
           <article class="overview-stat overview-stat--matches h-100">
-            <span class="overview-stat-icon" aria-hidden="true">📅</span>
+            <span class="overview-stat-icon overview-stat-icon--matches" aria-hidden="true"></span>
             <div class="overview-stat-body">
               <span class="overview-stat-num">${s.matches.length}</span>
               <span class="overview-stat-label">Matches</span>
             </div>
           </article>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-xl-3">
           <article class="overview-stat overview-stat--leagues h-100">
-            <span class="overview-stat-icon" aria-hidden="true">🏆</span>
+            <span class="overview-stat-icon overview-stat-icon--leagues" aria-hidden="true"></span>
             <div class="overview-stat-body">
               <span class="overview-stat-num">${leagueCount}</span>
               <span class="overview-stat-label">Leagues active</span>
@@ -351,120 +405,134 @@ function panelOverview() {
         </div>
       </div>
 
-      <section class="overview-card overview-publish">
-        <div class="overview-card-head">
-          <h3>Publish to GitHub</h3>
-          <p>Visitors load <code>data.json</code> from your repo — not <code>app.js</code>.</p>
-        </div>
-        <ol class="overview-steps">
-          <li><span class="overview-step-n">1</span><span>Edit squads, matchweek &amp; transfers in admin tabs</span></li>
-          <li><span class="overview-step-n">2</span><span>Download <strong>data.json</strong> below</span></li>
-          <li><span class="overview-step-n">3</span><span>Upload or <code>git push</code> to SquadCentral repo</span></li>
-          <li><span class="overview-step-n">4</span><span>Wait 2–5 min · test live site in Incognito</span></li>
-        </ol>
-        <a class="overview-doc-link" href="./DATA.md" target="_blank" rel="noopener">Read DATA.md guide →</a>
-      </section>
-
-      <section class="overview-card overview-publish" id="firebasePublishCard">
-        <div class="overview-card-head">
-          <h3>Publish to Firebase</h3>
-          <p>Push live data to Firestore — visitors sync instantly without a git deploy.</p>
-        </div>
-        <p class="overview-firebase-status" id="firebaseStatus">${esc(firebaseStatus)}</p>
-        ${
-          firebaseReady
-            ? `
-        <div class="row g-2 mb-3${firebaseSignedIn ? " admin-hidden" : ""}" id="firebaseSignInBlock">
-          <div class="col-12 col-md-6">
-            <div class="mw-field">
-              <label for="firebaseEmail">Firebase admin email</label>
-              <input id="firebaseEmail" class="mw-input" type="email" autocomplete="username" placeholder="admin@example.com" />
+      <div class="overview-layout">
+        <section class="overview-card overview-publish">
+          <div class="overview-card__stripe" aria-hidden="true"></div>
+          <div class="overview-card-head">
+            <div class="overview-card-head__icon overview-card-head__icon--github" aria-hidden="true"></div>
+            <div>
+              <h3>Publish to GitHub</h3>
+              <p>Visitors load <code>data.json</code> from your repo — not <code>app.js</code>.</p>
             </div>
           </div>
-          <div class="col-12 col-md-6">
-            <div class="mw-field">
-              <label for="firebasePassword">Password</label>
-              <input id="firebasePassword" class="mw-input" type="password" autocomplete="current-password" placeholder="••••••••" />
+          <ol class="overview-steps">
+            <li><span class="overview-step-n">1</span><span>Edit squads, matchweek &amp; transfers in admin tabs</span></li>
+            <li><span class="overview-step-n">2</span><span>Download <strong>data.json</strong> below</span></li>
+            <li><span class="overview-step-n">3</span><span>Upload or <code>git push</code> to SquadCentral repo</span></li>
+            <li><span class="overview-step-n">4</span><span>Wait 2–5 min · test live site in Incognito</span></li>
+          </ol>
+          <a class="overview-doc-link" href="./DATA.md" target="_blank" rel="noopener">Read DATA.md guide →</a>
+        </section>
+
+        <section class="overview-card overview-publish overview-publish--firebase" id="firebasePublishCard">
+          <div class="overview-card__stripe overview-card__stripe--firebase" aria-hidden="true"></div>
+          <div class="overview-card-head">
+            <div class="overview-card-head__icon overview-card-head__icon--cloud" aria-hidden="true"></div>
+            <div>
+              <h3>Publish to Firebase</h3>
+              <p>Push live data to Firestore — visitors sync instantly without a git deploy.</p>
             </div>
           </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnFirebaseSignIn">Sign in to Firebase</button>
+          <p class="overview-firebase-status" id="firebaseStatus">${esc(firebaseStatus)}</p>
+          ${
+            firebaseReady
+              ? `
+          <div class="row g-2 mb-3${firebaseSignedIn ? " admin-hidden" : ""}" id="firebaseSignInBlock">
+            <div class="col-12 col-md-6">
+              <div class="mw-field">
+                <label for="firebaseEmail">Firebase admin email</label>
+                <input id="firebaseEmail" class="mw-input" type="email" autocomplete="username" placeholder="admin@example.com" />
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="mw-field">
+                <label for="firebasePassword">Password</label>
+                <input id="firebasePassword" class="mw-input" type="password" autocomplete="current-password" placeholder="••••••••" />
+              </div>
+            </div>
+            <div class="col-12 col-sm-auto">
+              <button type="button" class="mw-btn-primary w-100" id="btnFirebaseSignIn">Sign in to Firebase</button>
+            </div>
           </div>
-        </div>
-        <div class="row g-2 overview-actions${firebaseSignedIn ? "" : " admin-hidden"}" id="firebaseSignedInBlock">
-          <div class="col-12 col-md-6">
-            <button type="button" class="overview-action overview-action--primary w-100" id="btnPublishFirebase">
-              <span class="overview-action-icon" aria-hidden="true">☁</span>
-              <span class="overview-action-text">
-                <strong>Publish live to Firebase</strong>
-                <small>Updates Firestore published/site</small>
-              </span>
-            </button>
-          </div>
-          <div class="col-12 col-md-6">
-            <button type="button" class="overview-action w-100" id="btnFirebaseSignOut">
-              <span class="overview-action-icon" aria-hidden="true">⎋</span>
-              <span class="overview-action-text">
-                <strong>Sign out of Firebase</strong>
-                <small>${esc(FCFirebase.currentUser()?.email ?? "")}</small>
-              </span>
-            </button>
-          </div>
-        </div>`
-            : `
-        <ol class="overview-steps">
-          <li><span class="overview-step-n">1</span><span>Register the web app in Firebase Console (project <strong>squadcentral-12a3d</strong>)</span></li>
-          <li><span class="overview-step-n">2</span><span>Paste config into <code>firebase-config.js</code> and set <code>enabled: true</code></span></li>
-          <li><span class="overview-step-n">3</span><span>Enable Firestore + Email/Password auth</span></li>
-        </ol>
-        <a class="overview-doc-link" href="./FIREBASE.md" target="_blank" rel="noopener">Read FIREBASE.md setup guide →</a>`
-        }
-      </section>
+          <div class="row g-2 overview-actions${firebaseSignedIn ? "" : " admin-hidden"}" id="firebaseSignedInBlock">
+            <div class="col-12 col-md-6">
+              <button type="button" class="overview-action overview-action--primary w-100" id="btnPublishFirebase">
+                <span class="overview-action-icon overview-action-icon--cloud" aria-hidden="true"></span>
+                <span class="overview-action-text">
+                  <strong>Publish live to Firebase</strong>
+                  <small>Updates Firestore published/site</small>
+                </span>
+              </button>
+            </div>
+            <div class="col-12 col-md-6">
+              <button type="button" class="overview-action w-100" id="btnFirebaseSignOut">
+                <span class="overview-action-icon overview-action-icon--signout" aria-hidden="true"></span>
+                <span class="overview-action-text">
+                  <strong>Sign out of Firebase</strong>
+                  <small>${esc(FCFirebase.currentUser()?.email ?? "")}</small>
+                </span>
+              </button>
+            </div>
+          </div>`
+              : `
+          <ol class="overview-steps">
+            <li><span class="overview-step-n">1</span><span>Register the web app in Firebase Console (project <strong>squadcentral-12a3d</strong>)</span></li>
+            <li><span class="overview-step-n">2</span><span>Paste config into <code>firebase-config.js</code> and set <code>enabled: true</code></span></li>
+            <li><span class="overview-step-n">3</span><span>Enable Firestore + Email/Password auth</span></li>
+          </ol>
+          <a class="overview-doc-link" href="./FIREBASE.md" target="_blank" rel="noopener">Read FIREBASE.md setup guide →</a>`
+          }
+        </section>
 
-      <section class="overview-card">
-        <div class="overview-card-head">
-          <h3>Data actions</h3>
-          <p>Export, import, or reset your local copy.</p>
-        </div>
-        <div class="row g-2 overview-actions">
-          <div class="col-12 col-md-6">
-            <button type="button" class="overview-action overview-action--primary w-100" id="btnExport">
-              <span class="overview-action-icon" aria-hidden="true">↓</span>
-              <span class="overview-action-text">
-                <strong>Download data.json</strong>
-                <small>For GitHub Pages &amp; backup</small>
-              </span>
-            </button>
+        <section class="overview-card overview-data">
+          <div class="overview-card__stripe overview-card__stripe--data" aria-hidden="true"></div>
+          <div class="overview-card-head">
+            <div class="overview-card-head__icon overview-card-head__icon--data" aria-hidden="true"></div>
+            <div>
+              <h3>Data actions</h3>
+              <p>Export, import, or reset your local copy.</p>
+            </div>
           </div>
-          <div class="col-12 col-md-6">
-            <button type="button" class="overview-action w-100" id="btnExportCopy">
-              <span class="overview-action-icon" aria-hidden="true">⎘</span>
-              <span class="overview-action-text">
-                <strong>Copy JSON</strong>
-                <small>Paste into data.json manually</small>
-              </span>
-            </button>
+          <div class="row g-2 overview-actions">
+            <div class="col-12 col-md-6">
+              <button type="button" class="overview-action overview-action--primary w-100" id="btnExport">
+                <span class="overview-action-icon overview-action-icon--download" aria-hidden="true"></span>
+                <span class="overview-action-text">
+                  <strong>Download data.json</strong>
+                  <small>For GitHub Pages &amp; backup</small>
+                </span>
+              </button>
+            </div>
+            <div class="col-12 col-md-6">
+              <button type="button" class="overview-action w-100" id="btnExportCopy">
+                <span class="overview-action-icon overview-action-icon--copy" aria-hidden="true"></span>
+                <span class="overview-action-text">
+                  <strong>Copy JSON</strong>
+                  <small>Paste into data.json manually</small>
+                </span>
+              </button>
+            </div>
+            <div class="col-12 col-md-6">
+              <button type="button" class="overview-action w-100" id="btnImport">
+                <span class="overview-action-icon overview-action-icon--upload" aria-hidden="true"></span>
+                <span class="overview-action-text">
+                  <strong>Import JSON</strong>
+                  <small>Restore from a backup file</small>
+                </span>
+              </button>
+            </div>
+            <div class="col-12 col-md-6">
+              <button type="button" class="overview-action overview-action--danger w-100" id="btnReset">
+                <span class="overview-action-icon overview-action-icon--reset" aria-hidden="true"></span>
+                <span class="overview-action-text">
+                  <strong>Reset to published seed</strong>
+                  <small>Clears local overrides</small>
+                </span>
+              </button>
+            </div>
           </div>
-          <div class="col-12 col-md-6">
-            <button type="button" class="overview-action w-100" id="btnImport">
-              <span class="overview-action-icon" aria-hidden="true">↑</span>
-              <span class="overview-action-text">
-                <strong>Import JSON</strong>
-                <small>Restore from a backup file</small>
-              </span>
-            </button>
-          </div>
-          <div class="col-12 col-md-6">
-            <button type="button" class="overview-action overview-action--danger w-100" id="btnReset">
-              <span class="overview-action-icon" aria-hidden="true">↺</span>
-              <span class="overview-action-text">
-                <strong>Reset to published seed</strong>
-                <small>Clears local overrides</small>
-              </span>
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <section class="overview-card overview-import admin-hidden" id="importCard">
         <div class="overview-card-head">
@@ -914,11 +982,11 @@ function applyCopiedLineupToEditor(side, lineup, sourceLabel) {
 function renderFixtureCards(matches) {
   if (!matches.length) {
     return `
-      <div class="mw-empty">
-        <span class="mw-empty-icon" aria-hidden="true">📅</span>
-        <p class="mw-empty-title">No fixtures yet</p>
-        <p class="mw-empty-text">Add matches for this gameweek — they appear in the public Match Center.</p>
-        <button type="button" class="mw-btn-primary mw-btn-primary--sm w-100 w-sm-auto" id="btnNewMwMatchEmpty">+ Add first fixture</button>
+      <div class="matchweek-empty">
+        <div class="matchweek-empty__icon" aria-hidden="true"></div>
+        <p class="matchweek-empty__title">No fixtures yet</p>
+        <p class="matchweek-empty__text">Add matches for this gameweek — they appear in the public Match Center.</p>
+        <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-empty__btn" id="btnNewMwMatchEmpty">+ Add first fixture</button>
       </div>`;
   }
 
@@ -933,21 +1001,20 @@ function renderFixtureCards(matches) {
       const active = matchEditId === match.id;
       const crestStyle = (logo) =>
         logo
-          ? `style="background-color:#eef2f7;background-image:url('${esc(logo)}');background-size:68% auto;background-position:center;background-repeat:no-repeat"`
-          : "";
-      const hLogo = crestStyle(ht?.logo);
-      const aLogo = crestStyle(at?.logo);
+          ? `style="background-color:#fff;background-image:url('${esc(logo)}');background-size:68% auto;background-position:center;background-repeat:no-repeat"`
+          : 'style="background-color:#fff"';
 
       return `
         <div class="col-12 col-lg-6">
         <article class="mw-fixture-card h-100${active ? " is-active" : ""}">
+          <div class="mw-fixture-card__stripe" aria-hidden="true"></div>
           <div class="mw-fixture-top">
             <span class="mw-fixture-day">${esc(match.time ?? "—")}</span>
             ${active ? '<span class="mw-fixture-editing">Editing</span>' : ""}
           </div>
           <div class="mw-fixture-scoreline">
             <div class="mw-fixture-club home">
-              <span class="mw-fixture-crest" ${hLogo} aria-hidden="true"></span>
+              <span class="mw-fixture-crest" ${crestStyle(ht?.logo)} aria-hidden="true"></span>
               <span class="mw-fixture-name">${esc(hName)}</span>
             </div>
             <div class="mw-fixture-result">
@@ -956,7 +1023,7 @@ function renderFixtureCards(matches) {
               <span class="mw-fixture-goals">${esc(match.score?.[1] ?? 0)}</span>
             </div>
             <div class="mw-fixture-club away">
-              <span class="mw-fixture-crest" ${aLogo} aria-hidden="true"></span>
+              <span class="mw-fixture-crest" ${crestStyle(at?.logo)} aria-hidden="true"></span>
               <span class="mw-fixture-name">${esc(aName)}</span>
             </div>
           </div>
@@ -999,6 +1066,70 @@ function leagueFeatureValue(id, fid) {
   return defaults[fid] !== false;
 }
 
+function leaguesStats(all) {
+  const teamCount = state().teams.length;
+  const matchCount = state().matches.length;
+  const playerCount = state().players.length;
+  return {
+    leagues: all.length,
+    teams: teamCount,
+    matches: matchCount,
+    players: playerCount,
+  };
+}
+
+function leaguesStatChipsHtml(stats) {
+  return `<div class="leagues-stat-row" aria-label="Leagues summary">
+    <span class="leagues-stat-chip leagues-stat-chip--leagues"><span class="leagues-stat-chip__label">Leagues</span><span class="leagues-stat-chip__val">${stats.leagues}</span></span>
+    <span class="leagues-stat-chip leagues-stat-chip--teams"><span class="leagues-stat-chip__label">Teams</span><span class="leagues-stat-chip__val">${stats.teams}</span></span>
+    <span class="leagues-stat-chip leagues-stat-chip--matches"><span class="leagues-stat-chip__label">Matches</span><span class="leagues-stat-chip__val">${stats.matches}</span></span>
+    <span class="leagues-stat-chip leagues-stat-chip--players"><span class="leagues-stat-chip__label">Players</span><span class="leagues-stat-chip__val">${stats.players}</span></span>
+  </div>`;
+}
+
+function leaguesEmptyListHtml() {
+  return `<div class="leagues-empty-list">
+    <p class="leagues-empty-list__text">No leagues yet — create one in the editor below.</p>
+  </div>`;
+}
+
+function leagueEmblemStyle(ui) {
+  const mask =
+    typeof LEAGUE_MASKS !== "undefined" && LEAGUE_MASKS[ui.mask]
+      ? `--lg-mask:${LEAGUE_MASKS[ui.mask]};`
+      : "";
+  return `--lg-c1:${ui.c1};--lg-c2:${ui.c2};${mask}`;
+}
+
+function leagueCardHtml(l) {
+  const lui = leagueUiValue(l.id);
+  const teamCount = state().teams.filter((t) => t.leagueId === l.id).length;
+  const matchCount = state().matches.filter((m) => m.leagueId === l.id).length;
+  const playerCount = state().players.filter((p) => {
+    const team = state().teams.find((t) => t.id === p.teamId);
+    return team?.leagueId === l.id;
+  }).length;
+  const isActive = leagueFilter === l.id;
+  return `<article class="lg-card${isActive ? " lg-card--active" : ""}" data-league-id="${esc(l.id)}">
+    <div class="lg-card__stripe" style="background:linear-gradient(90deg, ${esc(lui.c1)} 0%, ${esc(lui.c2)} 100%)" aria-hidden="true"></div>
+    <div class="lg-card__brand">
+      <span class="lg-card__emblem" style="${leagueEmblemStyle(lui)}" aria-hidden="true"></span>
+      <div class="lg-card__copy">
+        <h4 class="lg-card__name">${esc(l.name)}</h4>
+        <p class="lg-card__meta">${esc(l.id)} · ${teamCount} team${teamCount === 1 ? "" : "s"}${isActive ? ' · <span class="lg-card__active-tag">Active</span>' : ""}</p>
+      </div>
+    </div>
+    <div class="lg-card__stats">
+      <span class="lg-card__stat"><span class="lg-card__stat-val">${matchCount}</span><span class="lg-card__stat-label">Matches</span></span>
+      <span class="lg-card__stat"><span class="lg-card__stat-val">${playerCount}</span><span class="lg-card__stat-label">Players</span></span>
+    </div>
+    <div class="lg-card__actions">
+      <button type="button" class="mw-btn-ghost lg-card__edit" data-edit-league="${esc(l.id)}">Edit</button>
+      <button type="button" class="mw-btn-danger lg-card__del lg-danger" data-del-league="${esc(l.id)}">Delete</button>
+    </div>
+  </article>`;
+}
+
 function panelLeagues() {
   const all = leagues();
   const editing = !!leagueEditId && all.some((l) => l.id === leagueEditId);
@@ -1006,6 +1137,7 @@ function panelLeagues() {
   const ui = leagueUiValue(editing ? leagueEditId : "__new__");
   const maskKeys = typeof LEAGUE_MASKS !== "undefined" ? Object.keys(LEAGUE_MASKS) : ["trophy"];
   const schema = typeof LEAGUE_FEATURE_SCHEMA !== "undefined" ? LEAGUE_FEATURE_SCHEMA : [];
+  const stats = leaguesStats(all);
 
   const featureRefId = editing ? leagueEditId : "__new__";
   const groups = {};
@@ -1013,7 +1145,7 @@ function panelLeagues() {
   const featureGroupsHtml = Object.entries(groups)
     .map(
       ([group, items]) => `
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-6 col-xl-4">
           <div class="lg-feature-group">
             <p class="lg-feature-group-title">${esc(group)}</p>
             ${items
@@ -1021,6 +1153,7 @@ function panelLeagues() {
                 (f) => `
                   <label class="lg-toggle">
                     <input type="checkbox" class="lg-feature" data-feature="${esc(f.id)}" ${leagueFeatureValue(featureRefId, f.id) ? "checked" : ""} />
+                    <span class="lg-toggle__box" aria-hidden="true"></span>
                     <span>${esc(f.label)}</span>
                   </label>
                 `,
@@ -1032,72 +1165,74 @@ function panelLeagues() {
     )
     .join("");
 
-  const listRows = all.length
-    ? all
-        .map((l) => {
-          const lui = leagueUiValue(l.id);
-          const teamCount = state().teams.filter((t) => t.leagueId === l.id).length;
-          return `
-            <div class="lg-row row align-items-center g-2 mx-0 py-2">
-              <div class="col-auto">
-                <span class="lg-swatch" style="background:linear-gradient(135deg, ${esc(lui.c1)}, ${esc(lui.c2)})" aria-hidden="true"></span>
-              </div>
-              <div class="col min-w-0">
-                <div class="lg-row-name">${esc(l.name)}</div>
-                <div class="lg-row-meta admin-muted">${esc(l.id)} · ${teamCount} team${teamCount === 1 ? "" : "s"}</div>
-              </div>
-              <div class="col-12 col-sm-auto">
-                <div class="d-grid d-sm-flex gap-2">
-                  <button type="button" class="mw-btn-ghost mw-btn-primary--sm" data-edit-league="${esc(l.id)}">Edit</button>
-                  <button type="button" class="mw-btn-ghost mw-btn-primary--sm lg-danger" data-del-league="${esc(l.id)}">Delete</button>
-                </div>
-              </div>
-            </div>
-          `;
-        })
-        .join("")
-    : `<p class="admin-muted mb-0">No leagues yet. Add one below.</p>`;
+  const listBody = all.length
+    ? all.map((l) => leagueCardHtml(l)).join("")
+    : leaguesEmptyListHtml();
 
   return `
-    <div class="mw-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Competitions</p>
+    <div class="mw-page leagues-page">
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Competitions</p>
             <h2 class="mw-heading">Leagues</h2>
-            <p class="mw-lead">Create a league, set its accent + icon, then build its teams, players, and matchweeks using the same editors. Turn sections and fields on or off per league.</p>
+            <p class="mw-lead">Create a league, set its accent and icon, then build its teams, players, and matchweeks. Turn sections and fields on or off per league.</p>
+            ${all.length ? leaguesStatChipsHtml(stats) : ""}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
+          <aside class="mw-hero__aside">
+            <div class="mw-hero-preview leagues-hero-preview__box">
               <span class="mw-hero-preview-label">Total leagues</span>
               <strong class="mw-hero-preview-title">${all.length}</strong>
-              <span class="mw-hero-preview-range">${esc(all.map((l) => l.name).slice(0, 3).join(", "))}${all.length > 3 ? "…" : ""}</span>
+              <span class="mw-hero-preview-range">${esc(all.map((l) => l.name).slice(0, 3).join(", "))}${all.length > 3 ? "…" : all.length ? "" : "None yet"}</span>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>All leagues</h3>
-          <p>Edit accents/features or remove a league (this also deletes its teams, players, and fixtures).</p>
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--leagues" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--leagues" aria-hidden="true"></div>
+          <div>
+            <h3>All leagues</h3>
+            <p>Edit accents and features or remove a league. Deleting also removes its teams, players, fixtures, and all related data.</p>
+          </div>
         </div>
-        <div class="lg-list">${listRows}</div>
+        <div class="leagues-list-wrap">
+          <div class="leagues-list" id="leaguesList">${listBody}</div>
+        </div>
       </section>
 
-      <section class="mw-card mw-editor is-open" id="leagueEditor">
-        <div class="mw-editor-head">
-          <div>
-            <p class="mw-eyebrow">${editing ? "Editing league" : "New league"}</p>
-            <h3 class="mw-editor-title">${editing ? esc(editLeague?.name ?? "") : "Add a league"}</h3>
+      <section class="mw-card mw-card--striped mw-editor leagues-editor is-open" id="leagueEditor">
+        <div class="mw-card__stripe mw-card__stripe--leagues" aria-hidden="true"></div>
+        <div class="mw-editor-head leagues-editor-head">
+          <div class="mw-card-head mw-card-head--icon mb-0">
+            <div class="mw-card-head__icon mw-card-head__icon--leagues-edit" aria-hidden="true"></div>
+            <div>
+              <p class="mw-eyebrow mb-1">${editing ? "Editing league" : "New league"}</p>
+              <h3 class="mw-editor-title mb-0">${editing ? esc(editLeague?.name ?? "") : "Add a league"}</h3>
+            </div>
           </div>
-          ${editing ? `<button type="button" class="mw-btn-ghost mw-btn-primary--sm" id="btnNewLeague">+ New league</button>` : ""}
+          ${editing ? `<button type="button" class="mw-btn-ghost leagues-new-btn" id="btnNewLeague">New league</button>` : ""}
         </div>
 
         <input type="hidden" id="leagueEditId" value="${esc(editing ? leagueEditId : "")}" />
 
-        <div class="mw-editor-section">
+        <div class="mw-editor-section leagues-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">①</span> Identity</h4>
+          <p class="mw-section-hint">These colours and the icon style appear on the public site for this competition.</p>
+          <div class="lg-identity-preview">
+            <span class="lg-identity-preview__emblem" id="lgPreviewEmblem" style="${leagueEmblemStyle(ui)}" aria-hidden="true"></span>
+            <div class="lg-identity-preview__copy">
+              <strong class="lg-identity-preview__title">${esc(editLeague?.name || "New league preview")}</strong>
+              <p class="lg-identity-preview__hint">Live preview of accent gradient and icon mask.</p>
+            </div>
+          </div>
           <div class="row g-2 g-md-3 mw-field-grid">
             <div class="col-12 col-md-6"><div class="mw-field"><label for="lgName">League name</label><input id="lgName" class="mw-input" type="text" value="${esc(editLeague?.name ?? "")}" placeholder="Eredivisie" /></div></div>
             <div class="col-12 col-md-6"><div class="mw-field"><label for="lgId">League ID</label><input id="lgId" class="mw-input" type="text" value="${esc(editing ? leagueEditId : "")}" placeholder="auto from name" ${editing ? "disabled" : ""} /><p class="mw-field-note admin-muted">${editing ? "ID can't change after creation." : "Leave blank to auto-generate from the name."}</p></div></div>
@@ -1109,13 +1244,15 @@ function panelLeagues() {
           </div>
         </div>
 
-        <div class="mw-editor-section">
+        <div class="mw-editor-section leagues-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">②</span> Sections &amp; fields</h4>
           <p class="mw-section-hint">Uncheck anything you don't want shown on the public site for this league.</p>
           <div class="row g-3">${featureGroupsHtml}</div>
         </div>
 
-        <button type="button" class="mw-btn-primary w-100 w-sm-auto" id="btnSaveLeague">${editing ? "Save league" : "Create league"}</button>
+        <div class="leagues-form-footer">
+          <button type="button" class="mw-btn-primary leagues-save-btn" id="btnSaveLeague">${editing ? "Save league" : "Create league"}</button>
+        </div>
       </section>
     </div>
   `;
@@ -1149,6 +1286,27 @@ function bindLeagues() {
       renderPanel();
     });
   });
+
+  const updatePreview = () => {
+    const emblem = $("#lgPreviewEmblem");
+    if (!emblem) return;
+    const c1 = $("#lgC1")?.value || "#2de2e6";
+    const c2 = $("#lgC2")?.value || "#7c5cff";
+    const mask = $("#lgMask")?.value || "trophy";
+    emblem.style.setProperty("--lg-c1", c1);
+    emblem.style.setProperty("--lg-c2", c2);
+    if (typeof LEAGUE_MASKS !== "undefined" && LEAGUE_MASKS[mask]) {
+      emblem.style.setProperty("--lg-mask", LEAGUE_MASKS[mask]);
+    }
+    const title = emblem.closest(".lg-identity-preview")?.querySelector(".lg-identity-preview__title");
+    const name = $("#lgName")?.value.trim();
+    if (title && name) title.textContent = name;
+  };
+
+  $("#lgC1")?.addEventListener("input", updatePreview);
+  $("#lgC2")?.addEventListener("input", updatePreview);
+  $("#lgMask")?.addEventListener("change", updatePreview);
+  $("#lgName")?.addEventListener("input", updatePreview);
 
   $("#btnSaveLeague")?.addEventListener("click", () => {
     const name = $("#lgName")?.value.trim();
@@ -1193,6 +1351,25 @@ function afterLeagueChange() {
   if (typeof syncLeagueConfigFromStore === "function") syncLeagueConfigFromStore();
 }
 
+function matchweekStats(matches) {
+  let goals = 0;
+  let withLineups = 0;
+  for (const m of matches) {
+    goals += (m.goalEvents ?? []).length;
+    if ((m.lineups?.home?.length ?? 0) + (m.lineups?.away?.length ?? 0) > 0) withLineups++;
+  }
+  return { fixtures: matches.length, goals, withLineups };
+}
+
+function matchweekStatChipsHtml(stats, isWc) {
+  const fixtureLabel = isWc ? "Matches" : "Fixtures";
+  return `<div class="matchweek-stat-row" aria-label="Gameweek summary">
+    <span class="matchweek-stat-chip matchweek-stat-chip--fixtures"><span class="matchweek-stat-chip__label">${fixtureLabel}</span><span class="matchweek-stat-chip__val">${stats.fixtures}</span></span>
+    <span class="matchweek-stat-chip matchweek-stat-chip--goals"><span class="matchweek-stat-chip__label">Goals</span><span class="matchweek-stat-chip__val">${stats.goals}</span></span>
+    <span class="matchweek-stat-chip matchweek-stat-chip--lineups"><span class="matchweek-stat-chip__label">Lineups</span><span class="matchweek-stat-chip__val">${stats.withLineups}</span></span>
+  </div>`;
+}
+
 function panelLeague() {
   const meta = FCDataStore.getLeagueMeta(leagueFilter);
   const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
@@ -1232,69 +1409,90 @@ function panelLeague() {
   const fixturesHint = isWc
     ? `${list.length} match${list.length === 1 ? "" : "es"} · every round is kept`
     : `${list.length} match${list.length === 1 ? "" : "es"} in this gameweek`;
+  const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
+  const stats = matchweekStats(list);
+  const mwBadge = isWc ? "" : `<span class="matchweek-broadcast__badge">MW ${mw}</span>`;
 
   return `
-    <div class="mw-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Match Center</p>
+    <div class="mw-page matchweek-page">
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Match center</p>
             <h2 class="mw-heading">Matchweek</h2>
             <p class="mw-lead">${isWc ? "Set the tournament header and every fixture — scores, goals, and lineups. All games stay visible on the site." : "Set the public gameweek title, dates, and every fixture — scores, goals, and lineups."}</p>
+            ${matchweekStatChipsHtml(stats, isWc)}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">Live preview</span>
-              <strong class="mw-hero-preview-title">${esc(mwTitle)}</strong>
-              <span class="mw-hero-preview-range">${esc(meta.dateRange ?? "—")}</span>
+          <aside class="mw-hero__aside">
+            <div class="matchweek-broadcast">
+              <span class="matchweek-broadcast__eyebrow">Live preview</span>
+              <strong class="matchweek-broadcast__title">${esc(mwTitle)}</strong>
+              <span class="matchweek-broadcast__range">${esc(meta.dateRange ?? "—")}</span>
+              ${mwBadge}
+              <span class="matchweek-broadcast__league">${esc(leagueName)}</span>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card mw-card--header">
-        <div class="mw-card-head">
-          <h3>${isWc ? "Tournament header" : "Gameweek settings"}</h3>
-          <p>${settingsHint}</p>
-        </div>
-        <div class="row g-2 g-md-3 mw-field-grid">
-          <div class="col-12">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
-          </div>
-          ${mwNumField}
-          <div class="col-12 col-md-4">
-            <div class="mw-field">
-              <label for="mwTitle">${isWc ? "Tournament title" : "Gameweek title"}</label>
-              <input id="mwTitle" class="mw-input" type="text" value="${esc(mwTitle)}" placeholder="${isWc ? "Group Stage" : "Gameweek 36"}" />
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="mw-field">
-              <label for="mwRange">Date range</label>
-              <input id="mwRange" class="mw-input" type="text" value="${esc(meta.dateRange ?? "")}" placeholder="12 May – 15 May" />
-            </div>
+      <section class="mw-card mw-card--striped matchweek-settings-card">
+        <div class="mw-card__stripe" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--matchweek" aria-hidden="true"></div>
+          <div>
+            <h3>${isWc ? "Tournament header" : "Gameweek settings"}</h3>
+            <p>${settingsHint}</p>
           </div>
         </div>
-        <button type="button" class="mw-btn-primary w-100 w-sm-auto" id="btnSaveMeta">${isWc ? "Save tournament header" : "Save matchweek header"}</button>
+        <div class="matchweek-filter-bar">
+          <div class="row g-2 g-md-3 mw-field-grid">
+            <div class="col-12">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
+            ${mwNumField}
+            <div class="col-12 col-md-4">
+              <div class="mw-field mb-0">
+                <label for="mwTitle">${isWc ? "Tournament title" : "Gameweek title"}</label>
+                <input id="mwTitle" class="mw-input" type="text" value="${esc(mwTitle)}" placeholder="${isWc ? "Group Stage" : "Gameweek 36"}" />
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="mw-field mb-0">
+                <label for="mwRange">Date range</label>
+                <input id="mwRange" class="mw-input" type="text" value="${esc(meta.dateRange ?? "")}" placeholder="12 May – 15 May" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="matchweek-settings-footer">
+          <button type="button" class="mw-btn-primary matchweek-save-meta-btn" id="btnSaveMeta">${isWc ? "Save tournament header" : "Save matchweek header"}</button>
+        </div>
       </section>
 
-      <section class="mw-card">
-        <div class="mw-card-head mw-card-head--row row g-2 align-items-start">
-          <div class="col-12 col-sm">
+      <section class="mw-card mw-card--striped matchweek-fixtures-card">
+        <div class="mw-card__stripe mw-card__stripe--form" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon matchweek-fixtures-head">
+          <div class="mw-card-head__icon mw-card-head__icon--fixtures" aria-hidden="true"></div>
+          <div class="matchweek-fixtures-head__copy">
             <h3>${fixturesTitle}</h3>
             <p>${fixturesHint}</p>
           </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary mw-btn-primary--sm w-100 w-sm-auto" id="btnNewMwMatch">+ Add fixture</button>
-          </div>
+          <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-add-fixture-btn" id="btnNewMwMatch">+ Add fixture</button>
         </div>
         ${renderFixtureCards(list)}
       </section>
 
-      <section class="mw-card mw-editor is-open" id="mwMatchEditor">
-        <div class="mw-editor-head">
-          <div>
-            <p class="mw-eyebrow">${src ? (matchEditId ? "Editing fixture" : "New fixture") : "New fixture"}</p>
+      <section class="mw-card mw-card--striped mw-editor matchweek-editor is-open" id="mwMatchEditor">
+        <div class="mw-card__stripe mw-card__stripe--transfer" aria-hidden="true"></div>
+        <div class="mw-editor-head matchweek-editor-head">
+          <div class="mw-card-head__icon mw-card-head__icon--editor" aria-hidden="true"></div>
+          <div class="matchweek-editor-head__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">${src ? (matchEditId ? "Editing fixture" : "New fixture") : "New fixture"}</p>
             <h3 class="mw-editor-title">${esc(ht?.name ?? "Home")} <span class="mw-editor-score">${previewH} – ${previewA}</span> ${esc(at?.name ?? "Away")}</h3>
           </div>
         </div>
@@ -1331,13 +1529,9 @@ function panelLeague() {
           </div>
         </div>
 
-        <div class="mw-editor-footer row g-2">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveMwMatch">Save fixture</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnCancelMwMatch">Cancel</button>
-          </div>
+        <div class="mw-editor-footer matchweek-editor-footer">
+          <button type="button" class="mw-btn-primary matchweek-save-fixture-btn" id="btnSaveMwMatch">Save fixture</button>
+          <button type="button" class="mw-btn-ghost matchweek-cancel-fixture-btn" id="btnCancelMwMatch">Cancel</button>
         </div>
       </section>
       <datalist id="nationalityList">${nationalityDatalistHtml()}</datalist>
@@ -1345,176 +1539,272 @@ function panelLeague() {
   `;
 }
 
+function teamsForStadium(leagueId, stadiumName) {
+  const name = String(stadiumName ?? "").trim();
+  if (!name) return [];
+  return teamsForLeague(leagueId).filter((t) => String(t.stadium ?? "").trim() === name);
+}
+
+function stadiumsLeagueStats(leagueId, list) {
+  const teams = teamsForLeague(leagueId);
+  const linked = teams.filter((t) => list.includes(String(t.stadium ?? "").trim())).length;
+  return { total: list.length, linked, teams: teams.length };
+}
+
+function stadiumsStatChipsHtml(stats) {
+  return `<div class="stadiums-stat-row" aria-label="Stadium summary">
+    <span class="stadiums-stat-chip stadiums-stat-chip--venues"><span class="stadiums-stat-chip__label">Venues</span><span class="stadiums-stat-chip__val">${stats.total}</span></span>
+    <span class="stadiums-stat-chip stadiums-stat-chip--linked"><span class="stadiums-stat-chip__label">Linked clubs</span><span class="stadiums-stat-chip__val">${stats.linked}</span></span>
+    <span class="stadiums-stat-chip stadiums-stat-chip--teams"><span class="stadiums-stat-chip__label">Teams</span><span class="stadiums-stat-chip__val">${stats.teams}</span></span>
+  </div>`;
+}
+
+function stadiumCardHtml(name, leagueId) {
+  const homeTeams = teamsForStadium(leagueId, name);
+  const homeMeta = homeTeams.length
+    ? `<span class="stadium-card__home">${homeTeams.map((t) => esc(t.name)).join(", ")}</span>`
+    : `<span class="stadium-card__home stadium-card__home--none">No team linked yet</span>`;
+  return `<article class="stadium-card">
+    <div class="stadium-card__stripe" aria-hidden="true"></div>
+    <div class="stadium-card__icon" aria-hidden="true"></div>
+    <div class="stadium-card__body">
+      <strong class="stadium-card__name">${esc(name)}</strong>
+      ${homeMeta}
+    </div>
+    <div class="stadium-card__actions admin-row-actions">
+      <button type="button" class="mw-btn-ghost stadiums-row-btn" data-edit-stadium="${esc(name)}">Edit</button>
+      <button type="button" class="mw-btn-danger stadiums-row-btn" data-del-stadium="${esc(name)}">Remove</button>
+    </div>
+  </article>`;
+}
+
 function panelStadiums() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const list = stadiumsForLeague(leagueFilter);
   const editing = Boolean(stadiumEditName);
+  const stats = stadiumsLeagueStats(leagueFilter, list);
+  const listBody = list.length
+    ? `<div class="stadiums-list">${list.map((s) => stadiumCardHtml(s, leagueFilter)).join("")}</div>`
+    : `<div class="stadiums-empty">
+        <div class="stadiums-empty__icon" aria-hidden="true"></div>
+        <p class="stadiums-empty__title">No stadiums yet</p>
+        <p class="stadiums-empty__text">Add your first venue below — it will appear in Matchweek and Matches dropdowns.</p>
+      </div>`;
 
   return `
-    <div class="mw-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Venues</p>
+    <div class="mw-page stadiums-page">
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Venues</p>
             <h2 class="mw-heading">Stadiums</h2>
             <p class="mw-lead">Define the stadium list for each league or tournament. Matchweek and Matches editors pick from this list when assigning a venue.</p>
+            ${stadiumsStatChipsHtml(stats)}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">In this league</span>
-              <strong class="mw-hero-preview-title">${list.length} stadium${list.length === 1 ? "" : "s"}</strong>
-              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+          <aside class="mw-hero__aside">
+            <div class="stadiums-hero-preview">
+              <div class="stadiums-hero-preview__icon" aria-hidden="true"></div>
+              <div class="mw-hero-preview stadiums-hero-preview__box">
+                <span class="mw-hero-preview-label">${esc(leagueName)}</span>
+                <strong class="mw-hero-preview-title">${list.length} stadium${list.length === 1 ? "" : "s"}</strong>
+                <span class="mw-hero-preview-range">${stats.linked} club${stats.linked === 1 ? "" : "s"} linked</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>League stadiums</h3>
-          <p>${list.length} venue${list.length === 1 ? "" : "s"} available when creating fixtures.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--form" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--stadium" aria-hidden="true"></div>
+          <div>
+            <h3>League stadiums</h3>
+            <p>${list.length} venue${list.length === 1 ? "" : "s"} available when creating fixtures. Linked clubs show the team that uses each ground on the public site.</p>
           </div>
         </div>
-        <div class="teams-table-wrap admin-table-wrap">
-          <table class="admin-table admin-table-compact teams-table">
-            <thead>
-              <tr>
-                <th>Stadium</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>${
-              list.length
-                ? list
-                    .map(
-                      (s) => `<tr>
-                <td><strong>${esc(s)}</strong></td>
-                <td class="admin-row-actions">
-                  <button type="button" class="mw-btn-ghost teams-row-btn" data-edit-stadium="${esc(s)}">Edit</button>
-                  <button type="button" class="mw-btn-danger teams-row-btn" data-del-stadium="${esc(s)}">Remove</button>
-                </td></tr>`,
-                    )
-                    .join("")
-                : `<tr><td colspan="2" class="admin-muted">No stadiums yet — add one below.</td></tr>`
-            }</tbody>
-          </table>
+        <div class="stadiums-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
+          </div>
         </div>
+        ${listBody}
       </section>
 
-      <section class="mw-card" id="stadiumFormCard">
-        <div class="mw-card-head">
-          <h3 id="stadiumFormTitle">${editing ? "Edit stadium" : "Add stadium"}</h3>
-          <p>${editing ? `Renaming updates fixtures that use “${esc(stadiumEditName)}”.` : "New venues appear in the Matchweek stadium dropdown."}</p>
+      <section class="mw-card mw-card--striped" id="stadiumFormCard">
+        <div class="mw-card__stripe" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--stadium-add" aria-hidden="true"></div>
+          <div>
+            <h3 id="stadiumFormTitle">${editing ? "Edit stadium" : "Add stadium"}</h3>
+            <p>${editing ? `Renaming updates fixtures that use “${esc(stadiumEditName)}”.` : "New venues appear in the Matchweek stadium dropdown."}</p>
+          </div>
         </div>
         <input type="hidden" id="stadiumEditName" value="${esc(stadiumEditName)}" />
         <div class="row g-2 g-md-3">
-          <div class="col-12 col-md-8">
-            <div class="mw-field"><label for="stadiumName">Stadium name</label><input id="stadiumName" class="mw-input" value="${editing ? esc(stadiumEditName) : ""}" placeholder="Emirates Stadium" /></div>
+          <div class="col-12 col-md-8 col-lg-6">
+            <div class="mw-field mb-0">
+              <label for="stadiumName">Stadium name</label>
+              <input id="stadiumName" class="mw-input stadiums-name-input" value="${editing ? esc(stadiumEditName) : ""}" placeholder="Emirates Stadium" autocomplete="off" />
+            </div>
           </div>
         </div>
-        <div class="teams-form-footer row g-2 mt-1">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveStadium">${editing ? "Save changes" : "Add stadium"}</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnNewStadium">Clear form</button>
-          </div>
+        <div class="stadiums-form-footer">
+          <button type="button" class="mw-btn-primary stadiums-save-btn" id="btnSaveStadium">${editing ? "Save changes" : "Add stadium"}</button>
+          <button type="button" class="mw-btn-ghost stadiums-clear-btn" id="btnNewStadium">Clear form</button>
         </div>
       </section>
     </div>
   `;
 }
 
-function teamTableRowHtml(t) {
-  return `<tr class="team-sort-row" data-team-id="${esc(t.id)}">
-    <td class="admin-drag-cell"><span class="player-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
-    <td><strong>${esc(t.name)}</strong></td>
-    <td class="d-none d-sm-table-cell"><code>${esc(t.id)}</code></td>
-    <td class="d-none d-md-table-cell">${esc(t.formation ?? "—")}</td>
-    <td class="d-none d-xl-table-cell">${esc(t.coach ?? "—")}</td>
-    <td class="admin-row-actions">
+function teamAccentColors(team) {
+  const c1 = String(team?.colors?.[0] ?? "#378add").trim();
+  const c2 = String(team?.colors?.[1] ?? "#4ade80").trim();
+  return { c1, c2 };
+}
+
+function teamsLeagueStats(list) {
+  let withLogo = 0;
+  let withFormation = 0;
+  for (const t of list) {
+    if (String(t.logo ?? "").trim()) withLogo++;
+    if (String(t.formation ?? "").trim()) withFormation++;
+  }
+  return { total: list.length, withLogo, withFormation };
+}
+
+function teamsStatChipsHtml(stats) {
+  return `<div class="teams-stat-row" aria-label="League teams summary">
+    <span class="teams-stat-chip teams-stat-chip--clubs"><span class="teams-stat-chip__label">Clubs</span><span class="teams-stat-chip__val">${stats.total}</span></span>
+    <span class="teams-stat-chip teams-stat-chip--logos"><span class="teams-stat-chip__label">With crest</span><span class="teams-stat-chip__val">${stats.withLogo}</span></span>
+    <span class="teams-stat-chip teams-stat-chip--formations"><span class="teams-stat-chip__label">Formations</span><span class="teams-stat-chip__val">${stats.withFormation}</span></span>
+  </div>`;
+}
+
+function teamCardHtml(t) {
+  const { c1, c2 } = teamAccentColors(t);
+  const coach = t.coach && t.coach !== "—" ? esc(t.coach) : "—";
+  const formation = t.formation?.trim() ? esc(t.formation) : "—";
+  const stadium = t.stadium?.trim()
+    ? `<span class="team-card__stadium">${esc(t.stadium)}</span>`
+    : "";
+  return `<article class="team-card team-sort-row" data-team-id="${esc(t.id)}">
+    <div class="team-card__stripe" style="background: linear-gradient(90deg, ${c1} 0%, ${c2} 100%)" aria-hidden="true"></div>
+    <span class="player-drag-handle team-card__drag" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
+    ${adminTeamCrestHtml(t)}
+    <div class="team-card__body">
+      <strong class="team-card__name">${esc(t.name)}</strong>
+      <div class="team-card__meta">
+        <span class="team-card__formation">${formation}</span>
+        <span class="team-card__meta-sep" aria-hidden="true">·</span>
+        <span class="team-card__coach">${coach}</span>
+      </div>
+      ${stadium}
+      <code class="team-card__id">${esc(t.id)}</code>
+    </div>
+    <div class="team-card__actions admin-row-actions">
       <button type="button" class="mw-btn-ghost teams-row-btn" data-edit-team="${esc(t.id)}">Edit</button>
       <button type="button" class="mw-btn-danger teams-row-btn" data-del-team="${esc(t.id)}">Remove</button>
-    </td>
-  </tr>`;
+    </div>
+  </article>`;
 }
 
 function panelTeams() {
   const list = teamsForLeague(leagueFilter);
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const teamCount = list.length;
+  const stats = teamsLeagueStats(list);
+  const featuredTeam = list[0];
+  const rosterBody = teamCount
+    ? `<div class="teams-roster-wrap admin-table-wrap admin-table-wrap--sort">
+        <div class="teams-list" id="teamsSortList">${list.map((t) => teamCardHtml(t)).join("")}</div>
+      </div>`
+    : `<div class="teams-empty">
+        <div class="teams-empty__icon" aria-hidden="true"></div>
+        <p class="teams-empty__title">No teams yet</p>
+        <p class="teams-empty__text">Add your first club below — it will appear on the public site and in matchweek editors.</p>
+      </div>`;
 
   return `
     <div class="mw-page teams-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Squad setup</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Squad setup</p>
             <h2 class="mw-heading">Teams</h2>
             <p class="mw-lead">Manage clubs for each league — formation, coach, and branding used across matchweek and squads.</p>
+            ${teamsStatChipsHtml(stats)}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">In this league</span>
-              <strong class="mw-hero-preview-title">${teamCount} team${teamCount === 1 ? "" : "s"}</strong>
-              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+          <aside class="mw-hero__aside">
+            <div class="teams-hero-preview">
+              ${adminTeamCrestHtml(featuredTeam)}
+              <div class="mw-hero-preview teams-hero-preview__box">
+                <span class="mw-hero-preview-label">${esc(leagueName)}</span>
+                <strong class="mw-hero-preview-title">${teamCount} team${teamCount === 1 ? "" : "s"}</strong>
+                <span class="mw-hero-preview-range">${stats.withLogo} with crest${stats.withLogo === 1 ? "" : "s"}</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Club roster</h3>
-          <p>${teamCount} team${teamCount === 1 ? "" : "s"} · drag the <strong>⋮⋮</strong> handle to set list order on the public site.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--form" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--teams" aria-hidden="true"></div>
+          <div>
+            <h3>Club roster</h3>
+            <p>${teamCount} team${teamCount === 1 ? "" : "s"} · drag the <strong>⋮⋮</strong> handle to set list order on the public site.</p>
           </div>
         </div>
-        <div class="teams-table-wrap admin-table-wrap">
-          <table class="admin-table admin-table-compact teams-table">
-            <thead>
-              <tr>
-                <th class="admin-drag-col" aria-label="Reorder"></th>
-                <th>Name</th>
-                <th class="d-none d-sm-table-cell">ID</th>
-                <th class="d-none d-md-table-cell">Formation</th>
-                <th class="d-none d-xl-table-cell">Coach</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>${list.map((t) => teamTableRowHtml(t)).join("")}</tbody>
-          </table>
+        <div class="teams-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
+          </div>
         </div>
+        ${rosterBody}
       </section>
 
-      <section class="mw-card" id="teamFormCard">
-        <div class="mw-card-head">
-          <h3 id="teamFormTitle">Add team</h3>
-          <p>Formation is used in Club Spotlight and squad depth on the site. Stadiums are managed per league in the <strong>Stadiums</strong> tab.</p>
+      <section class="mw-card mw-card--striped" id="teamFormCard">
+        <div class="mw-card__stripe" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--team-add" aria-hidden="true"></div>
+          <div>
+            <h3 id="teamFormTitle">Add team</h3>
+            <p>Formation is used in Club Spotlight and squad depth on the site. Stadiums are managed per league in the <strong>Stadiums</strong> tab.</p>
+          </div>
         </div>
         <input type="hidden" id="teamEditId" value="" />
         <div class="row g-2 g-md-3">
           <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="teamName">Name</label><input id="teamName" class="mw-input" /></div>
+            <div class="mw-field"><label for="teamName">Name</label><input id="teamName" class="mw-input" autocomplete="off" /></div>
           </div>
           <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="teamCity">City</label><input id="teamCity" class="mw-input" /></div>
+            <div class="mw-field"><label for="teamCity">City</label><input id="teamCity" class="mw-input" autocomplete="off" /></div>
           </div>
           <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="teamFormation">Formation</label><input id="teamFormation" class="mw-input" placeholder="4-3-3" /></div>
+            <div class="mw-field"><label for="teamFormation">Formation</label><input id="teamFormation" class="mw-input" placeholder="4-3-3" autocomplete="off" /></div>
           </div>
           <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="teamCoach">Coach</label><input id="teamCoach" class="mw-input" /></div>
+            <div class="mw-field"><label for="teamCoach">Coach</label><input id="teamCoach" class="mw-input" autocomplete="off" /></div>
           </div>
           <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="teamLogo">Logo path</label><input id="teamLogo" class="mw-input" placeholder="./images/seriea/club.png" /></div>
+            <div class="mw-field"><label for="teamLogo">Logo path</label><input id="teamLogo" class="mw-input" placeholder="./images/premierleague/arsenal.png" autocomplete="off" /></div>
           </div>
           <div class="col-6 col-md-6 col-lg-3">
             <div class="mw-field"><label for="teamC1">Color 1</label><input id="teamC1" class="mw-input mw-input--color" type="color" value="#2de2e6" /></div>
@@ -1523,13 +1813,9 @@ function panelTeams() {
             <div class="mw-field"><label for="teamC2">Color 2</label><input id="teamC2" class="mw-input mw-input--color" type="color" value="#111827" /></div>
           </div>
         </div>
-        <div class="teams-form-footer row g-2 mt-1">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveTeam">Save team</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnNewTeam">Clear form</button>
-          </div>
+        <div class="teams-form-footer">
+          <button type="button" class="mw-btn-primary teams-save-btn" id="btnSaveTeam">Save team</button>
+          <button type="button" class="mw-btn-ghost teams-clear-btn" id="btnNewTeam">Clear form</button>
         </div>
       </section>
     </div>
@@ -1606,6 +1892,44 @@ function readSquadDepthFromDom() {
   return SquadDepth.normalizeSquadDepth({ formation, goalkeepers, slots }, formation);
 }
 
+function squadDepthStats(depth, roster) {
+  const chartCount = SquadDepth.countDepthPlayers(depth);
+  let gkFilled = 0;
+  for (const id of depth.goalkeepers ?? []) {
+    if (id) gkFilled++;
+  }
+  let slotFilled = 0;
+  for (const slot of depth.slots ?? []) {
+    if (slot.players?.[0]) slotFilled++;
+    if (slot.players?.[1]) slotFilled++;
+  }
+  return {
+    chartCount,
+    gkFilled,
+    slotFilled,
+    roster: roster.length,
+    maxChart: SquadDepth.DEPTH_CHART_SIZE,
+  };
+}
+
+function squadDepthStatChipsHtml(stats) {
+  return `<div class="squaddepth-stat-row" aria-label="Depth chart summary">
+    <span class="squaddepth-stat-chip squaddepth-stat-chip--chart"><span class="squaddepth-stat-chip__label">On chart</span><span class="squaddepth-stat-chip__val">${stats.chartCount}/${stats.maxChart}</span></span>
+    <span class="squaddepth-stat-chip squaddepth-stat-chip--gk"><span class="squaddepth-stat-chip__label">Keepers</span><span class="squaddepth-stat-chip__val">${stats.gkFilled}/3</span></span>
+    <span class="squaddepth-stat-chip squaddepth-stat-chip--slots"><span class="squaddepth-stat-chip__label">Outfield picks</span><span class="squaddepth-stat-chip__val">${stats.slotFilled}</span></span>
+    <span class="squaddepth-stat-chip squaddepth-stat-chip--squad"><span class="squaddepth-stat-chip__label">Squad</span><span class="squaddepth-stat-chip__val">${stats.roster}</span></span>
+  </div>`;
+}
+
+function sdSlotPosClass(tag) {
+  const t = String(tag ?? "").trim().toUpperCase();
+  if (t === "GK") return "sd-slot-row--gk";
+  if (["CB", "RB", "LB", "RCB", "LCB", "RWB", "LWB", "SW"].includes(t)) return "sd-slot-row--df";
+  if (["CM", "DM", "AM", "CDM", "CAM", "RM", "LM", "RAM", "LAM", "RCM", "LCM"].includes(t)) return "sd-slot-row--mf";
+  if (["CF", "ST", "RW", "LW", "SS", "RF", "LF"].includes(t)) return "sd-slot-row--fw";
+  return "sd-slot-row--na";
+}
+
 function panelSquadDepth() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const teams = teamsForLeague(leagueFilter);
@@ -1615,8 +1939,8 @@ function panelSquadDepth() {
   const depth = squadDepthDraft ?? SquadDepth.normalizeSquadDepth(team?.squadDepth, team?.formation);
   const gkRows = Array.from({ length: SquadDepth.DEPTH_GK_COUNT }, (_, i) => {
     return `
-      <div class="sd-gk-row">
-        <label class="sd-gk-label" for="sdGk${i}">GK ${i + 1}</label>
+      <div class="sd-gk-row sd-gk-row--item">
+        <label class="sd-gk-label" for="sdGk${i}"><span class="sd-gk-badge">GK</span> ${i + 1}</label>
         <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
           <select id="sdGk${i}" class="sd-pick mw-select" aria-label="Goalkeeper ${i + 1}">
             ${squadDepthPickOptions(roster, depth.goalkeepers[i])}
@@ -1630,18 +1954,22 @@ function panelSquadDepth() {
 
   const slotRows = depth.slots
     .map((slot, i) => {
+      const posClass = sdSlotPosClass(slot.tag);
       return `
-        <div class="sd-slot-row">
+        <div class="sd-slot-row ${posClass}">
+          <div class="sd-slot-row__stripe" aria-hidden="true"></div>
           <div class="sd-slot-head">
             <span class="sd-slot-num">${i + 1}</span>
             <input id="sdTag${i}" class="sd-tag mw-input${templateLocked ? " sd-tag--locked" : ""}" value="${esc(slot.tag)}" placeholder="LB" aria-label="Slot ${i + 1} tag"${templateLocked ? " readonly" : ""} />
           </div>
           <div class="sd-slot-picks">
+            <label class="sd-pick-label" for="sdSlot${i}A">Starter</label>
             <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
               <select id="sdSlot${i}A" class="sd-pick mw-select" aria-label="Slot ${i + 1} starter">
                 ${squadDepthPickOptions(roster, slot.players[0])}
               </select>
             </div>
+            <label class="sd-pick-label" for="sdSlot${i}B">Depth</label>
             <div class="mw-select-wrap mw-select-wrap--compact sd-pick-wrap">
               <select id="sdSlot${i}B" class="sd-pick mw-select" aria-label="Slot ${i + 1} depth">
                 ${squadDepthPickOptions(roster, slot.players[1])}
@@ -1654,6 +1982,7 @@ function panelSquadDepth() {
 
   const validation = SquadDepth.validateSquadDepth(depth);
   const chartCount = SquadDepth.countDepthPlayers(depth);
+  const stats = squadDepthStats(depth, roster);
   const statusClass = validation.ok ? (chartCount > 0 ? "sd-status--ok" : "sd-status--warn") : "sd-status--warn";
   const statusText = !validation.ok
     ? validation.errors[0]
@@ -1662,65 +1991,88 @@ function panelSquadDepth() {
       : "No players picked yet. Save formation and fill slots when ready.";
 
   const emptyTeam = !team
-    ? `<p class="admin-muted">Add teams in the <strong>Teams</strong> tab first.</p>`
+    ? `<div class="squaddepth-empty">
+        <div class="squaddepth-empty__icon" aria-hidden="true"></div>
+        <p class="squaddepth-empty__title">No teams yet</p>
+        <p class="squaddepth-empty__text">Add teams in the <strong>Teams</strong> tab first, then return here to build depth charts.</p>
+      </div>`
     : !roster.length
-      ? `<p class="admin-muted">Add players for <strong>${esc(team.name)}</strong> in the <strong>Players</strong> tab first.</p>`
+      ? `<div class="squaddepth-empty">
+          <div class="squaddepth-empty__icon" aria-hidden="true"></div>
+          <p class="squaddepth-empty__title">No squad yet</p>
+          <p class="squaddepth-empty__text">Add players for <strong>${esc(team.name)}</strong> in the <strong>Players</strong> tab first.</p>
+        </div>`
       : "";
 
   return `
     <div class="mw-page squaddepth-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Squad setup</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Squad setup</p>
             <h2 class="mw-heading">Squad depth</h2>
             <p class="mw-lead">Set the formation and pick players for the public depth chart — up to <strong>3 goalkeepers</strong> and <strong>10 positions × 2</strong>. Every pick is optional; save with 2 GK, one player per slot, or a partial chart.</p>
+            ${team && roster.length ? squadDepthStatChipsHtml(stats) : ""}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">League</span>
-              <strong class="mw-hero-preview-title">${esc(leagueName)}</strong>
-              <span class="mw-hero-preview-range">${teams.length} team${teams.length === 1 ? "" : "s"}</span>
+          <aside class="mw-hero__aside">
+            <div class="squaddepth-hero-preview">
+              ${adminTeamCrestHtml(team)}
+              <div class="mw-hero-preview squaddepth-hero-preview__box">
+                <span class="mw-hero-preview-label">${esc(team?.name ?? leagueName)}</span>
+                <strong class="mw-hero-preview-title">${esc(depth.formation)}</strong>
+                <span class="mw-hero-preview-range">${chartCount} on chart · ${roster.length} in squad</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Depth chart editor</h3>
-          <p>Formation drives the 10 outfield slots. Change any pick after saving — selecting a player in a new slot moves them automatically.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--form" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--depth" aria-hidden="true"></div>
+          <div>
+            <h3>Depth chart editor</h3>
+            <p>Formation drives the 10 outfield slots. Change any pick after saving — selecting a player in a new slot moves them automatically.</p>
           </div>
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field">
-              <label for="sdTeam">Team</label>
-              <div class="mw-select-wrap">
-                <select id="sdTeam" class="mw-select"${teams.length ? "" : " disabled"}>
-                  ${teamOptionTags(teams, teamId)}
-                </select>
+        </div>
+        <div class="squaddepth-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="mw-field mb-0">
+                <label for="sdTeam">Team</label>
+                <div class="mw-select-wrap">
+                  <select id="sdTeam" class="mw-select"${teams.length ? "" : " disabled"}>
+                    ${teamOptionTags(teams, teamId)}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field">
-              <label for="sdFormation">Formation</label>
-              <input id="sdFormation" class="mw-input" value="${esc(depth.formation)}" placeholder="4-2-3-1" list="sdFormationList" />
-              <datalist id="sdFormationList">
-                <option value="4-3-3"></option>
-                <option value="4-4-2"></option>
-                <option value="4-2-3-1"></option>
-                <option value="4-1-4-1"></option>
-                <option value="3-5-2"></option>
-                <option value="3-4-3"></option>
-                <option value="3-4-2-1"></option>
-                <option value="5-4-1"></option>
-                <option value="5-3-2"></option>
-              </datalist>
-              <p class="mw-field-note admin-muted" id="sdFormationHint">Slots: ${esc(slotSummary.label)}</p>
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="mw-field mb-0">
+                <label for="sdFormation">Formation</label>
+                <input id="sdFormation" class="mw-input squaddepth-formation-input" value="${esc(depth.formation)}" placeholder="4-2-3-1" list="sdFormationList" autocomplete="off" />
+                <datalist id="sdFormationList">
+                  <option value="4-3-3"></option>
+                  <option value="4-4-2"></option>
+                  <option value="4-2-3-1"></option>
+                  <option value="4-1-4-1"></option>
+                  <option value="3-5-2"></option>
+                  <option value="3-4-3"></option>
+                  <option value="3-4-2-1"></option>
+                  <option value="5-4-1"></option>
+                  <option value="5-3-2"></option>
+                </datalist>
+                <p class="mw-field-note admin-muted" id="sdFormationHint">Slots: ${esc(slotSummary.label)}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1731,21 +2083,23 @@ function panelSquadDepth() {
           <p class="sd-status ${statusClass}" id="sdStatus" aria-live="polite">${esc(statusText)}</p>
           <div class="sd-editor-grid">
             <section class="sd-block sd-block--gk">
-              <h4 class="sd-block-title">Goalkeepers <span class="sd-block-count">up to 3</span></h4>
+              <div class="sd-block__stripe sd-block__stripe--gk" aria-hidden="true"></div>
+              <h4 class="sd-block-title"><span class="sd-block-title__icon sd-block-title__icon--gk" aria-hidden="true"></span>Goalkeepers <span class="sd-block-count">up to 3</span></h4>
               <div class="sd-gk-grid">${gkRows}</div>
             </section>
             <section class="sd-block sd-block--slots">
-              <h4 class="sd-block-title">Outfield slots <span class="sd-block-count">10 × 2 (optional)</span></h4>
+              <div class="sd-pitch-bg" aria-hidden="true">
+                <div class="sd-pitch-bg__stripes"></div>
+                <div class="sd-pitch-bg__circle"></div>
+              </div>
+              <div class="sd-block__stripe sd-block__stripe--outfield" aria-hidden="true"></div>
+              <h4 class="sd-block-title"><span class="sd-block-title__icon sd-block-title__icon--outfield" aria-hidden="true"></span>Outfield slots <span class="sd-block-count">10 × 2 (optional)</span></h4>
               <div class="sd-slot-grid">${slotRows}</div>
             </section>
           </div>
-          <div class="sd-actions row g-2 mt-3">
-            <div class="col-12 col-sm-auto">
-              <button type="button" class="mw-btn-primary w-100" id="btnSaveSquadDepth">Save depth chart</button>
-            </div>
-            <div class="col-12 col-sm-auto">
-              <button type="button" class="mw-btn-ghost w-100" id="btnResetSquadDepth">Reset picks</button>
-            </div>
+          <div class="squaddepth-form-footer">
+            <button type="button" class="mw-btn-primary squaddepth-save-btn" id="btnSaveSquadDepth">Save depth chart</button>
+            <button type="button" class="mw-btn-ghost squaddepth-reset-btn" id="btnResetSquadDepth">Reset picks</button>
           </div>`
             : ""
         }
@@ -1758,28 +2112,82 @@ function nationalDutyRowKey(entry, index) {
   return String(entry?.playerId ?? "").trim() || `nd-row-${index}`;
 }
 
+function nationalDutyStats(entries, roster) {
+  const countries = new Set(entries.map((e) => String(e.country ?? "").trim()).filter(Boolean));
+  const withUntil = entries.filter((e) => String(e.until ?? "").trim()).length;
+  return {
+    onDuty: entries.length,
+    countries: countries.size,
+    withUntil,
+    squad: roster.length,
+  };
+}
+
+function nationalDutyStatChipsHtml(stats) {
+  return `<div class="nationalduty-stat-row" aria-label="National duty summary">
+    <span class="nationalduty-stat-chip nationalduty-stat-chip--duty"><span class="nationalduty-stat-chip__label">On duty</span><span class="nationalduty-stat-chip__val">${stats.onDuty}</span></span>
+    <span class="nationalduty-stat-chip nationalduty-stat-chip--countries"><span class="nationalduty-stat-chip__label">Countries</span><span class="nationalduty-stat-chip__val">${stats.countries}</span></span>
+    <span class="nationalduty-stat-chip nationalduty-stat-chip--until"><span class="nationalduty-stat-chip__label">With return date</span><span class="nationalduty-stat-chip__val">${stats.withUntil}</span></span>
+    <span class="nationalduty-stat-chip nationalduty-stat-chip--squad"><span class="nationalduty-stat-chip__label">Squad</span><span class="nationalduty-stat-chip__val">${stats.squad}</span></span>
+  </div>`;
+}
+
+function nationalDutyEmptyListHtml() {
+  return `<div class="nationalduty-empty-list">
+    <p class="nationalduty-empty-list__text">No players on national duty yet — use <strong>Add player</strong> below.</p>
+  </div>`;
+}
+
+function nationalDutyPlayerFlagHtml(playerId) {
+  const player = state().players.find((p) => p.id === playerId);
+  const flag =
+    player?.flag ||
+    (player?.nationality?.trim() && typeof NationalityFlags !== "undefined"
+      ? NationalityFlags.getFlag(player.nationality)
+      : "") ||
+    "";
+  if (!flag) {
+    return `<span class="nd-card__flag nd-card__flag--empty" aria-hidden="true"></span>`;
+  }
+  return `<span class="nd-card__flag" aria-hidden="true">${esc(flag)}</span>`;
+}
+
 function nationalDutyRowHtml(teamId, entry, rowKey) {
   const roster = squadDepthRoster(teamId);
   const playerOpts = squadDepthPickOptions(roster, entry.playerId);
   const key = rowKey ?? nationalDutyRowKey(entry, 0);
-  return `<tr class="nd-row nd-sort-row" draggable="true" data-nd-row-key="${esc(key)}">
-    <td class="admin-drag-cell"><span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
-    <td class="nd-player-col">
-      <div class="mw-select-wrap mw-select-wrap--compact nd-player-wrap">
-        <select class="nd-player mw-select" aria-label="Player">${playerOpts}</select>
+  return `<article class="nd-card nd-row nd-sort-row" draggable="true" data-nd-row-key="${esc(key)}">
+    <div class="nd-card__stripe" aria-hidden="true"></div>
+    <span class="player-drag-handle nd-card__drag" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
+    ${nationalDutyPlayerFlagHtml(entry.playerId)}
+    <div class="nd-card__grid">
+      <div class="nd-field nd-field--player">
+        <label class="nd-field-label">Player</label>
+        <div class="mw-select-wrap mw-select-wrap--compact nd-player-wrap">
+          <select class="nd-player mw-select" aria-label="Player">${playerOpts}</select>
+        </div>
       </div>
-    </td>
-    <td class="nd-country-col"><input class="nd-country mw-input" value="${esc(entry.country ?? "")}" placeholder="Ecuador" aria-label="Country" /></td>
-    <td class="nd-note-col d-none d-md-table-cell"><input class="nd-note mw-input" value="${esc(entry.note ?? "")}" placeholder="FIFA window, friendly…" aria-label="Note" /></td>
-    <td class="nd-until-col"><input class="nd-until mw-input" type="date" value="${esc(transferDateToInputValue(entry.until))}" aria-label="Until date" /></td>
-    <td class="nd-del-col"><button type="button" class="mw-btn-danger nd-del" title="Remove row">×</button></td>
-  </tr>`;
+      <div class="nd-field nd-field--country">
+        <label class="nd-field-label">Country</label>
+        <input class="nd-country mw-input" value="${esc(entry.country ?? "")}" placeholder="Ecuador" aria-label="Country" autocomplete="off" />
+      </div>
+      <div class="nd-field nd-field--note">
+        <label class="nd-field-label">Note</label>
+        <input class="nd-note mw-input" value="${esc(entry.note ?? "")}" placeholder="FIFA window, friendly…" aria-label="Note" autocomplete="off" />
+      </div>
+      <div class="nd-field nd-field--until">
+        <label class="nd-field-label">Until</label>
+        <input class="nd-until mw-input" type="date" value="${esc(transferDateToInputValue(entry.until))}" aria-label="Until date" />
+      </div>
+    </div>
+    <button type="button" class="mw-btn-danger nd-del" title="Remove row">×</button>
+  </article>`;
 }
 
 function readNationalDutyFromDom() {
-  const tbody = $("#ndTable tbody");
-  if (!tbody) return [];
-  return [...tbody.querySelectorAll(".nd-row")]
+  const list = $("#ndList");
+  if (!list) return [];
+  return [...list.querySelectorAll(".nd-row")]
     .map((row) => ({
       playerId: row.querySelector(".nd-player")?.value?.trim() ?? "",
       country: row.querySelector(".nd-country")?.value?.trim() ?? "",
@@ -1808,66 +2216,118 @@ function panelNationalDuty() {
       ? NationalDuty.normalizeNationalDuty(team?.nationalDuty)
       : (team?.nationalDuty ?? []);
   const count = entries.length;
+  const stats = nationalDutyStats(entries, roster);
 
   if (isWorldCup) {
     return `
       <div class="mw-page nationalduty-page">
-        <header class="mw-hero">
-          <div class="mw-hero-text">
-            <p class="mw-eyebrow">International windows</p>
-            <h2 class="mw-heading">National duty</h2>
-            <p class="mw-lead">Track club players away on international duty. This applies to <strong>club leagues</strong> only — not the World Cup tournament squads.</p>
+        <header class="mw-hero mw-hero--stadium">
+          <div class="mw-hero__atmosphere" aria-hidden="true">
+            <div class="mw-hero__glow"></div>
+            <div class="mw-hero__pitch"></div>
+            <div class="mw-hero__markings"></div>
+          </div>
+          <div class="mw-hero__grid">
+            <div class="mw-hero__copy">
+              <p class="mw-eyebrow mw-eyebrow--live">International windows</p>
+              <h2 class="mw-heading">National duty</h2>
+              <p class="mw-lead">Track club players away on international duty. This applies to <strong>club leagues</strong> only — not the World Cup tournament squads.</p>
+            </div>
+            <aside class="mw-hero__aside">
+              <div class="mw-hero-preview nationalduty-hero-preview__box nationalduty-hero-preview--empty">
+                <span class="mw-hero-preview-label">World Cup</span>
+                <strong class="mw-hero-preview-title">Not available</strong>
+                <span class="mw-hero-preview-range">Club leagues only</span>
+              </div>
+            </aside>
           </div>
         </header>
-        <section class="mw-card">
-          <p class="admin-muted mb-0">Switch to a club league (Premier League, La Liga, etc.) to manage national duty lists.</p>
+        <section class="mw-card mw-card--striped">
+          <div class="mw-card__stripe mw-card__stripe--transfer" aria-hidden="true"></div>
+          <div class="mw-card-head mw-card-head--icon">
+            <div class="mw-card-head__icon mw-card-head__icon--duty" aria-hidden="true"></div>
+            <div>
+              <h3>Switch league</h3>
+              <p>Choose a domestic league below to manage national duty lists.</p>
+            </div>
+          </div>
+          <div class="nationalduty-filter-bar">
+            <div class="row g-2 g-md-3">
+              <div class="col-12 col-md-6 col-lg-4">
+                ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+              </div>
+            </div>
+          </div>
         </section>
       </div>`;
   }
 
   const emptyTeam = !team
-    ? `<p class="admin-muted mb-0">Add teams in the <strong>Teams</strong> tab first.</p>`
+    ? `<div class="nationalduty-empty">
+        <div class="nationalduty-empty__icon" aria-hidden="true"></div>
+        <p class="nationalduty-empty__title">No teams yet</p>
+        <p class="nationalduty-empty__text">Add teams in the <strong>Teams</strong> tab first, then return here to track international duty.</p>
+      </div>`
     : !roster.length
-      ? `<p class="admin-muted mb-0">Add players for <strong>${esc(team.name)}</strong> in the <strong>Players</strong> tab first.</p>`
+      ? `<div class="nationalduty-empty">
+          <div class="nationalduty-empty__icon" aria-hidden="true"></div>
+          <p class="nationalduty-empty__title">No squad yet</p>
+          <p class="nationalduty-empty__text">Add players for <strong>${esc(team.name)}</strong> in the <strong>Players</strong> tab first.</p>
+        </div>`
       : "";
 
-  const tableBody = entries.length
+  const listBody = entries.length
     ? entries.map((e, i) => nationalDutyRowHtml(teamId, e, nationalDutyRowKey(e, i))).join("")
-    : `<tr class="nd-empty-row"><td colspan="6" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+    : nationalDutyEmptyListHtml();
 
   return `
     <div class="mw-page nationalduty-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">International windows</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">International windows</p>
             <h2 class="mw-heading">National duty</h2>
             <p class="mw-lead">List squad players away with their national team (e.g. Piero Hincapie · Ecuador). Shown on the public <strong>Squads</strong> page for the selected club.</p>
+            ${team && roster.length ? nationalDutyStatChipsHtml(stats) : ""}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">${esc(team?.name ?? "Club")}</span>
-              <strong class="mw-hero-preview-title">${count} on duty</strong>
-              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+          <aside class="mw-hero__aside">
+            <div class="nationalduty-hero-preview">
+              ${adminTeamCrestHtml(team)}
+              <div class="mw-hero-preview nationalduty-hero-preview__box">
+                <span class="mw-hero-preview-label">${esc(team?.name ?? "Club")}</span>
+                <strong class="mw-hero-preview-title">${count} on duty</strong>
+                <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Duty list${team ? ` · ${esc(team.name)}` : ""}</h3>
-          <p>Pick a player from the club squad and set their national team. Drag rows to arrange display order. Country defaults from the player profile when you select them.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--duty" aria-hidden="true"></div>
+          <div>
+            <h3>Duty list${team ? ` · ${esc(team.name)}` : ""}</h3>
+            <p>Pick a player from the club squad and set their national team. Drag rows to arrange display order. Country defaults from the player profile when you select them.</p>
           </div>
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field">
-              <label for="ndTeam">Club</label>
-              <div class="mw-select-wrap">
-                <select id="ndTeam" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+        </div>
+        <div class="nationalduty-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="mw-field mb-0">
+                <label for="ndTeam">Club</label>
+                <div class="mw-select-wrap">
+                  <select id="ndTeam" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+                </div>
               </div>
             </div>
           </div>
@@ -1875,28 +2335,12 @@ function panelNationalDuty() {
         ${
           emptyTeam
             ? emptyTeam
-            : `<div class="nd-table-wrap admin-table-wrap">
-          <table class="admin-table admin-table-compact nd-table" id="ndTable">
-            <thead>
-              <tr>
-                <th class="admin-drag-col" aria-label="Reorder"></th>
-                <th>Player</th>
-                <th>Country</th>
-                <th class="d-none d-md-table-cell">Note</th>
-                <th>Until</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>${tableBody}</tbody>
-          </table>
+            : `<div class="nd-list-wrap admin-table-wrap admin-table-wrap--sort">
+          <div class="nd-list" id="ndList">${listBody}</div>
         </div>
-        <div class="nd-actions row g-2 mt-3">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnNdAdd">Add player</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveNationalDuty">Save for ${esc(team.name)}</button>
-          </div>
+        <div class="nationalduty-form-footer">
+          <button type="button" class="mw-btn-ghost nationalduty-add-btn" id="btnNdAdd">Add player</button>
+          <button type="button" class="mw-btn-primary nationalduty-save-btn" id="btnSaveNationalDuty">Save for ${esc(team.name)}</button>
         </div>`
         }
       </section>
@@ -1984,14 +2428,81 @@ function scorersPlayerSelectHtml(teamId, selectedPlayerName) {
   </select></div>`;
 }
 
-function renderScorerRowHtml(name, club, goals, index, teams) {
-  const teamId = teamIdForClubName(leagueFilter, club);
-  return `<tr class="scorer-row" data-i="${index}">
-    <td class="scorers-club-col">${standingsClubSelectHtml(club, teams)}</td>
-    <td class="sc-player-cell scorers-player-col">${scorersPlayerSelectHtml(teamId, name)}</td>
-    <td class="scorers-goals-col"><input class="sc-goals scorers-input scorers-input--goals mw-input" type="number" min="0" value="${esc(goals)}" /></td>
-    <td class="scorers-del-col"><button type="button" class="mw-btn-danger scorers-del-btn sc-del" title="Remove row">×</button></td>
-  </tr>`;
+function scorersStats(rows, teams) {
+  const filled = rows.filter(([name, club]) => String(name ?? "").trim() && String(club ?? "").trim()).length;
+  const totalGoals = rows.reduce((s, [, , g]) => s + (Number(g) || 0), 0);
+  const maxGoals = rows.reduce((m, [, , g]) => Math.max(m, Number(g) || 0), 0);
+  const leader = rows.find(([name]) => String(name ?? "").trim()) ?? rows[0];
+  const leaderName = leader ? String(leader[0] ?? "").trim() : "";
+  const leaderClub = leader ? String(leader[1] ?? "").trim() : "";
+  const leaderGoals = leader ? Number(leader[2]) || 0 : 0;
+  return {
+    count: rows.length,
+    filled,
+    totalGoals,
+    maxGoals,
+    leaderName,
+    leaderClub,
+    leaderGoals,
+    teams: teams.length,
+  };
+}
+
+function scorersStatChipsHtml(stats) {
+  return `<div class="scorers-stat-row" aria-label="Top scorers summary">
+    <span class="scorers-stat-chip scorers-stat-chip--rows"><span class="scorers-stat-chip__label">Scorers</span><span class="scorers-stat-chip__val">${stats.count}</span></span>
+    <span class="scorers-stat-chip scorers-stat-chip--total"><span class="scorers-stat-chip__label">Total goals</span><span class="scorers-stat-chip__val">${stats.totalGoals}</span></span>
+    <span class="scorers-stat-chip scorers-stat-chip--leader"><span class="scorers-stat-chip__label">Golden boot</span><span class="scorers-stat-chip__val">${stats.leaderGoals}</span></span>
+    <span class="scorers-stat-chip scorers-stat-chip--teams"><span class="scorers-stat-chip__label">In league</span><span class="scorers-stat-chip__val">${stats.teams}</span></span>
+  </div>`;
+}
+
+function scorersEmptyListHtml() {
+  return `<div class="scorers-empty-list">
+    <p class="scorers-empty-list__text">No scorers yet — use <strong>Add row</strong> below.</p>
+  </div>`;
+}
+
+function scorersGoalsMeterHtml(goals, maxGoals) {
+  const goalsNum = Number(goals) || 0;
+  const max = Number(maxGoals) || 0;
+  const pct = max > 0 ? Math.round((goalsNum / max) * 100) : 0;
+  return `<div class="sc-goals-meter" aria-hidden="true"><span class="sc-goals-meter__fill" style="width:${pct}%"></span></div>`;
+}
+
+function scorersRankHtml(index, goals) {
+  const rank = index + 1;
+  const boot = rank === 1 && Number(goals) > 0 ? `<span class="sc-card__boot" title="Golden boot leader" aria-hidden="true"></span>` : "";
+  return `<div class="sc-card__rank">
+    <span class="sc-card__rank-num">${rank}</span>${boot}
+  </div>`;
+}
+
+function renderScorerRowHtml(name, club, goals, index, teams, maxGoals = 0) {
+  const team = standingsTeamForClub(club, teams);
+  const teamId = team?.id ?? teamIdForClubName(leagueFilter, club);
+  const tier = standingsRankTierClass(index + 1);
+  return `<article class="sc-card sc-row scorer-row ${tier}" data-i="${index}">
+    <div class="sc-card__stripe" aria-hidden="true"></div>
+    ${scorersRankHtml(index, goals)}
+    <div class="sc-card__crest" data-sc-crest>${adminTeamCrestHtml(team)}</div>
+    <div class="sc-card__grid">
+      <div class="sc-field sc-field--club">
+        <label class="sc-field-label">Club</label>
+        ${standingsClubSelectHtml(club, teams)}
+      </div>
+      <div class="sc-field sc-field--player sc-player-cell">
+        <label class="sc-field-label">Player</label>
+        ${scorersPlayerSelectHtml(teamId, name)}
+      </div>
+      <div class="sc-field sc-field--goals">
+        <label class="sc-field-label">Goals</label>
+        <input class="sc-goals scorers-input scorers-input--goals mw-input" type="number" min="0" value="${esc(goals)}" aria-label="Goals" data-sc-max="${esc(maxGoals)}" />
+        ${scorersGoalsMeterHtml(goals, maxGoals)}
+      </div>
+    </div>
+    <button type="button" class="mw-btn-danger scorers-del-btn sc-del" title="Remove row">×</button>
+  </article>`;
 }
 
 function panelPlayers() {
@@ -2016,11 +2527,24 @@ function panelPlayers() {
   const addTeamId = $("#playerEditId")?.value ? $("#playerTeam")?.value || teamId : teamId;
   const addTeamOpts = teamOptionTags(teams, addTeamId);
   const players = teamId ? playersForTeam(teamId) : [];
-  const teamName = teams.find((t) => t.id === teamId)?.name ?? "—";
+  const team = teams.find((t) => t.id === teamId);
+  const teamName = team?.name ?? "—";
   const playerCount = players.length;
+  const posBreak = squadPositionBreakdown(players);
   const dragHint = isWorldCup
     ? " Drag the <strong>⋮⋮</strong> handle to reorder. For World Cup squads, set each player’s <strong>club</strong> (domestic team)."
     : " Drag the <strong>⋮⋮</strong> handle to reorder the squad list. Order saves when you drop a row and appears on the public site.";
+  const posChipsHtml =
+    teamId && playerCount
+      ? `<div class="players-pos-breakdown" aria-label="Squad by position">
+          ${["GK", "DF", "MF", "FW"]
+            .map(
+              (k) =>
+                `<span class="players-pos-chip players-pos-chip--${k.toLowerCase()}"><span class="players-pos-chip__key">${k}</span><span class="players-pos-chip__val">${posBreak[k]}</span></span>`,
+            )
+            .join("")}
+        </div>`
+      : "";
 
   const rosterBody = !teams.length
     ? `<p class="admin-muted mb-0">Add teams in the <strong>Teams</strong> tab first, then return here to manage squads.</p>`
@@ -2031,69 +2555,86 @@ function panelPlayers() {
 
   return `
     <div class="mw-page players-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Squad roster</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Squad roster</p>
             <h2 class="mw-heading">Players</h2>
             <p class="mw-lead">Edit squad members, drag to set list order, and manage nationality flags for the public site.</p>
+            ${posChipsHtml}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">${esc(teamName)}</span>
-              <strong class="mw-hero-preview-title">${playerCount} player${playerCount === 1 ? "" : "s"}</strong>
-              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+          <aside class="mw-hero__aside">
+            <div class="players-team-preview">
+              ${adminTeamCrestHtml(team)}
+              <div class="mw-hero-preview players-hero-preview">
+                <span class="mw-hero-preview-label">${esc(teamName)}</span>
+                <strong class="mw-hero-preview-title">${playerCount} player${playerCount === 1 ? "" : "s"}</strong>
+                <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Squad list</h3>
-          <p>${teams.length ? `${playerCount} in ${esc(teamName)}` : "No teams in this league yet"}.${dragHint}</p>
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--squad" aria-hidden="true"></div>
+          <div>
+            <h3>Squad list</h3>
+            <p>${teams.length ? `${playerCount} in ${esc(teamName)}` : "No teams in this league yet"}.${dragHint}</p>
+          </div>
         </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
-          </div>
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field">
-              <label for="playerTeamFilter">Team</label>
-              <div class="mw-select-wrap">
-                <select id="playerTeamFilter" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+        <div class="players-filter-bar">
+          <div class="row g-2 g-md-3 players-filter-row">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="mw-field">
+                <label for="playerTeamFilter">Team</label>
+                <div class="mw-select-wrap">
+                  <select id="playerTeamFilter" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+                </div>
               </div>
             </div>
-          </div>
-          ${
-            teams.length && teamId
-              ? `<div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field players-search-field mb-0">
-              <label for="playerRosterSearch">Search squad</label>
-              <div class="players-search-wrap">
-                <span class="players-search-icon" aria-hidden="true">⌕</span>
-                <input
-                  id="playerRosterSearch"
-                  class="mw-input players-search-input"
-                  type="search"
-                  inputmode="search"
-                  placeholder="Name, number, role…"
-                  value="${esc(playerSearchQuery)}"
-                  autocomplete="off"
-                  aria-describedby="playersSearchMeta"
-                />
-                <button type="button" class="players-search-clear${playerSearchQuery.trim() ? "" : " admin-hidden"}" id="btnClearPlayerSearch" aria-label="Clear search">×</button>
+            ${
+              teams.length && teamId
+                ? `<div class="col-12 col-md-6 col-lg-4">
+              <div class="mw-field players-search-field mb-0">
+                <label for="playerRosterSearch">Search squad</label>
+                <div class="players-search-wrap">
+                  <span class="players-search-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                  </span>
+                  <input
+                    id="playerRosterSearch"
+                    class="mw-input players-search-input"
+                    type="search"
+                    inputmode="search"
+                    placeholder="Name, number, role…"
+                    value="${esc(playerSearchQuery)}"
+                    autocomplete="off"
+                    aria-describedby="playersSearchMeta"
+                  />
+                  <button type="button" class="players-search-clear${playerSearchQuery.trim() ? "" : " admin-hidden"}" id="btnClearPlayerSearch" aria-label="Clear search">×</button>
+                </div>
+                <p class="players-search-meta admin-muted${playerSearchQuery.trim() ? "" : " admin-hidden"}" id="playersSearchMeta" aria-live="polite"></p>
               </div>
-              <p class="players-search-meta admin-muted${playerSearchQuery.trim() ? "" : " admin-hidden"}" id="playersSearchMeta" aria-live="polite"></p>
-            </div>
-          </div>`
-              : ""
-          }
+            </div>`
+                : ""
+            }
+          </div>
         </div>
         ${
           playerCount > 1
-            ? `<div class="players-toolbar mb-3">
-                <button type="button" class="mw-btn-primary" id="btnAutoArrange">Auto-arrange by position</button>
+            ? `<div class="players-toolbar">
+                <button type="button" class="mw-btn-primary players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
                 <span class="admin-muted players-toolbar-hint">Sorts GK → CB → RB → LB → RM → LM → DM → CM → AM → RAM → LAM → RW → LW → CF. Works on mobile.</span>
               </div>`
             : ""
@@ -2101,15 +2642,19 @@ function panelPlayers() {
         ${rosterBody}
       </section>
 
-      <section class="mw-card" id="playerTransferCard">
-        <div class="mw-card-head">
-          <h3>Transfer player</h3>
-          <p>Move a squad member to another club in this league. They are removed from the current team and added to the destination roster. Squad depth picks on the old team are cleared automatically.</p>
+      <section class="mw-card mw-card--striped" id="playerTransferCard">
+        <div class="mw-card__stripe mw-card__stripe--transfer" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--transfer" aria-hidden="true"></div>
+          <div>
+            <h3>Transfer player</h3>
+            <p>Move a squad member to another club in this league. They are removed from the current team and added to the destination roster. Squad depth picks on the old team are cleared automatically.</p>
+          </div>
         </div>
         ${
           !teams.length || !teamId
             ? `<p class="admin-muted mb-0">Select a team above to transfer players.</p>`
-            : `<div class="row g-2 g-md-3 align-items-end">
+            : `<div class="row g-2 g-md-3 align-items-end players-transfer-row">
           <div class="col-12 col-md-4">
             <div class="mw-field">
               <label for="playerTransferPick">Player · ${esc(teamName)}</label>
@@ -2127,16 +2672,20 @@ function panelPlayers() {
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <button type="button" class="mw-btn-primary w-100" id="btnExecuteTransfer">Transfer player</button>
+            <button type="button" class="mw-btn-primary w-100 players-transfer-btn" id="btnExecuteTransfer">Transfer player</button>
           </div>
         </div>`
         }
       </section>
 
-      <section class="mw-card" id="playerFormCard">
-        <div class="mw-card-head">
-          <h3 id="playerFormTitle">Add player</h3>
-          <p>Role controls default sort order on the public squad page (GK → CB → … → CF). Mark <strong>Captain</strong> with the toggle — do not add (C) to the name.</p>
+      <section class="mw-card mw-card--striped" id="playerFormCard">
+        <div class="mw-card__stripe mw-card__stripe--form" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--player" aria-hidden="true"></div>
+          <div>
+            <h3 id="playerFormTitle">Add player</h3>
+            <p>Role controls default sort order on the public squad page (GK → CB → … → CF). Mark <strong>Captain</strong> with the toggle — do not add (C) to the name.</p>
+          </div>
         </div>
         <input type="hidden" id="playerEditId" value="" />
         <div class="row g-2 g-md-3">
@@ -2232,6 +2781,69 @@ function panelPlayers() {
   `;
 }
 
+function matchesStats(list) {
+  const totalGoals = list.reduce(
+    (s, m) => s + (Number(m.score?.[0]) || 0) + (Number(m.score?.[1]) || 0),
+    0,
+  );
+  const homeWins = list.filter((m) => (Number(m.score?.[0]) || 0) > (Number(m.score?.[1]) || 0)).length;
+  const awayWins = list.filter((m) => (Number(m.score?.[1]) || 0) > (Number(m.score?.[0]) || 0)).length;
+  const draws = list.filter((m) => (Number(m.score?.[0]) || 0) === (Number(m.score?.[1]) || 0)).length;
+  return { count: list.length, totalGoals, homeWins, awayWins, draws };
+}
+
+function matchesStatChipsHtml(stats) {
+  return `<div class="matches-stat-row" aria-label="Matchweek summary">
+    <span class="matches-stat-chip matches-stat-chip--fixtures"><span class="matches-stat-chip__label">Fixtures</span><span class="matches-stat-chip__val">${stats.count}</span></span>
+    <span class="matches-stat-chip matches-stat-chip--goals"><span class="matches-stat-chip__label">Goals</span><span class="matches-stat-chip__val">${stats.totalGoals}</span></span>
+    <span class="matches-stat-chip matches-stat-chip--home"><span class="matches-stat-chip__label">Home wins</span><span class="matches-stat-chip__val">${stats.homeWins}</span></span>
+    <span class="matches-stat-chip matches-stat-chip--draws"><span class="matches-stat-chip__label">Draws</span><span class="matches-stat-chip__val">${stats.draws}</span></span>
+  </div>`;
+}
+
+function matchCardHtml(m) {
+  const homeTeam = state().teams.find((t) => t.id === m.homeTeamId);
+  const awayTeam = state().teams.find((t) => t.id === m.awayTeamId);
+  const homeName = homeTeam?.name ?? m.homeTeamId;
+  const awayName = awayTeam?.name ?? m.awayTeamId;
+  const hScore = m.score?.[0] ?? 0;
+  const aScore = m.score?.[1] ?? 0;
+  const homeWin = hScore > aScore;
+  const awayWin = aScore > hScore;
+  const status = String(m.status ?? "FT").trim() || "FT";
+  return `<article class="match-card" data-match-id="${esc(m.id)}">
+    <div class="match-card__stripe" aria-hidden="true"></div>
+    <div class="match-card__meta">
+      <span class="match-card__day">${esc(m.time ?? "—")}</span>
+      <span class="match-card__status match-card__status--${esc(status.toLowerCase().replace(/\s+/g, ""))}">${esc(status)}</span>
+    </div>
+    <div class="match-card__fixture">
+      <div class="match-card__team match-card__team--home${homeWin ? " match-card__team--win" : ""}">
+        <span class="match-card__crest">${adminTeamCrestHtml(homeTeam)}</span>
+        <span class="match-card__name">${esc(homeName)}</span>
+      </div>
+      <div class="match-card__scoreboard" aria-label="Score ${hScore} to ${aScore}">
+        <span class="match-card__score-num${homeWin ? " match-card__score-num--win" : ""}">${esc(hScore)}</span>
+        <span class="match-card__score-sep">–</span>
+        <span class="match-card__score-num${awayWin ? " match-card__score-num--win" : ""}">${esc(aScore)}</span>
+      </div>
+      <div class="match-card__team match-card__team--away${awayWin ? " match-card__team--win" : ""}">
+        <span class="match-card__crest">${adminTeamCrestHtml(awayTeam)}</span>
+        <span class="match-card__name">${esc(awayName)}</span>
+      </div>
+    </div>
+    ${
+      m.stadium && m.stadium !== "—"
+        ? `<p class="match-card__venue">${esc(m.stadium)}</p>`
+        : ""
+    }
+    <div class="match-card__actions">
+      <button type="button" class="mw-btn-ghost matches-row-btn match-card__edit" data-edit-match="${esc(m.id)}">Edit</button>
+      <button type="button" class="mw-btn-danger matches-row-btn match-card__del" data-del-match="${esc(m.id)}">Remove</button>
+    </div>
+  </article>`;
+}
+
 function panelMatches() {
   const meta = FCDataStore.getLeagueMeta(leagueFilter);
   const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
@@ -2246,78 +2858,71 @@ function panelMatches() {
   const teamOpts = (sel) => teamOptionTags(teams, sel);
   const defaultHome = teams[0]?.id ?? "";
   const defaultAway = teams[1]?.id ?? teams[0]?.id ?? "";
+  const stats = matchesStats(list);
 
   const rosterBody =
     list.length === 0
       ? `<div class="matches-empty">
-          <p class="matches-empty-text">No matches yet. Add one below or use the <strong>Matchweek</strong> tab for full fixture editing.</p>
+          <div class="matches-empty__icon" aria-hidden="true"></div>
+          <p class="matches-empty__title">No matches yet</p>
+          <p class="matches-empty__text">Add one below or use the <strong>Matchweek</strong> tab for full fixture editing with goals, assists, and lineups.</p>
         </div>`
-      : `<div class="matches-table-wrap admin-table-wrap">
-          <table class="admin-table admin-table-compact matches-table">
-            <thead>
-              <tr>
-                <th class="d-none d-sm-table-cell">Day</th>
-                <th>Fixture</th>
-                <th>Score</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>${list
-              .map((m) => {
-                const h = state().teams.find((t) => t.id === m.homeTeamId)?.name ?? m.homeTeamId;
-                const a = state().teams.find((t) => t.id === m.awayTeamId)?.name ?? m.awayTeamId;
-                return `<tr>
-              <td class="d-none d-sm-table-cell">${esc(m.time ?? "—")}</td>
-              <td>
-                <strong>${esc(h)} vs ${esc(a)}</strong>
-                <span class="matches-fixture-day d-sm-none">${esc(m.time ?? "—")}</span>
-              </td>
-              <td class="matches-score">${esc(m.score?.[0] ?? 0)}–${esc(m.score?.[1] ?? 0)}</td>
-              <td class="admin-row-actions">
-                <button type="button" class="mw-btn-ghost matches-row-btn" data-edit-match="${esc(m.id)}">Edit</button>
-                <button type="button" class="mw-btn-danger matches-row-btn" data-del-match="${esc(m.id)}">Remove</button>
-              </td></tr>`;
-              })
-              .join("")}</tbody>
-          </table>
+      : `<div class="matches-list-wrap">
+          <div class="matches-list" id="matchesList">${list.map((m) => matchCardHtml(m)).join("")}</div>
         </div>`;
 
   return `
     <div class="mw-page matches-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Quick fixtures</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Quick fixtures</p>
             <h2 class="mw-heading">Matches</h2>
             <p class="mw-lead">${isWc ? "Add or edit basic scores for any World Cup fixture. For goals, assists, and lineups use the <strong>Matchweek</strong> tab." : "Add or edit basic scores for the current gameweek. For goals, assists, and lineups use the <strong>Matchweek</strong> tab."}</p>
+            ${list.length ? matchesStatChipsHtml(stats) : ""}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
+          <aside class="mw-hero__aside">
+            <div class="mw-hero-preview matches-hero-preview__box">
               <span class="mw-hero-preview-label">${esc(mwTitle)}</span>
               <strong class="mw-hero-preview-title">${list.length} match${list.length === 1 ? "" : "es"}</strong>
               <span class="mw-hero-preview-range">${esc(leagueName)}</span>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>${isWc ? "All fixtures" : `MW ${mw} fixtures`}</h3>
-          <p>${list.length} match${list.length === 1 ? "" : "es"}${isWc ? " · every round is kept" : " in this gameweek"} · quick edit only.</p>
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--matches" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--matches-fixtures" aria-hidden="true"></div>
+          <div>
+            <h3>${isWc ? "All fixtures" : `MW ${mw} fixtures`}</h3>
+            <p>${list.length} match${list.length === 1 ? "" : "es"}${isWc ? " · every round is kept" : " in this gameweek"} · quick edit only.</p>
+          </div>
         </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+        <div class="matches-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
           </div>
         </div>
         ${rosterBody}
       </section>
 
-      <section class="mw-card" id="matchFormCard">
-        <div class="mw-card-head">
-          <h3 id="matchFormTitle">Add match</h3>
-          <p>${isWc ? "Creates a World Cup fixture. Set the round/stage label below." : `Creates a fixture for MW ${mw}.`} Stadiums are chosen from the <strong>Stadiums</strong> tab list.</p>
+      <section class="mw-card mw-card--striped" id="matchFormCard">
+        <div class="mw-card__stripe mw-card__stripe--matches" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--matches-add" aria-hidden="true"></div>
+          <div>
+            <h3 id="matchFormTitle">Add match</h3>
+            <p>${isWc ? "Creates a World Cup fixture. Set the round/stage label below." : `Creates a fixture for MW ${mw}.`} Stadiums are chosen from the <strong>Stadiums</strong> tab list.</p>
+          </div>
         </div>
         <input type="hidden" id="matchEditId" value="" />
         <div class="row g-2 g-md-3">
@@ -2338,17 +2943,26 @@ function panelMatches() {
           <div class="col-12 col-md-6">
             <div class="mw-field"><label for="matchAway">Away team</label><div class="mw-select-wrap"><select id="matchAway" class="mw-select">${teamOpts(defaultAway)}</select></div></div>
           </div>
-          <div class="col-6 col-md-6">
-            <div class="mw-field"><label for="matchHomeScore">Home goals</label><input id="matchHomeScore" class="mw-input mw-input--score" type="number" min="0" value="0" /></div>
+        </div>
+        <div class="matches-scoreboard-form">
+          <div class="matches-scoreboard-form__pitch" aria-hidden="true">
+            <div class="matches-scoreboard-form__stripes"></div>
+            <div class="matches-scoreboard-form__circle"></div>
           </div>
-          <div class="col-6 col-md-6">
-            <div class="mw-field"><label for="matchAwayScore">Away goals</label><input id="matchAwayScore" class="mw-input mw-input--score" type="number" min="0" value="0" /></div>
+          <div class="matches-scoreboard-form__grid">
+            <div class="matches-scoreboard-form__side">
+              <span class="matches-scoreboard-form__label">Home</span>
+              <input id="matchHomeScore" class="mw-input mw-input--score matches-scoreboard-form__input" type="number" min="0" value="0" aria-label="Home goals" />
+            </div>
+            <span class="matches-scoreboard-form__vs" aria-hidden="true">VS</span>
+            <div class="matches-scoreboard-form__side matches-scoreboard-form__side--away">
+              <span class="matches-scoreboard-form__label">Away</span>
+              <input id="matchAwayScore" class="mw-input mw-input--score matches-scoreboard-form__input" type="number" min="0" value="0" aria-label="Away goals" />
+            </div>
           </div>
         </div>
-        <div class="matches-form-footer row g-2 mt-1">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveMatch">Save match</button>
-          </div>
+        <div class="matches-form-footer">
+          <button type="button" class="mw-btn-primary matches-save-btn" id="btnSaveMatch">Save match</button>
         </div>
       </section>
     </div>
@@ -2414,38 +3028,52 @@ function panelWorldCupStandings() {
 
   return `
     <div class="mw-page standings-page standings-page--wc">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Group stage</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Group stage</p>
             <h2 class="mw-heading">Standings</h2>
             <p class="mw-lead">Assign countries to groups A–L (4 per group). Change a country’s group by picking a different group slot.</p>
+            <div class="standings-stat-row" aria-label="World Cup groups summary">
+              <span class="standings-stat-chip standings-stat-chip--rows"><span class="standings-stat-chip__label">Groups</span><span class="standings-stat-chip__val">${groupIds.length}</span></span>
+              <span class="standings-stat-chip standings-stat-chip--filled"><span class="standings-stat-chip__label">Per group</span><span class="standings-stat-chip__val">${groupSize}</span></span>
+              <span class="standings-stat-chip standings-stat-chip--teams"><span class="standings-stat-chip__label">Countries</span><span class="standings-stat-chip__val">${teams.length}</span></span>
+            </div>
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
+          <aside class="mw-hero__aside">
+            <div class="mw-hero-preview standings-hero-preview__box standings-hero-preview--wc">
               <span class="mw-hero-preview-label">${esc(leagueName)}</span>
               <strong class="mw-hero-preview-title">${groupIds.length} groups</strong>
               <span class="mw-hero-preview-range">${groupSize} teams each</span>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Group standings</h3>
-          <p>Countries are chosen from the <strong>Teams</strong> list. Save when all groups are set.</p>
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--standings" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--standings" aria-hidden="true"></div>
+          <div>
+            <h3>Group standings</h3>
+            <p>Countries are chosen from the <strong>Teams</strong> list. Save when all groups are set.</p>
+          </div>
         </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+        <div class="standings-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
           </div>
         </div>
         <div class="row g-3 wc-groups-grid">${sections}</div>
-        <div class="standings-form-footer row g-2 mt-3">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveStandings">Save group standings</button>
-          </div>
+        <div class="standings-form-footer">
+          <button type="button" class="mw-btn-primary standings-save-btn" id="btnSaveStandings">Save group standings</button>
         </div>
       </section>
     </div>
@@ -2847,14 +3475,23 @@ function saveTransfersFromDom(options = {}) {
   return true;
 }
 
+function transfersStatChipsHtml(inCount, outCount, loanReturnCount, loanRecallCount) {
+  return `<div class="transfers-stat-row" aria-label="Transfer summary">
+    <span class="transfers-stat-chip transfers-stat-chip--in"><span class="transfers-stat-chip__label">In</span><span class="transfers-stat-chip__val">${inCount}</span></span>
+    <span class="transfers-stat-chip transfers-stat-chip--out"><span class="transfers-stat-chip__label">Out</span><span class="transfers-stat-chip__val">${outCount}</span></span>
+    <span class="transfers-stat-chip transfers-stat-chip--return"><span class="transfers-stat-chip__label">Return</span><span class="transfers-stat-chip__val">${loanReturnCount}</span></span>
+    <span class="transfers-stat-chip transfers-stat-chip--recall"><span class="transfers-stat-chip__label">Recall</span><span class="transfers-stat-chip__val">${loanRecallCount}</span></span>
+  </div>`;
+}
+
 function transferTableRowHtml(mode, teamId, t, i) {
   const isIncoming = transferDirectionIncoming(mode);
   const clubInput = isIncoming
     ? `<input class="tr-from transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`
     : `<input class="tr-to transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`;
   const feePlaceholder = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.feePlaceholder ?? "Fee";
-  return `<tr class="tr-sort-row" data-i="${i}" data-dir="${esc(mode)}" data-id="${esc(t.id ?? "")}" data-tr-sort-key="${esc(t.id || `${mode}-${i}`)}">
-    <td class="admin-drag-cell"><span class="player-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
+  return `<tr class="tr-sort-row transfers-row transfers-row--${esc(mode)}" data-i="${i}" data-dir="${esc(mode)}" data-id="${esc(t.id ?? "")}" data-tr-sort-key="${esc(t.id || `${mode}-${i}`)}">
+    <td class="admin-drag-cell"><span class="player-drag-handle transfers-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
     <td class="transfers-player-col">${transferPlayerFieldHtml(mode, teamId, t.player)}</td>
     <td class="transfers-club-col">${clubInput}</td>
     <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="${esc(feePlaceholder)}" /></td>
@@ -2877,26 +3514,41 @@ function panelTransfers() {
   if (leagueFilter === "worldcup") {
     return `
       <div class="mw-page transfers-page">
-        <header class="mw-hero">
-          <div class="row g-3 align-items-start">
-            <div class="col-12 col-lg-8 mw-hero-text">
-              <p class="mw-eyebrow">Market moves</p>
+        <header class="mw-hero mw-hero--stadium">
+          <div class="mw-hero__atmosphere" aria-hidden="true">
+            <div class="mw-hero__glow"></div>
+            <div class="mw-hero__pitch"></div>
+            <div class="mw-hero__markings"></div>
+          </div>
+          <div class="mw-hero__grid">
+            <div class="mw-hero__copy">
+              <p class="mw-eyebrow mw-eyebrow--live">Market moves</p>
               <h2 class="mw-heading">Transfers</h2>
               <p class="mw-lead">Transfers are not used for the <strong>World Cup</strong>. Switch to a club league to manage market moves.</p>
             </div>
-            <div class="col-12 col-sm-8 col-lg-4">
-              <div class="mw-hero-preview w-100">
+            <aside class="mw-hero__aside">
+              <div class="mw-hero-preview transfers-hero-preview transfers-hero-preview--empty">
                 <span class="mw-hero-preview-label">${esc(leagueName)}</span>
                 <strong class="mw-hero-preview-title">Not available</strong>
                 <span class="mw-hero-preview-range">Club leagues only</span>
               </div>
-            </div>
+            </aside>
           </div>
         </header>
-        <section class="mw-card">
-          <div class="row g-2 g-md-3">
-            <div class="col-12 col-md-6 col-lg-4">
-              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+        <section class="mw-card mw-card--striped">
+          <div class="mw-card__stripe mw-card__stripe--transfer" aria-hidden="true"></div>
+          <div class="mw-card-head mw-card-head--icon">
+            <div class="mw-card-head__icon mw-card-head__icon--transfer" aria-hidden="true"></div>
+            <div>
+              <h3>Switch league</h3>
+              <p>Choose a domestic league below to edit incoming, outgoing, loan return, and recall lists.</p>
+            </div>
+          </div>
+          <div class="transfers-filter-bar">
+            <div class="row g-2 g-md-3">
+              <div class="col-12 col-md-6 col-lg-4">
+                ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+              </div>
             </div>
           </div>
         </section>
@@ -2924,71 +3576,91 @@ function panelTransfers() {
       section.key === "in"
         ? rows.map((t, i) => transferInRowHtml(transferTeamFilter, t, i)).join("")
         : rows.map((t, i) => transferTableRowHtml(section.key, transferTeamFilter, t, i)).join("");
+    const emptyRow =
+      rows.length === 0
+        ? `<tr class="transfers-empty-row"><td colspan="6"><span class="transfers-empty-msg">No ${esc(section.title.toLowerCase())} yet — use <strong>${esc(section.btnLabel)}</strong> below.</span></td></tr>`
+        : "";
     return `
-        <div class="transfers-section">
-          <h4 class="transfers-section-title">${esc(section.title)}${team ? ` · ${esc(team.name)}` : ""}</h4>
-          <p class="transfers-section-hint">${section.hint}</p>
+        <section class="transfers-section transfers-section--${esc(section.key)}">
+          <div class="transfers-section__stripe" aria-hidden="true"></div>
+          <div class="transfers-section__head">
+            <div class="transfers-section__icon transfers-section__icon--${esc(section.key)}" aria-hidden="true"></div>
+            <div class="transfers-section__copy">
+              <h4 class="transfers-section-title">${esc(section.title)}${team ? ` · ${esc(team.name)}` : ""}</h4>
+              <p class="transfers-section-hint">${section.hint}</p>
+            </div>
+            <span class="transfers-section-count" aria-label="${rows.length} entries">${rows.length}</span>
+          </div>
           <div class="transfers-table-wrap">
             <table class="admin-table admin-table-compact transfers-table" id="${esc(section.tableId)}">
               <thead><tr><th class="admin-drag-col" aria-label="Reorder"></th><th>Player</th><th>${esc(section.clubHeader)}</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
-              <tbody>${rowHtml}</tbody>
+              <tbody>${rowHtml}${emptyRow}</tbody>
             </table>
           </div>
-          <div class="transfers-section-actions row g-2 mt-2">
-            <div class="col-12 col-sm-auto">
-              <button type="button" class="mw-btn-ghost w-100" id="${esc(section.btnId)}">${esc(section.btnLabel)}</button>
-            </div>
+          <div class="transfers-section-actions">
+            <button type="button" class="mw-btn-ghost transfers-add-btn transfers-add-btn--${esc(section.key)}" id="${esc(section.btnId)}">${esc(section.btnLabel)}</button>
           </div>
-        </div>`;
+        </section>`;
   }).join("");
 
   return `
     <div class="mw-page transfers-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Market moves</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Market moves</p>
             <h2 class="mw-heading">Transfers</h2>
             <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Drag the <strong>⋮⋮</strong> handle to reorder rows within each list.</p>
+            ${transfersStatChipsHtml(inCount, outCount, loanReturnCount, loanRecallCount)}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">${esc(team?.name ?? "Select club")}</span>
-              <strong class="mw-hero-preview-title">${inCount} in · ${outCount} out · ${loanReturnCount} return · ${loanRecallCount} recall</strong>
-              <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+          <aside class="mw-hero__aside">
+            <div class="transfers-team-preview">
+              ${adminTeamCrestHtml(team)}
+              <div class="mw-hero-preview transfers-hero-preview">
+                <span class="mw-hero-preview-label">${esc(team?.name ?? "Select club")}</span>
+                <strong class="mw-hero-preview-title">${inCount + outCount + loanReturnCount + loanRecallCount} move${inCount + outCount + loanReturnCount + loanRecallCount === 1 ? "" : "s"}</strong>
+                <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Club transfers</h3>
-          <p>Edits apply to the selected club only. Save when all four lists are ready.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--transfer" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--transfer" aria-hidden="true"></div>
+          <div>
+            <h3>Club transfers</h3>
+            <p>Edits apply to the selected club only. Save when all four lists are ready — or restore from <code>data.json</code> to undo local changes.</p>
           </div>
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field">
-              <label for="transferTeamFilter">Club</label>
-              <div class="mw-select-wrap">
-                <select id="transferTeamFilter" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+        </div>
+        <div class="transfers-filter-bar">
+          <div class="row g-2 g-md-3 transfers-filter-row">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="mw-field mb-0">
+                <label for="transferTeamFilter">Club</label>
+                <div class="mw-select-wrap">
+                  <select id="transferTeamFilter" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts}</select>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        ${transferSectionsHtml}
+        <div class="transfers-sections">${transferSectionsHtml}</div>
 
-        <div class="transfers-form-footer row g-2 mt-3">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveTransfers">Save transfers for ${esc(team?.name ?? "club")}</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnRestoreTransfers">Restore from data.json</button>
-          </div>
+        <div class="transfers-form-footer">
+          <button type="button" class="mw-btn-primary transfers-save-btn" id="btnSaveTransfers">Save transfers for ${esc(team?.name ?? "club")}</button>
+          <button type="button" class="mw-btn-ghost transfers-restore-btn" id="btnRestoreTransfers">Restore from data.json</button>
         </div>
       </section>
       <datalist id="trNationalityList">${nationalityDatalistHtml()}</datalist>
@@ -2996,13 +3668,76 @@ function panelTransfers() {
   `;
 }
 
+function standingsStats(rows, teams) {
+  const filled = rows.filter(([, club]) => String(club ?? "").trim()).length;
+  const withPts = rows.filter(([, , pts]) => Number(pts) > 0).length;
+  const sorted = [...rows].sort((a, b) => (Number(b[2]) || 0) - (Number(a[2]) || 0));
+  const leader = sorted.find(([, club]) => String(club ?? "").trim()) ?? sorted[0];
+  const leaderClub = leader ? String(leader[1] ?? "").trim() : "";
+  const leaderPts = leader ? Number(leader[2]) || 0 : 0;
+  const maxPts = rows.reduce((m, [, , pts]) => Math.max(m, Number(pts) || 0), 0);
+  return {
+    count: rows.length,
+    filled,
+    withPts,
+    leaderClub,
+    leaderPts,
+    maxPts,
+    teams: teams.length,
+  };
+}
+
+function standingsStatChipsHtml(stats) {
+  return `<div class="standings-stat-row" aria-label="Standings summary">
+    <span class="standings-stat-chip standings-stat-chip--rows"><span class="standings-stat-chip__label">Rows</span><span class="standings-stat-chip__val">${stats.count}</span></span>
+    <span class="standings-stat-chip standings-stat-chip--filled"><span class="standings-stat-chip__label">Clubs set</span><span class="standings-stat-chip__val">${stats.filled}</span></span>
+    <span class="standings-stat-chip standings-stat-chip--leader"><span class="standings-stat-chip__label">Leader</span><span class="standings-stat-chip__val">${stats.leaderPts} pts</span></span>
+    <span class="standings-stat-chip standings-stat-chip--teams"><span class="standings-stat-chip__label">In league</span><span class="standings-stat-chip__val">${stats.teams}</span></span>
+  </div>`;
+}
+
+function standingsEmptyListHtml() {
+  return `<div class="standings-empty-list">
+    <p class="standings-empty-list__text">No standings rows yet — use <strong>Add row</strong> below.</p>
+  </div>`;
+}
+
+function standingsRankTierClass(rk) {
+  const n = Number(rk) || 0;
+  if (n === 1) return "st-card--gold";
+  if (n === 2) return "st-card--silver";
+  if (n === 3) return "st-card--bronze";
+  return "";
+}
+
+function standingsTeamForClub(clubName, teams) {
+  const trimmed = String(clubName ?? "").trim();
+  if (!trimmed) return null;
+  return teams.find((t) => t.name === trimmed) ?? null;
+}
+
 function standingsRowHtml(rk, club, pts, i, teams) {
-  return `<tr data-i="${i}">
-        <td class="standings-rk-col"><input class="st-rk standings-input standings-input--rk mw-input" type="number" value="${esc(rk)}" /></td>
-        <td class="standings-club-col">${standingsClubSelectHtml(club, teams)}</td>
-        <td class="standings-pts-col"><input class="st-pts standings-input standings-input--pts mw-input" type="number" value="${esc(pts)}" /></td>
-        <td class="standings-del-col"><button type="button" class="mw-btn-danger standings-del-btn st-del" title="Remove row">×</button></td>
-      </tr>`;
+  const team = standingsTeamForClub(club, teams);
+  const tier = standingsRankTierClass(rk);
+  return `<article class="st-card st-row ${tier}" data-i="${i}">
+    <div class="st-card__stripe" aria-hidden="true"></div>
+    <div class="st-field st-field--rank">
+      <label class="st-field-label">#</label>
+      <input class="st-rk standings-input standings-input--rk mw-input" type="number" value="${esc(rk)}" aria-label="Rank" min="1" />
+    </div>
+    <div class="st-card__crest" data-st-crest>${adminTeamCrestHtml(team)}</div>
+    <div class="st-card__grid">
+      <div class="st-field st-field--club">
+        <label class="st-field-label">Club</label>
+        ${standingsClubSelectHtml(club, teams)}
+      </div>
+      <div class="st-field st-field--pts">
+        <label class="st-field-label">Pts</label>
+        <input class="st-pts standings-input standings-input--pts mw-input" type="number" value="${esc(pts)}" aria-label="Points" min="0" />
+      </div>
+    </div>
+    <button type="button" class="mw-btn-danger standings-del-btn st-del" title="Remove row">×</button>
+  </article>`;
 }
 
 function panelStandings() {
@@ -3011,51 +3746,75 @@ function panelStandings() {
   const teams = teamsForLeague(leagueFilter);
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const rows = standingsRows(leagueFilter);
-  const body = rows.map(([rk, club, pts], i) => standingsRowHtml(rk, club, pts, i, teams)).join("");
+  const stats = standingsStats(rows, teams);
+  const leaderTeam = standingsTeamForClub(stats.leaderClub, teams);
+  const listBody = rows.length
+    ? rows.map(([rk, club, pts], i) => standingsRowHtml(rk, club, pts, i, teams)).join("")
+    : standingsEmptyListHtml();
+
+  const emptyTeams = !teams.length
+    ? `<div class="standings-empty">
+        <div class="standings-empty__icon" aria-hidden="true"></div>
+        <p class="standings-empty__title">No teams yet</p>
+        <p class="standings-empty__text">Add teams in the <strong>Teams</strong> tab first, then return here to build the league table.</p>
+      </div>`
+    : "";
 
   return `
     <div class="mw-page standings-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">League table</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">League table</p>
             <h2 class="mw-heading">Standings</h2>
             <p class="mw-lead">Edit the mini table shown on the public site. Clubs are chosen from the <strong>Teams</strong> list for this league.</p>
+            ${rows.length ? standingsStatChipsHtml(stats) : ""}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">${esc(leagueName)}</span>
-              <strong class="mw-hero-preview-title">${rows.length} club${rows.length === 1 ? "" : "s"}</strong>
-              <span class="mw-hero-preview-range">Top ${rows.length || 10} table</span>
+          <aside class="mw-hero__aside">
+            <div class="standings-hero-preview">
+              ${adminTeamCrestHtml(leaderTeam)}
+              <div class="mw-hero-preview standings-hero-preview__box">
+                <span class="mw-hero-preview-label">${esc(stats.leaderClub || leagueName)}</span>
+                <strong class="mw-hero-preview-title">${stats.leaderClub ? `${stats.leaderPts} pts` : `${rows.length} club${rows.length === 1 ? "" : "s"}`}</strong>
+                <span class="mw-hero-preview-range">${stats.leaderClub ? "Table leader" : `Top ${rows.length || 10} table`}</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Top ${rows.length || 10} standings</h3>
-          <p>Set rank, club, and points for each row. Add or remove rows as needed.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--standings" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--standings" aria-hidden="true"></div>
+          <div>
+            <h3>Top ${rows.length || 10} standings</h3>
+            <p>Set rank, club, and points for each row. Top three rows get gold, silver, and bronze styling on the public widget.</p>
           </div>
         </div>
-        <div class="standings-table-wrap">
-          <table class="admin-table admin-table-compact standings-table" id="standingsTable">
-            <thead><tr><th>#</th><th>Club</th><th>Pts</th><th></th></tr></thead>
-            <tbody>${body}</tbody>
-          </table>
-        </div>
-        <div class="standings-form-footer row g-2 mt-3">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnAddStandRow">+ Row</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveStandings">Save standings</button>
+        <div class="standings-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
           </div>
         </div>
+        ${
+          emptyTeams
+            ? emptyTeams
+            : `<div class="standings-list-wrap">
+          <div class="standings-list" id="standingsList">${listBody}</div>
+        </div>
+        <div class="standings-form-footer">
+          <button type="button" class="mw-btn-ghost standings-add-btn" id="btnAddStandRow">Add row</button>
+          <button type="button" class="mw-btn-primary standings-save-btn" id="btnSaveStandings">Save standings</button>
+        </div>`
+        }
       </section>
     </div>
   `;
@@ -3065,53 +3824,79 @@ function panelScorers() {
   const teams = teamsForLeague(leagueFilter);
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const rows = scorersRows(leagueFilter);
-  const body = rows.map(([name, club, goals], i) => renderScorerRowHtml(name, club, goals, i, teams)).join("");
-  const leader = rows[0];
-  const leaderLine = leader?.[0] ? `${leader[0]} · ${leader[2]} goal${Number(leader[2]) === 1 ? "" : "s"}` : "No scorers yet";
+  const stats = scorersStats(rows, teams);
+  const leaderTeam = standingsTeamForClub(stats.leaderClub, teams);
+  const listBody = rows.length
+    ? rows.map(([name, club, goals], i) => renderScorerRowHtml(name, club, goals, i, teams, stats.maxGoals)).join("")
+    : scorersEmptyListHtml();
+
+  const emptyTeams = !teams.length
+    ? `<div class="scorers-empty">
+        <div class="scorers-empty__icon" aria-hidden="true"></div>
+        <p class="scorers-empty__title">No teams yet</p>
+        <p class="scorers-empty__text">Add teams in the <strong>Teams</strong> tab first, then return here to build the top scorers chart.</p>
+      </div>`
+    : "";
+
+  const leaderLine = stats.leaderName
+    ? `${stats.leaderName} · ${stats.leaderGoals} goal${stats.leaderGoals === 1 ? "" : "s"}`
+    : "No scorers yet";
 
   return `
     <div class="mw-page scorers-page">
-      <header class="mw-hero">
-        <div class="row g-3 align-items-start">
-          <div class="col-12 col-lg-8 mw-hero-text">
-            <p class="mw-eyebrow">Goal charts</p>
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+          <div class="mw-hero__markings"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Goal charts</p>
             <h2 class="mw-heading">Top scorers</h2>
-            <p class="mw-lead">Pick a <strong>club</strong> first — the <strong>player</strong> list fills from that team’s squad.</p>
+            <p class="mw-lead">Pick a <strong>club</strong> first — the <strong>player</strong> list fills from that team’s squad. Row order is the public chart order.</p>
+            ${rows.length ? scorersStatChipsHtml(stats) : ""}
           </div>
-          <div class="col-12 col-sm-8 col-lg-4">
-            <div class="mw-hero-preview w-100">
-              <span class="mw-hero-preview-label">${esc(leagueName)}</span>
-              <strong class="mw-hero-preview-title">${rows.length} scorer${rows.length === 1 ? "" : "s"}</strong>
-              <span class="mw-hero-preview-range">${esc(leaderLine)}</span>
+          <aside class="mw-hero__aside">
+            <div class="scorers-hero-preview">
+              ${adminTeamCrestHtml(leaderTeam)}
+              <div class="mw-hero-preview scorers-hero-preview__box">
+                <span class="mw-hero-preview-label">${esc(stats.leaderClub || leagueName)}</span>
+                <strong class="mw-hero-preview-title">${stats.leaderName ? esc(stats.leaderName) : `${rows.length} scorer${rows.length === 1 ? "" : "s"}`}</strong>
+                <span class="mw-hero-preview-range">${esc(leaderLine)}</span>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </header>
 
-      <section class="mw-card">
-        <div class="mw-card-head">
-          <h3>Scorer list</h3>
-          <p>${rows.length} row${rows.length === 1 ? "" : "s"} · shown on the public top scorers widget.</p>
-        </div>
-        <div class="row g-2 g-md-3 mb-3">
-          <div class="col-12 col-md-6 col-lg-4">
-            ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league")}
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--scorers" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--scorers" aria-hidden="true"></div>
+          <div>
+            <h3>Scorer list</h3>
+            <p>${rows.length} row${rows.length === 1 ? "" : "s"} · shown on the public top scorers widget. Top three rows get gold, silver, and bronze styling.</p>
           </div>
         </div>
-        <div class="scorers-table-wrap">
-          <table class="admin-table admin-table-compact scorers-table" id="scorersTable">
-            <thead><tr><th>Club</th><th>Player</th><th class="scorers-goals-head">Goals</th><th></th></tr></thead>
-            <tbody>${body}</tbody>
-          </table>
-        </div>
-        <div class="scorers-form-footer row g-2 mt-3">
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-ghost w-100" id="btnAddScorerRow">+ Row</button>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary w-100" id="btnSaveScorers">Save scorers</button>
+        <div class="scorers-filter-bar">
+          <div class="row g-2 g-md-3">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
           </div>
         </div>
+        ${
+          emptyTeams
+            ? emptyTeams
+            : `<div class="scorers-list-wrap">
+          <div class="scorers-list" id="scorersList">${listBody}</div>
+        </div>
+        <div class="scorers-form-footer">
+          <button type="button" class="mw-btn-ghost scorers-add-btn" id="btnAddScorerRow">Add row</button>
+          <button type="button" class="mw-btn-primary scorers-save-btn" id="btnSaveScorers">Save scorers</button>
+        </div>`
+        }
       </section>
     </div>
   `;
@@ -3177,6 +3962,14 @@ function bindLeagueSelect() {
 }
 
 function bindPanelHandlers() {
+  for (const btn of document.querySelectorAll("[data-overview-tab]")) {
+    btn.addEventListener("click", () => {
+      activeTab = btn.getAttribute("data-overview-tab");
+      renderNav();
+      renderPanel();
+    });
+  }
+
   $("#btnExport")?.addEventListener("click", () => {
     const blob = new Blob([FCDataStore.exportJson()], { type: "application/json" });
     const a = document.createElement("a");
@@ -3780,9 +4573,9 @@ function bindStadiums() {
 }
 
 function bindTeamRowDragSort() {
-  const tbody = $(".teams-table tbody");
-  if (!tbody || tbody.dataset.teamDragBound === "1") return;
-  tbody.dataset.teamDragBound = "1";
+  const list = $("#teamsSortList");
+  if (!list || list.dataset.teamDragBound === "1") return;
+  list.dataset.teamDragBound = "1";
 
   let draggedId = null;
   let touchRow = null;
@@ -3794,17 +4587,17 @@ function bindTeamRowDragSort() {
   };
 
   const persistOrder = () => {
-    const ids = [...tbody.querySelectorAll(".team-sort-row")]
+    const ids = [...list.querySelectorAll(".team-sort-row")]
       .map((r) => r.getAttribute("data-team-id"))
       .filter(Boolean);
     if (!ids.length || !leagueFilter) return;
     FCDataStore.reorderLeagueTeams(leagueFilter, ids);
     syncToAppArrays();
     toast("Club order saved");
-    tbody.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
   };
 
-  tbody.addEventListener("dragstart", (e) => {
+  list.addEventListener("dragstart", (e) => {
     const handle = e.target.closest(".player-drag-handle");
     if (!handle) return;
     const row = handle.closest(".team-sort-row");
@@ -3817,46 +4610,46 @@ function bindTeamRowDragSort() {
     }
   });
 
-  tbody.addEventListener("dragend", (e) => {
+  list.addEventListener("dragend", (e) => {
     const row = e.target.closest(".team-sort-row");
     row?.classList.remove("is-dragging");
     draggedId = null;
-    tbody.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
   });
 
-  tbody.addEventListener("dragover", (e) => {
+  list.addEventListener("dragover", (e) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
     const target = e.target.closest(".team-sort-row");
     if (!target || !draggedId || target.getAttribute("data-team-id") === draggedId) return;
 
-    const dragged = tbody.querySelector(`[data-team-id="${CSS.escape(draggedId)}"]`);
+    const dragged = list.querySelector(`[data-team-id="${CSS.escape(draggedId)}"]`);
     if (!dragged) return;
 
-    tbody.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".team-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
     target.classList.add("is-drag-over");
 
     const rect = target.getBoundingClientRect();
     const before = e.clientY < rect.top + rect.height / 2;
-    if (before) tbody.insertBefore(dragged, target);
-    else tbody.insertBefore(dragged, target.nextSibling);
+    if (before) list.insertBefore(dragged, target);
+    else list.insertBefore(dragged, target.nextSibling);
   });
 
-  tbody.addEventListener("dragleave", (e) => {
+  list.addEventListener("dragleave", (e) => {
     const row = e.target.closest(".team-sort-row");
     if (row) row.classList.remove("is-drag-over");
   });
 
-  tbody.addEventListener("drop", (e) => {
+  list.addEventListener("drop", (e) => {
     e.preventDefault();
     persistOrder();
   });
 
-  tbody.addEventListener(
+  list.addEventListener(
     "touchstart",
     (e) => {
       const handle = e.target.closest(".player-drag-handle");
-      if (!handle || !tbody.contains(handle)) return;
+      if (!handle || !list.contains(handle)) return;
       touchRow = handle.closest(".team-sort-row");
       touchMoved = false;
       touchRow?.classList.add("is-dragging");
@@ -3864,7 +4657,7 @@ function bindTeamRowDragSort() {
     { passive: true },
   );
 
-  tbody.addEventListener(
+  list.addEventListener(
     "touchmove",
     (e) => {
       if (!touchRow) return;
@@ -3876,8 +4669,8 @@ function bindTeamRowDragSort() {
 
       const rect = target.getBoundingClientRect();
       const before = touch.clientY < rect.top + rect.height / 2;
-      if (before) tbody.insertBefore(touchRow, target);
-      else tbody.insertBefore(touchRow, target.nextSibling);
+      if (before) list.insertBefore(touchRow, target);
+      else list.insertBefore(touchRow, target.nextSibling);
     },
     { passive: false },
   );
@@ -3890,8 +4683,8 @@ function bindTeamRowDragSort() {
     touchMoved = false;
   };
 
-  tbody.addEventListener("touchend", endTouch);
-  tbody.addEventListener("touchcancel", endTouch);
+  list.addEventListener("touchend", endTouch);
+  list.addEventListener("touchcancel", endTouch);
 }
 
 function bindTeams() {
@@ -4030,13 +4823,26 @@ function bindNationalDutyPlayerAuto(selectEl) {
     if (!countryInput || countryInput.value.trim()) return;
     const p = state().players.find((x) => x.id === selectEl.value);
     if (p?.nationality?.trim()) countryInput.value = p.nationality.trim();
+    const flagEl = row?.querySelector(".nd-card__flag");
+    if (flagEl && p) {
+      const flag =
+        p.flag ||
+        (p.nationality?.trim() && typeof NationalityFlags !== "undefined"
+          ? NationalityFlags.getFlag(p.nationality)
+          : "") ||
+        "";
+      if (flag) {
+        flagEl.textContent = flag;
+        flagEl.classList.remove("nd-card__flag--empty");
+      }
+    }
   });
 }
 
 function bindNationalDutyRowDragSort() {
-  const tbody = $("#ndTable tbody");
-  if (!tbody || tbody.dataset.ndDragBound === "1") return;
-  tbody.dataset.ndDragBound = "1";
+  const list = $("#ndList");
+  if (!list || list.dataset.ndDragBound === "1") return;
+  list.dataset.ndDragBound = "1";
 
   let draggedKey = null;
   let touchRow = null;
@@ -4047,7 +4853,7 @@ function bindNationalDutyRowDragSort() {
     return el ? el.closest(".nd-sort-row") : null;
   };
 
-  tbody.addEventListener("dragstart", (e) => {
+  list.addEventListener("dragstart", (e) => {
     const row = e.target.closest(".nd-sort-row");
     if (!row) return;
     draggedKey = row.getAttribute("data-nd-row-key");
@@ -4058,46 +4864,46 @@ function bindNationalDutyRowDragSort() {
     }
   });
 
-  tbody.addEventListener("dragend", (e) => {
+  list.addEventListener("dragend", (e) => {
     const row = e.target.closest(".nd-sort-row");
     row?.classList.remove("is-dragging");
     draggedKey = null;
-    tbody.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
   });
 
-  tbody.addEventListener("dragover", (e) => {
+  list.addEventListener("dragover", (e) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
     const target = e.target.closest(".nd-sort-row");
     if (!target || !draggedKey || target.getAttribute("data-nd-row-key") === draggedKey) return;
 
-    const dragged = tbody.querySelector(`[data-nd-row-key="${CSS.escape(draggedKey)}"]`);
+    const dragged = list.querySelector(`[data-nd-row-key="${CSS.escape(draggedKey)}"]`);
     if (!dragged) return;
 
-    tbody.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
     target.classList.add("is-drag-over");
 
     const rect = target.getBoundingClientRect();
     const before = e.clientY < rect.top + rect.height / 2;
-    if (before) tbody.insertBefore(dragged, target);
-    else tbody.insertBefore(dragged, target.nextSibling);
+    if (before) list.insertBefore(dragged, target);
+    else list.insertBefore(dragged, target.nextSibling);
   });
 
-  tbody.addEventListener("dragleave", (e) => {
+  list.addEventListener("dragleave", (e) => {
     const row = e.target.closest(".nd-sort-row");
     if (row) row.classList.remove("is-drag-over");
   });
 
-  tbody.addEventListener("drop", (e) => {
+  list.addEventListener("drop", (e) => {
     e.preventDefault();
-    tbody.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".nd-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
   });
 
-  tbody.addEventListener(
+  list.addEventListener(
     "touchstart",
     (e) => {
       const handle = e.target.closest(".player-drag-handle");
-      if (!handle || !tbody.contains(handle)) return;
+      if (!handle || !list.contains(handle)) return;
       touchRow = handle.closest(".nd-sort-row");
       touchMoved = false;
       touchRow?.classList.add("is-dragging");
@@ -4105,7 +4911,7 @@ function bindNationalDutyRowDragSort() {
     { passive: true },
   );
 
-  tbody.addEventListener(
+  list.addEventListener(
     "touchmove",
     (e) => {
       if (!touchRow) return;
@@ -4117,8 +4923,8 @@ function bindNationalDutyRowDragSort() {
 
       const rect = target.getBoundingClientRect();
       const before = touch.clientY < rect.top + rect.height / 2;
-      if (before) tbody.insertBefore(touchRow, target);
-      else tbody.insertBefore(touchRow, target.nextSibling);
+      if (before) list.insertBefore(touchRow, target);
+      else list.insertBefore(touchRow, target.nextSibling);
     },
     { passive: false },
   );
@@ -4130,8 +4936,8 @@ function bindNationalDutyRowDragSort() {
     touchMoved = false;
   };
 
-  tbody.addEventListener("touchend", endTouch);
-  tbody.addEventListener("touchcancel", endTouch);
+  list.addEventListener("touchend", endTouch);
+  list.addEventListener("touchcancel", endTouch);
 }
 
 function bindNationalDutyTableHandlers() {
@@ -4141,9 +4947,9 @@ function bindNationalDutyTableHandlers() {
   document.querySelectorAll(".nd-del").forEach((btn) => {
     btn.addEventListener("click", () => {
       btn.closest(".nd-row")?.remove();
-      const tbody = $("#ndTable tbody");
-      if (tbody && !tbody.querySelector(".nd-row")) {
-        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="6" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+      const list = $("#ndList");
+      if (list && !list.querySelector(".nd-row")) {
+        list.innerHTML = nationalDutyEmptyListHtml();
       }
     });
   });
@@ -4160,17 +4966,17 @@ function bindNationalDuty() {
   $("#btnNdAdd")?.addEventListener("click", () => {
     const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
     if (!teamId) return toast("Choose a club first");
-    const tbody = $("#ndTable tbody");
-    if (!tbody) return;
-    tbody.querySelector(".nd-empty-row")?.remove();
-    tbody.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, {}, `nd-row-${Date.now()}`));
-    const rows = tbody.querySelectorAll(".nd-row");
+    const list = $("#ndList");
+    if (!list) return;
+    list.querySelector(".nationalduty-empty-list")?.remove();
+    list.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, {}, `nd-row-${Date.now()}`));
+    const rows = list.querySelectorAll(".nd-row");
     const lastSel = rows[rows.length - 1]?.querySelector(".nd-player");
     bindNationalDutyPlayerAuto(lastSel);
     rows[rows.length - 1]?.querySelector(".nd-del")?.addEventListener("click", () => {
       rows[rows.length - 1]?.remove();
-      if (!tbody.querySelector(".nd-row")) {
-        tbody.innerHTML = `<tr class="nd-empty-row"><td colspan="6" class="admin-muted">No players on national duty yet. Add a row below.</td></tr>`;
+      if (!list.querySelector(".nd-row")) {
+        list.innerHTML = nationalDutyEmptyListHtml();
       }
     });
   });
@@ -4585,6 +5391,8 @@ function bindMatches() {
     btn.addEventListener("click", () => {
       const m = state().matches.find((x) => x.id === btn.getAttribute("data-edit-match"));
       if (!m) return;
+      const meta = FCDataStore.getLeagueMeta(leagueFilter);
+      const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
       $("#matchEditId").value = m.id;
       $("#matchFormTitle").textContent = "Edit match";
       $("#matchTime").value = m.time ?? "";
@@ -4593,6 +5401,8 @@ function bindMatches() {
       $("#matchAway").value = m.awayTeamId;
       $("#matchHomeScore").value = m.score?.[0] ?? 0;
       $("#matchAwayScore").value = m.score?.[1] ?? 0;
+      if (isWc && $("#matchStage")) $("#matchStage").value = m.matchday ?? meta.matchweekTitle ?? "";
+      $("#matchFormCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 
@@ -4650,21 +5460,24 @@ function bindStandings() {
   }
 
   $("#btnAddStandRow")?.addEventListener("click", () => {
-    const tbody = $("#standingsTable tbody");
-    const i = tbody.querySelectorAll("tr").length;
+    const list = $("#standingsList");
+    if (!list) return;
     const teams = teamsForLeague(leagueFilter);
-    tbody.insertAdjacentHTML(
-      "beforeend",
-      standingsRowHtml(i + 1, "", 0, i, teams),
-    );
+    const i = list.querySelectorAll(".st-row").length;
+    list.querySelector(".standings-empty-list")?.remove();
+    list.insertAdjacentHTML("beforeend", standingsRowHtml(i + 1, "", 0, i, teams));
     bindStandDel();
+    bindStandingsClubChange();
+    bindStandingsRankChange();
   });
 
   function readStandings() {
-    return Array.from($("#standingsTable tbody").querySelectorAll("tr")).map((tr) => [
-      Number(tr.querySelector(".st-rk").value) || 0,
-      tr.querySelector(".st-club")?.value.trim() ?? "",
-      Number(tr.querySelector(".st-pts").value) || 0,
+    const list = $("#standingsList");
+    if (!list) return [];
+    return Array.from(list.querySelectorAll(".st-row")).map((row) => [
+      Number(row.querySelector(".st-rk")?.value) || 0,
+      row.querySelector(".st-club")?.value.trim() ?? "",
+      Number(row.querySelector(".st-pts")?.value) || 0,
     ]);
   }
 
@@ -4675,11 +5488,54 @@ function bindStandings() {
   });
 
   bindStandDel();
+  bindStandingsClubChange();
+  bindStandingsRankChange();
+}
+
+function bindStandingsRankChange() {
+  document.querySelectorAll(".st-rk").forEach((input) => {
+    if (input.dataset.stRkBound === "1") return;
+    input.dataset.stRkBound = "1";
+    input.addEventListener("change", () => {
+      const row = input.closest(".st-row");
+      if (!row) return;
+      row.classList.remove("st-card--gold", "st-card--silver", "st-card--bronze");
+      const tier = standingsRankTierClass(input.value);
+      if (tier) row.classList.add(tier);
+    });
+  });
+}
+
+function bindStandingsClubChange() {
+  document.querySelectorAll(".st-club").forEach((sel) => {
+    if (sel.dataset.stClubBound === "1") return;
+    sel.dataset.stClubBound = "1";
+    sel.addEventListener("change", () => {
+      const row = sel.closest(".st-row");
+      const crestEl = row?.querySelector("[data-st-crest]");
+      if (!crestEl) return;
+      const teams = teamsForLeague(leagueFilter);
+      const team = standingsTeamForClub(sel.value, teams);
+      crestEl.innerHTML = adminTeamCrestHtml(team);
+      const rk = Number(row.querySelector(".st-rk")?.value) || 0;
+      row.classList.remove("st-card--gold", "st-card--silver", "st-card--bronze");
+      const tier = standingsRankTierClass(rk);
+      if (tier) row.classList.add(tier);
+    });
+  });
 }
 
 function bindStandDel() {
   document.querySelectorAll(".st-del").forEach((btn) => {
-    btn.addEventListener("click", () => btn.closest("tr")?.remove());
+    if (btn.dataset.stDelBound === "1") return;
+    btn.dataset.stDelBound = "1";
+    btn.addEventListener("click", () => {
+      btn.closest(".st-row")?.remove();
+      const list = $("#standingsList");
+      if (list && !list.querySelector(".st-row")) {
+        list.innerHTML = standingsEmptyListHtml();
+      }
+    });
   });
 }
 
@@ -4687,31 +5543,69 @@ function refreshScorerPlayerCell(row, clubName) {
   const cell = row?.querySelector(".sc-player-cell");
   if (!cell) return;
   const teamId = teamIdForClubName(leagueFilter, clubName);
-  cell.innerHTML = scorersPlayerSelectHtml(teamId, "");
+  cell.innerHTML = `<label class="sc-field-label">Player</label>${scorersPlayerSelectHtml(teamId, "")}`;
+  const crestEl = row?.querySelector("[data-sc-crest]");
+  if (crestEl) {
+    const teams = teamsForLeague(leagueFilter);
+    crestEl.innerHTML = adminTeamCrestHtml(standingsTeamForClub(clubName, teams));
+  }
+}
+
+function updateScorerGoalsMeter(input) {
+  const row = input?.closest(".sc-row");
+  if (!row) return;
+  const meter = row.querySelector(".sc-goals-meter__fill");
+  if (!meter) return;
+  const max = Math.max(
+    Number(input.dataset.scMax) || 0,
+    ...[...document.querySelectorAll("#scorersList .sc-goals")].map((el) => Number(el.value) || 0),
+  );
+  const goals = Number(input.value) || 0;
+  const pct = max > 0 ? Math.round((goals / max) * 100) : 0;
+  meter.style.width = `${pct}%`;
+  document.querySelectorAll("#scorersList .sc-goals").forEach((el) => {
+    el.dataset.scMax = String(max);
+    const m = el.closest(".sc-row")?.querySelector(".sc-goals-meter__fill");
+    if (m && el !== input) {
+      const g = Number(el.value) || 0;
+      m.style.width = max > 0 ? `${Math.round((g / max) * 100)}%` : "0%";
+    }
+  });
 }
 
 function bindScorers() {
-  const tbody = $("#scorersTable tbody");
+  const list = $("#scorersList");
 
   $("#btnAddScorerRow")?.addEventListener("click", () => {
-    if (!tbody) return;
+    if (!list) return;
     const teams = teamsForLeague(leagueFilter);
-    const i = tbody.querySelectorAll(".scorer-row").length;
-    tbody.insertAdjacentHTML("beforeend", renderScorerRowHtml("", "", 0, i, teams));
+    const i = list.querySelectorAll(".sc-row").length;
+    const maxGoals = Math.max(
+      0,
+      ...[...list.querySelectorAll(".sc-goals")].map((el) => Number(el.value) || 0),
+    );
+    list.querySelector(".scorers-empty-list")?.remove();
+    list.insertAdjacentHTML("beforeend", renderScorerRowHtml("", "", 0, i, teams, maxGoals));
     bindScorerDel();
   });
 
-  tbody?.addEventListener("change", (e) => {
+  list?.addEventListener("change", (e) => {
     const t = e.target;
     if (!(t instanceof HTMLElement) || !t.classList.contains("sc-club")) return;
-    refreshScorerPlayerCell(t.closest("tr"), t.value);
+    refreshScorerPlayerCell(t.closest(".sc-row"), t.value);
+  });
+
+  list?.addEventListener("input", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement) || !t.classList.contains("sc-goals")) return;
+    updateScorerGoalsMeter(t);
   });
 
   $("#btnSaveScorers")?.addEventListener("click", () => {
-    const rows = Array.from($("#scorersTable tbody").querySelectorAll("tr")).map((tr) => [
-      tr.querySelector(".sc-name")?.value.trim() ?? "",
-      tr.querySelector(".sc-club")?.value.trim() ?? "",
-      Number(tr.querySelector(".sc-goals")?.value) || 0,
+    const rows = Array.from(list?.querySelectorAll(".sc-row") ?? []).map((row) => [
+      row.querySelector(".sc-name")?.value.trim() ?? "",
+      row.querySelector(".sc-club")?.value.trim() ?? "",
+      Number(row.querySelector(".sc-goals")?.value) || 0,
     ]);
     FCDataStore.setTopScorers(leagueFilter, rows);
     syncToAppArrays();
@@ -4723,7 +5617,15 @@ function bindScorers() {
 
 function bindScorerDel() {
   document.querySelectorAll(".sc-del").forEach((btn) => {
-    btn.addEventListener("click", () => btn.closest("tr")?.remove());
+    if (btn.dataset.scDelBound === "1") return;
+    btn.dataset.scDelBound = "1";
+    btn.addEventListener("click", () => {
+      btn.closest(".sc-row")?.remove();
+      const list = $("#scorersList");
+      if (list && !list.querySelector(".sc-row")) {
+        list.innerHTML = scorersEmptyListHtml();
+      }
+    });
   });
 }
 
@@ -4893,7 +5795,7 @@ function readTransfersTable(tableId, dir, clubName) {
   const tbody = $(tableId)?.querySelector("tbody");
   if (!tbody) return [];
   const isIncoming = transferDirectionIncoming(dir);
-  return Array.from(tbody.querySelectorAll("tr"))
+  return Array.from(tbody.querySelectorAll("tr:not(.transfers-empty-row)"))
     .map((tr, i) => {
       const playerEl = tr.querySelector(".tr-player");
       const player = playerEl?.value.trim() ?? "";
@@ -4937,7 +5839,8 @@ function bindTransfers() {
       btn.addEventListener("click", () => {
         const tbody = $(`#${section.tableId} tbody`);
         if (!tbody || !transferTeamFilter) return toast("Choose a club first");
-        const i = tbody.querySelectorAll("tr").length;
+        tbody.querySelector(".transfers-empty-row")?.remove();
+        const i = tbody.querySelectorAll("tr:not(.transfers-empty-row)").length;
         tbody.insertAdjacentHTML(
           "beforeend",
           transferTableRowHtml(section.key, transferTeamFilter, {}, i),

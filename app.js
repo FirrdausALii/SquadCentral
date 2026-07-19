@@ -5697,8 +5697,15 @@ function renderHeroFeaturedMatch(leagueId) {
 
   if (!featured) {
     wrap.innerHTML = `<div class="home-hero-feature__empty">No fixtures for this matchweek yet.</div>`;
+    wrap.style.removeProperty("--hero-home-color");
+    wrap.style.removeProperty("--hero-away-color");
     return;
   }
+
+  const ht = teamById.get(featured.homeTeamId);
+  const at = teamById.get(featured.awayTeamId);
+  wrap.style.setProperty("--hero-home-color", teamBrandColor(ht));
+  wrap.style.setProperty("--hero-away-color", teamBrandColor(at));
 
   wrap.innerHTML = heroMatchCardHtml(featured, { featured: true });
   bindHeroMatchCards(wrap, leagueId);
@@ -5848,9 +5855,18 @@ function refreshHomeEntranceAnimations(scope) {
     homeRailEnterSeeded = true;
   }
 
+  if (!scope) {
+    const sections = $$(".home-enter", root);
+    sections.forEach((el, i) => {
+      if (el.classList.contains("is-entered")) return;
+      stampHomeEnter(el, i, 80);
+    });
+  }
+
   const cards = [
     ...$$("#heroSpotlight .match-card", root),
     ...$$("#heroFeaturedMatch .match-card", root),
+    ...$$(".home-clubs .club-card", root),
   ];
   cards.forEach((el, i) => {
     if (el.classList.contains("is-entered")) return;
@@ -5879,6 +5895,8 @@ function stadiumForTeam(teamId) {
 function setLeagueAccent(leagueId) {
   const ui = LEAGUE_UI[leagueId] ?? LEAGUE_UI.epl;
   document.documentElement.style.setProperty("--league-accent", ui.c1 ?? "#378ADD");
+  const shell = $("#homeStadiumShell");
+  if (shell) shell.dataset.league = leagueId;
 }
 
 function heroLeagueMeta(leagueId) {
@@ -5979,7 +5997,7 @@ function renderLeagueTrending(leagueId) {
     .map((t) => {
       const squad = playersForTeam(t.id).length;
       return `
-        <div class="club-card" role="button" tabindex="0" data-club="${escapeHtml(t.id)}" aria-label="Open ${escapeHtml(t.name)} roster">
+        <div class="club-card home-enter" role="button" tabindex="0" data-club="${escapeHtml(t.id)}" aria-label="Open ${escapeHtml(t.name)} roster">
           ${clubLogoHtml(t)}
           <div class="club-card-info">
             <div class="club-card-name">${escapeHtml(t.name)}</div>
@@ -5989,6 +6007,8 @@ function renderLeagueTrending(leagueId) {
       `;
     })
     .join("");
+
+  refreshHomeEntranceAnimations(el);
 
   for (const chip of $$("[data-club]", el)) {
     chip.addEventListener("click", () => {

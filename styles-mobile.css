@@ -78,8 +78,16 @@ body.fc-app {
 
 /* Home hero & hub */
 @media (max-width: 767.98px) {
+  .home-hero {
+    border-radius: var(--radius-lg);
+  }
+
+  .home-stadium {
+    border-radius: var(--radius-lg);
+  }
+
   .home-hero__title {
-    font-size: clamp(1.5rem, 6.5vw, 2rem);
+    font-size: clamp(1.75rem, 8vw, 2.35rem);
     overflow-wrap: break-word;
   }
 
