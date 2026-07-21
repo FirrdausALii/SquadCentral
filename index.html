@@ -146,17 +146,6 @@
               <div class="home-hero__scanline"></div>
             </div>
 
-            <div class="home-hero__bar">
-              <div class="home-hero__brand">
-                <span class="home-hero__name">Squad Central</span>
-                <span class="home-hero__tagline">European &amp; world football hub</span>
-              </div>
-              <span class="home-hero__eyebrow home-hero__eyebrow--live">
-                <span class="dot" aria-hidden="true"></span>
-                Matchday live
-              </span>
-            </div>
-
             <div class="home-statbar" aria-label="Platform snapshot">
               <div class="home-statbar__item">
                 <span class="home-statbar__value stat-value--count" id="statLeagues" data-count-target="">—</span>
@@ -185,23 +174,23 @@
                 <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
                 <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
               </div>
-              <p class="home-rail__scroll-hint" id="homeRailScrollHint" hidden>Scroll for more leagues →</p>
             </div>
 
-            <section class="home-hero__strip home-enter" aria-labelledby="heroStripTitle">
+            <section class="home-hero__strip home-enter" aria-label="Matches">
               <div class="home-hero__strip-head">
-                <h2 class="home-hero__strip-title" id="heroStripTitle">
-                  <span class="home-hero__strip-live"><span class="dot" aria-hidden="true"></span>Live &amp; upcoming</span>
-                  <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
-                  <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
-                </h2>
+                <div class="home-hero__strip-titles">
+                  <div class="home-hero__strip-toggle" role="tablist" aria-label="Match status" id="heroStripToggle"></div>
+                  <div class="home-hero__strip-meta">
+                    <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
+                    <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
+                  </div>
+                </div>
                 <a class="home-hero__strip-link" href="#match-center">Match center →</a>
               </div>
               <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
                 <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
                 <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
               </div>
-              <p class="home-spotlight__scroll-hint" id="heroSpotlightHint" hidden>Scroll sideways for more matches →</p>
             </section>
           </header>
 

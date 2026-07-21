@@ -5489,8 +5489,8 @@ function matchCardAriaLabel(m, ht, at) {
   return `${ht?.name ?? "Home"} ${m.score[0]} to ${m.score[1]} ${at?.name ?? "Away"}`;
 }
 
-function matchCardVenueHtml(m, ht, at, { list = false } = {}) {
-  const raw = renderMatchVenueCoachesHtml(m, ht, at, { list });
+function matchCardVenueHtml(m, ht, at, { list = false, hero = false } = {}) {
+  const raw = renderMatchVenueCoachesHtml(m, ht, at, { list, hero });
   if (!raw) return "";
   return `<div class="match-card__venue">${raw}</div>`;
 }
@@ -5561,7 +5561,7 @@ function matchCardHtml(m, options = {}) {
   const headerKicker = kicker || m.matchday || "";
   const datetime = m.time || "";
   const status = String(m.status ?? "").trim();
-  const venueHtml = showVenue ? matchCardVenueHtml(m, ht, at, { list: variant === "list" }) : "";
+  const venueHtml = showVenue ? matchCardVenueHtml(m, ht, at, { list: variant === "list", hero: variant === "hero" }) : "";
 
   const headerHtml =
     headerKicker || (showStatus && status)
@@ -5958,21 +5958,81 @@ function renderHeroStandings(leagueId) {
   });
 }
 
+const HERO_STRIP_ORDER = ["live", "upcoming", "results"];
+const HERO_STRIP_LABEL = { live: "Live", upcoming: "Upcoming", results: "Results" };
+const HERO_RESULT_STATUSES = new Set(["FT", "AET", "PEN", "AWD"]);
+let heroStripState = null;
+
+function categorizeHeroMatches(matches) {
+  const buckets = { live: [], upcoming: [], results: [] };
+  for (const m of matches ?? []) {
+    const s = String(m.status ?? "").trim().toUpperCase();
+    if (s === "LIVE") buckets.live.push(m);
+    else if (HERO_RESULT_STATUSES.has(s)) buckets.results.push(m);
+    else buckets.upcoming.push(m);
+  }
+  return buckets;
+}
+
+function renderHeroStripToggle(leagueId, available, state, buckets) {
+  const wrap = $("#heroStripToggle");
+  if (!wrap) return;
+  if (!available.length) {
+    wrap.innerHTML = "";
+    return;
+  }
+
+  wrap.innerHTML = available
+    .map((k) => {
+      const active = k === state;
+      const isLive = k === "live";
+      return `
+        <button type="button" role="tab" aria-selected="${active ? "true" : "false"}"
+          class="hero-seg${active ? " is-active" : ""}${isLive ? " hero-seg--live" : ""}"
+          data-hero-state="${k}">
+          ${isLive ? '<span class="dot" aria-hidden="true"></span>' : ""}
+          <span class="hero-seg__label">${HERO_STRIP_LABEL[k]}</span>
+          <span class="hero-seg__count">${buckets[k].length}</span>
+        </button>`;
+    })
+    .join("");
+
+  for (const btn of $$("[data-hero-state]", wrap)) {
+    btn.addEventListener("click", () => {
+      const next = btn.getAttribute("data-hero-state");
+      if (!next || next === heroStripState) return;
+      heroStripState = next;
+      renderHeroSpotlight(leagueId);
+    });
+  }
+}
+
 function renderHeroSpotlight(leagueId) {
   const track = $("#heroSpotlight");
   if (!track) return;
 
   const meta = heroLeagueMeta(leagueId);
   const mw = meta.matchweek ?? 36;
-  const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, mw).slice(0, 8);
+  const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, mw);
+  const buckets = categorizeHeroMatches(matches);
+  const available = HERO_STRIP_ORDER.filter((k) => buckets[k].length);
 
-  if (!matches.length) {
-    track.innerHTML = `<div class="home-spotlight__empty">No fixtures for this matchweek yet.</div>`;
+  let state = heroStripState;
+  if (!available.includes(state)) state = available[0] ?? "results";
+  heroStripState = state;
+
+  renderHeroStripToggle(leagueId, available, state, buckets);
+
+  const list = (buckets[state] ?? []).slice(0, 8);
+  if (!list.length) {
+    track.innerHTML = `<div class="home-spotlight__empty">No matches to show yet.</div>`;
+    updateHomeSpotlightScroll();
     return;
   }
 
-  track.innerHTML = matches.map((m) => heroMatchCardHtml(m)).join("");
+  track.innerHTML = list.map((m) => heroMatchCardHtml(m)).join("");
   bindHeroMatchCards(track, leagueId);
+  track.scrollLeft = 0;
   updateHomeSpotlightScroll();
   refreshHomeEntranceAnimations(track);
 }
@@ -6764,7 +6824,7 @@ function renderMatchGoalEventsHtml(homeClubName, awayClubName, events, matchCtx 
 }
 
 /** Venue + head coaches from `m.stadium` and `TEAMS[].coach`. Omits placeholder "—". */
-function renderMatchVenueCoachesHtml(m, ht, at, { list = false } = {}) {
+function renderMatchVenueCoachesHtml(m, ht, at, { list = false, hero = false } = {}) {
   const lid = m?.leagueId;
   const showStadium = leagueFeatureOn(lid, "matchStadium");
   const showCoaches = leagueFeatureOn(lid, "matchCoaches");
@@ -6775,6 +6835,29 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false } = {}) {
   const homeCoachOk = showCoaches && hc && hc !== "—";
   const awayCoachOk = showCoaches && ac && ac !== "—";
   if (!stadiumOk && !homeCoachOk && !awayCoachOk) return "";
+
+  if (hero) {
+    const stadiumRowH = stadiumOk
+      ? `<div class="mw-venue-row"><span class="mw-venue-label">Venue</span><span class="mw-venue-value">${escapeHtml(st)}</span></div>`
+      : "";
+    let coachesRowH = "";
+    if (homeCoachOk || awayCoachOk) {
+      const lines = [];
+      if (homeCoachOk) {
+        lines.push(
+          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(ht?.name ?? "Home")}</span><span class="mw-coach-name">${escapeHtml(hc)}</span></span>`,
+        );
+      }
+      if (awayCoachOk) {
+        lines.push(
+          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(at?.name ?? "Away")}</span><span class="mw-coach-name">${escapeHtml(ac)}</span></span>`,
+        );
+      }
+      const label = homeCoachOk && awayCoachOk ? "Managers" : "Manager";
+      coachesRowH = `<div class="mw-venue-row mw-venue-row--coaches"><span class="mw-venue-label">${label}</span><span class="mw-coach-lines">${lines.join("")}</span></div>`;
+    }
+    return `<div class="mw-venue-meta mw-venue-meta--hero">${stadiumRowH}${coachesRowH}</div>`;
+  }
 
   const stadiumRow = stadiumOk
     ? `<div class="mw-venue-row"><span class="mw-venue-label">Venue</span><span class="mw-venue-value">${escapeHtml(st)}</span></div>`
