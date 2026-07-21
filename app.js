@@ -1794,15 +1794,108 @@ function standingsLeagueBadge(leagueId) {
   return `<span class="standings-league-badge">${escapeHtml(short)}</span>`;
 }
 
-function standingsLegendHtml(showLegend) {
+function standingsShortClubName(clubName) {
+  const raw = String(clubName ?? "").trim();
+  if (!raw) return "";
+  const aliases = {
+    "AFC Bournemouth": "Bournemouth",
+    "Manchester United": "Man United",
+    "Manchester City": "Man City",
+    "Tottenham Hotspur": "Tottenham",
+    "Wolverhampton Wanderers": "Wolves",
+    "Nottingham Forest": "Nott'm Forest",
+    "Brighton & Hove Albion": "Brighton",
+    "West Ham United": "West Ham",
+    "Newcastle United": "Newcastle",
+    "Leicester City": "Leicester",
+    "Crystal Palace": "C Palace",
+    "Atletico Madrid": "Atletico",
+    "Athletic Bilbao": "Athletic",
+    "Real Sociedad": "Sociedad",
+    "Rayo Vallecano": "Rayo",
+    "Bayer Leverkusen": "Leverkusen",
+    "Borussia Dortmund": "Dortmund",
+    "Borussia Mönchengladbach": "Gladbach",
+    "Borussia Monchengladbach": "Gladbach",
+    "Eintracht Frankfurt": "Frankfurt",
+    "Paris Saint-Germain": "PSG",
+    "Olympique Marseille": "Marseille",
+    "Olympique Lyonnais": "Lyon",
+  };
+  if (aliases[raw]) return aliases[raw];
+  if (raw.length <= 12) return raw;
+  // Drop common prefixes/suffixes that burn width without aiding recognition
+  return raw
+    .replace(/^AFC\s+/i, "")
+    .replace(/\s+(FC|CF|SC)$/i, "")
+    .trim();
+}
+
+function standingsClubCode(clubName) {
+  const name = String(clubName ?? "").trim();
+  if (!name) return "?";
+  const known = {
+    Arsenal: "ARS",
+    "Man City": "MCI",
+    "Man United": "MUN",
+    Liverpool: "LIV",
+    Chelsea: "CHE",
+    Tottenham: "TOT",
+    Bournemouth: "BOU",
+    Brighton: "BHA",
+    "Aston Villa": "AVL",
+    "Crystal Palace": "CRY",
+    Newcastle: "NEW",
+    "West Ham": "WHU",
+    Fulham: "FUL",
+    Everton: "EVE",
+    Brentford: "BRE",
+    Wolves: "WOL",
+    Nottingham: "NFO",
+    Leeds: "LEE",
+  };
+  if (known[name]) return known[name];
+  const words = name.replace(/[^a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0] + (words[1][1] || words[0][1] || "")).toUpperCase().slice(0, 3);
+  }
+  return name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 3).toUpperCase() || "?";
+}
+
+function standingsLegendHtml(showLegend, { zones } = {}) {
   if (!showLegend) return "";
+  const items = [
+    { key: "champions", color: "#378ADD", label: "Champions League" },
+    { key: "europa", color: "#a78bfa", label: "Europa League" },
+    { key: "conference", color: "#4ade80", label: "Conference" },
+    { key: "relegation", color: "#f87171", label: "Relegation" },
+  ];
+  const list = Array.isArray(zones) && zones.length
+    ? items.filter((i) => zones.includes(i.key))
+    : items;
+  if (!list.length) return "";
   return `
-    <div class="standings-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> Champions League</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Europa League</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Conference</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Relegation</div>
+    <div class="standings-legend" aria-label="Qualification zones">
+      ${list
+        .map(
+          (i) =>
+            `<div class="legend-item"><span class="legend-dot" style="background:${i.color}" aria-hidden="true"></span>${escapeHtml(i.label)}</div>`,
+        )
+        .join("")}
     </div>`;
+}
+
+function standingsZonesPresent(rows, totalTeams) {
+  const zones = new Set();
+  for (const row of rows) {
+    const rk = Number(row[0]);
+    const z = standingsZoneClass(rk, totalTeams);
+    if (z === "zone-champions") zones.add("champions");
+    else if (z === "zone-europa") zones.add("europa");
+    else if (z === "zone-conference") zones.add("conference");
+    else if (z === "zone-relegation") zones.add("relegation");
+  }
+  return [...zones];
 }
 
 function renderMiniStandingsTableHtml(rows, options = {}) {
@@ -1816,6 +1909,8 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     highlightClub = "",
     wrapCard = true,
     fullStats = true,
+    // Compact previews default to condensed (Pos/Club/P/Pts); full tables stay expanded.
+    expanded = !compact,
   } = typeof options === "string" ? { emptyLabel: options } : options;
 
   const sorted = sortStandingsRows(rows);
@@ -1829,8 +1924,11 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     ? list.map((row, i) => enrichStandingsRow(row, i + 1, totalTeams, leagueId))
     : list;
   const showFullColumns = fullStats && enriched.some((row) => row.length >= 8);
+  // Condensed = Pos / Club / P / Pts. Expanded = full W/D/L/GD (+ Form when not compact).
+  const showExpandedCols = showFullColumns && expanded;
+  const showPlayedOnly = showFullColumns && !expanded;
 
-  const thead = showFullColumns
+  const thead = showExpandedCols
     ? `<thead><tr>
         <th class="col-pos">#</th>
         <th class="col-club">Club</th>
@@ -1838,7 +1936,14 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         <th class="col-pts">Pts</th>
         ${compact ? "" : `<th class="col-form">Form</th>`}
       </tr></thead>`
-    : `<thead><tr>
+    : showPlayedOnly
+      ? `<thead><tr>
+        <th class="col-pos">#</th>
+        <th class="col-club">Club</th>
+        <th class="col-stat col-played">P</th>
+        <th class="col-pts">Pts</th>
+      </tr></thead>`
+      : `<thead><tr>
         <th class="col-pos">#</th>
         <th class="col-club">Club</th>
         <th class="col-pts">Pts</th>
@@ -1856,17 +1961,22 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
           : "";
       const stat = (v) => (v == null || v === "" ? "—" : escapeHtml(String(v)));
       const gdText = gd == null || gd === "" ? "—" : gd > 0 ? `+${gd}` : String(gd);
+      const shortName = standingsShortClubName(club);
+      const code = standingsClubCode(shortName || club);
+      const clubCell = `
+            <div class="club-cell">
+              ${standingsCrestHtml(team, club)}
+              <span class="club-cell-name" title="${escapeHtml(String(club))}">
+                <span class="club-cell-name__full">${escapeHtml(shortName || String(club))}</span>
+                <span class="club-cell-name__code">${escapeHtml(code)}</span>
+              </span>
+            </div>`;
 
-      if (showFullColumns) {
+      if (showExpandedCols) {
         return `
         <tr class="${zone}${highlight}">
           <td class="col-pos">${escapeHtml(String(rk))}</td>
-          <td class="col-club">
-            <div class="club-cell">
-              ${standingsCrestHtml(team, club)}
-              <span class="club-cell-name">${escapeHtml(String(club))}</span>
-            </div>
-          </td>
+          <td class="col-club">${clubCell}</td>
           <td class="col-stat">${stat(played)}</td>
           <td class="col-stat">${stat(won)}</td>
           <td class="col-stat">${stat(drawn)}</td>
@@ -1881,15 +1991,20 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         </tr>`;
       }
 
+      if (showPlayedOnly) {
+        return `
+        <tr class="${zone}${highlight}">
+          <td class="col-pos">${escapeHtml(String(rk))}</td>
+          <td class="col-club">${clubCell}</td>
+          <td class="col-stat col-played">${stat(played)}</td>
+          <td class="col-pts">${escapeHtml(String(pts))}</td>
+        </tr>`;
+      }
+
       return `
         <tr class="${zone}${highlight}">
           <td class="col-pos">${escapeHtml(String(rk))}</td>
-          <td class="col-club">
-            <div class="club-cell">
-              ${standingsCrestHtml(team, club)}
-              <span class="club-cell-name">${escapeHtml(String(club))}</span>
-            </div>
-          </td>
+          <td class="col-club">${clubCell}</td>
           <td class="col-pts">${escapeHtml(String(pts))}</td>
           ${
             compact
@@ -1900,15 +2015,26 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     })
     .join("");
 
+  const modeClass = showExpandedCols
+    ? " standings-table--full standings-table--expanded"
+    : showPlayedOnly
+      ? " standings-table--condensed"
+      : showFullColumns
+        ? " standings-table--full"
+        : "";
+
   const tableHtml = `
-      <div class="standings-table-wrap${compact ? " standings-table-wrap--compact" : ""}">
-        <table class="standings-table${showFullColumns ? " standings-table--full" : ""}">
+      <div class="standings-table-wrap${compact ? " standings-table-wrap--compact" : ""}${showExpandedCols ? " standings-table-wrap--scroll" : ""}">
+        <table class="standings-table${modeClass}">
           ${thead}
           <tbody>${body}</tbody>
         </table>
       </div>`;
 
-  if (!wrapCard) return tableHtml;
+  const legendZones = standingsZonesPresent(enriched, totalTeams);
+  const legend = standingsLegendHtml(showLegend, { zones: legendZones });
+
+  if (!wrapCard) return `${tableHtml}${legend}`;
 
   return `
     <div class="standings-card${compact ? " standings-card--compact" : ""}">
@@ -1917,7 +2043,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         ${leagueId ? standingsLeagueBadge(leagueId) : ""}
       </div>
       ${tableHtml}
-      ${standingsLegendHtml(showLegend && !compact)}
+      ${legend}
     </div>`;
 }
 
@@ -4853,6 +4979,8 @@ function setupLeagueSwitcherLayout() {
   bindHomeRailScroll();
   bindHomeSpotlightScroll();
   bindHomeRailMore();
+  bindHeroStandingsExpand();
+  bindHomeBentoViewToggle();
 
   const reposition = () => {
     updateHomeRailArrows();
@@ -5929,9 +6057,37 @@ function renderHeroLeagueMeta(leagueId) {
   if (rangeEl) rangeEl.textContent = meta.dateRange ?? "—";
 }
 
+let heroStandingsExpanded = false;
+
+function featuredTeamStandingRow(leagueId, teamName) {
+  const rows = miniStandingsBlock(leagueId)?.rows ?? [];
+  const name = String(teamName ?? "").trim().toLowerCase();
+  if (!name) return null;
+  const hit = rows.find((r) => String(r[1] ?? "").trim().toLowerCase() === name);
+  return hit ?? null;
+}
+
 function renderHeroStandings(leagueId) {
   const el = $("#heroStandings");
   if (!el) return;
+
+  const highlightClub = String($("#featuredTeam")?.textContent ?? "").trim();
+  const expandBtn = $("#heroStandingsExpand");
+  if (expandBtn) {
+    expandBtn.setAttribute("aria-pressed", heroStandingsExpanded ? "true" : "false");
+    expandBtn.classList.toggle("is-active", heroStandingsExpanded);
+    expandBtn.textContent = heroStandingsExpanded ? "Compact" : "Full stats";
+  }
+
+  const common = {
+    leagueId,
+    compact: true,
+    showLegend: true,
+    wrapCard: false,
+    fullStats: true,
+    expanded: heroStandingsExpanded,
+    highlightClub: highlightClub && highlightClub !== "—" ? highlightClub : "",
+  };
 
   if (leagueUsesGroupStandings(leagueId)) {
     const groupA = groupStandingsForLeague(leagueId).find((g) => g.id === "A");
@@ -5941,11 +6097,8 @@ function renderHeroStandings(leagueId) {
       return;
     }
     el.innerHTML = renderMiniStandingsTableHtml(rows, {
-      leagueId,
-      compact: true,
-      showLegend: false,
+      ...common,
       limit: 4,
-      wrapCard: false,
     });
     return;
   }
@@ -5956,12 +6109,44 @@ function renderHeroStandings(leagueId) {
     return;
   }
   el.innerHTML = renderMiniStandingsTableHtml(rows, {
-    leagueId,
-    compact: true,
-    showLegend: false,
-    limit: 6,
-    wrapCard: false,
+    ...common,
+    limit: heroStandingsExpanded ? 8 : 6,
   });
+}
+
+function bindHeroStandingsExpand() {
+  const btn = $("#heroStandingsExpand");
+  if (!btn || btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+  btn.addEventListener("click", () => {
+    heroStandingsExpanded = !heroStandingsExpanded;
+    const leagueId = $("#leagueSelect")?.value || LEAGUES[0]?.id;
+    if (leagueId) renderHeroStandings(leagueId);
+  });
+}
+
+function bindHomeBentoViewToggle() {
+  const root = $(".home-bento");
+  if (!root || root.dataset.viewBound === "1") return;
+  root.dataset.viewBound = "1";
+
+  const tabs = $$("[data-bento-view]", root);
+  const setView = (view) => {
+    root.dataset.bentoView = view;
+    for (const tab of tabs) {
+      const on = tab.getAttribute("data-bento-view") === view;
+      tab.classList.toggle("is-active", on);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+    }
+  };
+
+  setView(root.dataset.bentoView || "team");
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      const view = tab.getAttribute("data-bento-view");
+      if (view) setView(view);
+    });
+  }
 }
 
 const HERO_STRIP_ORDER = ["live", "results", "upcoming"];
@@ -6105,6 +6290,7 @@ function setFeaturedTeam(teamId) {
   if (!team) return;
   const league = LEAGUES.find((l) => l.id === team.leagueId);
   const squadSize = playersForTeam(teamId).length;
+  const standing = featuredTeamStandingRow(team.leagueId, team.name);
 
   $("#featuredTeam").textContent = team.name;
   $("#featuredMeta").textContent = `${league?.name ?? team.leagueId} • ${team.city} • ${squadSize} players`;
@@ -6112,6 +6298,14 @@ function setFeaturedTeam(teamId) {
   $("#featuredFormation").textContent = formationForTeam(teamId);
   const stadiumEl = $("#featuredStadium");
   if (stadiumEl) stadiumEl.textContent = stadiumForTeam(teamId);
+
+  const posEl = $("#featuredPos");
+  const ptsEl = $("#featuredPts");
+  const squadEl = $("#featuredSquad");
+  if (posEl) posEl.textContent = standing ? String(standing[0]) : "—";
+  if (ptsEl) ptsEl.textContent = standing ? String(standing[2] ?? 0) : "—";
+  if (squadEl) squadEl.textContent = String(squadSize);
+
   renderLeaguePills(team.leagueId);
   setLeagueAccent(team.leagueId);
   renderLeagueTrending(team.leagueId);

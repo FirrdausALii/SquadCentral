@@ -179,8 +179,14 @@ body.fc-app {
     padding-right: var(--sp-4);
   }
 
+  .spotlight-hub-strip,
+  .spotlight-card__nav {
+    margin-left: var(--sp-4);
+    margin-right: var(--sp-4);
+  }
+
   .spotlight-stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .spotlight-stat-text {

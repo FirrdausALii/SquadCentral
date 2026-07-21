@@ -1114,6 +1114,36 @@
   align-items: start;
 }
 
+.home-bento__view-toggle {
+  display: none;
+  grid-column: 1 / -1;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-1);
+  width: max-content;
+  max-width: 100%;
+}
+
+.home-bento__view-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  line-height: 1;
+}
+.home-bento__view-tab.is-active {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-surface-3));
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
 .home-panel-head {
   display: flex;
   align-items: center;
@@ -1159,7 +1189,48 @@
   background:
     radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--league-accent, var(--accent)) 12%, transparent), transparent 55%);
 }
-.spotlight-card .player-stats-grid { padding: 0 var(--sp-5) var(--sp-5); }
+.spotlight-card .player-stats-grid { padding: var(--sp-4) var(--sp-5) var(--sp-4); }
+
+/* Mini-hub snapshot strip */
+.spotlight-hub-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: var(--sp-4) var(--sp-5) 0;
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-surface-1);
+}
+.spotlight-hub-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-2);
+  min-width: 0;
+}
+.spotlight-hub-stat + .spotlight-hub-stat {
+  border-left: 0.5px solid var(--border-default);
+}
+.spotlight-hub-stat__value {
+  font-family: "Barlow Condensed", var(--font);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.spotlight-hub-stat__label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 .spotlight-stat-text {
   font-size: 13px !important;
   font-weight: 600;
@@ -1171,6 +1242,42 @@
   overflow: hidden;
   word-break: break-word;
 }
+
+/* Pill nav matching home tab pattern */
+.spotlight-card__nav {
+  display: flex;
+  gap: 2px;
+  margin: 0 var(--sp-5) var(--sp-4);
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-1);
+}
+.spotlight-nav-pill {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.spotlight-nav-pill.is-active,
+.spotlight-nav-pill:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-surface-3));
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
 .spotlight-card__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1185,21 +1292,78 @@
   margin: 0;
 }
 
-.table-card { padding: 0; overflow: hidden; }
+.table-card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.table-card #heroStandings {
+  min-width: 0;
+}
 .table-card #heroStandings .standings-table-wrap {
   border-radius: 0;
 }
+.table-card #heroStandings .standings-legend {
+  border-radius: 0;
+}
+
 .table-card__head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 0.5px solid var(--border-subtle);
   background: var(--bg-surface-1);
 }
-.table-card__head a {
+.table-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.table-card__title {
+  margin: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.table-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+.table-card__link {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.table-card__link:hover {
+  color: var(--text-primary);
+}
+.table-card__expand {
+  appearance: none;
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+}
+.table-card__expand.is-active,
+.table-card__expand:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-default));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface-3));
 }
 
 @media (min-width: 1200px) {
@@ -1229,6 +1393,37 @@
 
   .home-stadium {
     padding: var(--sp-4);
+  }
+}
+
+/* Narrow phones: switch Team / Standings instead of stacking both tall cards */
+@media (max-width: 575.98px) {
+  .home-bento__view-toggle {
+    display: inline-flex;
+  }
+
+  .home-bento[data-bento-view="team"] [data-bento-panel="table"],
+  .home-bento[data-bento-view="table"] [data-bento-panel="team"] {
+    display: none;
+  }
+
+  .spotlight-hub-strip {
+    margin-left: var(--sp-4);
+    margin-right: var(--sp-4);
+  }
+  .spotlight-card__nav {
+    margin-left: var(--sp-4);
+    margin-right: var(--sp-4);
+  }
+
+  .table-card__title-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: var(--sp-2);
+  }
+  .table-card__actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
@@ -1709,8 +1904,10 @@ html.home-enter-init .home-enter.is-entered {
 }
 
 /* Bento now holds spotlight + table only */
-.home-bento {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+@media (min-width: 992px) {
+  .home-bento {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 767.98px) {

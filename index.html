@@ -207,7 +207,12 @@
           <div class="home-shell home-stadium" id="homeStadiumShell">
             <div class="home-main">
               <div class="home-bento home-enter">
-                  <div class="home-bento__spotlight">
+                  <div class="home-bento__view-toggle" role="tablist" aria-label="Team and standings">
+                    <button type="button" class="home-bento__view-tab is-active" role="tab" aria-selected="true" data-bento-view="team">Team</button>
+                    <button type="button" class="home-bento__view-tab" role="tab" aria-selected="false" data-bento-view="table">Standings</button>
+                  </div>
+
+                  <div class="home-bento__spotlight" data-bento-panel="team">
                     <div class="card player-profile-card spotlight-card home-panel-card" aria-label="Club spotlight">
                       <div class="player-profile-header">
                         <div class="club-crest featured-crest" data-crest="home" aria-hidden="true"></div>
@@ -217,6 +222,22 @@
                           <div class="player-profile-meta mt-1" id="featuredHint">Choose a league → pick a team</div>
                         </div>
                       </div>
+
+                      <div class="spotlight-hub-strip" aria-label="Club snapshot" id="featuredHubStrip">
+                        <div class="spotlight-hub-stat">
+                          <span class="spotlight-hub-stat__value" id="featuredPos">—</span>
+                          <span class="spotlight-hub-stat__label">Pos</span>
+                        </div>
+                        <div class="spotlight-hub-stat">
+                          <span class="spotlight-hub-stat__value" id="featuredPts">—</span>
+                          <span class="spotlight-hub-stat__label">Pts</span>
+                        </div>
+                        <div class="spotlight-hub-stat">
+                          <span class="spotlight-hub-stat__value" id="featuredSquad">—</span>
+                          <span class="spotlight-hub-stat__label">Squad</span>
+                        </div>
+                      </div>
+
                       <div class="player-stats-grid spotlight-stats-grid">
                         <div class="player-stat-item">
                           <span class="value" id="featuredFormation">—</span>
@@ -227,19 +248,25 @@
                           <span class="label">Stadium</span>
                         </div>
                       </div>
-                      <div class="spotlight-card__actions">
-                        <button class="btn btn-primary" type="button" id="featuredBtn">Open roster</button>
-                        <a class="btn btn-ghost" href="#squads">All squads</a>
-                      </div>
+
+                      <nav class="spotlight-card__nav" aria-label="Club actions">
+                        <button class="spotlight-nav-pill is-active" type="button" id="featuredBtn">Open roster</button>
+                        <a class="spotlight-nav-pill" href="#squads">All squads</a>
+                      </nav>
                       <p class="spotlight-card__note">Tap any player in Squads for full profile details.</p>
                     </div>
                   </div>
 
-                  <div class="home-bento__table">
+                  <div class="home-bento__table" data-bento-panel="table">
                     <div class="card table-card home-panel-card" aria-label="League table preview">
                       <div class="table-card__head">
-                        <h3 class="panel-title">Table</h3>
-                        <a href="#match-center">Standings →</a>
+                        <div class="table-card__title-row">
+                          <h3 class="panel-title table-card__title">Table</h3>
+                          <div class="table-card__actions">
+                            <a class="table-card__link" href="#match-center">Standings →</a>
+                            <button type="button" class="table-card__expand" id="heroStandingsExpand" aria-pressed="false" aria-controls="heroStandings">Full stats</button>
+                          </div>
+                        </div>
                       </div>
                       <div id="heroStandings">Loading…</div>
                     </div>
