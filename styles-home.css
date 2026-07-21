@@ -666,6 +666,7 @@
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 .home-rail__scroll::-webkit-scrollbar { display: none; }
@@ -682,6 +683,7 @@
 .home-rail__pills .league-tab {
   flex-shrink: 0;
   white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .home-rail__pills .league-tab.active,
@@ -712,6 +714,13 @@
   z-index: 40;
 }
 
+/* Lift the whole rail above the match strip while its menu is open */
+.home-hero--compact > .home-rail:has(.home-rail__more--open),
+.home-rail:has(.home-rail__more--open) {
+  position: relative;
+  z-index: 50;
+}
+
 .home-rail__more > .league-tab--more {
   cursor: pointer;
 }
@@ -725,7 +734,9 @@
 }
 
 .league-tab--more {
-  border-style: dashed;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-secondary);
 }
 
@@ -736,6 +747,26 @@
   background-color: var(--bg-surface-3);
 }
 
+/* "All" trigger icon (stacked-list glyph) */
+.home-rail__more-icon {
+  position: relative;
+  width: 12px;
+  height: 9px;
+  flex: 0 0 auto;
+}
+.home-rail__more-icon::before,
+.home-rail__more-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.home-rail__more-icon::before { top: 0; }
+.home-rail__more-icon::after { bottom: 0; box-shadow: 0 -3.75px 0 currentColor; }
+
 .home-rail__more-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -745,6 +776,9 @@
   flex-direction: column;
   gap: 2px;
   min-width: 12rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--sp-2);
   border-radius: var(--radius-md);
   border: 0.5px solid var(--border-strong);
@@ -793,6 +827,12 @@
 }
 .home-rail--scrollable .home-rail-arrow { display: inline-flex; }
 .home-rail-arrow:disabled { opacity: 0.35; cursor: default; }
+
+/* Touch devices rely on swipe + the "All" menu; hide desktop chevrons */
+@media (hover: none) and (pointer: coarse) {
+  .home-rail-arrow,
+  .home-rail--scrollable .home-rail-arrow { display: none !important; }
+}
 
 .home-main {
   display: flex;
@@ -1283,7 +1323,6 @@
   transform: translateY(0);
   transition: opacity 0.42s ease, transform 0.42s ease;
   transition-delay: var(--home-enter-delay, 0ms);
-  will-change: opacity, transform;
 }
 
 html.home-enter-init .home-enter:not(.is-entered) {

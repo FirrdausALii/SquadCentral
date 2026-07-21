@@ -15,7 +15,6 @@ const LEAGUES = [
 ];
 
 const HERO_LEAGUE_TABS = LEAGUES.map((l) => l.id);
-const HOME_RAIL_INLINE_MAX = 5;
 const LEAGUE_UI = {
   epl: { c1: "#2de2e6", c2: "#7c5cff", mask: "trophy" },
   laliga: { c1: "#ff4d6d", c2: "#ffd166", mask: "sun" },
@@ -4701,20 +4700,6 @@ function renderLeagueOptions() {
   sel.innerHTML = LEAGUES.map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`).join("");
 }
 
-function splitHomeRailLeagues(list, activeLeagueId) {
-  if (list.length <= HOME_RAIL_INLINE_MAX) {
-    return { visible: list, overflow: [] };
-  }
-  let visible = list.slice(0, HOME_RAIL_INLINE_MAX);
-  if (!visible.some((l) => l.id === activeLeagueId)) {
-    const active = list.find((l) => l.id === activeLeagueId);
-    if (active) visible = [...list.slice(0, HOME_RAIL_INLINE_MAX - 1), active];
-  }
-  const visibleIds = new Set(visible.map((l) => l.id));
-  const overflow = list.filter((l) => !visibleIds.has(l.id));
-  return { visible, overflow };
-}
-
 function leaguePillButtonHtml(l, activeLeagueId) {
   const selected = l.id === activeLeagueId;
   return `
@@ -4735,9 +4720,8 @@ function renderLeaguePills(activeLeagueId) {
   if (!wrap) return;
 
   const list = LEAGUES.filter((l) => HERO_LEAGUE_TABS.includes(l.id));
-  const { visible, overflow } = splitHomeRailLeagues(list, activeLeagueId);
 
-  wrap.innerHTML = visible.map((l) => leaguePillButtonHtml(l, activeLeagueId)).join("");
+  wrap.innerHTML = list.map((l) => leaguePillButtonHtml(l, activeLeagueId)).join("");
 
   for (const btn of $$("[data-league-pill]", wrap)) {
     btn.addEventListener("click", () => {
@@ -4750,7 +4734,7 @@ function renderLeaguePills(activeLeagueId) {
   }
 
   if (moreMount) {
-    if (overflow.length) {
+    if (list.length > 1) {
       moreMount.innerHTML = `
         <div class="home-rail__more" id="homeRailMore">
           <button
@@ -4759,10 +4743,10 @@ function renderLeaguePills(activeLeagueId) {
             id="homeRailMoreBtn"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-label="${overflow.length} more competitions"
-          >+${overflow.length} more</button>
-          <div class="home-rail__more-menu" id="homeRailMoreMenu" role="list" hidden>
-            ${overflow
+            aria-label="Show all ${list.length} competitions"
+          ><span class="home-rail__more-icon" aria-hidden="true"></span><span class="home-rail__more-text">All</span></button>
+          <div class="home-rail__more-menu" id="homeRailMoreMenu" role="listbox" aria-label="All competitions" hidden>
+            ${list
               .map((l) => {
                 const selected = l.id === activeLeagueId;
                 return `
@@ -4770,7 +4754,8 @@ function renderLeaguePills(activeLeagueId) {
                     type="button"
                     class="home-rail__more-item${selected ? " active" : ""}"
                     data-league-pill="${escapeHtml(l.id)}"
-                    role="listitem"
+                    role="option"
+                    aria-selected="${selected ? "true" : "false"}"
                   >
                     ${escapeHtml(l.name)}
                   </button>
