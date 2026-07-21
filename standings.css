@@ -280,10 +280,97 @@
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .standings-table--expanded {
-  min-width: 520px;
+  min-width: 560px;
+  width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Scroll shell: fade + swipe hint when more columns exist */
+.standings-scroll {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+.standings-scroll__fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 22px;
+  width: 40px;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity var(--transition);
+  background: linear-gradient(to left, var(--bg-surface-2) 12%, transparent);
+}
+.table-card .standings-scroll__fade {
+  background: linear-gradient(to left, var(--bg-surface-2) 18%, transparent);
+}
+.standings-scroll--overflow:not(.standings-scroll--at-end) .standings-scroll__fade {
+  opacity: 1;
+}
+.standings-scroll__hint {
+  display: none;
+  margin: 0;
+  padding: 6px var(--sp-4) 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  text-align: right;
+}
+.standings-scroll--overflow:not(.standings-scroll--at-end) .standings-scroll__hint {
+  display: block;
+}
+
+/* Sticky identity columns while stat columns scroll */
+.standings-table--expanded th.col-pos,
+.standings-table--expanded td.col-pos,
+.standings-table--expanded th.col-club,
+.standings-table--expanded td.col-club {
+  position: sticky;
+  z-index: 3;
+  background-color: var(--bg-surface-2);
+}
+.standings-table--expanded thead th.col-pos,
+.standings-table--expanded thead th.col-club {
+  z-index: 5;
+  background-color: var(--bg-surface-1);
+}
+.standings-table--expanded th.col-pos,
+.standings-table--expanded td.col-pos {
+  left: 0;
+  min-width: 32px;
+  width: 32px;
+}
+.standings-table--expanded th.col-club,
+.standings-table--expanded td.col-club {
+  left: 32px;
+  min-width: 118px;
+  max-width: 140px;
+  box-shadow: 6px 0 10px -8px rgba(0, 0, 0, 0.55);
+}
+.standings-table--expanded tbody tr:hover td.col-pos,
+.standings-table--expanded tbody tr:hover td.col-club {
+  background-color: var(--bg-surface-3);
+}
+.standings-table--expanded tr.highlight-team td.col-pos,
+.standings-table--expanded tr.highlight-team td.col-club {
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-surface-2));
+}
+.standings-table--expanded tr.highlight-team:hover td.col-pos,
+.standings-table--expanded tr.highlight-team:hover td.col-club {
+  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-surface-3));
 }
 
 .standings-card--compact .club-cell-crest {
@@ -338,7 +425,20 @@
   }
 
   .standings-table--expanded {
-    min-width: 480px;
+    min-width: 560px;
+  }
+
+  .standings-table--expanded th.col-club,
+  .standings-table--expanded td.col-club {
+    left: 28px;
+    min-width: 108px;
+    max-width: 124px;
+  }
+
+  .standings-table--expanded th.col-pos,
+  .standings-table--expanded td.col-pos {
+    min-width: 28px;
+    width: 28px;
   }
 
   .standings-table th,

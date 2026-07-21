@@ -2032,8 +2032,20 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         ? " standings-table--full"
         : "";
 
-  const tableHtml = `
-      <div class="standings-table-wrap${compact ? " standings-table-wrap--compact" : ""}${showExpandedCols ? " standings-table-wrap--scroll" : ""}">
+  const tableHtml = showExpandedCols
+    ? `
+      <div class="standings-scroll" data-standings-scroll>
+        <div class="standings-table-wrap standings-table-wrap--compact standings-table-wrap--scroll">
+          <table class="standings-table${modeClass}">
+            ${thead}
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+        <div class="standings-scroll__fade" aria-hidden="true"></div>
+        <p class="standings-scroll__hint">Swipe for more →</p>
+      </div>`
+    : `
+      <div class="standings-table-wrap${compact ? " standings-table-wrap--compact" : ""}">
         <table class="standings-table${modeClass}">
           ${thead}
           <tbody>${body}</tbody>
@@ -6131,6 +6143,7 @@ function renderHeroStandings(leagueId) {
       fullLegend: false,
       limit: 4,
     });
+    bindStandingsScrollAffordances(el);
     return;
   }
 
@@ -6143,6 +6156,38 @@ function renderHeroStandings(leagueId) {
     ...common,
     limit: heroStandingsExpanded ? 8 : 6,
   });
+  bindStandingsScrollAffordances(el);
+}
+
+function updateStandingsScrollAffordance(shell) {
+  if (!(shell instanceof HTMLElement)) return;
+  const wrap = shell.querySelector(".standings-table-wrap--scroll");
+  if (!(wrap instanceof HTMLElement)) return;
+  const overflow = wrap.scrollWidth > wrap.clientWidth + 4;
+  const atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 4;
+  shell.classList.toggle("standings-scroll--overflow", overflow);
+  shell.classList.toggle("standings-scroll--at-end", !overflow || atEnd);
+}
+
+function bindStandingsScrollAffordances(root = document) {
+  const shells =
+    root instanceof Element && root.matches?.("[data-standings-scroll]")
+      ? [root]
+      : [...(root.querySelectorAll?.("[data-standings-scroll]") ?? [])];
+  for (const shell of shells) {
+    const wrap = shell.querySelector(".standings-table-wrap--scroll");
+    if (!(wrap instanceof HTMLElement)) continue;
+    updateStandingsScrollAffordance(shell);
+    requestAnimationFrame(() => updateStandingsScrollAffordance(shell));
+    if (wrap.dataset.scrollBound === "1") continue;
+    wrap.dataset.scrollBound = "1";
+    wrap.addEventListener(
+      "scroll",
+      () => updateStandingsScrollAffordance(shell),
+      { passive: true },
+    );
+    window.addEventListener("resize", () => updateStandingsScrollAffordance(shell), { passive: true });
+  }
 }
 
 function bindHeroStandingsExpand() {
