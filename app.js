@@ -5582,9 +5582,9 @@ function matchCardHtml(m, options = {}) {
           <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
         </div>`;
 
-  const mainHtml =
-    variant === "list"
-      ? `<div class="match-card__stack">
+  let mainHtml;
+  if (variant === "list") {
+    mainHtml = `<div class="match-card__stack">
           <div class="match-card__row match-card__row--home">
             ${teamCrestHtml(ht, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
@@ -5594,8 +5594,28 @@ function matchCardHtml(m, options = {}) {
             ${teamCrestHtml(at, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
           </div>
-        </div>`
-      : `<div class="match-card__main">
+        </div>`;
+  } else if (variant === "hero") {
+    const hs = Number(m.score?.[0]);
+    const as = Number(m.score?.[1]);
+    const decided = Number.isFinite(hs) && Number.isFinite(as) && String(status).toUpperCase() !== "LIVE";
+    const homeWin = decided && hs > as;
+    const awayWin = decided && as > hs;
+    const rowCls = (win, lose) => (win ? " is-winner" : lose ? " is-loser" : "");
+    mainHtml = `<div class="match-card__main match-card__main--compact">
+          <div class="match-card__row match-card__row--home${rowCls(homeWin, awayWin)}">
+            ${teamCrestHtml(ht, { className: crestClass })}
+            <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
+            <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
+          </div>
+          <div class="match-card__row match-card__row--away${rowCls(awayWin, homeWin)}">
+            ${teamCrestHtml(at, { className: crestClass })}
+            <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
+            <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
+          </div>
+        </div>`;
+  } else {
+    mainHtml = `<div class="match-card__main">
           <div class="match-card__side match-card__side--home">
             ${teamCrestHtml(ht, { className: crestClass })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
@@ -5606,6 +5626,7 @@ function matchCardHtml(m, options = {}) {
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
           </div>
         </div>`;
+  }
 
   return `
     <${tag}
@@ -5958,8 +5979,8 @@ function renderHeroStandings(leagueId) {
   });
 }
 
-const HERO_STRIP_ORDER = ["live", "upcoming", "results"];
-const HERO_STRIP_LABEL = { live: "Live", upcoming: "Upcoming", results: "Results" };
+const HERO_STRIP_ORDER = ["live", "results", "upcoming"];
+const HERO_STRIP_LABEL = { live: "Live", results: "Results", upcoming: "Upcoming" };
 const HERO_RESULT_STATUSES = new Set(["FT", "AET", "PEN", "AWD"]);
 let heroStripState = null;
 
@@ -5974,31 +5995,30 @@ function categorizeHeroMatches(matches) {
   return buckets;
 }
 
-function renderHeroStripToggle(leagueId, available, state, buckets) {
+function renderHeroStripToggle(leagueId, state, buckets) {
   const wrap = $("#heroStripToggle");
   if (!wrap) return;
-  if (!available.length) {
-    wrap.innerHTML = "";
-    return;
-  }
 
-  wrap.innerHTML = available
+  wrap.innerHTML = HERO_STRIP_ORDER
     .map((k) => {
+      const count = buckets[k].length;
       const active = k === state;
+      const disabled = count === 0;
       const isLive = k === "live";
       return `
-        <button type="button" role="tab" aria-selected="${active ? "true" : "false"}"
-          class="hero-seg${active ? " is-active" : ""}${isLive ? " hero-seg--live" : ""}"
+        <button type="button" role="tab" aria-selected="${active ? "true" : "false"}"${disabled ? " disabled aria-disabled=\"true\"" : ""}
+          class="hero-seg${active ? " is-active" : ""}${isLive && count ? " hero-seg--live" : ""}${disabled ? " is-disabled" : ""}"
           data-hero-state="${k}">
           ${isLive ? '<span class="dot" aria-hidden="true"></span>' : ""}
           <span class="hero-seg__label">${HERO_STRIP_LABEL[k]}</span>
-          <span class="hero-seg__count">${buckets[k].length}</span>
+          <span class="hero-seg__count">${count}</span>
         </button>`;
     })
     .join("");
 
   for (const btn of $$("[data-hero-state]", wrap)) {
     btn.addEventListener("click", () => {
+      if (btn.disabled) return;
       const next = btn.getAttribute("data-hero-state");
       if (!next || next === heroStripState) return;
       heroStripState = next;
@@ -6021,7 +6041,7 @@ function renderHeroSpotlight(leagueId) {
   if (!available.includes(state)) state = available[0] ?? "results";
   heroStripState = state;
 
-  renderHeroStripToggle(leagueId, available, state, buckets);
+  renderHeroStripToggle(leagueId, state, buckets);
 
   const list = (buckets[state] ?? []).slice(0, 8);
   if (!list.length) {
