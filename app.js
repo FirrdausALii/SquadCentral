@@ -1867,7 +1867,7 @@ function standingsLegendHtml(showLegend, { zones } = {}) {
   const items = [
     { key: "champions", color: "#378ADD", label: "Champions League" },
     { key: "europa", color: "#a78bfa", label: "Europa League" },
-    { key: "conference", color: "#4ade80", label: "Conference" },
+    { key: "conference", color: "#4ade80", label: "Conference League" },
     { key: "relegation", color: "#f87171", label: "Relegation" },
   ];
   const list = Array.isArray(zones) && zones.length
@@ -1883,6 +1883,14 @@ function standingsLegendHtml(showLegend, { zones } = {}) {
         )
         .join("")}
     </div>`;
+}
+
+/** Zones that apply to a full league table (not just the visible preview rows). */
+function standingsLeagueLegendZones(leagueId, totalTeams) {
+  if (leagueId === "worldcup") return ["champions"];
+  const zones = ["champions", "europa", "conference"];
+  if (totalTeams >= 10) zones.push("relegation");
+  return zones;
 }
 
 function standingsZonesPresent(rows, totalTeams) {
@@ -1911,6 +1919,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     fullStats = true,
     // Compact previews default to condensed (Pos/Club/P/Pts); full tables stay expanded.
     expanded = !compact,
+    fullLegend = false,
   } = typeof options === "string" ? { emptyLabel: options } : options;
 
   const sorted = sortStandingsRows(rows);
@@ -2031,7 +2040,9 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         </table>
       </div>`;
 
-  const legendZones = standingsZonesPresent(enriched, totalTeams);
+  const legendZones = fullLegend
+    ? standingsLeagueLegendZones(leagueId, totalTeams)
+    : standingsZonesPresent(enriched, totalTeams);
   const legend = standingsLegendHtml(showLegend, { zones: legendZones });
 
   if (!wrapCard) return `${tableHtml}${legend}`;
@@ -6067,22 +6078,41 @@ function featuredTeamStandingRow(leagueId, teamName) {
   return hit ?? null;
 }
 
+function updateHeroStandingsTitle(leagueId) {
+  const title = $("#heroStandingsTitle");
+  if (!title) return;
+  const league = LEAGUES.find((l) => l.id === leagueId);
+  const name = league?.name ?? "League";
+  title.textContent = `${name} Table`;
+}
+
+function updateHeroStandingsExpandBtn() {
+  const expandBtn = $("#heroStandingsExpand");
+  if (!expandBtn) return;
+  const on = heroStandingsExpanded;
+  expandBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  expandBtn.classList.toggle("is-active", on);
+  expandBtn.title = on
+    ? "Hide wins, draws, losses, and goal difference"
+    : "Show wins, draws, losses, and goal difference";
+  const label = expandBtn.querySelector(".table-card__expand-label");
+  if (label) label.textContent = on ? "Compact" : "Full stats";
+  else expandBtn.textContent = on ? "Compact" : "Full stats";
+}
+
 function renderHeroStandings(leagueId) {
   const el = $("#heroStandings");
   if (!el) return;
 
-  const highlightClub = String($("#featuredTeam")?.textContent ?? "").trim();
-  const expandBtn = $("#heroStandingsExpand");
-  if (expandBtn) {
-    expandBtn.setAttribute("aria-pressed", heroStandingsExpanded ? "true" : "false");
-    expandBtn.classList.toggle("is-active", heroStandingsExpanded);
-    expandBtn.textContent = heroStandingsExpanded ? "Compact" : "Full stats";
-  }
+  updateHeroStandingsTitle(leagueId);
+  updateHeroStandingsExpandBtn();
 
+  const highlightClub = String($("#featuredTeam")?.textContent ?? "").trim();
   const common = {
     leagueId,
     compact: true,
     showLegend: true,
+    fullLegend: true,
     wrapCard: false,
     fullStats: true,
     expanded: heroStandingsExpanded,
@@ -6098,6 +6128,7 @@ function renderHeroStandings(leagueId) {
     }
     el.innerHTML = renderMiniStandingsTableHtml(rows, {
       ...common,
+      fullLegend: false,
       limit: 4,
     });
     return;

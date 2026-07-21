@@ -261,10 +261,19 @@
                     <div class="card table-card home-panel-card" aria-label="League table preview">
                       <div class="table-card__head">
                         <div class="table-card__title-row">
-                          <h3 class="panel-title table-card__title">Table</h3>
+                          <h3 class="panel-title table-card__title" id="heroStandingsTitle">Table</h3>
                           <div class="table-card__actions">
-                            <a class="table-card__link" href="#match-center">Standings →</a>
-                            <button type="button" class="table-card__expand" id="heroStandingsExpand" aria-pressed="false" aria-controls="heroStandings">Full stats</button>
+                            <button
+                              type="button"
+                              class="table-card__expand"
+                              id="heroStandingsExpand"
+                              aria-pressed="false"
+                              aria-controls="heroStandings"
+                              title="Show wins, draws, losses, and goal difference"
+                            >
+                              <span class="table-card__expand-icon" aria-hidden="true"></span>
+                              <span class="table-card__expand-label">Full stats</span>
+                            </button>
                           </div>
                         </div>
                       </div>
