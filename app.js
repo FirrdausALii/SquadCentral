@@ -4471,7 +4471,7 @@ function setupTheme() {
 }
 
 function setupSidebarNav() {
-  const topLinks = $$(".topbar-nav a[href^='#']");
+  const topLinks = $$(".topbar-nav a[href^='#'], .home-tabbar__tab[href^='#']");
   const sidebar = $("#contextSidebar");
   const panels = $$("[data-sidebar-panel]");
   const pageWrapper = $(".page-wrapper");
@@ -5681,15 +5681,17 @@ function renderHeroFeaturedMatch(leagueId) {
   const wrap = $("#heroFeaturedMatch");
   const leagueEl = $("#heroFeaturedLeague");
   const labelEl = $("#heroFeaturedLabel");
-  if (!wrap) return;
 
   const league = LEAGUES.find((l) => l.id === leagueId);
+  if (leagueEl) leagueEl.textContent = league?.name ?? leagueId;
+
+  if (!wrap) return;
+
   const meta = heroLeagueMeta(leagueId);
   const mw = meta.matchweek ?? 36;
   const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, mw);
   const featured = pickHeroFeaturedMatch(matches);
 
-  if (leagueEl) leagueEl.textContent = league?.name ?? leagueId;
   if (labelEl) {
     const live = featured && String(featured.status).toLowerCase() === "live";
     labelEl.textContent = live ? "Live now" : featured ? "Featured result" : "This matchweek";
@@ -5749,7 +5751,7 @@ function setHeroStatValues(values) {
 }
 
 function observeHeroStatCounters() {
-  const wrap = $(".home-stats--hero");
+  const wrap = $(".home-statbar");
   if (!wrap) return;
 
   const values = [LEAGUES.length, TEAMS.length, PLAYERS.length];
@@ -5982,33 +5984,33 @@ function updateHeroLeagueContext(leagueId) {
   renderHeroStandings(leagueId);
 }
 
+/** Content-preview club carousel shown above the fold on the home page. */
 function renderLeagueTrending(leagueId) {
-  const el = $("#leagueTrending");
-  const countEl = $("#leaguePlayerCount");
-  if (!el || !countEl) return;
+  const el = $("#heroClubStrip");
+  if (!el) return;
+
+  const league = LEAGUES.find((l) => l.id === leagueId);
+  const leagueLabel = $("#heroClubStripLeague");
+  if (leagueLabel) leagueLabel.textContent = league?.name ?? leagueId;
 
   const teams = teamsForLeague(leagueId);
-  const teamIds = new Set(teams.map((t) => t.id));
-  const playerCount = PLAYERS.filter((p) => teamIds.has(p.teamId)).length;
-  countEl.textContent = String(playerCount);
+  if (!teams.length) {
+    el.innerHTML = `<p class="home-clubstrip__empty text-secondary">No clubs for this competition yet.</p>`;
+    return;
+  }
 
-  const clubs = teams;
-  el.innerHTML = clubs
+  el.innerHTML = teams
     .map((t) => {
       const squad = playersForTeam(t.id).length;
       return `
-        <div class="club-card home-enter" role="button" tabindex="0" data-club="${escapeHtml(t.id)}" aria-label="Open ${escapeHtml(t.name)} roster">
-          ${clubLogoHtml(t)}
-          <div class="club-card-info">
-            <div class="club-card-name">${escapeHtml(t.name)}</div>
-            <div class="club-card-meta">${escapeHtml(squad)} players</div>
-          </div>
-        </div>
+        <button type="button" class="clubstrip-chip" data-club="${escapeHtml(t.id)}" aria-label="Open ${escapeHtml(t.name)} roster">
+          ${teamCrestHtml(t, { className: "clubstrip-chip__crest", size: 40 })}
+          <span class="clubstrip-chip__name">${escapeHtml(t.name)}</span>
+          <span class="clubstrip-chip__meta">${escapeHtml(squad)} players</span>
+        </button>
       `;
     })
     .join("");
-
-  refreshHomeEntranceAnimations(el);
 
   for (const chip of $$("[data-club]", el)) {
     chip.addEventListener("click", () => {
@@ -6016,10 +6018,21 @@ function renderLeagueTrending(leagueId) {
       if (!teamId) return;
       const team = teamById.get(teamId);
       if (!team) return;
-      setActiveLeague(team.leagueId, teamId);
-      $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      openTeamRoster(team.leagueId, teamId);
     });
   }
+}
+
+/** Jump straight to a team's roster in the Squads section. */
+function openTeamRoster(leagueId, teamId) {
+  const leagueSel = $("#leagueSelect");
+  const teamSel = $("#teamSelect");
+  if (leagueSel) leagueSel.value = leagueId;
+  renderTeamOptions(leagueId);
+  if (teamSel && teamId) teamSel.value = teamId;
+  setActiveLeague(leagueId, teamId);
+  renderRoster();
+  $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function setFeaturedTeam(teamId) {

@@ -94,6 +94,15 @@
       </div>
     </div>
 
+    <nav class="home-tabbar" aria-label="Browse sections">
+      <div class="home-tabbar__inner">
+        <a class="home-tabbar__tab" href="#squads">Squads</a>
+        <a class="home-tabbar__tab" href="#match-center">Results</a>
+        <a class="home-tabbar__tab" href="#transfers">Transfers</a>
+        <a class="home-tabbar__tab" href="#about">About</a>
+      </div>
+    </nav>
+
     <div class="page-wrapper page-wrapper--home">
       <aside class="sidebar sidebar--context" id="contextSidebar" aria-label="Section tools" hidden>
         <div class="sidebar-panel" data-sidebar-panel="squads" hidden>
@@ -128,7 +137,7 @@
 
         <!-- Home -->
         <section id="main" class="home-hub reveal" aria-label="Home" tabindex="-1">
-          <header class="home-hero">
+          <header class="home-hero home-hero--compact">
             <div class="home-hero__atmosphere" aria-hidden="true">
               <div class="home-hero__glow"></div>
               <div class="home-hero__pitch"></div>
@@ -136,71 +145,36 @@
               <div class="home-hero__texture"></div>
               <div class="home-hero__scanline"></div>
             </div>
-            <div class="home-hero__grid">
-              <div class="home-hero__copy">
-                <span class="home-hero__eyebrow home-hero__eyebrow--live">
-                  <span class="dot" aria-hidden="true"></span>
-                  Matchday live
-                </span>
-                <p class="home-hero__kicker">European &amp; world football hub</p>
-                <h1 class="home-hero__title">Every squad. Every score. One hub.</h1>
-                <p class="home-hero__lede">
-                  Switch leagues instantly, skim the latest results, and dive into full rosters — built for matchday nights on any screen.
-                </p>
-                <div class="home-hero__actions">
-                  <a class="btn btn-primary" href="#match-center">Match center</a>
-                  <a class="btn btn-secondary" href="#squads">Explore squads</a>
-                </div>
-                <nav class="home-quicknav" aria-label="Quick section links">
-                  <a class="home-quicknav__link" href="#squads">Squads</a>
-                  <a class="home-quicknav__link" href="#match-center">Results</a>
-                  <a class="home-quicknav__link" href="#transfers">Transfers</a>
-                  <a class="home-quicknav__link" href="#about">About</a>
-                </nav>
+
+            <div class="home-hero__bar">
+              <div class="home-hero__brand">
+                <span class="home-hero__name">Squad Central</span>
+                <span class="home-hero__tagline">European &amp; world football hub</span>
               </div>
-
-              <aside class="home-hero__panel" aria-label="Platform snapshot">
-                <div class="home-stats home-stats--hero">
-                  <article class="stat-card stat-card--hero stat-card--leagues">
-                    <span class="stat-card__icon" aria-hidden="true"></span>
-                    <div class="stat-card__row">
-                      <span class="stat-label">Leagues</span>
-                      <span class="stat-value stat-value--count" id="statLeagues" data-count-target="">—</span>
-                    </div>
-                  </article>
-                  <article class="stat-card stat-card--hero stat-card--clubs">
-                    <span class="stat-card__icon" aria-hidden="true"></span>
-                    <div class="stat-card__row">
-                      <span class="stat-label">Clubs</span>
-                      <span class="stat-value stat-value--count" id="statTeams" data-count-target="">—</span>
-                    </div>
-                  </article>
-                  <article class="stat-card stat-card--hero stat-card--players">
-                    <span class="stat-card__icon" aria-hidden="true"></span>
-                    <div class="stat-card__row">
-                      <span class="stat-label">Players</span>
-                      <span class="stat-value stat-value--count" id="statPlayers" data-count-target="">—</span>
-                    </div>
-                  </article>
-                </div>
-
-                <div class="home-hero-feature home-hero-feature--broadcast" id="heroFeaturedWrap">
-                  <div class="home-hero-feature__head">
-                    <div class="home-hero-feature__titles">
-                      <span class="home-hero-feature__eyebrow" id="heroFeaturedLeague">—</span>
-                      <span class="home-hero-feature__label" id="heroFeaturedLabel">Featured result</span>
-                    </div>
-                    <a class="home-hero-feature__link" href="#match-center">Match center →</a>
-                  </div>
-                  <div id="heroFeaturedMatch" aria-live="polite"></div>
-                </div>
-              </aside>
+              <span class="home-hero__eyebrow home-hero__eyebrow--live">
+                <span class="dot" aria-hidden="true"></span>
+                Matchday live
+              </span>
             </div>
-          </header>
 
-          <div class="home-shell home-stadium" id="homeStadiumShell">
-            <aside class="home-rail home-enter" aria-label="Select competition">
-              <span class="home-rail__label">Competitions</span>
+            <div class="home-statbar" aria-label="Platform snapshot">
+              <div class="home-statbar__item">
+                <span class="home-statbar__value stat-value--count" id="statLeagues" data-count-target="">—</span>
+                <span class="home-statbar__label">Leagues</span>
+              </div>
+              <span class="home-statbar__divider" aria-hidden="true"></span>
+              <div class="home-statbar__item">
+                <span class="home-statbar__value stat-value--count" id="statTeams" data-count-target="">—</span>
+                <span class="home-statbar__label">Clubs</span>
+              </div>
+              <span class="home-statbar__divider" aria-hidden="true"></span>
+              <div class="home-statbar__item">
+                <span class="home-statbar__value stat-value--count" id="statPlayers" data-count-target="">—</span>
+                <span class="home-statbar__label">Players</span>
+              </div>
+            </div>
+
+            <div class="home-rail home-enter" aria-label="Select competition">
               <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
                 <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
                 <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
@@ -212,42 +186,38 @@
                 <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
               </div>
               <p class="home-rail__scroll-hint" id="homeRailScrollHint" hidden>Scroll for more leagues →</p>
-            </aside>
+            </div>
 
+            <section class="home-hero__strip home-enter" aria-labelledby="heroStripTitle">
+              <div class="home-hero__strip-head">
+                <h2 class="home-hero__strip-title" id="heroStripTitle">
+                  <span class="home-hero__strip-live"><span class="dot" aria-hidden="true"></span>Live &amp; upcoming</span>
+                  <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
+                  <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
+                </h2>
+                <a class="home-hero__strip-link" href="#match-center">Match center →</a>
+              </div>
+              <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
+                <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
+                <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
+              </div>
+              <p class="home-spotlight__scroll-hint" id="heroSpotlightHint" hidden>Scroll sideways for more matches →</p>
+            </section>
+          </header>
+
+          <section class="home-preview home-enter" aria-labelledby="heroClubsTitle">
+            <div class="home-preview__head">
+              <h2 class="home-preview__title" id="heroClubsTitle">
+                Clubs in <span id="heroClubStripLeague">—</span>
+              </h2>
+              <a class="home-hero__strip-link" href="#squads">All squads →</a>
+            </div>
+            <div class="home-clubstrip" id="heroClubStrip" aria-live="polite"></div>
+          </section>
+
+          <div class="home-shell home-stadium" id="homeStadiumShell">
             <div class="home-main">
-              <section class="home-spotlight home-enter" aria-labelledby="heroSpotlightTitle">
-                <div class="home-spotlight__head">
-                  <div>
-                    <h3 class="subsection-title home-spotlight__title" id="heroSpotlightTitle">
-                      <span id="heroLeagueName">Premier League</span>
-                      <span class="home-spotlight__mw" id="heroMwMeta">—</span>
-                    </h3>
-                    <p class="home-spotlight__sub" id="heroMwRange">Latest results from matchweek</p>
-                  </div>
-                  <a class="home-spotlight__link" href="#match-center">Full center →</a>
-                </div>
-                <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
-                  <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
-                  <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
-                </div>
-                <p class="home-spotlight__scroll-hint" id="heroSpotlightHint" hidden>Scroll sideways for more matches →</p>
-              </section>
-
               <div class="home-bento home-enter">
-                <div class="home-bento__clubs">
-                  <div class="card home-panel-card" aria-label="Clubs in league">
-                    <div class="home-panel-head">
-                      <h3 class="panel-title home-panel-head__title">Clubs</h3>
-                      <div class="home-panel-head__metric">
-                        <span class="label">Squad size</span>
-                        <span class="value" id="leaguePlayerCount">—</span>
-                      </div>
-                    </div>
-                    <div class="home-clubs" id="leagueTrending"></div>
-                  </div>
-                </div>
-
-                <div class="home-bento__stack">
                   <div class="home-bento__spotlight">
                     <div class="card player-profile-card spotlight-card home-panel-card" aria-label="Club spotlight">
                       <div class="player-profile-header">
@@ -285,7 +255,6 @@
                       <div id="heroStandings">Loading…</div>
                     </div>
                   </div>
-                </div>
               </div>
             </div>
           </div>
