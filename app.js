@@ -5631,51 +5631,181 @@ function matchCardVenueHtml(m, ht, at, { list = false, hero = false } = {}) {
   return `<div class="match-card__venue">${raw}</div>`;
 }
 
+function matchLiveMinute(m) {
+  if (m?.minute != null && m.minute !== "") {
+    const n = Number(m.minute);
+    if (Number.isFinite(n) && n >= 0) return Math.round(n);
+  }
+  const events = Array.isArray(m?.goalEvents) ? m.goalEvents : [];
+  let max = null;
+  for (const ev of events) {
+    const n = Number(ev?.minute);
+    if (Number.isFinite(n) && (max == null || n > max)) max = n;
+  }
+  return max;
+}
+
+function matchCardStatusHtml(m, { showStatus = true } = {}) {
+  if (!showStatus) return "";
+  const status = String(m?.status ?? "").trim();
+  if (!status) return "";
+  const upper = status.toUpperCase();
+  if (upper === "LIVE") {
+    const minute = matchLiveMinute(m);
+    const label = minute != null ? `LIVE ${minute}'` : "LIVE";
+    return `<span class="meta-pill live match-card__status match-card__status--live" aria-label="${escapeHtml(label)}"><span class="dot" aria-hidden="true"></span>${escapeHtml(label)}</span>`;
+  }
+  return `<span class="${matchCardStatusClass(status)}">${escapeHtml(status)}</span>`;
+}
+
+function matchCenterDetailTabsHtml(m, ht, at) {
+  const lid = m?.leagueId;
+  const datetime = m.time || "";
+  const overviewVenue = renderMatchVenueCoachesHtml(m, ht, at, { list: true, hero: true });
+  const overviewBody = `
+    <div class="mc-tab-panel__stack">
+      ${datetime ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>` : ""}
+      ${overviewVenue || `<p class="mc-tab-empty">No venue details yet.</p>`}
+    </div>`;
+
+  const hasLineups = Boolean(m?.lineups?.home?.length || m?.lineups?.away?.length);
+  const formation =
+    Array.isArray(m?.formation) && (m.formation[0] || m.formation[1])
+      ? `${m.formation[0] || "—"} · ${m.formation[1] || "—"}`
+      : "";
+  const lineupsBody = hasLineups
+    ? `<div class="mc-tab-panel__stack">
+        ${formation ? `<p class="mc-tab-meta">Formations <strong>${escapeHtml(formation)}</strong></p>` : ""}
+        <p class="mc-tab-meta">${escapeHtml(ht?.name ?? "Home")}: ${escapeHtml(String(m.lineups.home?.length ?? 0))} named · ${escapeHtml(at?.name ?? "Away")}: ${escapeHtml(String(m.lineups.away?.length ?? 0))} named</p>
+        <button type="button" class="mc-tab-cta" data-open="${escapeHtml(m.id)}" data-open-tab="lineups">View full lineups →</button>
+      </div>`
+    : `<p class="mc-tab-empty">Lineups not available for this fixture.</p>`;
+
+  const goals = Array.isArray(m?.goalEvents) ? m.goalEvents : [];
+  const poss = Array.isArray(m?.possession) ? m.possession : [];
+  const hasStats = goals.length > 0 || poss.length > 0 || (m?.scorers ?? []).length > 0;
+  const goalsPreview = goals.length
+    ? `<ul class="mc-tab-goals">${goals
+        .slice(0, 4)
+        .map(
+          (g) =>
+            `<li><span class="mc-tab-goals__min">${escapeHtml(String(g.minute ?? "—"))}'</span> <span class="mc-tab-goals__name">${escapeHtml(g.scorer ?? "—")}</span></li>`,
+        )
+        .join("")}${goals.length > 4 ? `<li class="mc-tab-goals__more">+${goals.length - 4} more</li>` : ""}</ul>`
+    : (m?.scorers ?? []).length
+      ? `<p class="mc-tab-meta">${escapeHtml((m.scorers ?? []).join(" · "))}</p>`
+      : "";
+  const possHtml =
+    poss.length >= 2
+      ? `<p class="mc-tab-meta">Possession <strong>${escapeHtml(String(poss[0]))}% – ${escapeHtml(String(poss[1]))}%</strong></p>`
+      : "";
+  const statsBody = hasStats
+    ? `<div class="mc-tab-panel__stack">${possHtml}${goalsPreview || `<p class="mc-tab-empty">No goal events logged.</p>`}
+        <button type="button" class="mc-tab-cta" data-open="${escapeHtml(m.id)}" data-open-tab="stats">Open match sheet →</button>
+      </div>`
+    : `<p class="mc-tab-empty">Stats not available for this fixture.</p>`;
+
+  const h2hBody = `<p class="mc-tab-empty">Head-to-head history coming soon. Open the match sheet for this fixture’s details.</p>
+    <button type="button" class="mc-tab-cta" data-open="${escapeHtml(m.id)}">Open match sheet →</button>`;
+
+  const tabs = [
+    { id: "overview", label: "Overview", body: overviewBody },
+    { id: "lineups", label: "Lineups", body: lineupsBody },
+    { id: "stats", label: "Stats", body: statsBody },
+    { id: "h2h", label: "H2H", body: h2hBody },
+  ];
+
+  return `
+    <div class="mc-match-tabs" data-match-tabs="${escapeHtml(m.id)}">
+      <div class="mc-match-tabs__list" role="tablist" aria-label="Match details">
+        ${tabs
+          .map(
+            (t, i) => `
+          <button type="button" class="mc-match-tabs__tab${i === 0 ? " is-active" : ""}" role="tab" aria-selected="${i === 0 ? "true" : "false"}" data-mc-tab="${t.id}">${t.label}</button>`,
+          )
+          .join("")}
+      </div>
+      ${tabs
+        .map(
+          (t, i) => `
+      <div class="mc-match-tabs__panel${i === 0 ? " is-active" : ""}" role="tabpanel" data-mc-panel="${t.id}"${i === 0 ? "" : " hidden"}>${t.body}</div>`,
+        )
+        .join("")}
+    </div>`;
+}
+
+function bindMatchCenterDetailTabs(root) {
+  if (!root) return;
+  for (const wrap of $$("[data-match-tabs]", root)) {
+    const tablist = wrap.querySelector(".mc-match-tabs__list");
+    if (!tablist || tablist.dataset.bound === "1") continue;
+    tablist.dataset.bound = "1";
+    tablist.addEventListener("click", (e) => {
+      const btn = e.target instanceof Element ? e.target.closest("[data-mc-tab]") : null;
+      if (!btn || !wrap.contains(btn)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.getAttribute("data-mc-tab");
+      if (!id) return;
+      for (const tab of $$("[data-mc-tab]", wrap)) {
+        const on = tab.getAttribute("data-mc-tab") === id;
+        tab.classList.toggle("is-active", on);
+        tab.setAttribute("aria-selected", on ? "true" : "false");
+      }
+      for (const panel of $$("[data-mc-panel]", wrap)) {
+        const on = panel.getAttribute("data-mc-panel") === id;
+        panel.classList.toggle("is-active", on);
+        panel.hidden = !on;
+      }
+    });
+  }
+}
+
 function matchCenterFixtureHtml(m, { showStatus = true, matchId = m.id } = {}) {
   const ht = teamById.get(m.homeTeamId);
   const at = teamById.get(m.awayTeamId);
   const crestClass = "team-crest team-crest--sm";
   const headerKicker = m.matchday || "";
-  const datetime = m.time || "";
   const status = String(m.status ?? "").trim();
-  const venueHtml = matchCardVenueHtml(m, ht, at, { list: true });
   const homeName = ht?.name ?? "Home";
   const awayName = at?.name ?? "Away";
+  const hs = Number(m.score?.[0]);
+  const as = Number(m.score?.[1]);
+  const decided = Number.isFinite(hs) && Number.isFinite(as) && status.toUpperCase() !== "LIVE";
+  const homeWin = decided && hs > as;
+  const awayWin = decided && as > hs;
+  const rowCls = (win, lose) => (win ? " is-winner" : lose ? " is-loser" : "");
+  const isLive = status.toUpperCase() === "LIVE";
 
   const headerHtml =
-    headerKicker || (showStatus && status)
+    headerKicker || showStatus
       ? `<div class="match-card__header">
           ${headerKicker ? `<span class="match-card__kicker">${escapeHtml(headerKicker)}</span>` : ""}
-          ${showStatus && status ? `<span class="${matchCardStatusClass(status)}">${escapeHtml(status)}</span>` : ""}
+          ${matchCardStatusHtml(m, { showStatus })}
         </div>`
       : "";
 
-  const scoreHtml = `
-    <div class="match-card__score" aria-label="Score">
-      <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
-      <span class="match-card__score-sep" aria-hidden="true">:</span>
-      <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
-    </div>`;
-
   return `
-    <div class="match-card match-card--fixture">
+    <div class="match-card match-card--fixture${isLive ? " match-card--live" : ""}">
       ${headerHtml}
-      <div class="match-card__fixture">
-        <span class="match-card__team match-card__team--home" title="${escapeHtml(homeName)}">${escapeHtml(homeName)}</span>
-        ${teamCrestHtml(ht, { className: crestClass })}
-        ${scoreHtml}
-        ${teamCrestHtml(at, { className: crestClass })}
-        <span class="match-card__team match-card__team--away" title="${escapeHtml(awayName)}">${escapeHtml(awayName)}</span>
-        <div class="match-card__action">
-          <button class="live-blog" type="button" data-open="${escapeHtml(matchId)}">
-            Live blog <span class="arr" aria-hidden="true">›</span>
-          </button>
+      <div class="match-card__main match-card__main--compact">
+        <div class="match-card__row match-card__row--home${rowCls(homeWin, awayWin)}">
+          ${teamCrestHtml(ht, { className: crestClass })}
+          <span class="match-card__team" title="${escapeHtml(homeName)}">${escapeHtml(homeName)}</span>
+          <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
+        </div>
+        <div class="match-card__row match-card__row--away${rowCls(awayWin, homeWin)}">
+          ${teamCrestHtml(at, { className: crestClass })}
+          <span class="match-card__team" title="${escapeHtml(awayName)}">${escapeHtml(awayName)}</span>
+          <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
         </div>
       </div>
-      <div class="match-card__details">
-        ${datetime ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>` : ""}
-        ${venueHtml}
+      <div class="match-card__action">
+        <button class="live-blog" type="button" data-open="${escapeHtml(matchId)}">
+          Live blog <span class="arr" aria-hidden="true">›</span>
+        </button>
       </div>
+      ${matchCenterDetailTabsHtml(m, ht, at)}
     </div>`;
 }
 
@@ -7144,15 +7274,16 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false, hero = false } =
       const lines = [];
       if (homeCoachOk) {
         lines.push(
-          `<div class="mw-coach-line"><span class="mw-venue-label">Home coach</span><span class="mw-venue-value">${escapeHtml(hc)}</span></div>`,
+          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(ht?.name ?? "Home")}</span><span class="mw-coach-name">${escapeHtml(hc)}</span></span>`,
         );
       }
       if (awayCoachOk) {
         lines.push(
-          `<div class="mw-coach-line"><span class="mw-venue-label">Away coach</span><span class="mw-venue-value">${escapeHtml(ac)}</span></div>`,
+          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(at?.name ?? "Away")}</span><span class="mw-coach-name">${escapeHtml(ac)}</span></span>`,
         );
       }
-      coachesRow = `<div class="mw-venue-row mw-venue-row--coaches">${lines.join("")}</div>`;
+      const label = homeCoachOk && awayCoachOk ? "Managers" : "Manager";
+      coachesRow = `<div class="mw-venue-row mw-venue-row--coaches"><span class="mw-venue-label">${label}</span><span class="mw-coach-lines">${lines.join("")}</span></div>`;
     } else {
       const bits = [];
       if (homeCoachOk) {
@@ -7169,7 +7300,7 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false, hero = false } =
     }
   }
 
-  const cls = list ? "mw-venue-meta mw-venue-meta--list" : "mw-venue-meta";
+  const cls = list ? "mw-venue-meta mw-venue-meta--list mw-venue-meta--hero" : "mw-venue-meta";
   return `<div class="${cls}">${stadiumRow}${coachesRow}</div>`;
 }
 
@@ -7361,21 +7492,7 @@ function renderMatchCenter(leagueId) {
   const nextBtn = $("#mwNext");
   const dateTitleEl = $("#mwDateTitle");
   const dateMetaEl = $("#mwDateMeta");
-  const datePrevBtn = $("#mwDatePrev");
-  const dateNextBtn = $("#mwDateNext");
-  if (
-    !tabs ||
-    !listEl ||
-    !titleEl ||
-    !rangeEl ||
-    !prevBtn ||
-    !nextBtn ||
-    !dateTitleEl ||
-    !dateMetaEl ||
-    !datePrevBtn ||
-    !dateNextBtn
-  )
-    return;
+  if (!tabs || !listEl || !titleEl || !rangeEl || !prevBtn || !nextBtn || !dateTitleEl || !dateMetaEl) return;
 
   renderLeagueTabBar(tabs, leagueId, "data-match-tab");
 
@@ -7549,45 +7666,53 @@ function renderMatchCenter(leagueId) {
   let viewWeek = showAll ? publishedWeek : renderMatchCenter._viewWeek ?? publishedWeek;
   if (!showAll && renderMatchCenter._viewWeek == null) renderMatchCenter._viewWeek = publishedWeek;
 
-  const setWeek = (w) => {
+  const setWeek = (w, { edge = "start" } = {}) => {
     if (showAll) return;
     renderMatchCenter._viewWeek = w;
+    const key = matchCenterDateStorageKey(leagueId, w);
+    if (!renderMatchCenter._viewDateByWeek) renderMatchCenter._viewDateByWeek = {};
+    // Defer date pick until after we know the week's groups
+    renderMatchCenter._pendingWeekEdge = { key, edge };
+    delete renderMatchCenter._viewDateByWeek[key];
     renderMatchCenter(leagueId);
   };
 
   if (showAll) {
-    prevBtn.classList.add("d-none");
-    nextBtn.classList.add("d-none");
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
     titleEl.textContent = meta.matchweekTitle || "World Cup";
     rangeEl.textContent = meta.dateRange ?? "—";
+    rangeEl.hidden = false;
     rangeEl.classList.add("is-visible");
   } else {
-    prevBtn.classList.remove("d-none");
-    nextBtn.classList.remove("d-none");
-    prevBtn.disabled = viewWeek <= 1;
-    nextBtn.disabled = false;
-    prevBtn.classList.toggle("opacity-50", viewWeek <= 1);
-    nextBtn.classList.remove("opacity-50");
-    prevBtn.onclick = () => setWeek(Math.max(1, viewWeek - 1));
-    nextBtn.onclick = () => setWeek(viewWeek + 1);
     titleEl.textContent =
       viewWeek === publishedWeek
         ? meta.matchweekTitle || `Matchweek ${publishedWeek}`
         : `Matchweek ${viewWeek}`;
     rangeEl.textContent = viewWeek === publishedWeek ? meta.dateRange ?? "—" : "Browse earlier / later gameweeks";
+    rangeEl.hidden = viewWeek === publishedWeek;
     rangeEl.classList.toggle("is-visible", viewWeek !== publishedWeek);
   }
 
   const weekMatches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
-  const { dateGroups, activeIndex, activeGroup } = resolveMatchCenterDateView(
+  let { dateGroups, activeIndex, activeGroup } = resolveMatchCenterDateView(
     leagueId,
     viewWeek,
     weekMatches,
     showAll,
   );
   const storageKey = matchCenterDateStorageKey(leagueId, viewWeek);
+  const pending = renderMatchCenter._pendingWeekEdge;
+  if (pending && pending.key === storageKey && dateGroups.length) {
+    const idx = pending.edge === "end" ? dateGroups.length - 1 : 0;
+    if (!renderMatchCenter._viewDateByWeek) renderMatchCenter._viewDateByWeek = {};
+    renderMatchCenter._viewDateByWeek[storageKey] = dateGroups[idx].key;
+    renderMatchCenter._pendingWeekEdge = null;
+    ({ dateGroups, activeIndex, activeGroup } = resolveMatchCenterDateView(
+      leagueId,
+      viewWeek,
+      weekMatches,
+      showAll,
+    ));
+  }
   const displayMatches = activeGroup?.items ?? [];
   const fixtureWord = displayMatches.length === 1 ? "fixture" : "fixtures";
 
@@ -7601,16 +7726,45 @@ function renderMatchCenter(leagueId) {
   const setDateIndex = (index) => {
     const group = dateGroups[index];
     if (!group) return;
+    if (!renderMatchCenter._viewDateByWeek) renderMatchCenter._viewDateByWeek = {};
     renderMatchCenter._viewDateByWeek[storageKey] = group.key;
     renderMatchCenter(leagueId);
   };
 
-  datePrevBtn.disabled = activeIndex <= 0;
-  dateNextBtn.disabled = activeIndex < 0 || activeIndex >= dateGroups.length - 1;
-  datePrevBtn.classList.toggle("opacity-50", datePrevBtn.disabled);
-  dateNextBtn.classList.toggle("opacity-50", dateNextBtn.disabled);
-  datePrevBtn.onclick = () => setDateIndex(activeIndex - 1);
-  dateNextBtn.onclick = () => setDateIndex(activeIndex + 1);
+  /** One arrow pair: step dates within the week, then spill into adjacent matchweeks. */
+  const stepMatchday = (delta) => {
+    if (showAll) {
+      const next = activeIndex + delta;
+      if (next >= 0 && next < dateGroups.length) setDateIndex(next);
+      return;
+    }
+    const next = activeIndex + delta;
+    if (next >= 0 && next < dateGroups.length) {
+      setDateIndex(next);
+      return;
+    }
+    if (delta < 0 && viewWeek > 1) {
+      setWeek(viewWeek - 1, { edge: "end" });
+      return;
+    }
+    if (delta > 0) setWeek(viewWeek + 1, { edge: "start" });
+  };
+
+  const canGoPrev = showAll
+    ? activeIndex > 0
+    : activeIndex > 0 || viewWeek > 1;
+  const canGoNext = showAll
+    ? activeIndex >= 0 && activeIndex < dateGroups.length - 1
+    : true;
+
+  prevBtn.disabled = !canGoPrev;
+  nextBtn.disabled = !canGoNext;
+  prevBtn.classList.toggle("opacity-50", !canGoPrev);
+  nextBtn.classList.toggle("opacity-50", !canGoNext);
+  prevBtn.classList.remove("d-none");
+  nextBtn.classList.remove("d-none");
+  prevBtn.onclick = () => stepMatchday(-1);
+  nextBtn.onclick = () => stepMatchday(1);
 
   const showStatus = leagueFeatureOn(leagueId, "matchStatus");
   const rowHtml = (m) => {
@@ -7638,11 +7792,14 @@ function renderMatchCenter(leagueId) {
     if (!id) continue;
     row.addEventListener("click", (e) => {
       const t = e.target;
-      if (t instanceof Element && t.closest("[data-open]")) return;
+      if (!(t instanceof Element)) return;
+      if (t.closest("[data-open], [data-mc-tab], .mc-match-tabs__tab, .mc-match-tabs__panel, .live-blog")) return;
       onOpen(id);
     });
     row.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
+        const t = e.target;
+        if (t instanceof Element && t.closest("[data-mc-tab], .mc-match-tabs__tab")) return;
         e.preventDefault();
         onOpen(id);
       }
@@ -7651,8 +7808,12 @@ function renderMatchCenter(leagueId) {
   for (const btn of $$("[data-open]", listEl)) {
     const id = btn.getAttribute("data-open");
     if (!id) continue;
-    btn.addEventListener("click", () => onOpen(id));
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onOpen(id);
+    });
   }
+  bindMatchCenterDetailTabs(listEl);
 
   const stEl = $("#miniStandings");
   if (stEl) {

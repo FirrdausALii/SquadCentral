@@ -285,34 +285,27 @@
           </div>
         </section>
 
-        <!-- Match Center -->
-        <section id="match-center" class="section reveal" aria-label="Match Center">
-          <header class="section-banner card home-panel-card">
-            <h2 class="section-title section-banner__title">Match Center</h2>
-            <p class="section-banner__desc">Gameweek results, live status, and match analytics.</p>
-          </header>
-
-          <div class="card mb-4">
+        <!-- Match Center / Results -->
+        <section id="match-center" class="section reveal" aria-label="Results">
+          <div class="card mb-4 mc-league-card">
             <div class="league-tabs" aria-label="League filter tabs" id="matchTabs"></div>
           </div>
 
           <div class="card mb-4 mw-panel" style="padding: 0; overflow: hidden">
             <div class="matchweek-head">
               <div class="mw-nav-bar" id="mwNavBar">
-                <button type="button" class="mw-nav" id="mwDatePrev" aria-label="Previous date">‹</button>
+                <button type="button" class="mw-nav" id="mwPrev" aria-label="Previous matchday">‹</button>
                 <div class="mw-nav-bar__center min-w-0">
-                  <div class="mw-nav-bar__title-line" id="mwWeekNavRow">
-                    <button type="button" class="mw-nav mw-nav--sub" id="mwPrev" aria-label="Previous matchweek">‹</button>
-                    <span class="mw-kicker" id="mwTitle">Matchweek —</span>
-                    <button type="button" class="mw-nav mw-nav--sub" id="mwNext" aria-label="Next matchweek">›</button>
-                  </div>
-                  <div class="mw-nav-bar__meta">
-                    <span class="mw-date-kicker" id="mwDateTitle">—</span>
+                  <p class="mw-nav-bar__summary" id="mwSummary">
+                    <span id="mwTitle">Matchweek —</span>
                     <span class="mw-nav-bar__sep" aria-hidden="true">·</span>
-                    <span class="mw-date-meta" id="mwDateMeta">—</span>
-                  </div>
-                  <p class="mw-range mw-nav-bar__range" id="mwRange">—</p>
+                    <span id="mwDateTitle">—</span>
+                    <span class="mw-nav-bar__sep" aria-hidden="true">·</span>
+                    <span id="mwDateMeta">—</span>
+                  </p>
+                  <p class="mw-range mw-nav-bar__range" id="mwRange" hidden>—</p>
                 </div>
+                <button type="button" class="mw-nav" id="mwNext" aria-label="Next matchday">›</button>
                 <button
                   type="button"
                   class="btn btn-ghost btn-sm share-btn mw-nav-bar__share"
@@ -321,7 +314,6 @@
                 >
                   Share
                 </button>
-                <button type="button" class="mw-nav" id="mwDateNext" aria-label="Next date">›</button>
               </div>
             </div>
             <div class="mw-list" id="matchList" aria-label="Matchweek results"></div>
