@@ -1741,6 +1741,76 @@ function teamForStandingClub(clubName, leagueId) {
   return TEAMS.find((t) => t.leagueId === leagueId && t.name === name) ?? null;
 }
 
+function normalizeClubKey(name) {
+  return String(name ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Resolve a club crest for any club label (league short names, U21 sides, cross-league clubs). */
+function resolveTeamByClubName(clubName, preferredLeagueId) {
+  const raw = String(clubName ?? "").trim();
+  if (!raw) return null;
+  const candidates = [raw];
+  const stripped = raw
+    .replace(/\s+u\d+$/i, "")
+    .replace(/\s+b$/i, "")
+    .replace(/\s+ii$/i, "")
+    .trim();
+  if (stripped && stripped !== raw) candidates.push(stripped);
+
+  const tryMatch = (pool) => {
+    for (const c of candidates) {
+      const exact = pool.find((t) => t.name === c);
+      if (exact) return exact;
+      const key = normalizeClubKey(c);
+      if (!key) continue;
+      const ci = pool.find((t) => normalizeClubKey(t.name) === key);
+      if (ci) return ci;
+      const partial = pool.find((t) => {
+        const tk = normalizeClubKey(t.name);
+        return Boolean(tk) && (key.startsWith(`${tk} `) || tk.startsWith(`${key} `));
+      });
+      if (partial) return partial;
+    }
+    return null;
+  };
+
+  if (preferredLeagueId) {
+    const local = tryMatch(TEAMS.filter((t) => t.leagueId === preferredLeagueId));
+    if (local) return local;
+  }
+  return tryMatch(TEAMS);
+}
+
+function clubCrestFromName(clubName, preferredLeagueId, classes = "squad-crest") {
+  const team = resolveTeamByClubName(clubName, preferredLeagueId);
+  if (team) return clubLogoHtml(team, classes);
+  const label = String(clubName ?? "").trim();
+  if (!label) return teamCrestHtml(null, { className: classes, size: 24 });
+  return teamCrestHtml(
+    { name: label, colors: ["#1e2d45", "#253d5e"] },
+    { className: classes, size: 24 },
+  );
+}
+
+function playerInitialsAvatarHtml(playerName, classes = "player-avatar") {
+  const name = String(playerName ?? "").trim();
+  const initials = name
+    ? name
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "?";
+  return `<span class="${escapeHtml(classes)}" aria-hidden="true">${escapeHtml(initials || "?")}</span>`;
+}
+
 function standingsCrestHtml(team, clubName) {
   if (team?.logo) {
     return `<div class="club-cell-crest" style="background-image:url('${escapeHtml(team.logo)}')" aria-hidden="true"></div>`;
@@ -6733,22 +6803,52 @@ function setTransferPanelMeta(block) {
   }
 }
 
-function renderTransferRows(items, direction, clubName) {
+function formatTransferFeeBadge(fee) {
+  const raw = String(fee ?? "").trim();
+  if (!raw || raw === "—" || raw === "-" || raw === "–" || /^undisclosed$/i.test(raw)) {
+    return { label: "Undisclosed", kind: "undisclosed" };
+  }
+  if (/^free(\s+transfer)?$/i.test(raw)) {
+    return { label: "Free Transfer", kind: "free" };
+  }
+  if (/loan/i.test(raw)) {
+    return { label: /^loan$/i.test(raw) ? "Loan" : raw, kind: "loan" };
+  }
+  return { label: raw, kind: "fee" };
+}
+
+function renderTransferRows(items, direction, clubName, leagueId = "") {
   if (!items?.length) {
     return transferEmptyHtml(direction, clubName);
   }
   const panel = TRANSFER_PANELS.find((p) => p.key === direction);
   const dirClass = panel?.dirClass ?? direction;
   const dirSymbol = panel?.symbol ?? "•";
+  const otherLabel = direction === "out" || direction === "loanRecall" ? "To" : "From";
   return items
     .map((t) => {
-      const fee = t.fee ? escapeHtml(t.fee) : "—";
+      const otherClub = String(t.otherClub ?? "").trim();
+      const fee = formatTransferFeeBadge(t.fee);
+      const date = String(t.date ?? "").trim();
+      const crest = clubCrestFromName(otherClub, leagueId, "squad-crest transfer-row__crest");
       return `
         <article class="transfer-row">
           <span class="transfer-direction ${dirClass}" aria-hidden="true">${dirSymbol}</span>
-          <span class="transfer-name">${escapeHtml(t.player)}</span>
-          <span class="transfer-club">${escapeHtml(t.otherClub ?? t.club ?? "")}</span>
-          <span class="transfer-fee">${fee}</span>
+          ${playerInitialsAvatarHtml(t.player, "player-avatar transfer-row__avatar")}
+          <div class="transfer-row__main">
+            <div class="transfer-row__top">
+              <span class="transfer-name">${escapeHtml(t.player)}</span>
+              <span class="transfer-fee-badge transfer-fee-badge--${fee.kind}">${escapeHtml(fee.label)}</span>
+            </div>
+            <div class="transfer-row__meta">
+              <span class="transfer-row__club">
+                <span class="transfer-row__club-label">${otherLabel}</span>
+                ${crest}
+                <span class="transfer-club">${escapeHtml(otherClub || "—")}</span>
+              </span>
+              ${date ? `<time class="transfer-row__date">${escapeHtml(date)}</time>` : ""}
+            </div>
+          </div>
         </article>
       `;
     })
@@ -6789,7 +6889,7 @@ function renderTransfers(leagueId, preferredTeamId) {
   setTransferPanelMeta(block);
   for (const panel of TRANSFER_PANELS) {
     const el = $(`#${panel.elId}`);
-    if (el) el.innerHTML = renderTransferRows(block[panel.key], panel.key, clubName);
+    if (el) el.innerHTML = renderTransferRows(block[panel.key], panel.key, clubName, leagueId);
   }
 }
 
@@ -7835,24 +7935,96 @@ function renderMatchCenter(leagueId) {
 
   const scEl = $("#topScorers");
   if (scEl) {
-    const rows = TOP_SCORERS.find((x) => x.leagueId === leagueId)?.rows ?? [];
-    if (!rows.length) {
-      scEl.innerHTML = "<div class='muted mc-empty'>No scorers for this league.</div>";
-    } else {
-      scEl.innerHTML = `<div class="mc-score-list">${rows
-        .map(
-          ([name, club, goals]) => `
-        <div class="mc-score-row" role="row">
-          <div class="mc-score-main">
-            <span class="mc-score-name">${escapeHtml(String(name))}</span>
-            <span class="mc-score-club">${escapeHtml(String(club))}</span>
-          </div>
-          <span class="mc-score-goals">${escapeHtml(String(goals))}</span>
-        </div>`,
-        )
-        .join("")}</div>`;
+    scEl.innerHTML = renderTopScorersHtml(leagueId, topScorerStatMode);
+  }
+}
+
+let topScorerStatMode = "goals";
+
+function topScorerRowsFromTable(leagueId) {
+  return (TOP_SCORERS.find((x) => x.leagueId === leagueId)?.rows ?? [])
+    .map(([name, club, goals]) => ({
+      name: String(name ?? "").trim(),
+      club: String(club ?? "").trim(),
+      value: Number(goals) || 0,
+    }))
+    .filter((r) => r.name)
+    .slice(0, 5);
+}
+
+function topAssistRowsFromMatches(leagueId, limit = 5) {
+  const counts = new Map();
+  for (const m of MATCHES) {
+    if (m.leagueId !== leagueId) continue;
+    for (const ev of m.goalEvents ?? []) {
+      const assist = stripCaptainSuffix(String(ev.assist ?? "").trim());
+      if (!assist) continue;
+      const teamId = ev.side === "away" ? m.awayTeamId : m.homeTeamId;
+      const team = teamById.get(teamId);
+      const club = team?.name ?? "";
+      const prev = counts.get(assist) ?? { name: assist, club, value: 0 };
+      if (club) prev.club = club;
+      prev.value += 1;
+      counts.set(assist, prev);
     }
   }
+  return [...counts.values()]
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
+function renderTopScorersHtml(leagueId, mode = "goals") {
+  const rows = mode === "assists" ? topAssistRowsFromMatches(leagueId) : topScorerRowsFromTable(leagueId);
+  if (!rows.length) {
+    const empty =
+      mode === "assists" ? "No assists recorded for this league yet." : "No scorers for this league.";
+    return `<div class="muted mc-empty">${empty}</div>`;
+  }
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  return `<div class="mc-score-list" role="table" aria-label="${mode === "assists" ? "Top assists" : "Top scorers"}">${rows
+    .map((row, i) => {
+      const rank = i + 1;
+      const pct = Math.max(8, Math.round((row.value / max) * 100));
+      const crest = clubCrestFromName(row.club, leagueId, "squad-crest mc-score-crest");
+      const leaderClass = rank === 1 ? " mc-score-row--leader" : "";
+      return `
+        <div class="mc-score-row${leaderClass}" role="row" style="--mc-score-bar:${pct}%">
+          <span class="mc-score-rank" aria-label="Rank ${rank}">${rank}</span>
+          ${crest}
+          <div class="mc-score-main">
+            <span class="mc-score-name">${escapeHtml(row.name)}</span>
+            <span class="mc-score-club">${escapeHtml(row.club)}</span>
+          </div>
+          <span class="mc-score-goals" aria-label="${mode === "assists" ? "Assists" : "Goals"} ${row.value}">${escapeHtml(String(row.value))}</span>
+        </div>`;
+    })
+    .join("")}</div>`;
+}
+
+function syncTopScorerStatToggle() {
+  for (const btn of $$("[data-scorer-stat]")) {
+    const on = btn.getAttribute("data-scorer-stat") === topScorerStatMode;
+    btn.classList.toggle("is-active", on);
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  }
+}
+
+function setupTopScorerControls() {
+  const card = document.querySelector('[aria-label="Top scorers"]');
+  if (!card || card.dataset.scorerToggleBound) return;
+  card.dataset.scorerToggleBound = "1";
+  card.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-scorer-stat]");
+    if (!btn) return;
+    const mode = btn.getAttribute("data-scorer-stat");
+    if (!mode || mode === topScorerStatMode) return;
+    topScorerStatMode = mode;
+    syncTopScorerStatToggle();
+    const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
+    const scEl = $("#topScorers");
+    if (scEl && leagueId) scEl.innerHTML = renderTopScorersHtml(leagueId, topScorerStatMode);
+  });
 }
 
 function refreshSiteFromStore() {
@@ -7886,6 +8058,7 @@ function main() {
   setupRosterControls();
   setupShareButtons();
   setupTransferControls();
+  setupTopScorerControls();
   setupLeagueSwitcherLayout();
 
   updateHeroSummary();

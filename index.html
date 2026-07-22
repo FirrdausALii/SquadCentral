@@ -322,7 +322,13 @@
           <div class="grid-2">
             <div id="miniStandings" aria-label="League standings">Loading…</div>
             <div class="card mini-card" style="padding: 0; overflow: hidden" aria-label="Top scorers">
-              <h3 class="panel-title mini-card-head">Top Scorer</h3>
+              <div class="mini-card-head mini-card-head--scorers">
+                <h3 class="panel-title mb-0">Top Scorer</h3>
+                <div class="lineup-toggle mc-stat-toggle" role="tablist" aria-label="Goals or assists">
+                  <button type="button" class="lineup-toggle-btn is-active active" data-scorer-stat="goals" role="tab" aria-selected="true">Goals</button>
+                  <button type="button" class="lineup-toggle-btn" data-scorer-stat="assists" role="tab" aria-selected="false">Assists</button>
+                </div>
+              </div>
               <div class="mini-body--flush" id="topScorers">Loading…</div>
             </div>
           </div>
@@ -330,28 +336,29 @@
 
         <!-- Transfers -->
         <section id="transfers" class="section reveal" aria-label="Transfers">
-          <div class="section-divider">
-            <h2 class="section-title">Transfers</h2>
-          </div>
-          <p class="text-secondary mb-4">
-            Incoming and outgoing moves for
-            <span class="fw-semibold" style="color: var(--text-primary)" id="transferLeagueLabel">—</span>
-            —
-            <span class="fw-semibold" style="color: var(--text-primary)" id="transferClubLabel">—</span>.
-          </p>
-
-          <div class="card mb-4">
-            <div class="league-tabs mb-4" aria-label="League filter" id="transferTabs"></div>
-            <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
-              <label class="d-grid gap-1 flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
-                <span class="field-label">Club</span>
-                <div class="fc-select-wrap">
-                  <select id="transferTeamSelect" class="fc-select form-select" aria-label="Club for transfers"></select>
-                </div>
-              </label>
-              <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareTransfersBtn" aria-label="Share transfers image">
-                Share
-              </button>
+          <div class="card transfers-shell mb-4" style="padding: 0; overflow: hidden">
+            <div class="table-card__head transfers-shell__head">
+              <div class="table-card__title-row">
+                <h2 class="panel-title table-card__title" id="transfersHeading">Transfers</h2>
+              </div>
+              <p class="transfers-shell__desc">Incoming and outgoing moves for</p>
+              <p class="transfers-shell__scope">
+                <span id="transferLeagueLabel">—</span><span class="transfers-shell__sep" aria-hidden="true"> · </span><span id="transferClubLabel">—</span>
+              </p>
+            </div>
+            <div class="transfers-shell__filters">
+              <div class="league-tabs mb-4" aria-label="League filter" id="transferTabs"></div>
+              <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+                <label class="d-grid gap-1 flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
+                  <span class="field-label">Club</span>
+                  <div class="fc-select-wrap">
+                    <select id="transferTeamSelect" class="fc-select form-select" aria-label="Club for transfers"></select>
+                  </div>
+                </label>
+                <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareTransfersBtn" aria-label="Share transfers image">
+                  Share
+                </button>
+              </div>
             </div>
           </div>
 

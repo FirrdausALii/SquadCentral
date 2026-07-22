@@ -597,27 +597,104 @@ html.reveal-init .reveal.is-visible {
   border-bottom: 0.5px solid var(--border-subtle);
   background: var(--bg-surface-1);
 }
-.mini-body--flush { padding: 0 !important; }
-
-.mc-score-list { display: flex; flex-direction: column; }
-.mc-score-row {
+.mini-card-head--scorers {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.mini-card-head--scorers .panel-title {
+  margin: 0;
+}
+.mc-stat-toggle {
+  flex-shrink: 0;
+}
+.mini-body--flush { padding: 0 !important; }
+
+.mc-score-list { display: flex; flex-direction: column; }
+.mc-score-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 0.5px solid var(--border-subtle);
+  isolation: isolate;
+  overflow: hidden;
+}
+.mc-score-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--mc-score-bar, 0%);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: 0 4px 4px 0;
+  z-index: -1;
+  pointer-events: none;
 }
 .mc-score-row:last-child { border-bottom: none; }
 .mc-score-row:hover { background: var(--bg-surface-3); }
+.mc-score-row--leader {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface-2));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.mc-score-row--leader::before {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.mc-score-rank {
+  flex-shrink: 0;
+  width: 1.25rem;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  text-align: center;
+}
+.mc-score-row--leader .mc-score-rank {
+  color: var(--accent);
+}
+.mc-score-crest {
+  flex-shrink: 0;
+}
+.mc-score-crest.team-crest-shell,
+.mc-score-crest.squad-crest {
+  width: 22px;
+  height: 22px;
+}
 .mc-score-main {
   min-width: 0;
   flex: 1;
 }
 .mc-score-name { font-weight: 600; color: var(--text-primary); display: block; font-size: 13px; }
 .mc-score-club { font-size: 11px; color: var(--text-muted); }
-.mc-score-goals { font-weight: 700; color: var(--accent); font-size: 16px; }
+.mc-score-goals { font-weight: 700; color: var(--accent); font-size: 16px; font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 1.75rem; text-align: right; }
 .mc-empty { padding: var(--sp-6); text-align: center; color: var(--text-muted); }
+
+/* Transfers shell (title + filters in one card) */
+.transfers-shell__head {
+  gap: var(--sp-2);
+}
+.transfers-shell__desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.transfers-shell__scope {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.transfers-shell__sep {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.transfers-shell__filters {
+  padding: var(--sp-4);
+}
 
 /* Transfers panel */
 .transfer-panel { padding: 0; overflow: hidden; }
@@ -640,6 +717,105 @@ html.reveal-init .reveal.is-visible {
   display: none;
 }
 .transfer-panel-body { padding: 0; min-height: 120px; }
+
+.player-avatar,
+.transfer-row__avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  background: linear-gradient(145deg, var(--bg-surface-3), var(--bg-surface-1));
+  border: 0.5px solid var(--border-default);
+}
+
+.transfer-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.transfer-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.transfer-row__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.transfer-row__club {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.transfer-row__club-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.transfer-row__crest.team-crest-shell,
+.transfer-row__crest.squad-crest {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.transfer-row__date {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.transfer-fee-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  border: 0.5px solid transparent;
+}
+.transfer-fee-badge--fee {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.transfer-fee-badge--free {
+  color: #86efac;
+  background: color-mix(in srgb, var(--color-win) 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, var(--color-win) 35%, transparent);
+}
+.transfer-fee-badge--loan {
+  color: #fde68a;
+  background: color-mix(in srgb, #fbbf24 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #fbbf24 35%, transparent);
+}
+.transfer-fee-badge--undisclosed {
+  color: var(--text-muted);
+  background: var(--bg-surface-1);
+  border-color: var(--border-default);
+}
 
 .transfer-skeleton {
   padding: var(--sp-2) 0;
