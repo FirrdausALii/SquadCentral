@@ -3484,20 +3484,60 @@ function transfersStatChipsHtml(inCount, outCount, loanReturnCount, loanRecallCo
   </div>`;
 }
 
+function transferFeeFieldHtml(mode, fee) {
+  const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
+  const feePlaceholder = section?.feePlaceholder ?? "Fee";
+  const feeVal = String(fee ?? "").trim();
+  const freeOn = /^free(\s+transfer)?$/i.test(feeVal);
+  const loanOn = /^loan$/i.test(feeVal);
+  return `
+    <div class="tr-fee-field">
+      <div class="tr-fee-presets" role="group" aria-label="Fee quick select">
+        <button type="button" class="tr-fee-preset${freeOn ? " is-active" : ""}" data-fee="Free">Free</button>
+        <button type="button" class="tr-fee-preset${loanOn ? " is-active" : ""}" data-fee="Loan">Loan</button>
+      </div>
+      <input class="tr-fee transfers-input mw-input" value="${esc(feeVal)}" placeholder="${esc(feePlaceholder)}" aria-label="Fee" inputmode="text" autocomplete="off" />
+    </div>`;
+}
+
 function transferTableRowHtml(mode, teamId, t, i) {
+  const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
   const isIncoming = transferDirectionIncoming(mode);
-  const clubInput = isIncoming
-    ? `<input class="tr-from transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`
-    : `<input class="tr-to transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.clubPlaceholder ?? "Club")}" />`;
-  const feePlaceholder = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.feePlaceholder ?? "Fee";
-  return `<tr class="tr-sort-row transfers-row transfers-row--${esc(mode)}" data-i="${i}" data-dir="${esc(mode)}" data-id="${esc(t.id ?? "")}" data-tr-sort-key="${esc(t.id || `${mode}-${i}`)}">
-    <td class="admin-drag-cell"><span class="player-drag-handle transfers-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span></td>
-    <td class="transfers-player-col">${transferPlayerFieldHtml(mode, teamId, t.player)}</td>
-    <td class="transfers-club-col">${clubInput}</td>
-    <td class="transfers-fee-col d-none d-sm-table-cell"><input class="tr-fee transfers-input mw-input" value="${esc(t.fee ?? "")}" placeholder="${esc(feePlaceholder)}" /></td>
-    <td class="transfers-date-col"><input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" /></td>
-    <td class="transfers-del-col"><button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove row">×</button></td>
-  </tr>`;
+  const clubClass = isIncoming ? "tr-from" : "tr-to";
+  const clubLabel = section?.clubHeader ?? (isIncoming ? "From" : "To");
+  const clubPlaceholder = section?.clubPlaceholder ?? "Club";
+  const sortKey = t.id || `${mode}-${i}`;
+  return `
+    <article
+      class="tr-sort-row transfers-card transfers-row transfers-row--${esc(mode)}"
+      role="listitem"
+      data-i="${i}"
+      data-dir="${esc(mode)}"
+      data-id="${esc(t.id ?? "")}"
+      data-tr-sort-key="${esc(sortKey)}"
+    >
+      <div class="transfers-card__top">
+        <span class="player-drag-handle transfers-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
+        <span class="transfers-card__index">Entry ${i + 1}</span>
+        <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove entry" aria-label="Remove entry">×</button>
+      </div>
+      <div class="transfers-card__field">
+        <span class="transfers-card__label">Player</span>
+        ${transferPlayerFieldHtml(mode, teamId, t.player)}
+      </div>
+      <div class="transfers-card__field">
+        <span class="transfers-card__label">${esc(clubLabel)}</span>
+        <input class="${clubClass} transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(clubPlaceholder)}" aria-label="${esc(clubLabel)}" />
+      </div>
+      <div class="transfers-card__field">
+        <span class="transfers-card__label">Fee</span>
+        ${transferFeeFieldHtml(mode, t.fee)}
+      </div>
+      <div class="transfers-card__field">
+        <span class="transfers-card__label">Date</span>
+        <input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" aria-label="Transfer date" />
+      </div>
+    </article>`;
 }
 
 function transferInRowHtml(teamId, t, i) {
@@ -3578,7 +3618,7 @@ function panelTransfers() {
         : rows.map((t, i) => transferTableRowHtml(section.key, transferTeamFilter, t, i)).join("");
     const emptyRow =
       rows.length === 0
-        ? `<tr class="transfers-empty-row"><td colspan="6"><span class="transfers-empty-msg">No ${esc(section.title.toLowerCase())} yet — use <strong>${esc(section.btnLabel)}</strong> below.</span></td></tr>`
+        ? `<div class="transfers-empty-row" role="status"><span class="transfers-empty-msg">No ${esc(section.title.toLowerCase())} yet — use <strong>${esc(section.btnLabel)}</strong> below.</span></div>`
         : "";
     return `
         <section class="transfers-section transfers-section--${esc(section.key)}">
@@ -3591,11 +3631,8 @@ function panelTransfers() {
             </div>
             <span class="transfers-section-count" aria-label="${rows.length} entries">${rows.length}</span>
           </div>
-          <div class="transfers-table-wrap">
-            <table class="admin-table admin-table-compact transfers-table" id="${esc(section.tableId)}">
-              <thead><tr><th class="admin-drag-col" aria-label="Reorder"></th><th>Player</th><th>${esc(section.clubHeader)}</th><th class="d-none d-sm-table-cell">Fee</th><th>Date</th><th></th></tr></thead>
-              <tbody>${rowHtml}${emptyRow}</tbody>
-            </table>
+          <div class="transfers-list-wrap">
+            <div class="transfers-card-list" id="${esc(section.tableId)}" role="list">${rowHtml}${emptyRow}</div>
           </div>
           <div class="transfers-section-actions">
             <button type="button" class="mw-btn-ghost transfers-add-btn transfers-add-btn--${esc(section.key)}" id="${esc(section.btnId)}">${esc(section.btnLabel)}</button>
@@ -5631,24 +5668,24 @@ function bindScorerDel() {
 
 function bindTransferRosterActions() {
   for (const section of ADMIN_TRANSFER_SECTIONS) {
-    const table = $(`#${section.tableId}`);
+    const list = $(`#${section.tableId}`);
     const mode = section.key;
     const isIncoming = transferDirectionIncoming(mode);
 
-    table?.querySelectorAll("tbody tr").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, mode));
+    list?.querySelectorAll(".transfers-card").forEach((row) => syncTransferRosterBtn(row, transferTeamFilter, mode));
 
-    if (!table || table.dataset.trRosterBound === "1") continue;
-    table.dataset.trRosterBound = "1";
-    table.addEventListener("input", (e) => {
+    if (!list || list.dataset.trRosterBound === "1") continue;
+    list.dataset.trRosterBound = "1";
+    list.addEventListener("input", (e) => {
       if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-player")) return;
-      const row = e.target.closest("tr");
+      const row = e.target.closest(".transfers-card");
       closeTransferSquadForm(row);
       syncTransferRosterBtn(row, transferTeamFilter, mode);
     });
-    table.addEventListener("click", (e) => {
+    list.addEventListener("click", (e) => {
       const confirmBtn = e.target instanceof Element ? e.target.closest(".tr-squad-confirm") : null;
       if (confirmBtn) {
-        const row = confirmBtn.closest("tr");
+        const row = confirmBtn.closest(".transfers-card");
         const name = row?.querySelector(".tr-player")?.value ?? "";
         const ok = addTransferPlayerToSquad(transferTeamFilter, name, readTransferSquadDetails(row));
         if (ok) {
@@ -5660,14 +5697,27 @@ function bindTransferRosterActions() {
 
       const cancelBtn = e.target instanceof Element ? e.target.closest(".tr-squad-cancel") : null;
       if (cancelBtn) {
-        closeTransferSquadForm(cancelBtn.closest("tr"));
+        closeTransferSquadForm(cancelBtn.closest(".transfers-card"));
+        return;
+      }
+
+      const feePreset = e.target instanceof Element ? e.target.closest(".tr-fee-preset") : null;
+      if (feePreset) {
+        const card = feePreset.closest(".transfers-card");
+        const feeInput = card?.querySelector(".tr-fee");
+        if (feeInput) {
+          feeInput.value = feePreset.getAttribute("data-fee") ?? "";
+          card.querySelectorAll(".tr-fee-preset").forEach((btn) => {
+            btn.classList.toggle("is-active", btn === feePreset);
+          });
+        }
         return;
       }
 
       const selector = isIncoming ? ".tr-add-squad" : ".tr-remove-squad";
       const btn = e.target instanceof Element ? e.target.closest(selector) : null;
       if (!btn || btn.disabled) return;
-      const row = btn.closest("tr");
+      const row = btn.closest(".transfers-card");
       const name = row?.querySelector(".tr-player")?.value ?? "";
       if (isIncoming) {
         openTransferSquadForm(row, transferTeamFilter);
@@ -5676,13 +5726,23 @@ function bindTransferRosterActions() {
         syncTransferRosterBtn(row, transferTeamFilter, mode);
       }
     });
+    list.addEventListener("input", (e) => {
+      if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-fee")) return;
+      const card = e.target.closest(".transfers-card");
+      if (!card) return;
+      const val = e.target.value.trim().toLowerCase();
+      card.querySelectorAll(".tr-fee-preset").forEach((btn) => {
+        const preset = String(btn.getAttribute("data-fee") ?? "").toLowerCase();
+        btn.classList.toggle("is-active", Boolean(preset) && preset === val);
+      });
+    });
   }
 }
 
-function bindTransferRowDragSort(tableId) {
-  const tbody = $(tableId)?.querySelector("tbody");
-  if (!tbody || tbody.dataset.trDragBound === "1") return;
-  tbody.dataset.trDragBound = "1";
+function bindTransferRowDragSort(listSelector) {
+  const list = $(listSelector);
+  if (!list || list.dataset.trDragBound === "1") return;
+  list.dataset.trDragBound = "1";
 
   let draggedRow = null;
   let touchRow = null;
@@ -5695,11 +5755,11 @@ function bindTransferRowDragSort(tableId) {
   const finishDrag = () => {
     if (draggedRow) draggedRow.classList.remove("is-dragging");
     draggedRow = null;
-    tbody.querySelectorAll(".tr-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".tr-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
     stashTransferEditsFromDom();
   };
 
-  tbody.addEventListener("dragstart", (e) => {
+  list.addEventListener("dragstart", (e) => {
     const handle = e.target.closest(".player-drag-handle");
     if (!handle) return;
     const row = handle.closest(".tr-sort-row");
@@ -5712,45 +5772,45 @@ function bindTransferRowDragSort(tableId) {
     }
   });
 
-  tbody.addEventListener("dragend", finishDrag);
+  list.addEventListener("dragend", finishDrag);
 
-  tbody.addEventListener("dragover", (e) => {
+  list.addEventListener("dragover", (e) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
     const target = e.target.closest(".tr-sort-row");
     if (!target || !draggedRow || target === draggedRow) return;
 
-    tbody.querySelectorAll(".tr-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    list.querySelectorAll(".tr-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
     target.classList.add("is-drag-over");
 
     const rect = target.getBoundingClientRect();
     const before = e.clientY < rect.top + rect.height / 2;
-    if (before) tbody.insertBefore(draggedRow, target);
-    else tbody.insertBefore(draggedRow, target.nextSibling);
+    if (before) list.insertBefore(draggedRow, target);
+    else list.insertBefore(draggedRow, target.nextSibling);
   });
 
-  tbody.addEventListener("dragleave", (e) => {
+  list.addEventListener("dragleave", (e) => {
     const row = e.target.closest(".tr-sort-row");
     if (row) row.classList.remove("is-drag-over");
   });
 
-  tbody.addEventListener("drop", (e) => {
+  list.addEventListener("drop", (e) => {
     e.preventDefault();
     finishDrag();
   });
 
-  tbody.addEventListener(
+  list.addEventListener(
     "touchstart",
     (e) => {
       const handle = e.target.closest(".player-drag-handle");
-      if (!handle || !tbody.contains(handle)) return;
+      if (!handle || !list.contains(handle)) return;
       touchRow = handle.closest(".tr-sort-row");
       touchRow?.classList.add("is-dragging");
     },
     { passive: true },
   );
 
-  tbody.addEventListener(
+  list.addEventListener(
     "touchmove",
     (e) => {
       if (!touchRow) return;
@@ -5761,8 +5821,8 @@ function bindTransferRowDragSort(tableId) {
 
       const rect = target.getBoundingClientRect();
       const before = touch.clientY < rect.top + rect.height / 2;
-      if (before) tbody.insertBefore(touchRow, target);
-      else tbody.insertBefore(touchRow, target.nextSibling);
+      if (before) list.insertBefore(touchRow, target);
+      else list.insertBefore(touchRow, target.nextSibling);
     },
     { passive: false },
   );
@@ -5774,28 +5834,32 @@ function bindTransferRowDragSort(tableId) {
     stashTransferEditsFromDom();
   };
 
-  tbody.addEventListener("touchend", endTouch);
-  tbody.addEventListener("touchcancel", endTouch);
+  list.addEventListener("touchend", endTouch);
+  list.addEventListener("touchcancel", endTouch);
 }
 
 function bindTransferDel() {
   for (const section of ADMIN_TRANSFER_SECTIONS) {
-    const table = $(`#${section.tableId}`);
-    if (!table || table.dataset.trDelBound === "1") continue;
-    table.dataset.trDelBound = "1";
-    table.addEventListener("click", (e) => {
+    const list = $(`#${section.tableId}`);
+    if (!list || list.dataset.trDelBound === "1") continue;
+    list.dataset.trDelBound = "1";
+    list.addEventListener("click", (e) => {
       const btn = e.target instanceof Element ? e.target.closest(".tr-del") : null;
       if (!btn) return;
-      btn.closest("tr")?.remove();
+      const card = btn.closest(".transfers-card");
+      card?.remove();
+      if (list && !list.querySelector(".transfers-card")) {
+        list.innerHTML = `<div class="transfers-empty-row" role="status"><span class="transfers-empty-msg">No ${esc(section.title.toLowerCase())} yet — use <strong>${esc(section.btnLabel)}</strong> below.</span></div>`;
+      }
     });
   }
 }
 
 function readTransfersTable(tableId, dir, clubName) {
-  const tbody = $(tableId)?.querySelector("tbody");
-  if (!tbody) return [];
+  const list = $(tableId);
+  if (!list) return [];
   const isIncoming = transferDirectionIncoming(dir);
-  return Array.from(tbody.querySelectorAll("tr:not(.transfers-empty-row)"))
+  return Array.from(list.querySelectorAll(".transfers-card"))
     .map((tr, i) => {
       const playerEl = tr.querySelector(".tr-player");
       const player = playerEl?.value.trim() ?? "";
@@ -5837,15 +5901,18 @@ function bindTransfers() {
     if (btn && btn.dataset.trAddBound !== "1") {
       btn.dataset.trAddBound = "1";
       btn.addEventListener("click", () => {
-        const tbody = $(`#${section.tableId} tbody`);
-        if (!tbody || !transferTeamFilter) return toast("Choose a club first");
-        tbody.querySelector(".transfers-empty-row")?.remove();
-        const i = tbody.querySelectorAll("tr:not(.transfers-empty-row)").length;
-        tbody.insertAdjacentHTML(
+        const list = $(`#${section.tableId}`);
+        if (!list || !transferTeamFilter) return toast("Choose a club first");
+        list.querySelector(".transfers-empty-row")?.remove();
+        const i = list.querySelectorAll(".transfers-card").length;
+        list.insertAdjacentHTML(
           "beforeend",
           transferTableRowHtml(section.key, transferTeamFilter, {}, i),
         );
-        syncTransferRosterBtn(tbody.lastElementChild, transferTeamFilter, section.key);
+        const card = list.querySelector(".transfers-card:last-of-type");
+        syncTransferRosterBtn(card, transferTeamFilter, section.key);
+        card?.scrollIntoView({ behavior: "smooth", block: "center" });
+        queueMicrotask(() => card?.querySelector(".tr-player")?.focus?.());
       });
     }
   }
