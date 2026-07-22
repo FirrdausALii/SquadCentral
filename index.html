@@ -419,68 +419,86 @@
           </div>
           <p class="text-secondary mb-4">Select a league and team, then filter the roster.</p>
 
-          <div class="card mb-4">
-            <div class="filter-row">
-              <label class="filter-field d-grid gap-1">
-                <span class="field-label">League</span>
-                <div class="fc-select-wrap fc-select-wrap--league">
-                  <select id="leagueSelect" class="fc-select form-select" aria-label="League"></select>
-                </div>
-              </label>
-              <label class="filter-field d-grid gap-1">
-                <span class="field-label">Team</span>
-                <div class="fc-select-wrap">
-                  <select id="teamSelect" class="fc-select form-select" aria-label="Team"></select>
-                </div>
-              </label>
-              <label class="filter-field d-grid gap-1">
-                <span class="field-label">Position</span>
-                <div class="fc-select-wrap">
-                  <select id="positionSelect" class="fc-select form-select" aria-label="Position">
-                    <option value="all">All</option>
-                    <option value="GK">Goalkeepers</option>
-                    <option value="DF">Defenders</option>
-                    <option value="MF">Midfielders</option>
-                    <option value="FW">Forwards</option>
-                  </select>
-                </div>
-              </label>
-              <label class="filter-field d-grid gap-1">
-                <span class="field-label">Search</span>
-                <div class="search-bar">
-                  <span class="search-icon" aria-hidden="true">⌕</span>
-                  <input id="playerSearch" type="search" placeholder="Search player…" aria-label="Search players" />
-                </div>
-              </label>
+          <div class="card squads-toolbar mb-3">
+            <div class="squads-toolbar__summary" id="rosterFilterSummary">
+              <div class="squads-toolbar__chips" id="rosterChips" aria-live="polite"></div>
+              <div class="squads-toolbar__actions">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm squads-toolbar__edit"
+                  id="rosterFilterToggle"
+                  aria-expanded="false"
+                  aria-controls="rosterFilterPanel"
+                >
+                  Filters
+                </button>
+                <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareSquadBtn" aria-label="Share squad image">
+                  Share
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <div class="d-flex flex-wrap gap-2" id="rosterChips" aria-live="polite"></div>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-              <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareSquadBtn" aria-label="Share squad image">
-                Share
-              </button>
-              <div class="lineup-toggle lineup-view-toggle roster-view-toggle" id="rosterViewBar" role="tablist" aria-label="Squad view">
-                <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">List</button>
-                <button type="button" class="lineup-toggle-btn lineup-view-btn" data-roster-view="depth" role="tab" aria-selected="false">Depth</button>
+            <div class="squads-toolbar__filters is-collapsed" id="rosterFilterPanel" hidden>
+              <div class="filter-row">
+                <label class="filter-field d-grid gap-1">
+                  <span class="field-label">League</span>
+                  <div class="fc-select-wrap fc-select-wrap--league">
+                    <select id="leagueSelect" class="fc-select form-select" aria-label="League"></select>
+                  </div>
+                </label>
+                <label class="filter-field d-grid gap-1">
+                  <span class="field-label">Team</span>
+                  <div class="fc-select-wrap">
+                    <select id="teamSelect" class="fc-select form-select" aria-label="Team"></select>
+                  </div>
+                </label>
+                <label class="filter-field d-grid gap-1">
+                  <span class="field-label">Position</span>
+                  <div class="fc-select-wrap">
+                    <select id="positionSelect" class="fc-select form-select" aria-label="Position">
+                      <option value="all">All</option>
+                      <option value="GK">Goalkeepers</option>
+                      <option value="DF">Defenders</option>
+                      <option value="MF">Midfielders</option>
+                      <option value="FW">Forwards</option>
+                    </select>
+                  </div>
+                </label>
+                <label class="filter-field d-grid gap-1">
+                  <span class="field-label">Search</span>
+                  <div class="search-bar">
+                    <span class="search-icon" aria-hidden="true">⌕</span>
+                    <input id="playerSearch" type="search" placeholder="Search player…" aria-label="Search players" />
+                  </div>
+                </label>
               </div>
             </div>
           </div>
 
-          <div id="rosterListWrap">
           <div class="card squad-panel player-table-wrap" id="rosterPanel">
-            <div class="squad-team-head" id="rosterTeamHead" aria-live="polite"></div>
-            <div class="squad-col-head" aria-hidden="true">
-              <span class="squad-col-num">#</span>
-              <span class="squad-col-player">Player</span>
-              <span class="squad-col-role">Pos</span>
-              <span class="squad-col-nat">Nation</span>
+            <div class="squad-team-head squad-team-head--sticky" id="rosterTeamHead" aria-live="polite"></div>
+
+            <div class="squad-view-toolbar">
+              <div class="squad-view-toolbar__copy min-w-0">
+                <p class="squad-view-toolbar__title mb-0" id="rosterViewTitle">Squad list</p>
+                <p class="squad-view-toolbar__hint mb-0" id="rosterViewHint">Players grouped by position</p>
+              </div>
+              <div class="lineup-toggle lineup-view-toggle roster-view-toggle" id="rosterViewBar" role="tablist" aria-label="Squad view">
+                <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">List</button>
+                <button type="button" class="lineup-toggle-btn lineup-view-btn" data-roster-view="depth" role="tab" aria-selected="false" aria-label="Depth chart">Depth chart</button>
+              </div>
             </div>
-            <div class="squad-body" id="rosterGrid" aria-live="polite"></div>
+
+            <div id="rosterListWrap">
+              <div class="squad-col-head" aria-hidden="true">
+                <span class="squad-col-num">#</span>
+                <span class="squad-col-player">Player</span>
+                <span class="squad-col-role">Pos</span>
+                <span class="squad-col-nat">Nation / Age</span>
+              </div>
+              <div class="squad-body" id="rosterGrid" aria-live="polite"></div>
+            </div>
+            <div id="rosterDepthWrap" class="squad-depth-wrap is-hidden" aria-live="polite"></div>
           </div>
-          </div>
-          <div id="rosterDepthWrap" class="card squad-depth-wrap is-hidden" aria-live="polite"></div>
           <p class="visually-hidden" id="rosterCount" aria-live="polite"></p>
         </section>
 

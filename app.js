@@ -5289,6 +5289,10 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
             </span>
           </div>`
     : "";
+  const ageRow = `<div class="squad-profile-stat">
+            <span class="squad-profile-stat-label">Age</span>
+            <span class="squad-profile-stat-value">${escapeHtml(formatPlayerAge(p))}</span>
+          </div>`;
   const socialHtml = playerSocialHtml(p);
   openModal({
     title: displayName,
@@ -5306,6 +5310,7 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
         </div>
         <div class="squad-profile-grid">
           ${natRow}
+          ${ageRow}
           ${clubRow}
           ${isCaptainPlayer(p) ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Role</span><span class="squad-profile-stat-value">Club captain</span></div>` : ""}
         </div>
@@ -5321,7 +5326,10 @@ function bindSquadRowClicks(root, startsMap, leagueId) {
     const pid = row.getAttribute("data-player");
     const player = PLAYERS.find((x) => x.id === pid);
     if (!player) continue;
-    row.addEventListener("click", () => openPlayerModal(player, startsMap, leagueId));
+    row.addEventListener("click", () => {
+      openPlayerModal(player, startsMap, leagueId);
+      if (typeof row.blur === "function") row.blur();
+    });
     row.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -5467,20 +5475,7 @@ function renderSquadDepthView(state, team, startsMap) {
     return;
   }
 
-  const crest = clubLogoHtml(team.id, "club-crest squad-crest");
-  wrap.innerHTML = `
-    <div class="squad-team-head">
-      <div class="squad-team-head-inner">
-        ${crest}
-        <div class="squad-team-copy min-w-0">
-          <h4 class="subsection-title squad-team-name mb-1">${escapeHtml(team.name)}</h4>
-          <p class="squad-team-meta mb-0">Squad depth · ${escapeHtml(LEAGUES.find((l) => l.id === state.leagueId)?.name ?? state.leagueId)}</p>
-        </div>
-      </div>
-      ${renderNationalDutyBlock(team, state.leagueId)}
-    </div>
-    <div class="squad-depth-body">${pitchHtml}</div>
-  `;
+  wrap.innerHTML = `<div class="squad-depth-body">${pitchHtml}</div>`;
   bindSquadRowClicks(wrap, startsMap, state.leagueId);
 }
 
@@ -5541,6 +5536,12 @@ function renderNationalDutyBlock(team, leagueId) {
   </div>`;
 }
 
+function formatPlayerAge(p) {
+  const age = Number(p?.age);
+  if (Number.isFinite(age) && age > 0) return String(Math.round(age));
+  return "—";
+}
+
 function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
   const keys = colKeys ?? new Set(ROSTER_COL_ORDER);
   const role = p.role ?? p.pos;
@@ -5550,12 +5551,24 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
     ? `<span class="squad-duty-badge" title="On national duty">Int'l</span>`
     : "";
   const displayName = stripCaptainSuffix(p.name);
+  const age = formatPlayerAge(p);
   const cells = {
     num: `<span class="squad-num">${escapeHtml(p.number)}</span>`,
-    player: `<span class="squad-player"><span class="squad-name">${escapeHtml(displayName)}${cap}${dutyBadge}</span></span>`,
+    player: `<span class="squad-player">
+      ${playerInitialsAvatarHtml(displayName, "player-avatar squad-row__avatar")}
+      <span class="squad-player-text">
+        <span class="squad-name">${escapeHtml(displayName)}${cap}${dutyBadge}</span>
+      </span>
+    </span>`,
     pos: `<span class="squad-pos-tag" data-pos="${escapeHtml(p.pos)}">${escapeHtml(role)}</span>`,
     club: `<span class="squad-club">${escapeHtml(p.club ?? "—")}</span>`,
-    nat: `<span class="squad-nat">${squadFlagHtml(p)}<span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span></span>`,
+    nat: `<span class="squad-nat">
+      ${squadFlagHtml(p)}
+      <span class="squad-nat-copy">
+        <span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span>
+        <span class="squad-age" title="Age">${escapeHtml(age)}</span>
+      </span>
+    </span>`,
   };
   const inner = ROSTER_COL_ORDER.filter((k) => keys.has(k)).map((k) => cells[k]).join("");
   return `
@@ -5565,9 +5578,109 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
   `;
 }
 
+let rosterFiltersOpen = false;
+const collapsedSquadGroups = new Set();
+
+function setRosterFiltersOpen(open, focusField) {
+  rosterFiltersOpen = Boolean(open);
+  const panel = $("#rosterFilterPanel");
+  const toggle = $("#rosterFilterToggle");
+  if (panel) {
+    panel.hidden = !rosterFiltersOpen;
+    panel.classList.toggle("is-collapsed", !rosterFiltersOpen);
+  }
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", rosterFiltersOpen ? "true" : "false");
+    toggle.textContent = rosterFiltersOpen ? "Done" : "Filters";
+  }
+  if (rosterFiltersOpen && focusField) {
+    const map = {
+      league: "#leagueSelect",
+      team: "#teamSelect",
+      pos: "#positionSelect",
+      search: "#playerSearch",
+    };
+    const el = $(map[focusField] || focusField);
+    queueMicrotask(() => el?.focus?.());
+  }
+}
+
+function syncRosterFilterChips(state, league, team) {
+  const chips = $("#rosterChips");
+  if (!chips) return;
+  const parts = [
+    `<button type="button" class="chip chip--action" data-roster-filter="league">${escapeHtml(league?.name ?? state.leagueId)}</button>`,
+    `<button type="button" class="chip chip--action" data-roster-filter="team">${escapeHtml(team?.name ?? state.teamId)}</button>`,
+  ];
+  if (state.pos !== "all") {
+    const posLabel = SQUAD_POS_GROUPS.find((g) => g.key === state.pos)?.label ?? state.pos;
+    parts.push(
+      `<button type="button" class="chip chip--action" data-roster-filter="pos">${escapeHtml(posLabel)}</button>`,
+    );
+  }
+  if (state.q) {
+    parts.push(
+      `<button type="button" class="chip chip--action chip--search" data-roster-filter="search">“${escapeHtml(state.q)}”</button>`,
+    );
+  }
+  if (rosterViewMode === "depth") {
+    parts.push(`<span class="chip chip--muted">Depth chart</span>`);
+  }
+  chips.innerHTML = parts.join("");
+}
+
+function syncRosterViewCopy() {
+  const title = $("#rosterViewTitle");
+  const hint = $("#rosterViewHint");
+  if (rosterViewMode === "depth") {
+    if (title) title.textContent = "Depth chart";
+    if (hint) hint.textContent = "Formation roles and backup options";
+  } else {
+    if (title) title.textContent = "Squad list";
+    if (hint) hint.textContent = "Players grouped by position";
+  }
+}
+
+function updateRosterTeamHead(state, league, team, countLabel) {
+  const teamHead = $("#rosterTeamHead");
+  if (!teamHead) return;
+  const crest = team ? clubLogoHtml(team.id, "club-crest squad-crest") : "";
+  const meta =
+    rosterViewMode === "depth"
+      ? `Depth chart · ${escapeHtml(league?.name ?? state.leagueId)}`
+      : `${escapeHtml(league?.name ?? state.leagueId)}${team?.coach ? ` · ${escapeHtml(team.coach)}` : ""}`;
+  teamHead.innerHTML = `
+    <div class="squad-team-head-inner">
+      ${crest}
+      <div class="squad-team-copy min-w-0">
+        <h4 class="subsection-title squad-team-name mb-1">${escapeHtml(team?.name ?? state.teamId)}</h4>
+        <p class="squad-team-meta mb-0">${meta}</p>
+      </div>
+      <span class="squad-count-badge">${escapeHtml(countLabel)}</span>
+    </div>
+    ${renderNationalDutyBlock(team, state.leagueId)}
+  `;
+}
+
+function bindSquadGroupToggles(grid) {
+  if (!grid || grid.dataset.groupToggleBound) return;
+  grid.dataset.groupToggleBound = "1";
+  grid.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-squad-group]");
+    if (!btn) return;
+    e.preventDefault();
+    const key = btn.getAttribute("data-squad-group");
+    const section = btn.closest(".squad-group");
+    if (!section || !key) return;
+    const collapsed = section.classList.toggle("is-collapsed");
+    btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    if (collapsed) collapsedSquadGroups.add(key);
+    else collapsedSquadGroups.delete(key);
+  });
+}
+
 function renderRoster() {
   const grid = $("#rosterGrid");
-  const teamHead = $("#rosterTeamHead");
   const chips = $("#rosterChips");
   const count = $("#rosterCount");
   const listWrap = $("#rosterListWrap");
@@ -5575,22 +5688,24 @@ function renderRoster() {
   if (!grid || !chips || !count) return;
 
   syncRosterViewToggle();
+  syncRosterViewCopy();
 
   const state = getRosterState();
   const league = LEAGUES.find((l) => l.id === state.leagueId);
   const team = teamById.get(state.teamId);
   const squad = playersForTeam(state.teamId).filter((p) => playerMatches(p, state));
   const startsMap = buildLineupStartsMap(state.leagueId);
+  const fullSquad = playersForTeam(state.teamId);
+  const countLabel =
+    rosterViewMode === "depth"
+      ? `${fullSquad.length} player${fullSquad.length === 1 ? "" : "s"}`
+      : `${squad.length} player${squad.length === 1 ? "" : "s"}`;
+  count.textContent = countLabel;
+
+  syncRosterFilterChips(state, league, team);
+  updateRosterTeamHead(state, league, team, countLabel);
 
   if (rosterViewMode === "depth") {
-    const filterChips = [
-      `<span class="chip">${escapeHtml(league?.name ?? state.leagueId)}</span>`,
-      `<span class="chip">${escapeHtml(team?.name ?? state.teamId)}</span>`,
-      `<span class="chip">Depth chart</span>`,
-    ];
-    chips.innerHTML = filterChips.join("");
-    const fullSquad = playersForTeam(state.teamId);
-    count.textContent = `${fullSquad.length} player${fullSquad.length === 1 ? "" : "s"}`;
     renderSquadDepthView(state, team, startsMap);
     return;
   }
@@ -5599,35 +5714,6 @@ function renderRoster() {
   if (depthWrap) {
     depthWrap.classList.add("is-hidden");
     depthWrap.innerHTML = "";
-  }
-
-  const filterChips = [
-    `<span class="chip">${escapeHtml(league?.name ?? state.leagueId)}</span>`,
-    `<span class="chip">${escapeHtml(team?.name ?? state.teamId)}</span>`,
-  ];
-  if (state.pos !== "all") {
-    const posLabel = SQUAD_POS_GROUPS.find((g) => g.key === state.pos)?.label ?? state.pos;
-    filterChips.push(`<span class="chip">${escapeHtml(posLabel)}</span>`);
-  }
-  if (state.q) filterChips.push(`<span class="chip">“${escapeHtml(state.q)}”</span>`);
-  chips.innerHTML = filterChips.join("");
-
-  const countLabel = `${squad.length} player${squad.length === 1 ? "" : "s"}`;
-  count.textContent = countLabel;
-
-  if (teamHead) {
-    const crest = team ? clubLogoHtml(team.id, "club-crest squad-crest") : "";
-    teamHead.innerHTML = `
-      <div class="squad-team-head-inner">
-        ${crest}
-        <div class="squad-team-copy min-w-0">
-          <h4 class="subsection-title squad-team-name mb-1">${escapeHtml(team?.name ?? state.teamId)}</h4>
-          <p class="squad-team-meta mb-0">${escapeHtml(league?.name ?? state.leagueId)}${team?.coach ? ` · ${escapeHtml(team.coach)}` : ""}</p>
-        </div>
-        <span class="squad-count-badge">${escapeHtml(countLabel)}</span>
-      </div>
-      ${renderNationalDutyBlock(team, state.leagueId)}
-    `;
   }
 
   const dutyIds = nationalDutyPlayerIdsForTeam(team);
@@ -5645,7 +5731,9 @@ function renderRoster() {
     rosterPanel.style.setProperty("--squad-cols", cols.map((c) => c.width).join(" "));
   }
   if (colHead) {
-    colHead.innerHTML = cols.map((c) => c.head).join("");
+    colHead.innerHTML = cols
+      .map((c) => (c.key === "nat" ? `<span class="squad-col-nat">Nation / Age</span>` : c.head))
+      .join("");
   }
 
   if (!squad.length) {
@@ -5661,28 +5749,36 @@ function renderRoster() {
     ...g,
     players: squad
       .filter((p) => p.pos === g.key)
-      .sort(
-        (a, b) =>
-          comparePlayerOrder(a, b),
-      ),
+      .sort((a, b) => comparePlayerOrder(a, b)),
   })).filter((g) => g.players.length);
 
   grid.innerHTML = grouped
-    .map(
-      (g) => `
-      <section class="squad-group" aria-labelledby="squad-group-${escapeHtml(g.key)}">
-        <h4 class="squad-group-title" id="squad-group-${escapeHtml(g.key)}">
-          <span>${escapeHtml(g.label)}</span>
+    .map((g) => {
+      const collapsed = collapsedSquadGroups.has(g.key);
+      return `
+      <section class="squad-group${collapsed ? " is-collapsed" : ""}" aria-labelledby="squad-group-${escapeHtml(g.key)}">
+        <button
+          type="button"
+          class="squad-group-title"
+          id="squad-group-${escapeHtml(g.key)}"
+          data-squad-group="${escapeHtml(g.key)}"
+          aria-expanded="${collapsed ? "false" : "true"}"
+        >
+          <span class="squad-group-title__label">
+            <span class="squad-group-chevron" aria-hidden="true"></span>
+            <span>${escapeHtml(g.label)}</span>
+          </span>
           <span class="squad-group-count">${escapeHtml(g.players.length)}</span>
-        </h4>
+        </button>
         <div class="squad-list">
           ${g.players.map((p) => renderSquadRow(p, startsMap, state.leagueId, colKeys, dutyIds)).join("")}
         </div>
       </section>
-    `,
-    )
+    `;
+    })
     .join("");
 
+  bindSquadGroupToggles(grid);
   bindSquadRowClicks(grid, startsMap, state.leagueId);
 }
 
@@ -6909,11 +7005,22 @@ function setupRosterControls() {
 
   initRosterViewMode();
   syncRosterViewToggle();
+  setRosterFiltersOpen(false);
 
   $("#rosterViewBar")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-roster-view]");
     if (!btn) return;
     setRosterViewMode(btn.dataset.rosterView);
+  });
+
+  $("#rosterFilterToggle")?.addEventListener("click", () => {
+    setRosterFiltersOpen(!rosterFiltersOpen);
+  });
+
+  $("#rosterChips")?.addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-roster-filter]");
+    if (!chip) return;
+    setRosterFiltersOpen(true, chip.getAttribute("data-roster-filter"));
   });
 
   leagueSel?.addEventListener("change", () => {
