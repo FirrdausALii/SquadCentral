@@ -5280,6 +5280,9 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
   const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain">C</span>` : "";
   const displayName = stripCaptainSuffix(p.name);
   const lid = leagueId ?? team?.leagueId ?? "";
+  const arrivalKind = squadArrivalKindForPlayer(p, squadArrivalsByPlayerName(lid, p.teamId));
+  const arrivalBadge = squadArrivalBadgeHtml(arrivalKind);
+  const arrivalMeta = arrivalKind ? SQUAD_ARRIVAL_META[arrivalKind] : null;
   const showClub = isWorldCupLeague(lid) && leagueFeatureOn(lid, "playerClub");
   const showNat = leagueFeatureOn(lid, "playerNationality");
   const clubRow =
@@ -5302,6 +5305,12 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
             <span class="squad-profile-stat-label">Age</span>
             <span class="squad-profile-stat-value">${escapeHtml(formatPlayerAge(p))}</span>
           </div>`;
+  const arrivalRow = arrivalMeta
+    ? `<div class="squad-profile-stat">
+            <span class="squad-profile-stat-label">Arrival</span>
+            <span class="squad-profile-stat-value squad-profile-arrival">${arrivalBadge}<span>${escapeHtml(arrivalMeta.label)}</span></span>
+          </div>`
+    : "";
   const socialHtml = playerSocialHtml(p);
   openModal({
     title: displayName,
@@ -5311,7 +5320,7 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
           <span class="squad-profile-num" aria-hidden="true">${escapeHtml(p.number)}</span>
           <div class="squad-profile-copy min-w-0">
             <div class="squad-profile-name-row">
-              <div class="squad-profile-name">${escapeHtml(displayName)}${cap}</div>
+              <div class="squad-profile-name">${escapeHtml(displayName)}${cap}${arrivalBadge}</div>
               ${socialHtml}
             </div>
             <div class="squad-profile-club">${escapeHtml(team?.name ?? "—")} · ${escapeHtml(role)}${showClub && p.club ? ` · ${escapeHtml(p.club)}` : ""}</div>
@@ -5321,6 +5330,7 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
           ${natRow}
           ${ageRow}
           ${clubRow}
+          ${arrivalRow}
           ${isCaptainPlayer(p) ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Role</span><span class="squad-profile-stat-value">Club captain</span></div>` : ""}
         </div>
       </div>
@@ -5551,7 +5561,7 @@ function formatPlayerAge(p) {
   return "—";
 }
 
-function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
+function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
   const keys = colKeys ?? new Set(ROSTER_COL_ORDER);
   const role = p.role ?? p.pos;
   const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain" aria-label="Captain">C</span>` : "";
@@ -5559,14 +5569,18 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
   const dutyBadge = onDuty
     ? `<span class="squad-duty-badge" title="On national duty">Int'l</span>`
     : "";
+  const arrivalKind = squadArrivalKindForPlayer(p, arrivalsMap);
+  const arrivalBadge = squadArrivalBadgeHtml(arrivalKind);
   const displayName = stripCaptainSuffix(p.name);
   const age = formatPlayerAge(p);
+  const arrivalLabel = arrivalKind ? SQUAD_ARRIVAL_META[arrivalKind]?.label : "";
+  const ariaExtra = [onDuty ? "on national duty" : "", arrivalLabel].filter(Boolean).join(", ");
   const cells = {
     num: `<span class="squad-num">${escapeHtml(p.number)}</span>`,
     player: `<span class="squad-player">
       ${playerInitialsAvatarHtml(displayName, "player-avatar squad-row__avatar")}
       <span class="squad-player-text">
-        <span class="squad-name">${escapeHtml(displayName)}${cap}${dutyBadge}</span>
+        <span class="squad-name">${escapeHtml(displayName)}${cap}${arrivalBadge}${dutyBadge}</span>
       </span>
     </span>`,
     pos: `<span class="squad-pos-tag" data-pos="${escapeHtml(p.pos)}">${escapeHtml(role)}</span>`,
@@ -5581,7 +5595,7 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds) {
   };
   const inner = ROSTER_COL_ORDER.filter((k) => keys.has(k)).map((k) => cells[k]).join("");
   return `
-    <button type="button" class="squad-row" data-player="${escapeHtml(p.id)}" aria-label="View ${escapeHtml(displayName)}">
+    <button type="button" class="squad-row" data-player="${escapeHtml(p.id)}" aria-label="View ${escapeHtml(displayName)}${ariaExtra ? ` (${escapeHtml(ariaExtra)})` : ""}">
       ${inner}
     </button>
   `;
@@ -5726,6 +5740,7 @@ function renderRoster() {
   }
 
   const dutyIds = nationalDutyPlayerIdsForTeam(team);
+  const arrivalsMap = squadArrivalsByPlayerName(state.leagueId, state.teamId);
 
   const order = { GK: 0, DF: 1, MF: 2, FW: 3 };
   squad.sort((a, b) => (order[a.pos] ?? 9) - (order[b.pos] ?? 9) || a.number - b.number || a.name.localeCompare(b.name));
@@ -5780,7 +5795,7 @@ function renderRoster() {
           <span class="squad-group-count">${escapeHtml(g.players.length)}</span>
         </button>
         <div class="squad-list">
-          ${g.players.map((p) => renderSquadRow(p, startsMap, state.leagueId, colKeys, dutyIds)).join("")}
+          ${g.players.map((p) => renderSquadRow(p, startsMap, state.leagueId, colKeys, dutyIds, arrivalsMap)).join("")}
         </div>
       </section>
     `;
@@ -6790,6 +6805,41 @@ function transfersForTeam(leagueId, teamId) {
     loanReturn: (block.loanReturn ?? []).filter(match),
     loanRecall: (block.loanRecall ?? []).filter(match),
   };
+}
+
+/** Arrival markers shown on live Squads (incoming market / academy / loan return only). */
+const SQUAD_ARRIVAL_META = {
+  promoted: { label: "Promoted", symbol: "↗", className: "promoted" },
+  in: { label: "Transfer in", symbol: "↓", className: "in" },
+  loanReturn: { label: "Loan return", symbol: "↩", className: "loan-return" },
+};
+
+function transferPlayerNameKey(name) {
+  return stripCaptainSuffix(name).toLowerCase();
+}
+
+/** @returns {Map<string, "promoted"|"in"|"loanReturn">} */
+function squadArrivalsByPlayerName(leagueId, teamId) {
+  const block = transfersForTeam(leagueId, teamId);
+  const map = new Map();
+  for (const key of ["promoted", "in", "loanReturn"]) {
+    for (const t of block[key] ?? []) {
+      const k = transferPlayerNameKey(t.player);
+      if (k && !map.has(k)) map.set(k, key);
+    }
+  }
+  return map;
+}
+
+function squadArrivalKindForPlayer(p, arrivalsMap) {
+  if (!p || !arrivalsMap?.size) return null;
+  return arrivalsMap.get(transferPlayerNameKey(p.name)) ?? null;
+}
+
+function squadArrivalBadgeHtml(kind) {
+  const meta = SQUAD_ARRIVAL_META[kind];
+  if (!meta) return "";
+  return `<span class="squad-arrival-badge squad-arrival-badge--${meta.className}" title="${escapeHtml(meta.label)}" aria-label="${escapeHtml(meta.label)}"><span aria-hidden="true">${meta.symbol}</span></span>`;
 }
 
 function renderTransferTeamOptions(leagueId, preferredTeamId) {
