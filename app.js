@@ -1426,13 +1426,22 @@ const TOP_SCORERS = [
   },
 ];
 
-/** Per league: { leagueId, in, out, loanReturn, loanRecall: Transfer[] } */
+/** Per league: { leagueId, in, out, promoted, loanReturn, loanRecall: Transfer[] } */
 function emptyTransfersBlock(leagueId) {
-  return { leagueId, in: [], out: [], loanReturn: [], loanRecall: [] };
+  return { leagueId, in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
 }
 
 const TRANSFER_PANELS = [
   { key: "in", label: "In", badge: "badge-green", card: "transfer-card--in", elId: "transferIn", symbol: "↓", dirClass: "in" },
+  {
+    key: "promoted",
+    label: "Promoted",
+    badge: "badge-teal",
+    card: "transfer-card--promoted",
+    elId: "transferPromoted",
+    symbol: "↗",
+    dirClass: "promoted",
+  },
   { key: "out", label: "Out", badge: "badge-blue", card: "transfer-card--out", elId: "transferOut", symbol: "↑", dirClass: "out" },
   {
     key: "loanReturn",
@@ -6765,18 +6774,19 @@ function transfersForLeague(leagueId) {
   const block = TRANSFERS.find((t) => t.leagueId === leagueId);
   return typeof FCDataStore !== "undefined"
     ? FCDataStore.normalizeTransfersBlock(block ?? { leagueId })
-    : { leagueId, in: [], out: [], loanReturn: [], loanRecall: [] };
+    : { leagueId, in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
 }
 
 function transfersForTeam(leagueId, teamId) {
   const team = teamById.get(teamId);
   const club = (team?.name ?? "").trim();
   const block = transfersForLeague(leagueId);
-  if (!club) return { in: [], out: [], loanReturn: [], loanRecall: [] };
+  if (!club) return { in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
   const match = (t) => (t.club ?? "").trim() === club;
   return {
     in: (block.in ?? []).filter(match),
     out: (block.out ?? []).filter(match),
+    promoted: (block.promoted ?? []).filter(match),
     loanReturn: (block.loanReturn ?? []).filter(match),
     loanRecall: (block.loanRecall ?? []).filter(match),
   };
@@ -6840,6 +6850,11 @@ function transferEmptyIconHtml(direction) {
       <path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v1"/>
     </svg>`;
   }
+  if (direction === "promoted") {
+    return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/><path d="M7 19h10"/>
+    </svg>`;
+  }
   return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M15 10l5 5-5 5"/><path d="M20 15H9a5 5 0 0 1-5-5V9"/>
   </svg>`;
@@ -6853,6 +6868,10 @@ function transferEmptyHtml(direction, clubName) {
     in: {
       title: "No incoming transfers yet",
       hint: `Players signed by ${club} will appear here once they are recorded.`,
+    },
+    promoted: {
+      title: "No promotions yet",
+      hint: `Academy or U21 players promoted into ${club} will appear here once they are recorded.`,
     },
     out: {
       title: "No outgoing transfers yet",
@@ -6881,6 +6900,7 @@ function transferPanelMetaText(count, direction) {
   if (!count) return "";
   const labels = {
     in: `${count} arrival${count === 1 ? "" : "s"}`,
+    promoted: `${count} promotion${count === 1 ? "" : "s"}`,
     out: `${count} departure${count === 1 ? "" : "s"}`,
     loanReturn: `${count} return${count === 1 ? "" : "s"}`,
     loanRecall: `${count} recall${count === 1 ? "" : "s"}`,
@@ -6907,6 +6927,12 @@ function formatTransferFeeBadge(fee) {
   if (/^free(\s+transfer)?$/i.test(raw)) {
     return { label: "Free Transfer", kind: "free" };
   }
+  if (/^released$/i.test(raw)) {
+    return { label: "Released", kind: "released" };
+  }
+  if (/^(internal|n\/?a|academy)$/i.test(raw)) {
+    return { label: /^internal$/i.test(raw) ? "Internal" : raw, kind: "internal" };
+  }
   if (/loan/i.test(raw)) {
     return { label: /^loan$/i.test(raw) ? "Loan" : raw, kind: "loan" };
   }
@@ -6924,7 +6950,8 @@ function renderTransferRows(items, direction, clubName, leagueId = "") {
   return items
     .map((t) => {
       const otherClub = String(t.otherClub ?? "").trim();
-      const fee = formatTransferFeeBadge(t.fee);
+      const showFee = direction !== "loanReturn" && direction !== "loanRecall";
+      const fee = showFee ? formatTransferFeeBadge(t.fee) : null;
       const date = String(t.date ?? "").trim();
       const crest = clubCrestFromName(otherClub, leagueId, "squad-crest transfer-row__crest");
       return `
@@ -6934,7 +6961,11 @@ function renderTransferRows(items, direction, clubName, leagueId = "") {
           <div class="transfer-row__main">
             <div class="transfer-row__top">
               <span class="transfer-name">${escapeHtml(t.player)}</span>
-              <span class="transfer-fee-badge transfer-fee-badge--${fee.kind}">${escapeHtml(fee.label)}</span>
+              ${
+                fee
+                  ? `<span class="transfer-fee-badge transfer-fee-badge--${fee.kind}">${escapeHtml(fee.label)}</span>`
+                  : ""
+              }
             </div>
             <div class="transfer-row__meta">
               <span class="transfer-row__club">

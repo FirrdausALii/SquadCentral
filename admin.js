@@ -2634,8 +2634,11 @@ function panelPlayers() {
         ${
           playerCount > 1
             ? `<div class="players-toolbar">
-                <button type="button" class="mw-btn-primary players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
-                <span class="admin-muted players-toolbar-hint">Sorts GK → CB → RB → LB → RM → LM → DM → CM → AM → RAM → LAM → RW → LW → CF. Works on mobile.</span>
+                <div class="players-toolbar-actions">
+                  <button type="button" class="mw-btn-primary players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
+                  <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSortByNumber">Sort by jersey #</button>
+                </div>
+                <span class="admin-muted players-toolbar-hint">Position: GK → CF. Jersey #: 1 → 99 — easier to spot free shirt numbers. Both save the squad order.</span>
               </div>`
             : ""
         }
@@ -3088,11 +3091,11 @@ function transfersBlock(leagueId) {
   const block = state().transfers?.find((x) => x.leagueId === leagueId);
   return typeof FCDataStore !== "undefined"
     ? FCDataStore.normalizeTransfersBlock(block ?? { leagueId })
-    : { leagueId, in: [], out: [], loanReturn: [], loanRecall: [] };
+    : { leagueId, in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
 }
 
 function transferDirectionIncoming(mode) {
-  return mode === "in" || mode === "loanReturn";
+  return mode === "in" || mode === "loanReturn" || mode === "promoted";
 }
 
 function transferDateToInputValue(dateStr) {
@@ -3125,6 +3128,7 @@ function transfersForTeam(leagueId, teamId) {
   return {
     in: (block.in ?? []).filter(match),
     out: (block.out ?? []).filter(match),
+    promoted: (block.promoted ?? []).filter(match),
     loanReturn: (block.loanReturn ?? []).filter(match),
     loanRecall: (block.loanRecall ?? []).filter(match),
   };
@@ -3140,7 +3144,7 @@ function transferRowBelongsToTeam(leagueId, teamId, row) {
 function mergeTeamTransfersIntoLeague(leagueId, teamId, teamLists) {
   const teamName = state().teams.find((t) => t.id === teamId)?.name ?? "";
   const block = transfersBlock(leagueId);
-  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "loanReturn", "loanRecall"];
+  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "promoted", "loanReturn", "loanRecall"];
   const stamp = (rows) => rows.map((t) => ({ ...t, club: teamName }));
   const merged = { leagueId };
   for (const key of keys) {
@@ -3235,6 +3239,62 @@ function syncTransferRosterBtn(row, teamId, mode) {
     btn.textContent = "− Squad";
     btn.title = onSquad ? "Remove from squad" : "Not on squad";
   }
+  syncTransferSquadStatus(row, teamId, mode);
+}
+
+function transferSquadStatusInfo(teamId, playerName, mode) {
+  const name = String(playerName ?? "").trim();
+  if (!name) {
+    return {
+      state: "empty",
+      label: "Enter a player name",
+      done: false,
+      onSquad: false,
+    };
+  }
+  const onSquad = Boolean(teamId && rosterPlayerByName(teamId, name));
+  const isIncoming = transferDirectionIncoming(mode);
+  if (isIncoming) {
+    return onSquad
+      ? { state: "on", label: "On squad", done: true, onSquad: true }
+      : { state: "missing", label: "Not on squad — use + Squad", done: false, onSquad: false };
+  }
+  return onSquad
+    ? { state: "still", label: "Still on squad — use − Squad", done: false, onSquad: true }
+    : { state: "off", label: "Removed from squad", done: true, onSquad: false };
+}
+
+function transferSquadStatusIconSvg(state) {
+  if (state === "on" || state === "off") {
+    // Check mark — expected roster action done
+    return `<svg class="transfers-card__squad-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`;
+  }
+  if (state === "still") {
+    // Person still present — needs removal
+    return `<svg class="transfers-card__squad-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>`;
+  }
+  if (state === "missing") {
+    // Person with plus — needs add
+    return `<svg class="transfers-card__squad-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+  }
+  return `<svg class="transfers-card__squad-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>`;
+}
+
+function transferSquadStatusHtml(teamId, playerName, mode) {
+  const info = transferSquadStatusInfo(teamId, playerName, mode);
+  const tone = info.state === "empty" ? "empty" : info.done ? "done" : "needed";
+  return `<span class="transfers-card__squad-status transfers-card__squad-status--${tone} transfers-card__squad-status--${info.state}" title="${esc(info.label)}" aria-label="${esc(info.label)}">${transferSquadStatusIconSvg(info.state)}</span>`;
+}
+
+function syncTransferSquadStatus(row, teamId, mode) {
+  if (!row) return;
+  const el = row.querySelector(".transfers-card__squad-status");
+  if (!el) return;
+  const name = row.querySelector(".tr-player")?.value?.trim() ?? "";
+  const next = document.createElement("template");
+  next.innerHTML = transferSquadStatusHtml(teamId ?? transferTeamFilter, name, mode || row.getAttribute("data-dir") || "in").trim();
+  const fresh = next.content.firstElementChild;
+  if (fresh) el.replaceWith(fresh);
 }
 
 function openTransferSquadForm(row, teamId) {
@@ -3332,13 +3392,26 @@ const ADMIN_TRANSFER_SECTIONS = [
   {
     key: "in",
     title: "Transfers In",
-    hint: "Type the incoming player name. Use <strong>+ Squad</strong> to add them — enter jersey number, position, role, and country first.",
+    hint: "External signings only. Academy / U21 promotions belong in <strong>Promoted</strong>. Use <strong>+ Squad</strong> to add them — enter jersey number, position, role, and country first.",
     tableId: "transfersInTable",
     btnId: "btnAddTransferIn",
     btnLabel: "+ In",
     clubHeader: "From",
     clubPlaceholder: "Previous club",
     feePlaceholder: "€5m / Free",
+    showFee: true,
+  },
+  {
+    key: "promoted",
+    title: "Promoted",
+    hint: "Players stepped up from this club’s academy, U21, or B team (not a market transfer). Use <strong>+ Squad</strong> and complete number, position, role, and country before adding.",
+    tableId: "transfersPromotedTable",
+    btnId: "btnAddTransferPromoted",
+    btnLabel: "+ Promoted",
+    clubHeader: "From",
+    clubPlaceholder: "Academy / U21 / B team",
+    feePlaceholder: "Internal",
+    showFee: true,
   },
   {
     key: "out",
@@ -3349,7 +3422,8 @@ const ADMIN_TRANSFER_SECTIONS = [
     btnLabel: "+ Out",
     clubHeader: "To",
     clubPlaceholder: "Destination club",
-    feePlaceholder: "€5m / Loan",
+    feePlaceholder: "€5m / Loan / Released",
+    showFee: true,
   },
   {
     key: "loanReturn",
@@ -3360,7 +3434,7 @@ const ADMIN_TRANSFER_SECTIONS = [
     btnLabel: "+ Loan Return",
     clubHeader: "From",
     clubPlaceholder: "Loan club",
-    feePlaceholder: "Loan / Free",
+    showFee: false,
   },
   {
     key: "loanRecall",
@@ -3371,7 +3445,7 @@ const ADMIN_TRANSFER_SECTIONS = [
     btnLabel: "+ Recall",
     clubHeader: "To",
     clubPlaceholder: "Parent club",
-    feePlaceholder: "Loan / Free",
+    showFee: false,
   },
 ];
 
@@ -3415,7 +3489,7 @@ function transferListsForEditor(leagueId, teamId) {
   const cached = transferEditsByTeam.get(transferTeamKey(leagueId, teamId));
   if (!cached) return fromStore;
 
-  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "loanReturn", "loanRecall"];
+  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "promoted", "loanReturn", "loanRecall"];
   const merged = {};
   for (const key of keys) {
     merged[key] = mergeTransferDirectionLists(fromStore[key], cached[key], leagueId, teamId);
@@ -3475,19 +3549,20 @@ function saveTransfersFromDom(options = {}) {
   return true;
 }
 
-function transfersStatChipsHtml(inCount, outCount, loanReturnCount, loanRecallCount) {
+function transfersStatChipsHtml(inCount, promotedCount, outCount, loanReturnCount, loanRecallCount) {
   return `<div class="transfers-stat-row" aria-label="Transfer summary">
     <span class="transfers-stat-chip transfers-stat-chip--in"><span class="transfers-stat-chip__label">In</span><span class="transfers-stat-chip__val">${inCount}</span></span>
+    <span class="transfers-stat-chip transfers-stat-chip--promoted"><span class="transfers-stat-chip__label">Promoted</span><span class="transfers-stat-chip__val">${promotedCount}</span></span>
     <span class="transfers-stat-chip transfers-stat-chip--out"><span class="transfers-stat-chip__label">Out</span><span class="transfers-stat-chip__val">${outCount}</span></span>
     <span class="transfers-stat-chip transfers-stat-chip--return"><span class="transfers-stat-chip__label">Return</span><span class="transfers-stat-chip__val">${loanReturnCount}</span></span>
     <span class="transfers-stat-chip transfers-stat-chip--recall"><span class="transfers-stat-chip__label">Recall</span><span class="transfers-stat-chip__val">${loanRecallCount}</span></span>
   </div>`;
 }
 
-function transferCardSummaryParts(t, clubLabel) {
+function transferCardSummaryParts(t, clubLabel, { showFee = true } = {}) {
   const player = String(t?.player ?? "").trim() || "New entry";
   const club = String(t?.otherClub ?? "").trim();
-  const fee = String(t?.fee ?? "").trim();
+  const fee = showFee ? String(t?.fee ?? "").trim() : "";
   const date = String(t?.date ?? "").trim() || transferDateFromInputValue(transferDateToInputValue(t?.date));
   const meta = [
     club ? `${clubLabel} ${club}` : "",
@@ -3499,8 +3574,8 @@ function transferCardSummaryParts(t, clubLabel) {
   return { player, meta: meta || "Tap to edit details" };
 }
 
-function transferCardSummaryHtml(t, clubLabel) {
-  const { player, meta } = transferCardSummaryParts(t, clubLabel);
+function transferCardSummaryHtml(t, clubLabel, opts) {
+  const { player, meta } = transferCardSummaryParts(t, clubLabel, opts);
   return `
     <span class="transfers-card__summary-title">${esc(player)}</span>
     <span class="transfers-card__summary-meta">${esc(meta)}</span>`;
@@ -3511,16 +3586,17 @@ function syncTransferCardSummary(card) {
   const mode = card.getAttribute("data-dir") || "in";
   const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
   const clubLabel = section?.clubHeader ?? (transferDirectionIncoming(mode) ? "From" : "To");
+  const showFee = section?.showFee !== false;
   const isIncoming = transferDirectionIncoming(mode);
   const player = card.querySelector(".tr-player")?.value?.trim() ?? "";
   const otherClub =
     (isIncoming ? card.querySelector(".tr-from") : card.querySelector(".tr-to"))?.value?.trim() ?? "";
-  const fee = card.querySelector(".tr-fee")?.value?.trim() ?? "";
+  const fee = showFee ? card.querySelector(".tr-fee")?.value?.trim() ?? "" : "";
   const dateRaw = card.querySelector(".tr-date")?.value?.trim() ?? "";
   const date = transferDateFromInputValue(dateRaw) || dateRaw || "";
   const summary = card.querySelector(".transfers-card__summary");
   if (!summary) return;
-  summary.innerHTML = transferCardSummaryHtml({ player, otherClub, fee, date }, clubLabel);
+  summary.innerHTML = transferCardSummaryHtml({ player, otherClub, fee, date }, clubLabel, { showFee });
 }
 
 function setTransferCardFolded(card, folded) {
@@ -3540,11 +3616,13 @@ function transferFeeFieldHtml(mode, fee) {
   const feeVal = String(fee ?? "").trim();
   const freeOn = /^free(\s+transfer)?$/i.test(feeVal);
   const loanOn = /^loan$/i.test(feeVal);
+  const releasedOn = /^released$/i.test(feeVal);
   return `
     <div class="tr-fee-field">
       <div class="tr-fee-presets" role="group" aria-label="Fee quick select">
         <button type="button" class="tr-fee-preset${freeOn ? " is-active" : ""}" data-fee="Free">Free</button>
         <button type="button" class="tr-fee-preset${loanOn ? " is-active" : ""}" data-fee="Loan">Loan</button>
+        <button type="button" class="tr-fee-preset${releasedOn ? " is-active" : ""}" data-fee="Released">Released</button>
       </div>
       <input class="tr-fee transfers-input mw-input" value="${esc(feeVal)}" placeholder="${esc(feePlaceholder)}" aria-label="Fee" inputmode="text" autocomplete="off" />
     </div>`;
@@ -3556,16 +3634,18 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
   const clubClass = isIncoming ? "tr-from" : "tr-to";
   const clubLabel = section?.clubHeader ?? (isIncoming ? "From" : "To");
   const clubPlaceholder = section?.clubPlaceholder ?? "Club";
+  const showFee = section?.showFee !== false;
   const sortKey = t.id || `${mode}-${i}`;
   const foldedClass = folded ? " is-folded" : "";
   const summary = transferCardSummaryHtml(
     {
       player: t.player,
       otherClub: t.otherClub,
-      fee: t.fee,
+      fee: showFee ? t.fee : "",
       date: t.date || transferDateFromInputValue(transferDateToInputValue(t.date)),
     },
     clubLabel,
+    { showFee },
   );
   return `
     <article
@@ -3587,6 +3667,7 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
           <span class="transfers-card__chevron" aria-hidden="true"></span>
           <span class="transfers-card__summary">${summary}</span>
         </button>
+        ${transferSquadStatusHtml(teamId, t.player, mode)}
         <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove entry" aria-label="Remove entry">×</button>
       </div>
       <div class="transfers-card__body">
@@ -3598,10 +3679,14 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
           <span class="transfers-card__label">${esc(clubLabel)}</span>
           <input class="${clubClass} transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(clubPlaceholder)}" aria-label="${esc(clubLabel)}" />
         </div>
-        <div class="transfers-card__field">
+        ${
+          showFee
+            ? `<div class="transfers-card__field">
           <span class="transfers-card__label">Fee</span>
           ${transferFeeFieldHtml(mode, t.fee)}
-        </div>
+        </div>`
+            : ""
+        }
         <div class="transfers-card__field">
           <span class="transfers-card__label">Date</span>
           <input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" aria-label="Transfer date" />
@@ -3674,8 +3759,9 @@ function panelTransfers() {
   const teamOpts = teamOptionTags(teams, transferTeamFilter);
   const scoped = transferTeamFilter
     ? transferListsForEditor(leagueFilter, transferTeamFilter)
-    : { in: [], out: [], loanReturn: [], loanRecall: [] };
+    : { in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
   const inCount = scoped.in.length;
+  const promotedCount = scoped.promoted.length;
   const outCount = scoped.out.length;
   const loanReturnCount = scoped.loanReturn.length;
   const loanRecallCount = scoped.loanRecall.length;
@@ -3722,15 +3808,15 @@ function panelTransfers() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">Market moves</p>
             <h2 class="mw-heading">Transfers</h2>
-            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Drag the <strong>⋮⋮</strong> handle to reorder rows within each list.</p>
-            ${transfersStatChipsHtml(inCount, outCount, loanReturnCount, loanRecallCount)}
+            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Promoted</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Drag the <strong>⋮⋮</strong> handle to reorder rows within each list.</p>
+            ${transfersStatChipsHtml(inCount, promotedCount, outCount, loanReturnCount, loanRecallCount)}
           </div>
           <aside class="mw-hero__aside">
             <div class="transfers-team-preview">
               ${adminTeamCrestHtml(team)}
               <div class="mw-hero-preview transfers-hero-preview">
                 <span class="mw-hero-preview-label">${esc(team?.name ?? "Select club")}</span>
-                <strong class="mw-hero-preview-title">${inCount + outCount + loanReturnCount + loanRecallCount} move${inCount + outCount + loanReturnCount + loanRecallCount === 1 ? "" : "s"}</strong>
+                <strong class="mw-hero-preview-title">${inCount + promotedCount + outCount + loanReturnCount + loanRecallCount} move${inCount + promotedCount + outCount + loanReturnCount + loanRecallCount === 1 ? "" : "s"}</strong>
                 <span class="mw-hero-preview-range">${esc(leagueName)}</span>
               </div>
             </div>
@@ -3744,7 +3830,7 @@ function panelTransfers() {
           <div class="mw-card-head__icon mw-card-head__icon--transfer" aria-hidden="true"></div>
           <div>
             <h3>Club transfers</h3>
-            <p>Edits apply to the selected club only. Save when all four lists are ready — or restore from <code>data.json</code> to undo local changes.</p>
+            <p>Edits apply to the selected club only. Save when all lists are ready — or restore from <code>data.json</code> to undo local changes.</p>
           </div>
         </div>
         <div class="transfers-filter-bar">
@@ -5319,6 +5405,28 @@ function bindPlayers() {
     renderPanel();
   });
 
+  $("#btnSortByNumber")?.addEventListener("click", () => {
+    const teamId = playerTeamFilter;
+    if (!teamId) return;
+    const ids = playersForTeam(teamId)
+      .slice()
+      .sort((a, b) => {
+        const numA = Number(a.number);
+        const numB = Number(b.number);
+        const hasA = Number.isFinite(numA);
+        const hasB = Number.isFinite(numB);
+        if (hasA && hasB && numA !== numB) return numA - numB;
+        if (hasA !== hasB) return hasA ? -1 : 1;
+        return String(a.name).localeCompare(b.name);
+      })
+      .map((p) => p.id);
+    if (!ids.length) return;
+    FCDataStore.reorderTeamPlayers(teamId, ids);
+    syncToAppArrays();
+    toast("Squad sorted by jersey number");
+    renderPanel();
+  });
+
   $("#playerTeamFilter")?.addEventListener("change", (e) => {
     playerTeamFilter = e.target.value;
     playerSearchQuery = "";
@@ -5950,13 +6058,14 @@ function readTransfersTable(tableId, dir, clubName) {
   const list = $(tableId);
   if (!list) return [];
   const isIncoming = transferDirectionIncoming(dir);
+  const showFee = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === dir)?.showFee !== false;
   return Array.from(list.querySelectorAll(".transfers-card"))
     .map((tr, i) => {
       const playerEl = tr.querySelector(".tr-player");
       const player = playerEl?.value.trim() ?? "";
       const otherClub =
         (isIncoming ? tr.querySelector(".tr-from") : tr.querySelector(".tr-to"))?.value.trim() ?? "";
-      const fee = tr.querySelector(".tr-fee")?.value.trim() ?? "";
+      const fee = showFee ? tr.querySelector(".tr-fee")?.value.trim() ?? "" : "";
       const dateRaw = tr.querySelector(".tr-date")?.value.trim() ?? "";
       const date = transferDateFromInputValue(dateRaw) || dateRaw || undefined;
       const id =

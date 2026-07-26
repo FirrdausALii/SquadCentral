@@ -53,10 +53,10 @@
     ];
   }
 
-  const TRANSFER_LIST_KEYS = ["in", "out", "loanReturn", "loanRecall"];
+  const TRANSFER_LIST_KEYS = ["in", "out", "promoted", "loanReturn", "loanRecall"];
 
   function emptyTransferLists() {
-    return { in: [], out: [], loanReturn: [], loanRecall: [] };
+    return { in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
   }
 
   function normalizeTransfersBlock(block) {
@@ -65,6 +65,7 @@
       leagueId: block.leagueId,
       in: block.in ?? [],
       out: block.out ?? [],
+      promoted: block.promoted ?? [],
       loanReturn: block.loanReturn ?? [],
       loanRecall: block.loanRecall ?? [],
     };

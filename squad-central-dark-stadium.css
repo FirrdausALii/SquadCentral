@@ -854,6 +854,7 @@ p { margin: 0 0 var(--sp-4); }
   margin-top: 10px;
 }
 .transfer-direction.in  { color: var(--color-win); }
+.transfer-direction.promoted { color: #2dd4bf; }
 .transfer-direction.out { color: var(--color-loss); }
 .transfer-direction.loan-return { color: #fbbf24; }
 .transfer-direction.loan-recall { color: #c084fc; }
@@ -1004,6 +1005,7 @@ p { margin: 0 0 var(--sp-4); }
 .badge-blue  { background: #0e2540; color: #5aabdd; }
 .badge-amber { background: #2a1f0a; color: #fbbf24; }
 .badge-purple { background: #231533; color: #c084fc; }
+.badge-teal { background: #0d2422; color: #2dd4bf; }
 
 .section-divider {
   display: flex;

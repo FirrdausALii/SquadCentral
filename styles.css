@@ -891,6 +891,16 @@ html.reveal-init .reveal.is-visible {
   background: color-mix(in srgb, #fbbf24 16%, var(--bg-surface-2));
   border-color: color-mix(in srgb, #fbbf24 35%, transparent);
 }
+.transfer-fee-badge--released {
+  color: #fda4af;
+  background: color-mix(in srgb, #fb7185 14%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #fb7185 32%, transparent);
+}
+.transfer-fee-badge--internal {
+  color: #5eead4;
+  background: color-mix(in srgb, #2dd4bf 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #2dd4bf 35%, transparent);
+}
 .transfer-fee-badge--undisclosed {
   color: var(--text-muted);
   background: var(--bg-surface-1);
@@ -955,6 +965,7 @@ html.reveal-init .reveal.is-visible {
   background: var(--bg-surface-1);
 }
 .transfer-empty-state__icon--in { color: var(--color-win); }
+.transfer-empty-state__icon--promoted { color: #2dd4bf; }
 .transfer-empty-state__icon--out { color: #5aabdd; }
 .transfer-empty-state__icon--loan-return { color: #fbbf24; }
 .transfer-empty-state__icon--loan-recall { color: #c084fc; }

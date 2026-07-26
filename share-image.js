@@ -477,6 +477,7 @@
 
   const TRANSFER_STYLE = {
     in: { label: "IN", color: "#4ade80", bg: "#0d2018" },
+    promoted: { label: "PROMOTED", color: "#2dd4bf", bg: "#0d2422" },
     out: { label: "OUT", color: "#5aabdd", bg: "#0e2540" },
     loanReturn: { label: "LOAN RETURN", color: "#fbbf24", bg: "#2a1f0a" },
     loanRecall: { label: "RECALL", color: "#c084fc", bg: "#231533" },
@@ -643,7 +644,11 @@
         ctx.textAlign = "right";
         ctx.fillStyle = THEME.accent;
         ctx.font = `700 22px ${FONT}`;
-        ctx.fillText(truncateText(ctx, item.fee ?? "—", cols.feeW), cols.feeX + cols.feeW, midY);
+        const feeLabel =
+          panel.key === "loanReturn" || panel.key === "loanRecall"
+            ? ""
+            : truncateText(ctx, item.fee ?? "—", cols.feeW);
+        if (feeLabel) ctx.fillText(feeLabel, cols.feeX + cols.feeW, midY);
 
         y += rowH;
       }
