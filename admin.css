@@ -6051,7 +6051,16 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   border: 0.5px solid rgba(255, 255, 255, 0.08);
   border-left-width: 3px;
   background: rgba(7, 11, 22, 0.45);
-  transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+  transition: background 0.18s, border-color 0.18s, opacity 0.18s, padding 0.18s, gap 0.18s;
+}
+
+.transfers-card.is-folded {
+  gap: 0;
+  padding: 10px 12px;
+}
+
+.transfers-card.is-folded .transfers-card__body {
+  display: none;
 }
 
 .transfers-card:hover {
@@ -6085,22 +6094,82 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 .transfers-card__top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 44px;
 }
 
-.transfers-card__index {
+.transfers-card__fold {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 6px;
+  margin: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.transfers-card__fold:hover,
+.transfers-card__fold:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  outline: none;
+}
+
+.transfers-card__chevron {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  opacity: 0.75;
   color: var(--admin-muted);
 }
 
+.transfers-card.is-folded .transfers-card__chevron {
+  transform: rotate(-45deg);
+}
+
+.transfers-card__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.transfers-card__summary-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--admin-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transfers-card__summary-meta {
+  font-size: 12px;
+  color: var(--admin-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transfers-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .transfers-card__top .transfers-del-btn {
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
   min-width: 44px;
   min-height: 44px;

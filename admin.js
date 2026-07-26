@@ -3484,6 +3484,56 @@ function transfersStatChipsHtml(inCount, outCount, loanReturnCount, loanRecallCo
   </div>`;
 }
 
+function transferCardSummaryParts(t, clubLabel) {
+  const player = String(t?.player ?? "").trim() || "New entry";
+  const club = String(t?.otherClub ?? "").trim();
+  const fee = String(t?.fee ?? "").trim();
+  const date = String(t?.date ?? "").trim() || transferDateFromInputValue(transferDateToInputValue(t?.date));
+  const meta = [
+    club ? `${clubLabel} ${club}` : "",
+    fee || "",
+    date || "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return { player, meta: meta || "Tap to edit details" };
+}
+
+function transferCardSummaryHtml(t, clubLabel) {
+  const { player, meta } = transferCardSummaryParts(t, clubLabel);
+  return `
+    <span class="transfers-card__summary-title">${esc(player)}</span>
+    <span class="transfers-card__summary-meta">${esc(meta)}</span>`;
+}
+
+function syncTransferCardSummary(card) {
+  if (!card) return;
+  const mode = card.getAttribute("data-dir") || "in";
+  const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
+  const clubLabel = section?.clubHeader ?? (transferDirectionIncoming(mode) ? "From" : "To");
+  const isIncoming = transferDirectionIncoming(mode);
+  const player = card.querySelector(".tr-player")?.value?.trim() ?? "";
+  const otherClub =
+    (isIncoming ? card.querySelector(".tr-from") : card.querySelector(".tr-to"))?.value?.trim() ?? "";
+  const fee = card.querySelector(".tr-fee")?.value?.trim() ?? "";
+  const dateRaw = card.querySelector(".tr-date")?.value?.trim() ?? "";
+  const date = transferDateFromInputValue(dateRaw) || dateRaw || "";
+  const summary = card.querySelector(".transfers-card__summary");
+  if (!summary) return;
+  summary.innerHTML = transferCardSummaryHtml({ player, otherClub, fee, date }, clubLabel);
+}
+
+function setTransferCardFolded(card, folded) {
+  if (!card) return;
+  card.classList.toggle("is-folded", folded);
+  const foldBtn = card.querySelector(".transfers-card__fold");
+  if (foldBtn) {
+    foldBtn.setAttribute("aria-expanded", folded ? "false" : "true");
+    foldBtn.title = folded ? "Expand entry" : "Collapse entry";
+  }
+  syncTransferCardSummary(card);
+}
+
 function transferFeeFieldHtml(mode, fee) {
   const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
   const feePlaceholder = section?.feePlaceholder ?? "Fee";
@@ -3500,16 +3550,26 @@ function transferFeeFieldHtml(mode, fee) {
     </div>`;
 }
 
-function transferTableRowHtml(mode, teamId, t, i) {
+function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
   const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
   const isIncoming = transferDirectionIncoming(mode);
   const clubClass = isIncoming ? "tr-from" : "tr-to";
   const clubLabel = section?.clubHeader ?? (isIncoming ? "From" : "To");
   const clubPlaceholder = section?.clubPlaceholder ?? "Club";
   const sortKey = t.id || `${mode}-${i}`;
+  const foldedClass = folded ? " is-folded" : "";
+  const summary = transferCardSummaryHtml(
+    {
+      player: t.player,
+      otherClub: t.otherClub,
+      fee: t.fee,
+      date: t.date || transferDateFromInputValue(transferDateToInputValue(t.date)),
+    },
+    clubLabel,
+  );
   return `
     <article
-      class="tr-sort-row transfers-card transfers-row transfers-row--${esc(mode)}"
+      class="tr-sort-row transfers-card transfers-row transfers-row--${esc(mode)}${foldedClass}"
       role="listitem"
       data-i="${i}"
       data-dir="${esc(mode)}"
@@ -3518,24 +3578,34 @@ function transferTableRowHtml(mode, teamId, t, i) {
     >
       <div class="transfers-card__top">
         <span class="player-drag-handle transfers-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
-        <span class="transfers-card__index">Entry ${i + 1}</span>
+        <button
+          type="button"
+          class="transfers-card__fold"
+          aria-expanded="${folded ? "false" : "true"}"
+          title="${folded ? "Expand entry" : "Collapse entry"}"
+        >
+          <span class="transfers-card__chevron" aria-hidden="true"></span>
+          <span class="transfers-card__summary">${summary}</span>
+        </button>
         <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove entry" aria-label="Remove entry">×</button>
       </div>
-      <div class="transfers-card__field">
-        <span class="transfers-card__label">Player</span>
-        ${transferPlayerFieldHtml(mode, teamId, t.player)}
-      </div>
-      <div class="transfers-card__field">
-        <span class="transfers-card__label">${esc(clubLabel)}</span>
-        <input class="${clubClass} transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(clubPlaceholder)}" aria-label="${esc(clubLabel)}" />
-      </div>
-      <div class="transfers-card__field">
-        <span class="transfers-card__label">Fee</span>
-        ${transferFeeFieldHtml(mode, t.fee)}
-      </div>
-      <div class="transfers-card__field">
-        <span class="transfers-card__label">Date</span>
-        <input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" aria-label="Transfer date" />
+      <div class="transfers-card__body">
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">Player</span>
+          ${transferPlayerFieldHtml(mode, teamId, t.player)}
+        </div>
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">${esc(clubLabel)}</span>
+          <input class="${clubClass} transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(clubPlaceholder)}" aria-label="${esc(clubLabel)}" />
+        </div>
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">Fee</span>
+          ${transferFeeFieldHtml(mode, t.fee)}
+        </div>
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">Date</span>
+          <input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" aria-label="Transfer date" />
+        </div>
       </div>
     </article>`;
 }
@@ -5677,12 +5747,41 @@ function bindTransferRosterActions() {
     if (!list || list.dataset.trRosterBound === "1") continue;
     list.dataset.trRosterBound = "1";
     list.addEventListener("input", (e) => {
-      if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-player")) return;
+      if (!(e.target instanceof HTMLElement)) return;
       const row = e.target.closest(".transfers-card");
-      closeTransferSquadForm(row);
-      syncTransferRosterBtn(row, transferTeamFilter, mode);
+      if (!row) return;
+      if (e.target.classList.contains("tr-player")) {
+        closeTransferSquadForm(row);
+        syncTransferRosterBtn(row, transferTeamFilter, mode);
+      }
+      if (
+        e.target.classList.contains("tr-player") ||
+        e.target.classList.contains("tr-from") ||
+        e.target.classList.contains("tr-to") ||
+        e.target.classList.contains("tr-fee") ||
+        e.target.classList.contains("tr-date")
+      ) {
+        syncTransferCardSummary(row);
+      }
+      if (e.target.classList.contains("tr-fee")) {
+        const val = e.target.value.trim().toLowerCase();
+        row.querySelectorAll(".tr-fee-preset").forEach((btn) => {
+          const preset = String(btn.getAttribute("data-fee") ?? "").toLowerCase();
+          btn.classList.toggle("is-active", Boolean(preset) && preset === val);
+        });
+      }
     });
     list.addEventListener("click", (e) => {
+      const foldBtn = e.target instanceof Element ? e.target.closest(".transfers-card__fold") : null;
+      if (foldBtn) {
+        const card = foldBtn.closest(".transfers-card");
+        if (!card) return;
+        const nextFolded = !card.classList.contains("is-folded");
+        setTransferCardFolded(card, nextFolded);
+        if (!nextFolded) queueMicrotask(() => card.querySelector(".tr-player")?.focus?.());
+        return;
+      }
+
       const confirmBtn = e.target instanceof Element ? e.target.closest(".tr-squad-confirm") : null;
       if (confirmBtn) {
         const row = confirmBtn.closest(".transfers-card");
@@ -5691,6 +5790,7 @@ function bindTransferRosterActions() {
         if (ok) {
           closeTransferSquadForm(row);
           syncTransferRosterBtn(row, transferTeamFilter, mode);
+          syncTransferCardSummary(row);
         }
         return;
       }
@@ -5710,6 +5810,7 @@ function bindTransferRosterActions() {
           card.querySelectorAll(".tr-fee-preset").forEach((btn) => {
             btn.classList.toggle("is-active", btn === feePreset);
           });
+          syncTransferCardSummary(card);
         }
         return;
       }
@@ -5725,16 +5826,6 @@ function bindTransferRosterActions() {
         removeTransferPlayerFromSquad(transferTeamFilter, name);
         syncTransferRosterBtn(row, transferTeamFilter, mode);
       }
-    });
-    list.addEventListener("input", (e) => {
-      if (!(e.target instanceof HTMLElement) || !e.target.classList.contains("tr-fee")) return;
-      const card = e.target.closest(".transfers-card");
-      if (!card) return;
-      const val = e.target.value.trim().toLowerCase();
-      card.querySelectorAll(".tr-fee-preset").forEach((btn) => {
-        const preset = String(btn.getAttribute("data-fee") ?? "").toLowerCase();
-        btn.classList.toggle("is-active", Boolean(preset) && preset === val);
-      });
     });
   }
 }
@@ -5907,10 +5998,11 @@ function bindTransfers() {
         const i = list.querySelectorAll(".transfers-card").length;
         list.insertAdjacentHTML(
           "beforeend",
-          transferTableRowHtml(section.key, transferTeamFilter, {}, i),
+          transferTableRowHtml(section.key, transferTeamFilter, {}, i, { folded: false }),
         );
         const card = list.querySelector(".transfers-card:last-of-type");
         syncTransferRosterBtn(card, transferTeamFilter, section.key);
+        syncTransferCardSummary(card);
         card?.scrollIntoView({ behavior: "smooth", block: "center" });
         queueMicrotask(() => card?.querySelector(".tr-player")?.focus?.());
       });
