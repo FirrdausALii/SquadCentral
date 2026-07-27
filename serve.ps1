@@ -74,6 +74,37 @@ try {
         $path = "/index.html"
       }
 
+      if ($path -eq "/api/tm-squad") {
+        $clubId = $request.QueryString.Get("clubId")
+        if ([string]::IsNullOrWhiteSpace($clubId) -or $clubId -notmatch '^\d+$') {
+          $response.StatusCode = 400
+          $response.ContentType = "application/json; charset=utf-8"
+          $err = '{"error":"Missing or invalid clubId query parameter."}'
+          $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
+          $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/kader/verein/$clubId/plus/1"
+        try {
+          $tmResp = Invoke-WebRequest -Uri $tmUrl -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -UseBasicParsing -TimeoutSec 45
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($tmResp.Content)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          $response.StatusCode = 502
+          $response.ContentType = "application/json; charset=utf-8"
+          $msg = ($_.Exception.Message -replace '"', '\"')
+          $err = "{`"error`":`"Transfermarkt request failed: $msg`"}"
+          $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
+          $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+        }
+        continue
+      }
+
       $relative = $path.TrimStart("/").Replace("/", [IO.Path]::DirectorySeparatorChar)
       $file = Join-Path $root $relative
       $file = [IO.Path]::GetFullPath($file)
