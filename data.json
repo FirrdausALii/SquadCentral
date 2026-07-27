@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1784906037208,
+  "dataRevision": 1785082201212,
   "leagues": [
     {
       "id": "epl",
@@ -302,62 +302,7 @@
         "#7c5cff",
         "#ff4d6d"
       ],
-      "nationalDuty": [
-        {
-          "playerId": "epl_aston_villa_23_Emiliano_Martinez",
-          "note": "",
-          "until": "",
-          "country": "Argentina"
-        },
-        {
-          "note": "",
-          "playerId": "epl_aston_villa_4_Ezri_Konsa",
-          "country": "England",
-          "until": ""
-        },
-        {
-          "until": "",
-          "country": "Sweden",
-          "playerId": "epl_aston_villa_3_Victor_Lindelof",
-          "note": ""
-        },
-        {
-          "playerId": "epl_aston_villa_12_Lucas_Digne",
-          "note": "",
-          "until": "",
-          "country": "France"
-        },
-        {
-          "country": "Belgium",
-          "until": "",
-          "note": "",
-          "playerId": "epl_aston_villa_24_Amadou_Onana"
-        },
-        {
-          "note": "",
-          "playerId": "epl_aston_villa_8_Youri_Tielemans",
-          "country": "Belgium",
-          "until": ""
-        },
-        {
-          "playerId": "epl_aston_villa_7_John_McGinn_(C)",
-          "note": "",
-          "until": "",
-          "country": "Scotland"
-        },
-        {
-          "note": "",
-          "playerId": "epl_aston_villa_27_Morgan_Rogers",
-          "country": "England",
-          "until": ""
-        },
-        {
-          "note": "",
-          "playerId": "epl_aston_villa_11_Ollie_Watkins",
-          "country": "England",
-          "until": ""
-        }
-      ],
+      "nationalDuty": [],
       "logo": "./images/premierleague/aston_villa.png",
       "city": "Birmingham",
       "leagueId": "epl",
@@ -541,44 +486,7 @@
         "#ff4d6d",
         "#111827"
       ],
-      "nationalDuty": [
-        {
-          "country": "Argentina",
-          "until": "",
-          "note": "",
-          "playerId": "epl_bournemouth_5_Marcos_Senesi"
-        },
-        {
-          "country": "USA",
-          "until": "",
-          "note": "",
-          "playerId": "epl_bournemouth_12_Tyler_Adams"
-        },
-        {
-          "note": "",
-          "playerId": "epl_bournemouth_10_Ryan_Christie",
-          "country": "Scotland",
-          "until": ""
-        },
-        {
-          "playerId": "epl_bournemouth_19_Justin_Kluivert",
-          "note": "",
-          "until": "",
-          "country": "Netherlands"
-        },
-        {
-          "until": "",
-          "country": "Brazil",
-          "playerId": "epl_bournemouth_37_Rayan",
-          "note": ""
-        },
-        {
-          "until": "",
-          "country": "Scotland",
-          "playerId": "epl_bournemouth_11_Ben_Doak",
-          "note": ""
-        }
-      ]
+      "nationalDuty": []
     },
     {
       "name": "Brentford",
@@ -666,32 +574,7 @@
       "stadium": "Gtech Community Stadium",
       "coach": "Keith Andrews",
       "id": "epl_brentford",
-      "nationalDuty": [
-        {
-          "playerId": "epl_brentford_20_Kristoffer_Ajer",
-          "note": "",
-          "until": "",
-          "country": "Norway"
-        },
-        {
-          "note": "",
-          "playerId": "epl_brentford_2_Aaron_Hickey",
-          "country": "Scotland",
-          "until": ""
-        },
-        {
-          "playerId": "epl_brentford_6_Jordan_Henderson",
-          "note": "",
-          "until": "",
-          "country": "England"
-        },
-        {
-          "playerId": "epl_brentford_9_Igor_Thiago",
-          "note": "",
-          "until": "",
-          "country": "Brazil"
-        }
-      ],
+      "nationalDuty": [],
       "colors": [
         "#ff4d6d",
         "#ffd166"
@@ -5230,7 +5113,8 @@
       "id": "epl_aston_villa_23_Emiliano_Martinez",
       "role": "GK",
       "instagram": "https://www.instagram.com/emi_martinez26/",
-      "flag": "🇦🇷"
+      "flag": "🇦🇷",
+      "displayLastName": "Martinez"
     },
     {
       "number": 40,
@@ -5242,7 +5126,8 @@
       "pos": "GK",
       "instagram": "https://www.instagram.com/marcobizot/",
       "flag": "🇳🇱",
-      "role": "GK"
+      "role": "GK",
+      "displayLastName": "Bizot"
     },
     {
       "role": "CB",
@@ -5254,7 +5139,8 @@
       "name": "Victor Lindelof",
       "nationality": "Sweden",
       "id": "epl_aston_villa_3_Victor_Lindelof",
-      "number": 3
+      "number": 3,
+      "displayLastName": "Lindelof"
     },
     {
       "instagram": "https://www.instagram.com/ezrikonsa/",
@@ -5266,7 +5152,8 @@
       "name": "Ezri Konsa",
       "sortOrder": 4,
       "teamId": "epl_aston_villa",
-      "pos": "DF"
+      "pos": "DF",
+      "displayLastName": "Konsa"
     },
     {
       "number": 5,
@@ -5278,7 +5165,8 @@
       "pos": "DF",
       "instagram": "https://www.instagram.com/tyronemings/",
       "flag": "🏴",
-      "role": "CB"
+      "role": "CB",
+      "displayLastName": "Mings"
     },
     {
       "instagram": "https://www.instagram.com/pauttorres/",
@@ -5290,7 +5178,8 @@
       "sortOrder": 6,
       "teamId": "epl_aston_villa",
       "name": "Pau Torres",
-      "pos": "DF"
+      "pos": "DF",
+      "displayLastName": "Torres"
     },
     {
       "role": "RB",
@@ -5298,23 +5187,25 @@
       "flag": "🇵🇱",
       "name": "Matty Cash",
       "teamId": "epl_aston_villa",
-      "sortOrder": 7,
+      "sortOrder": 8,
       "pos": "DF",
       "number": 2,
       "id": "epl_aston_villa_2_Matty_Cash",
-      "nationality": "Poland"
+      "nationality": "Poland",
+      "displayLastName": "Cash"
     },
     {
       "pos": "DF",
       "teamId": "epl_aston_villa",
-      "sortOrder": 10,
+      "sortOrder": 9,
       "name": "Lamare Bogarde",
       "nationality": "Netherlands",
       "id": "epl_aston_villa_26_Lamare_Bogarde",
       "number": 26,
       "role": "RB",
       "flag": "🇳🇱",
-      "instagram": "https://www.instagram.com/lbogarde/"
+      "instagram": "https://www.instagram.com/lbogarde/",
+      "displayLastName": "Bogarde"
     },
     {
       "number": 12,
@@ -5326,7 +5217,8 @@
       "pos": "DF",
       "instagram": "https://www.instagram.com/lucasdigne/",
       "flag": "🇫🇷",
-      "role": "LB"
+      "role": "LB",
+      "displayLastName": "Digne"
     },
     {
       "role": "LB",
@@ -5338,7 +5230,8 @@
       "pos": "DF",
       "number": 22,
       "nationality": "Netherlands",
-      "id": "epl_aston_villa_22_Ian_Maatsen"
+      "id": "epl_aston_villa_22_Ian_Maatsen",
+      "displayLastName": "Maatsen"
     },
     {
       "instagram": "https://www.instagram.com/rossbarkley/",
@@ -5350,7 +5243,8 @@
       "sortOrder": 13,
       "name": "Ross Barkley",
       "teamId": "epl_aston_villa",
-      "pos": "MF"
+      "pos": "MF",
+      "displayLastName": "Barkley"
     },
     {
       "teamId": "epl_aston_villa",
@@ -5362,19 +5256,21 @@
       "id": "epl_aston_villa_24_Amadou_Onana",
       "role": "CM",
       "instagram": "https://www.instagram.com/its_onana/",
-      "flag": "🇧🇪"
+      "flag": "🇧🇪",
+      "displayLastName": "Onana"
     },
     {
-      "sortOrder": 16,
+      "sortOrder": 14,
       "teamId": "epl_aston_villa",
       "name": "Boubacar Kamara",
       "pos": "MF",
-      "number": 44,
+      "number": 8,
       "id": "epl_aston_villa_44_Boubacar_Kamara",
       "nationality": "France",
       "role": "CM",
       "instagram": "https://www.instagram.com/bouba_darkoss/",
-      "flag": "🇫🇷"
+      "flag": "🇫🇷",
+      "displayLastName": "Kamara"
     },
     {
       "role": "RW",
@@ -5382,11 +5278,13 @@
       "instagram": "https://www.instagram.com/johnmcginn7/",
       "pos": "FW",
       "sortOrder": 18,
-      "name": "John McGinn (C)",
+      "name": "John McGinn",
       "teamId": "epl_aston_villa",
       "id": "epl_aston_villa_7_John_McGinn_(C)",
       "nationality": "Scotland",
-      "number": 7
+      "number": 7,
+      "displayLastName": "McGinn",
+      "captain": true
     },
     {
       "pos": "FW",
@@ -5398,7 +5296,8 @@
       "number": 31,
       "role": "RW",
       "flag": "🇯🇲",
-      "instagram": "https://www.instagram.com/leonbailey/"
+      "instagram": "https://www.instagram.com/leonbailey/",
+      "displayLastName": "Bailey"
     },
     {
       "teamId": "epl_aston_villa",
@@ -5410,7 +5309,8 @@
       "id": "epl_aston_villa_47_Alysson",
       "role": "RW",
       "instagram": "https://www.instagram.com/alysson_edward/",
-      "flag": "🇧🇷"
+      "flag": "🇧🇷",
+      "displayLastName": "Alysson"
     },
     {
       "role": "LW",
@@ -5422,7 +5322,8 @@
       "pos": "FW",
       "number": 10,
       "id": "epl_aston_villa_10_Emiliano_Buendia",
-      "nationality": "Argentina"
+      "nationality": "Argentina",
+      "displayLastName": "Buendia"
     },
     {
       "instagram": "https://www.instagram.com/olliewatkins/",
@@ -5434,7 +5335,8 @@
       "name": "Ollie Watkins",
       "sortOrder": 25,
       "teamId": "epl_aston_villa",
-      "pos": "FW"
+      "pos": "FW",
+      "displayLastName": "Watkins"
     },
     {
       "pos": "FW",
@@ -5446,7 +5348,8 @@
       "number": 18,
       "role": "CF",
       "flag": "🏴",
-      "instagram": "https://www.instagram.com/tammyabraham/"
+      "instagram": "https://www.instagram.com/tammyabraham/",
+      "displayLastName": "Abraham"
     },
     {
       "role": "GK",
@@ -5457,7 +5360,9 @@
       "pos": "GK",
       "number": 1,
       "id": "epl_bournemouth_1_Djordje_Petrovic",
-      "nationality": "Serbia"
+      "nationality": "Serbia",
+      "sortOrder": 0,
+      "displayLastName": "Petrovic"
     },
     {
       "role": "GK",
@@ -5467,7 +5372,8 @@
       "flag": "🏴",
       "id": "epl_bournemouth_17_Fraser_Forster",
       "nationality": "England",
-      "number": 17
+      "number": 17,
+      "sortOrder": 14
     },
     {
       "nationality": "France",
@@ -5478,7 +5384,8 @@
       "name": "Bafode Diakite",
       "flag": "🇫🇷",
       "instagram": "https://www.instagram.com/bafode_diakite/",
-      "role": "CB"
+      "role": "CB",
+      "sortOrder": 15
     },
     {
       "role": "CB",
@@ -5489,7 +5396,8 @@
       "name": "James Hill",
       "id": "epl_bournemouth_23_James_Hill",
       "nationality": "England",
-      "number": 23
+      "number": 5,
+      "sortOrder": 4
     },
     {
       "role": "CB",
@@ -5500,7 +5408,8 @@
       "teamId": "epl_bournemouth",
       "id": "epl_bournemouth_44_Veljko_Milosavljevic",
       "nationality": "Serbia",
-      "number": 44
+      "number": 44,
+      "sortOrder": 24
     },
     {
       "role": "CB",
@@ -5511,7 +5420,8 @@
       "name": "Matai Akinmboni",
       "nationality": "USA",
       "id": "epl_bournemouth_45_Matai_Akinmboni",
-      "number": 45
+      "number": 45,
+      "sortOrder": 25
     },
     {
       "teamId": "epl_bournemouth",
@@ -5522,7 +5432,8 @@
       "nationality": "England",
       "role": "RB",
       "instagram": "https://www.instagram.com/adamsmith912/",
-      "flag": "🏴"
+      "flag": "🏴",
+      "sortOrder": 12
     },
     {
       "instagram": "https://www.instagram.com/a.truffert/",
@@ -5533,7 +5444,8 @@
       "id": "epl_bournemouth_3_Adrien_Truffert",
       "name": "Adrien Truffert",
       "teamId": "epl_bournemouth",
-      "pos": "DF"
+      "pos": "DF",
+      "sortOrder": 2
     },
     {
       "pos": "DF",
@@ -5544,7 +5456,8 @@
       "number": 6,
       "role": "LB",
       "flag": "🇦🇷",
-      "instagram": "https://www.instagram.com/julio_soler_/"
+      "instagram": "https://www.instagram.com/julio_soler_/",
+      "sortOrder": 5
     },
     {
       "name": "Lewis Cook",
@@ -5555,7 +5468,8 @@
       "id": "epl_bournemouth_4_Lewis_Cook",
       "role": "CM",
       "instagram": "https://www.instagram.com/lewiscook_/",
-      "flag": "🏴"
+      "flag": "🏴",
+      "sortOrder": 3
     },
     {
       "role": "CM",
@@ -5566,7 +5480,8 @@
       "name": "Alex Scott",
       "id": "epl_bournemouth_8_Alex_Scott",
       "nationality": "England",
-      "number": 8
+      "number": 8,
+      "sortOrder": 7
     },
     {
       "role": "CM",
@@ -5577,7 +5492,8 @@
       "teamId": "epl_bournemouth",
       "id": "epl_bournemouth_10_Ryan_Christie",
       "nationality": "Scotland",
-      "number": 10
+      "number": 10,
+      "sortOrder": 9
     },
     {
       "name": "Tyler Adams",
@@ -5588,7 +5504,8 @@
       "id": "epl_bournemouth_12_Tyler_Adams",
       "role": "CM",
       "instagram": "https://www.instagram.com/tyler.adams/",
-      "flag": "🇺🇸"
+      "flag": "🇺🇸",
+      "sortOrder": 11
     },
     {
       "role": "CM",
@@ -5599,7 +5516,8 @@
       "pos": "MF",
       "number": 27,
       "id": "epl_bournemouth_27_Alex_Toth",
-      "nationality": "Hungary"
+      "nationality": "Hungary",
+      "sortOrder": 20
     },
     {
       "number": 19,
@@ -5610,7 +5528,8 @@
       "pos": "MF",
       "instagram": "https://www.instagram.com/justinkluivert/",
       "flag": "🇳🇱",
-      "role": "AM"
+      "role": "AM",
+      "sortOrder": 16
     },
     {
       "role": "AM",
@@ -5621,7 +5540,8 @@
       "name": "Junior Kroupi",
       "nationality": "France",
       "id": "epl_bournemouth_22_Junior_Kroupi",
-      "number": 22
+      "number": 22,
+      "sortOrder": 18
     },
     {
       "pos": "FW",
@@ -5632,7 +5552,8 @@
       "number": 7,
       "role": "RW",
       "flag": "🏴",
-      "instagram": "https://www.instagram.com/db_36/"
+      "instagram": "https://www.instagram.com/db_36/",
+      "sortOrder": 6
     },
     {
       "role": "RW",
@@ -5643,7 +5564,8 @@
       "pos": "FW",
       "number": 11,
       "nationality": "Scotland",
-      "id": "epl_bournemouth_11_Ben_Doak"
+      "id": "epl_bournemouth_11_Ben_Doak",
+      "sortOrder": 10
     },
     {
       "instagram": "https://www.instagram.com/rayann/",
@@ -5654,7 +5576,8 @@
       "id": "epl_bournemouth_37_Rayan",
       "teamId": "epl_bournemouth",
       "name": "Rayan",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 22
     },
     {
       "flag": "🏴",
@@ -5665,7 +5588,8 @@
       "number": 16,
       "pos": "FW",
       "teamId": "epl_bournemouth",
-      "name": "Marcus Tavernier"
+      "name": "Marcus Tavernier",
+      "sortOrder": 13
     },
     {
       "instagram": "https://www.instagram.com/amine_ad10/",
@@ -5676,7 +5600,8 @@
       "nationality": "Morocco",
       "name": "Amine Adli",
       "teamId": "epl_bournemouth",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 17
     },
     {
       "pos": "FW",
@@ -5687,7 +5612,8 @@
       "number": 9,
       "role": "CF",
       "flag": "🇧🇷",
-      "instagram": "https://www.instagram.com/evanilsonlima99/"
+      "instagram": "https://www.instagram.com/evanilsonlima99/",
+      "sortOrder": 8
     },
     {
       "number": 26,
@@ -5698,7 +5624,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/enesunal16/",
       "flag": "🇹🇷",
-      "role": "CF"
+      "role": "CF",
+      "sortOrder": 19
     },
     {
       "flag": "🇮🇪",
@@ -5794,7 +5721,7 @@
       "role": "RB",
       "instagram": "https://www.instagram.com/aaronhickey51/",
       "flag": "🏴",
-      "sortOrder": 8
+      "sortOrder": 12
     },
     {
       "name": "Michael Kayode",
@@ -5806,7 +5733,7 @@
       "role": "RB",
       "instagram": "https://www.instagram.com/michaelkayode/",
       "flag": "🇮🇹",
-      "sortOrder": 9
+      "sortOrder": 13
     },
     {
       "pos": "DF",
@@ -5818,7 +5745,7 @@
       "role": "LB",
       "flag": "🇯🇲",
       "instagram": "https://www.instagram.com/ricohenry/",
-      "sortOrder": 10
+      "sortOrder": 14
     },
     {
       "role": "LB",
@@ -5830,7 +5757,7 @@
       "nationality": "England",
       "id": "epl_brentford_23_Keane_Lewis_Potter",
       "number": 23,
-      "sortOrder": 11
+      "sortOrder": 16
     },
     {
       "instagram": "https://www.instagram.com/jordanhenderson/",
@@ -5842,7 +5769,7 @@
       "name": "Jordan Henderson",
       "teamId": "epl_brentford",
       "pos": "MF",
-      "sortOrder": 13
+      "sortOrder": 18
     },
     {
       "pos": "MF",
@@ -5854,7 +5781,7 @@
       "role": "CM",
       "flag": "🇩🇰",
       "instagram": "https://www.instagram.com/mathjensen/",
-      "sortOrder": 14
+      "sortOrder": 19
     },
     {
       "role": "CM",
@@ -5866,7 +5793,7 @@
       "nationality": "England",
       "id": "epl_brentford_10_Josh_Dasilva",
       "number": 10,
-      "sortOrder": 15
+      "sortOrder": 20
     },
     {
       "id": "epl_brentford_18_Yegor_Yarmolyuk",
@@ -5878,7 +5805,7 @@
       "flag": "🇺🇦",
       "instagram": "https://www.instagram.com/yarmoliuk_yehor/",
       "role": "CM",
-      "sortOrder": 16
+      "sortOrder": 21
     },
     {
       "flag": "🇩🇪",
@@ -5890,7 +5817,7 @@
       "pos": "MF",
       "name": "Vitaly Janelt",
       "teamId": "epl_brentford",
-      "sortOrder": 17
+      "sortOrder": 22
     },
     {
       "number": 14,
@@ -5902,7 +5829,7 @@
       "instagram": "https://www.instagram.com/_fabio.10/",
       "flag": "🇵🇹",
       "role": "AM",
-      "sortOrder": 18
+      "sortOrder": 23
     },
     {
       "id": "epl_brentford_17_Antoni_Milambo",
@@ -5914,7 +5841,7 @@
       "flag": "🇳🇱",
       "instagram": "https://www.instagram.com/antomilambo._/",
       "role": "AM",
-      "sortOrder": 19
+      "sortOrder": 24
     },
     {
       "role": "AM",
@@ -5926,7 +5853,7 @@
       "nationality": "Denmark",
       "id": "epl_brentford_24_Mikkel_Damsgaard",
       "number": 24,
-      "sortOrder": 20
+      "sortOrder": 25
     },
     {
       "pos": "FW",
@@ -5934,11 +5861,11 @@
       "name": "Dango Ouattara",
       "id": "epl_brentford_19_Dango_Ouattara",
       "nationality": "Burkina Faso",
-      "number": 19,
+      "number": 11,
       "role": "RW",
       "flag": "🇧🇫",
       "instagram": "https://www.instagram.com/d.ouattara15/",
-      "sortOrder": 21
+      "sortOrder": 26
     },
     {
       "name": "Kevin Schade",
@@ -5950,7 +5877,7 @@
       "role": "LW",
       "instagram": "https://www.instagram.com/kevinschade_/",
       "flag": "🇩🇪",
-      "sortOrder": 22
+      "sortOrder": 27
     },
     {
       "teamId": "epl_brentford",
@@ -5962,7 +5889,7 @@
       "role": "CF",
       "instagram": "https://www.instagram.com/thiago01/",
       "flag": "🇧🇷",
-      "sortOrder": 24
+      "sortOrder": 30
     },
     {
       "flag": "🇧🇪",
@@ -5974,7 +5901,7 @@
       "pos": "FW",
       "teamId": "epl_brentford",
       "name": "Kaye Furo",
-      "sortOrder": 25
+      "sortOrder": 32
     },
     {
       "instagram": "https://www.instagram.com/bartverbruggen1/",
@@ -5985,7 +5912,8 @@
       "nationality": "Netherlands",
       "name": "Bart Verbruggen",
       "teamId": "epl_brighton",
-      "pos": "GK"
+      "pos": "GK",
+      "sortOrder": 0
     },
     {
       "pos": "GK",
@@ -5995,7 +5923,8 @@
       "nationality": "England",
       "flag": "🏴",
       "id": "epl_brighton_23_Jason_Steele",
-      "number": 23
+      "number": 23,
+      "sortOrder": 1
     },
     {
       "role": "GK",
@@ -6006,7 +5935,8 @@
       "name": "Tom McGill",
       "nationality": "Canada",
       "id": "epl_brighton_38_Tom_McGill",
-      "number": 38
+      "number": 38,
+      "sortOrder": 2
     },
     {
       "flag": "🇧🇷",
@@ -6017,7 +5947,8 @@
       "number": 3,
       "pos": "DF",
       "name": "Igor Julio",
-      "teamId": "epl_brighton"
+      "teamId": "epl_brighton",
+      "sortOrder": 4
     },
     {
       "flag": "🏴",
@@ -6028,7 +5959,8 @@
       "number": 5,
       "pos": "DF",
       "name": "Lewis Dunk (C)",
-      "teamId": "epl_brighton"
+      "teamId": "epl_brighton",
+      "sortOrder": 5
     },
     {
       "pos": "DF",
@@ -6039,7 +5971,8 @@
       "number": 21,
       "role": "CB",
       "flag": "🇫🇷",
-      "instagram": "https://www.instagram.com/boscagli_28/"
+      "instagram": "https://www.instagram.com/boscagli_28/",
+      "sortOrder": 7
     },
     {
       "teamId": "epl_brighton",
@@ -6050,7 +5983,8 @@
       "id": "epl_brighton_27_Mats_Wieffer",
       "role": "RB",
       "instagram": "https://www.instagram.com/matswieffer/",
-      "flag": "🇳🇱"
+      "flag": "🇳🇱",
+      "sortOrder": 9
     },
     {
       "instagram": "https://www.instagram.com/ferdikadioglu/",
@@ -6061,7 +5995,8 @@
       "nationality": "Turkey",
       "name": "Ferdi Kadioglu",
       "teamId": "epl_brighton",
-      "pos": "DF"
+      "pos": "DF",
+      "sortOrder": 10
     },
     {
       "name": "Maxim De Cuyper",
@@ -6072,7 +6007,8 @@
       "nationality": "Belgium",
       "role": "LB",
       "instagram": "https://www.instagram.com/maxim.decuyper/",
-      "flag": "🇧🇪"
+      "flag": "🇧🇪",
+      "sortOrder": 11
     },
     {
       "role": "CM",
@@ -6083,7 +6019,8 @@
       "pos": "MF",
       "number": 17,
       "id": "epl_brighton_17_Carlos_Baleba",
-      "nationality": "Cameroon"
+      "nationality": "Cameroon",
+      "sortOrder": 12
     },
     {
       "instagram": "https://www.instagram.com/yasin_ayari/",
@@ -6094,7 +6031,8 @@
       "id": "epl_brighton_26_Yasin_Ayari",
       "teamId": "epl_brighton",
       "name": "Yasin Ayari",
-      "pos": "MF"
+      "pos": "MF",
+      "sortOrder": 13
     },
     {
       "number": 30,
@@ -6104,7 +6042,8 @@
       "name": "Pascal Gross",
       "teamId": "epl_brighton",
       "pos": "MF",
-      "role": "CM"
+      "role": "CM",
+      "sortOrder": 14
     },
     {
       "role": "AM",
@@ -6115,7 +6054,8 @@
       "teamId": "epl_brighton",
       "id": "epl_brighton_13_Jack_Hinshelwood",
       "nationality": "England",
-      "number": 13
+      "number": 13,
+      "sortOrder": 16
     },
     {
       "number": 33,
@@ -6126,7 +6066,8 @@
       "pos": "MF",
       "instagram": "https://www.instagram.com/mattoriley8/",
       "flag": "🇩🇰",
-      "role": "AM"
+      "role": "AM",
+      "sortOrder": 17
     },
     {
       "instagram": "https://www.instagram.com/minteh01/",
@@ -6137,7 +6078,8 @@
       "nationality": "Gambia",
       "name": "Yankuba Minteh",
       "teamId": "epl_brighton",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 19
     },
     {
       "number": 25,
@@ -6148,7 +6090,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/diegogomez08_/",
       "flag": "🇵🇾",
-      "role": "RW"
+      "role": "RW",
+      "sortOrder": 20
     },
     {
       "role": "LW",
@@ -6159,7 +6102,8 @@
       "pos": "FW",
       "number": 19,
       "id": "epl_brighton_19_Charalampos_Kostoulas",
-      "nationality": "Greece"
+      "nationality": "Greece",
+      "sortOrder": 22
     },
     {
       "number": 22,
@@ -6170,7 +6114,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/kaoru.m.0520/",
       "flag": "🇯🇵",
-      "role": "LW"
+      "role": "LW",
+      "sortOrder": 23
     },
     {
       "role": "CF",
@@ -6181,7 +6126,8 @@
       "name": "Stefanos Tzimas",
       "id": "epl_brighton_9_Stefanos_Tzimas",
       "nationality": "Greece",
-      "number": 9
+      "number": 9,
+      "sortOrder": 24
     },
     {
       "number": 10,
@@ -6192,7 +6138,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/georginio.rutter/",
       "flag": "🇫🇷",
-      "role": "CF"
+      "role": "CF",
+      "sortOrder": 25
     },
     {
       "role": "CF",
@@ -6203,7 +6150,8 @@
       "teamId": "epl_brighton",
       "id": "epl_brighton_18_Danny_Welbeck",
       "nationality": "England",
-      "number": 18
+      "number": 18,
+      "sortOrder": 26
     },
     {
       "flag": "🇪🇸",
@@ -6214,7 +6162,8 @@
       "number": 1,
       "pos": "GK",
       "teamId": "epl_chelsea",
-      "name": "Robert Sanchez"
+      "name": "Robert Sanchez",
+      "sortOrder": 0
     },
     {
       "nationality": "Denmark",
@@ -6225,7 +6174,8 @@
       "name": "Filip Jorgensen",
       "flag": "🇩🇰",
       "instagram": "https://www.instagram.com/filipjorgensen1/",
-      "role": "GK"
+      "role": "GK",
+      "sortOrder": 1
     },
     {
       "id": "epl_chelsea_28_Teddy_Sharman_Lowe",
@@ -6236,7 +6186,8 @@
       "teamId": "epl_chelsea",
       "flag": "🏴",
       "instagram": "https://www.instagram.com/tsharmanlowe/",
-      "role": "GK"
+      "role": "GK",
+      "sortOrder": 2
     },
     {
       "role": "GK",
@@ -6247,7 +6198,8 @@
       "pos": "GK",
       "number": 44,
       "id": "epl_chelsea_44_Gabriel_Slonina",
-      "nationality": "USA"
+      "nationality": "USA",
+      "sortOrder": 4
     },
     {
       "role": "CB",
@@ -6258,7 +6210,8 @@
       "pos": "DF",
       "number": 4,
       "id": "epl_chelsea_4_Tosin_Adarabioyo",
-      "nationality": "England"
+      "nationality": "England",
+      "sortOrder": 5
     },
     {
       "number": 5,
@@ -6269,7 +6222,8 @@
       "pos": "DF",
       "instagram": "https://www.instagram.com/benoit.badiashile/",
       "flag": "🇫🇷",
-      "role": "CB"
+      "role": "CB",
+      "sortOrder": 6
     },
     {
       "name": "Levi Colwill",
@@ -6280,7 +6234,8 @@
       "nationality": "England",
       "role": "CB",
       "instagram": "https://www.instagram.com/levicolwill/",
-      "flag": "🏴"
+      "flag": "🏴",
+      "sortOrder": 7
     },
     {
       "name": "Mamadou Sarr",
@@ -6291,7 +6246,8 @@
       "nationality": "Senegal",
       "role": "CB",
       "instagram": "https://www.instagram.com/msarr6_/",
-      "flag": "🇸🇳"
+      "flag": "🇸🇳",
+      "sortOrder": 8
     },
     {
       "role": "CB",
@@ -6302,7 +6258,8 @@
       "pos": "DF",
       "number": 23,
       "id": "epl_chelsea_23_Trevoh_Chalobah",
-      "nationality": "England"
+      "nationality": "England",
+      "sortOrder": 9
     },
     {
       "teamId": "epl_chelsea",
@@ -6313,7 +6270,8 @@
       "id": "epl_chelsea_29_Wesley_Fofana",
       "role": "CB",
       "instagram": "https://www.instagram.com/lawestt_/",
-      "flag": "🇫🇷"
+      "flag": "🇫🇷",
+      "sortOrder": 10
     },
     {
       "number": 24,
@@ -6324,7 +6282,8 @@
       "pos": "DF",
       "instagram": "https://www.instagram.com/reece/",
       "flag": "🏴",
-      "role": "RB"
+      "role": "RB",
+      "sortOrder": 12
     },
     {
       "nationality": "France",
@@ -6335,7 +6294,8 @@
       "name": "Malo Gusto",
       "flag": "🇫🇷",
       "instagram": "https://www.instagram.com/malogusto/",
-      "role": "RB"
+      "role": "RB",
+      "sortOrder": 13
     },
     {
       "teamId": "epl_chelsea",
@@ -6346,7 +6306,8 @@
       "nationality": "England",
       "role": "RB",
       "instagram": "https://www.instagram.com/joshkofi2/",
-      "flag": "🏴"
+      "flag": "🏴",
+      "sortOrder": 14
     },
     {
       "instagram": "https://www.instagram.com/jorrelhato/",
@@ -6357,7 +6318,8 @@
       "id": "epl_chelsea_21_Jorrel_Hato",
       "name": "Jorrel Hato",
       "teamId": "epl_chelsea",
-      "pos": "DF"
+      "pos": "DF",
+      "sortOrder": 15
     },
     {
       "flag": "🇵🇹",
@@ -6368,7 +6330,8 @@
       "number": 14,
       "pos": "MF",
       "name": "Dario Essugo",
-      "teamId": "epl_chelsea"
+      "teamId": "epl_chelsea",
+      "sortOrder": 16
     },
     {
       "teamId": "epl_chelsea",
@@ -6379,7 +6342,8 @@
       "id": "epl_chelsea_25_Moises_Caicedo",
       "role": "CM",
       "instagram": "https://www.instagram.com/moises_caicedo55/",
-      "flag": "🇪🇨"
+      "flag": "🇪🇨",
+      "sortOrder": 17
     },
     {
       "role": "CM",
@@ -6390,7 +6354,8 @@
       "pos": "MF",
       "number": 45,
       "id": "epl_chelsea_45_Romeo_Lavia",
-      "nationality": "Belgium"
+      "nationality": "Belgium",
+      "sortOrder": 18
     },
     {
       "name": "Enzo Fernandez",
@@ -6401,7 +6366,8 @@
       "nationality": "Argentina",
       "role": "AM",
       "instagram": "https://www.instagram.com/enzojfernandez/",
-      "flag": "🇦🇷"
+      "flag": "🇦🇷",
+      "sortOrder": 19
     },
     {
       "id": "epl_chelsea_10_Cole_Palmer",
@@ -6412,7 +6378,8 @@
       "teamId": "epl_chelsea",
       "flag": "🏴",
       "instagram": "https://www.instagram.com/colepalmer10/",
-      "role": "AM"
+      "role": "AM",
+      "sortOrder": 20
     },
     {
       "number": 7,
@@ -6423,7 +6390,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/pedroneto_30/",
       "flag": "🇵🇹",
-      "role": "RW"
+      "role": "RW",
+      "sortOrder": 22
     },
     {
       "instagram": "https://www.instagram.com/estevaowilian_/",
@@ -6434,7 +6402,8 @@
       "nationality": "Brazil",
       "name": "Estevao",
       "teamId": "epl_chelsea",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 23
     },
     {
       "role": "LW",
@@ -6445,7 +6414,8 @@
       "name": "Jamie Gittens",
       "id": "epl_chelsea_11_Jamie_Gittens",
       "nationality": "England",
-      "number": 11
+      "number": 11,
+      "sortOrder": 24
     },
     {
       "pos": "FW",
@@ -6456,7 +6426,8 @@
       "number": 49,
       "role": "LW",
       "flag": "🇦🇷",
-      "instagram": "https://www.instagram.com/garnacho7/"
+      "instagram": "https://www.instagram.com/garnacho7/",
+      "sortOrder": 25
     },
     {
       "role": "CF",
@@ -6467,7 +6438,8 @@
       "name": "Liam Delap",
       "nationality": "England",
       "id": "epl_chelsea_9_Liam_Delap",
-      "number": 9
+      "number": 9,
+      "sortOrder": 26
     },
     {
       "teamId": "epl_chelsea",
@@ -6478,7 +6450,8 @@
       "id": "epl_chelsea_20_Joao_Pedro",
       "role": "CF",
       "instagram": "https://www.instagram.com/joaopedro.oficial/",
-      "flag": "🇧🇷"
+      "flag": "🇧🇷",
+      "sortOrder": 28
     },
     {
       "id": "epl_chelsea_38_Marc_Guiu",
@@ -6489,7 +6462,8 @@
       "teamId": "epl_chelsea",
       "flag": "🇪🇸",
       "instagram": "https://www.instagram.com/marcguiu9/",
-      "role": "CF"
+      "role": "CF",
+      "sortOrder": 29
     },
     {
       "flag": "🏴",
@@ -6500,7 +6474,8 @@
       "number": 1,
       "pos": "GK",
       "teamId": "epl_crystal_palace",
-      "name": "Dean Henderson (C)"
+      "name": "Dean Henderson (C)",
+      "sortOrder": 0
     },
     {
       "instagram": "https://www.instagram.com/remimatthews/",
@@ -6511,7 +6486,8 @@
       "id": "epl_crystal_palace_31_Remi_Matthews",
       "teamId": "epl_crystal_palace",
       "name": "Remi Matthews",
-      "pos": "GK"
+      "pos": "GK",
+      "sortOrder": 1
     },
     {
       "name": "Walter Benitez",
@@ -6522,7 +6498,8 @@
       "nationality": "Argentina",
       "role": "GK",
       "instagram": "https://www.instagram.com/walterbenitezoficial/",
-      "flag": "🇦🇷"
+      "flag": "🇦🇷",
+      "sortOrder": 2
     },
     {
       "role": "CB",
@@ -6533,7 +6510,8 @@
       "pos": "DF",
       "number": 5,
       "id": "epl_crystal_palace_5_Maxence_Lacroix",
-      "nationality": "France"
+      "nationality": "France",
+      "sortOrder": 3
     },
     {
       "role": "CB",
@@ -6544,7 +6522,8 @@
       "pos": "DF",
       "number": 8,
       "nationality": "Colombia",
-      "id": "epl_crystal_palace_8_Jefferson_Lerma"
+      "id": "epl_crystal_palace_8_Jefferson_Lerma",
+      "sortOrder": 5
     },
     {
       "role": "CB",
@@ -6555,18 +6534,20 @@
       "pos": "DF",
       "number": 17,
       "id": "epl_crystal_palace_17_Nathaniel_Clyne",
-      "nationality": "England"
+      "nationality": "England",
+      "sortOrder": 6
     },
     {
       "id": "epl_crystal_palace_23_Jaydee_Canvot",
       "nationality": "France",
-      "number": 23,
+      "number": 6,
       "pos": "DF",
       "teamId": "epl_crystal_palace",
       "name": "Jaydee Canvot",
       "flag": "🇫🇷",
       "instagram": "https://www.instagram.com/j.canvot/",
-      "role": "CB"
+      "role": "CB",
+      "sortOrder": 4
     },
     {
       "number": 26,
@@ -6577,7 +6558,8 @@
       "pos": "DF",
       "instagram": "https://www.instagram.com/eastmamba/",
       "flag": "🇺🇸",
-      "role": "CB"
+      "role": "CB",
+      "sortOrder": 7
     },
     {
       "role": "CB",
@@ -6588,7 +6570,8 @@
       "pos": "DF",
       "number": 34,
       "id": "epl_crystal_palace_34_Chadi_Riad",
-      "nationality": "Morocco"
+      "nationality": "Morocco",
+      "sortOrder": 8
     },
     {
       "role": "RM",
@@ -6599,7 +6582,8 @@
       "pos": "DF",
       "number": 2,
       "nationality": "Colombia",
-      "id": "epl_crystal_palace_2_Daniel_Munoz"
+      "id": "epl_crystal_palace_2_Daniel_Munoz",
+      "sortOrder": 9
     },
     {
       "role": "RM",
@@ -6610,7 +6594,8 @@
       "pos": "DF",
       "number": 55,
       "id": "epl_crystal_palace_55_Justin_Devenny",
-      "nationality": "Northern Ireland"
+      "nationality": "Northern Ireland",
+      "sortOrder": 11
     },
     {
       "pos": "DF",
@@ -6618,10 +6603,11 @@
       "name": "Caleb Kporha",
       "id": "epl_crystal_palace_58_Caleb_Kporha",
       "nationality": "England",
-      "number": 58,
+      "number": 38,
       "role": "RM",
       "flag": "🏴",
-      "instagram": "https://www.instagram.com/caleb.kporha/"
+      "instagram": "https://www.instagram.com/caleb.kporha/",
+      "sortOrder": 10
     },
     {
       "instagram": "https://www.instagram.com/tmitchell/",
@@ -6632,7 +6618,8 @@
       "id": "epl_crystal_palace_3_Tyrick_Mitchell",
       "teamId": "epl_crystal_palace",
       "name": "Tyrick Mitchell",
-      "pos": "DF"
+      "pos": "DF",
+      "sortOrder": 12
     },
     {
       "flag": "🇭🇷",
@@ -6643,7 +6630,8 @@
       "number": 24,
       "pos": "DF",
       "name": "Borna Sosa",
-      "teamId": "epl_crystal_palace"
+      "teamId": "epl_crystal_palace",
+      "sortOrder": 13
     },
     {
       "role": "LM",
@@ -6654,7 +6642,8 @@
       "name": "Rio Cardines",
       "id": "epl_crystal_palace_59_Rio_Cardines",
       "nationality": "Trinidad and Tobago",
-      "number": 59
+      "number": 59,
+      "sortOrder": 14
     },
     {
       "instagram": "https://www.instagram.com/kamadadaichi/",
@@ -6665,7 +6654,8 @@
       "id": "epl_crystal_palace_18_Daichi_Kamada",
       "name": "Daichi Kamada",
       "teamId": "epl_crystal_palace",
-      "pos": "MF"
+      "pos": "MF",
+      "sortOrder": 15
     },
     {
       "teamId": "epl_crystal_palace",
@@ -6675,7 +6665,8 @@
       "number": 19,
       "nationality": "England",
       "flag": "🏴",
-      "id": "epl_crystal_palace_19_Will_Hughes"
+      "id": "epl_crystal_palace_19_Will_Hughes",
+      "sortOrder": 16
     },
     {
       "number": 20,
@@ -6686,7 +6677,8 @@
       "pos": "MF",
       "instagram": "https://www.instagram.com/adamwharton10/",
       "flag": "🏴",
-      "role": "CM"
+      "role": "CM",
+      "sortOrder": 17
     },
     {
       "role": "CM",
@@ -6697,7 +6689,8 @@
       "pos": "MF",
       "number": 28,
       "id": "epl_crystal_palace_28_Cheick_Doucoure",
-      "nationality": "Mali"
+      "nationality": "Mali",
+      "sortOrder": 18
     },
     {
       "pos": "FW",
@@ -6708,10 +6701,11 @@
       "number": 7,
       "role": "RAM",
       "flag": "🇸🇳",
-      "instagram": "https://www.instagram.com/ismaila_sarr_18/"
+      "instagram": "https://www.instagram.com/ismaila_sarr_18/",
+      "sortOrder": 19
     },
     {
-      "number": 11,
+      "number": 23,
       "nationality": "Wales",
       "id": "epl_crystal_palace_11_Brennan_Johnson",
       "teamId": "epl_crystal_palace",
@@ -6719,7 +6713,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/brenjohnson_/",
       "flag": "🏴",
-      "role": "RAM"
+      "role": "RAM",
+      "sortOrder": 21
     },
     {
       "flag": "🇪🇸",
@@ -6730,7 +6725,8 @@
       "number": 10,
       "pos": "FW",
       "name": "Yeremy Pino",
-      "teamId": "epl_crystal_palace"
+      "teamId": "epl_crystal_palace",
+      "sortOrder": 23
     },
     {
       "role": "CF",
@@ -6741,7 +6737,8 @@
       "teamId": "epl_crystal_palace",
       "id": "epl_crystal_palace_9_Eddie_Nketiah",
       "nationality": "England",
-      "number": 9
+      "number": 9,
+      "sortOrder": 25
     },
     {
       "number": 14,
@@ -6752,7 +6749,8 @@
       "pos": "FW",
       "instagram": "https://www.instagram.com/iammateta/",
       "flag": "🇫🇷",
-      "role": "CF"
+      "role": "CF",
+      "sortOrder": 26
     },
     {
       "instagram": "https://www.instagram.com/strandlarsen/",
@@ -6763,7 +6761,8 @@
       "id": "epl_crystal_palace_22_Jorgen_Strand_Larsen",
       "name": "Jorgen Strand Larsen",
       "teamId": "epl_crystal_palace",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 27
     },
     {
       "pos": "GK",
@@ -7015,7 +7014,8 @@
       "id": "epl_fulham_1_Bernd_Leno",
       "teamId": "epl_fulham",
       "name": "Bernd Leno",
-      "pos": "GK"
+      "pos": "GK",
+      "sortOrder": 0
     },
     {
       "id": "epl_fulham_23_Benjamin_Lecomte",
@@ -7026,7 +7026,8 @@
       "name": "Benjamin Lecomte",
       "flag": "🇫🇷",
       "instagram": "https://www.instagram.com/benj_lecomte/",
-      "role": "GK"
+      "role": "GK",
+      "sortOrder": 1
     },
     {
       "teamId": "epl_fulham",
@@ -7037,7 +7038,8 @@
       "id": "epl_fulham_3_Calvin_Bassey",
       "role": "CB",
       "instagram": "https://www.instagram.com/calvinbassey/",
-      "flag": "🇳🇬"
+      "flag": "🇳🇬",
+      "sortOrder": 2
     },
     {
       "id": "epl_fulham_5_Joachim_Andersen",
@@ -7048,7 +7050,8 @@
       "teamId": "epl_fulham",
       "flag": "🇩🇰",
       "instagram": "https://www.instagram.com/joachimandersen3/",
-      "role": "CB"
+      "role": "CB",
+      "sortOrder": 3
     },
     {
       "role": "CB",
@@ -7059,7 +7062,8 @@
       "teamId": "epl_fulham",
       "nationality": "Spain",
       "id": "epl_fulham_15_Jorge_Cuenca",
-      "number": 15
+      "number": 15,
+      "sortOrder": 4
     },
     {
       "pos": "DF",
@@ -7070,7 +7074,8 @@
       "number": 2,
       "role": "RB",
       "flag": "🇳🇱",
-      "instagram": "https://www.instagram.com/kennytete/"
+      "instagram": "https://www.instagram.com/kennytete/",
+      "sortOrder": 5
     },
     {
       "instagram": "https://www.instagram.com/timothycastagne/",
@@ -7081,7 +7086,8 @@
       "nationality": "Belgium",
       "teamId": "epl_fulham",
       "name": "Timothy Castagne",
-      "pos": "DF"
+      "pos": "DF",
+      "sortOrder": 6
     },
     {
       "role": "LB",
@@ -7092,7 +7098,8 @@
       "name": "Ryan Sessegnon",
       "id": "epl_fulham_30_Ryan_Sessegnon",
       "nationality": "England",
-      "number": 30
+      "number": 30,
+      "sortOrder": 7
     },
     {
       "flag": "🇺🇸",
@@ -7103,7 +7110,8 @@
       "number": 33,
       "pos": "DF",
       "name": "Antonee Robinson",
-      "teamId": "epl_fulham"
+      "teamId": "epl_fulham",
+      "sortOrder": 8
     },
     {
       "name": "Harrison Reed",
@@ -7114,7 +7122,8 @@
       "id": "epl_fulham_6_Harrison_Reed",
       "role": "CM",
       "instagram": "https://www.instagram.com/harrisonreed/",
-      "flag": "🏴"
+      "flag": "🏴",
+      "sortOrder": 9
     },
     {
       "number": 10,
@@ -7125,7 +7134,8 @@
       "pos": "MF",
       "instagram": "https://www.instagram.com/thomascairney10/",
       "flag": "🏴",
-      "role": "CM"
+      "role": "CM",
+      "sortOrder": 10
     },
     {
       "nationality": "Norway",
@@ -7136,7 +7146,8 @@
       "teamId": "epl_fulham",
       "flag": "🇳🇴",
       "instagram": "https://www.instagram.com/sanderberge8/",
-      "role": "CM"
+      "role": "CM",
+      "sortOrder": 11
     },
     {
       "instagram": "https://www.instagram.com/alexanderiwobi/",
@@ -7147,7 +7158,8 @@
       "nationality": "Nigeria",
       "teamId": "epl_fulham",
       "name": "Alex Iwobi",
-      "pos": "MF"
+      "pos": "MF",
+      "sortOrder": 12
     },
     {
       "role": "CM",
@@ -7158,7 +7170,8 @@
       "pos": "MF",
       "number": 20,
       "nationality": "Serbia",
-      "id": "epl_fulham_20_Sasa_Lukic"
+      "id": "epl_fulham_20_Sasa_Lukic",
+      "sortOrder": 13
     },
     {
       "name": "Josh King",
@@ -7169,7 +7182,8 @@
       "id": "epl_fulham_24_Josh_King",
       "role": "AM",
       "instagram": "https://www.instagram.com/josh.kingg10/",
-      "flag": "🏴"
+      "flag": "🏴",
+      "sortOrder": 14
     },
     {
       "id": "epl_fulham_32_Emile_Smith_Rowe",
@@ -7180,7 +7194,8 @@
       "teamId": "epl_fulham",
       "flag": "🏴",
       "instagram": "https://www.instagram.com/esr/",
-      "role": "AM"
+      "role": "AM",
+      "sortOrder": 15
     },
     {
       "teamId": "epl_fulham",
@@ -7191,7 +7206,8 @@
       "nationality": "Norway",
       "role": "RW",
       "instagram": "https://www.instagram.com/oscarbobb/",
-      "flag": "🇳🇴"
+      "flag": "🇳🇴",
+      "sortOrder": 17
     },
     {
       "instagram": "https://www.instagram.com/_kev11nn/",
@@ -7202,7 +7218,8 @@
       "nationality": "Brazil",
       "teamId": "epl_fulham",
       "name": "Kevin",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 18
     },
     {
       "name": "Rodrigo Muniz",
@@ -7213,7 +7230,8 @@
       "nationality": "Brazil",
       "role": "CF",
       "instagram": "https://www.instagram.com/r.muniz/",
-      "flag": "🇧🇷"
+      "flag": "🇧🇷",
+      "sortOrder": 19
     },
     {
       "id": "epl_fulham_18_Jonah_Kusi_Asare",
@@ -7224,7 +7242,8 @@
       "teamId": "epl_fulham",
       "flag": "🇸🇪",
       "instagram": "https://www.instagram.com/jonah.kusi.asare/",
-      "role": "CF"
+      "role": "CF",
+      "sortOrder": 20
     },
     {
       "nationality": "Brazil",
@@ -49835,50 +49854,43 @@
       "number": 30
     },
     {
-      "instagram": "https://www.instagram.com/tommysetford/",
-      "displayLastName": "Setford",
-      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-      "role": "GK",
-      "number": 35,
-      "nationality": "England",
-      "id": "epl_arsenal_35_Tommy_Setford",
-      "teamId": "epl_arsenal",
-      "sortOrder": 3,
-      "name": "Tommy Setford",
-      "pos": "GK"
-    },
-    {
       "teamId": "epl_aston_villa",
-      "sortOrder": 9,
+      "sortOrder": 10,
       "name": "Kosta Nedeljkovic",
       "pos": "DF",
-      "number": 20,
+      "number": 32,
       "id": "epl_aston_villa_20_Kosta_Nedeljkovic",
       "nationality": "Serbia",
       "role": "RB",
-      "flag": "🇷🇸"
+      "flag": "🇷🇸",
+      "displayLastName": "Nedeljkovic",
+      "instagram": "https://www.instagram.com/nedeljkoovickosta2/"
     },
     {
       "pos": "FW",
       "teamId": "epl_aston_villa",
-      "sortOrder": 27,
+      "sortOrder": 19,
       "name": "Evann Guessand",
       "id": "epl_aston_villa_29_Evann_Guessand",
       "nationality": "Ivory Coast",
       "number": 29,
       "role": "RW",
-      "flag": "🇨🇮"
+      "flag": "🇨🇮",
+      "displayLastName": "Guessand",
+      "instagram": "https://www.instagram.com/e.guessand/"
     },
     {
       "pos": "FW",
       "name": "Samuel Iling-Junior",
-      "sortOrder": 29,
+      "sortOrder": 24,
       "teamId": "epl_aston_villa",
       "id": "epl_aston_villa_19_Samuel_Iling-Junior",
       "nationality": "England",
-      "number": 19,
+      "number": 33,
       "role": "LW",
-      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "displayLastName": "Iling-Junior",
+      "instagram": "https://www.instagram.com/samuelilingjr/"
     },
     {
       "role": "GK",
@@ -49899,7 +49911,7 @@
       "id": "epl_brentford_26_Yunus_Konak",
       "teamId": "epl_brentford",
       "name": "Yunus Konak",
-      "sortOrder": 12,
+      "sortOrder": 17,
       "pos": "MF"
     },
     {
@@ -49919,7 +49931,7 @@
       "number": 3,
       "nationality": "Wales",
       "id": "epl_coventry_city_3_Jay_Dasilva",
-      "sortOrder": 9,
+      "sortOrder": 8,
       "name": "Jay Dasilva",
       "teamId": "epl_coventry_city",
       "pos": "DF"
@@ -49928,7 +49940,7 @@
       "number": 4,
       "id": "epl_coventry_city_4_Bobby_Thomas",
       "nationality": "England",
-      "sortOrder": 3,
+      "sortOrder": 2,
       "name": "Bobby Thomas",
       "teamId": "epl_coventry_city",
       "pos": "DF",
@@ -49940,7 +49952,7 @@
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "name": "Jack Rudoni",
       "teamId": "epl_coventry_city",
-      "sortOrder": 17,
+      "sortOrder": 15,
       "pos": "MF",
       "number": 5,
       "id": "epl_coventry_city_5_Jack_Rudoni",
@@ -49952,7 +49964,7 @@
       "number": 6,
       "pos": "MF",
       "name": "Matt Grimes",
-      "sortOrder": 12,
+      "sortOrder": 11,
       "teamId": "epl_coventry_city",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "role": "DM"
@@ -49965,13 +49977,13 @@
       "id": "epl_coventry_city_7_Tatsuhiro_Sakamoto",
       "name": "Tatsuhiro Sakamoto",
       "teamId": "epl_coventry_city",
-      "sortOrder": 18,
+      "sortOrder": 16,
       "pos": "FW"
     },
     {
       "name": "Ellis Simms",
       "teamId": "epl_coventry_city",
-      "sortOrder": 23,
+      "sortOrder": 20,
       "pos": "FW",
       "number": 9,
       "nationality": "England",
@@ -49986,14 +49998,14 @@
       "id": "epl_coventry_city_10_Ephron_Mason-Clark",
       "number": 10,
       "pos": "FW",
-      "sortOrder": 22,
+      "sortOrder": 18,
       "teamId": "epl_coventry_city",
       "name": "Ephron Mason-Clark"
     },
     {
       "pos": "FW",
       "teamId": "epl_coventry_city",
-      "sortOrder": 24,
+      "sortOrder": 21,
       "name": "Haji Wright",
       "id": "epl_coventry_city_11_Haji_Wright",
       "nationality": "USA",
@@ -50019,7 +50031,7 @@
       "id": "epl_coventry_city_15_Liam_Kitching",
       "number": 15,
       "pos": "DF",
-      "sortOrder": 4,
+      "sortOrder": 3,
       "teamId": "epl_coventry_city",
       "name": "Liam Kitching"
     },
@@ -50027,7 +50039,7 @@
       "pos": "DF",
       "teamId": "epl_coventry_city",
       "name": "Joel Latibeaudiere",
-      "sortOrder": 5,
+      "sortOrder": 4,
       "id": "epl_coventry_city_22_Joel_Latibeaudiere",
       "nationality": "Jamaica",
       "number": 22,
@@ -50038,7 +50050,7 @@
       "role": "CB",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "pos": "DF",
-      "sortOrder": 6,
+      "sortOrder": 5,
       "teamId": "epl_coventry_city",
       "name": "Luke Woolfenden",
       "nationality": "England",
@@ -50051,7 +50063,7 @@
       "number": 33,
       "id": "epl_coventry_city_33_Miguel_Brau",
       "nationality": "Spain",
-      "sortOrder": 11,
+      "sortOrder": 10,
       "name": "Miguel Brau",
       "teamId": "epl_coventry_city",
       "pos": "DF"
@@ -50060,7 +50072,7 @@
       "number": 21,
       "nationality": "England",
       "id": "epl_coventry_city_21_Jake_Bidwell",
-      "sortOrder": 10,
+      "sortOrder": 9,
       "teamId": "epl_coventry_city",
       "name": "Jake Bidwell",
       "pos": "DF",
@@ -50075,13 +50087,13 @@
       "number": 27,
       "pos": "DF",
       "teamId": "epl_coventry_city",
-      "sortOrder": 8,
+      "sortOrder": 7,
       "name": "Milan Van Ewijk"
     },
     {
       "name": "Kaine Kesler",
       "teamId": "epl_coventry_city",
-      "sortOrder": 7,
+      "sortOrder": 6,
       "pos": "DF",
       "number": 20,
       "id": "epl_coventry_city_20_Kaine_Kesler",
@@ -50092,7 +50104,7 @@
     {
       "name": "Victor Torp",
       "teamId": "epl_coventry_city",
-      "sortOrder": 16,
+      "sortOrder": 14,
       "pos": "MF",
       "number": 29,
       "id": "epl_coventry_city_29_Victor_Torp",
@@ -50106,7 +50118,7 @@
       "number": 28,
       "pos": "MF",
       "name": "Josh Eccles",
-      "sortOrder": 15,
+      "sortOrder": 13,
       "teamId": "epl_coventry_city",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "role": "CM"
@@ -50117,7 +50129,7 @@
       "id": "epl_coventry_city_16_Frank_Onyeka",
       "teamId": "epl_coventry_city",
       "name": "Frank Onyeka",
-      "sortOrder": 14,
+      "sortOrder": 12,
       "pos": "MF",
       "flag": "🇳🇬",
       "role": "CM"
@@ -50127,7 +50139,7 @@
       "flag": "🇸🇷",
       "pos": "FW",
       "name": "Jahnoah Markelo",
-      "sortOrder": 21,
+      "sortOrder": 17,
       "teamId": "epl_coventry_city",
       "id": "epl_coventry_city_24_Jahnoah_Markelo",
       "nationality": "Suriname",
@@ -50136,7 +50148,7 @@
     {
       "role": "CF",
       "flag": "🇬🇭",
-      "sortOrder": 25,
+      "sortOrder": 22,
       "teamId": "epl_coventry_city",
       "name": "Brandon Thomas-Asante",
       "pos": "FW",
@@ -50147,7 +50159,7 @@
     {
       "role": "GK",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-      "sortOrder": 1,
+      "sortOrder": 0,
       "teamId": "epl_hull_city",
       "name": "Dillon Phillips",
       "pos": "GK",
@@ -50161,7 +50173,7 @@
       "nationality": "Nigeria",
       "teamId": "epl_hull_city",
       "name": "Semi Ajayi",
-      "sortOrder": 3,
+      "sortOrder": 4,
       "pos": "DF",
       "flag": "🇳🇬",
       "role": "CB"
@@ -50170,7 +50182,7 @@
       "role": "CB",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "teamId": "epl_hull_city",
-      "sortOrder": 2,
+      "sortOrder": 3,
       "name": "Charlie Hughes",
       "pos": "DF",
       "number": 4,
@@ -50215,7 +50227,7 @@
       "nationality": "Ireland",
       "id": "epl_hull_city_15_John_Egan",
       "name": "John Egan",
-      "sortOrder": 4,
+      "sortOrder": 5,
       "teamId": "epl_hull_city",
       "pos": "DF",
       "flag": "🇮🇪",
@@ -50251,11 +50263,11 @@
       "id": "epl_hull_city_25_Matt_Crooks",
       "teamId": "epl_hull_city",
       "name": "Matt Crooks",
-      "sortOrder": 17,
+      "sortOrder": 14,
       "pos": "MF"
     },
     {
-      "sortOrder": 13,
+      "sortOrder": 11,
       "teamId": "epl_hull_city",
       "name": "Regan Slater",
       "pos": "MF",
@@ -50272,7 +50284,7 @@
       "id": "epl_hull_city_24_Darko_Gyabi",
       "number": 24,
       "pos": "MF",
-      "sortOrder": 16,
+      "sortOrder": 13,
       "name": "Darko Gyabi",
       "teamId": "epl_hull_city"
     },
@@ -50282,7 +50294,7 @@
       "number": 26,
       "id": "epl_hull_city_26_Kieran_Dowell",
       "nationality": "England",
-      "sortOrder": 18,
+      "sortOrder": 15,
       "teamId": "epl_hull_city",
       "name": "Kieran Dowell",
       "pos": "MF"
@@ -50295,7 +50307,7 @@
       "nationality": "Belgium",
       "teamId": "epl_hull_city",
       "name": "Eliot Matazo",
-      "sortOrder": 15,
+      "sortOrder": 12,
       "pos": "MF"
     },
     {
@@ -50303,7 +50315,7 @@
       "id": "epl_hull_city_9_Oliver_McBurnie",
       "nationality": "Scotland",
       "name": "Oliver McBurnie",
-      "sortOrder": 24,
+      "sortOrder": 19,
       "teamId": "epl_hull_city",
       "pos": "FW",
       "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
@@ -50313,7 +50325,7 @@
       "role": "LW",
       "flag": "🇨🇦",
       "pos": "FW",
-      "sortOrder": 22,
+      "sortOrder": 18,
       "name": "Liam Millar",
       "teamId": "epl_hull_city",
       "nationality": "Canada",
@@ -50327,7 +50339,7 @@
       "pos": "FW",
       "name": "David Akintola",
       "teamId": "epl_hull_city",
-      "sortOrder": 20,
+      "sortOrder": 17,
       "flag": "🇳🇬",
       "role": "RW"
     },
@@ -50338,7 +50350,7 @@
       "pos": "FW",
       "teamId": "epl_hull_city",
       "name": "Mohamed Belloumi",
-      "sortOrder": 19,
+      "sortOrder": 16,
       "flag": "🇩🇿",
       "role": "RW"
     },
@@ -50379,7 +50391,7 @@
       "pos": "DF",
       "teamId": "epl_ipswich_town",
       "name": "Leif Davis",
-      "sortOrder": 10,
+      "sortOrder": 9,
       "id": "epl_ipswich_town_3_Leif_Davis",
       "nationality": "England",
       "number": 3,
@@ -50400,7 +50412,7 @@
     {
       "pos": "FW",
       "name": "Wes Burns",
-      "sortOrder": 18,
+      "sortOrder": 15,
       "teamId": "epl_ipswich_town",
       "nationality": "Wales",
       "id": "epl_ipswich_town_7_Wes_Burns",
@@ -50412,7 +50424,7 @@
       "role": "RB",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "name": "Ben Johnson",
-      "sortOrder": 8,
+      "sortOrder": 7,
       "teamId": "epl_ipswich_town",
       "pos": "DF",
       "number": 18,
@@ -50421,7 +50433,7 @@
     },
     {
       "pos": "DF",
-      "sortOrder": 9,
+      "sortOrder": 8,
       "name": "Darnell Furlong",
       "teamId": "epl_ipswich_town",
       "nationality": "England",
@@ -50445,7 +50457,7 @@
       "pos": "DF",
       "teamId": "epl_ipswich_town",
       "name": "Dara O'Shea",
-      "sortOrder": 6,
+      "sortOrder": 5,
       "nationality": "Ireland",
       "id": "epl_ipswich_town_26_Dara_O'Shea",
       "number": 26,
@@ -50460,7 +50472,7 @@
       "nationality": "Netherlands",
       "name": "Azor Matusiwa",
       "teamId": "epl_ipswich_town",
-      "sortOrder": 12,
+      "sortOrder": 10,
       "pos": "MF"
     },
     {
@@ -50470,13 +50482,13 @@
       "nationality": "Ireland",
       "id": "epl_ipswich_town_14_Jack_Taylor",
       "teamId": "epl_ipswich_town",
-      "sortOrder": 15,
+      "sortOrder": 11,
       "name": "Jack Taylor",
       "pos": "MF"
     },
     {
       "name": "Kasey McAteer",
-      "sortOrder": 20,
+      "sortOrder": 17,
       "teamId": "epl_ipswich_town",
       "pos": "FW",
       "number": 20,
@@ -50494,7 +50506,7 @@
       "pos": "MF",
       "name": "Marcelino Nunez",
       "teamId": "epl_ipswich_town",
-      "sortOrder": 16
+      "sortOrder": 12
     },
     {
       "flag": "🇦🇱",
@@ -50504,7 +50516,7 @@
       "number": 33,
       "pos": "MF",
       "teamId": "epl_ipswich_town",
-      "sortOrder": 17,
+      "sortOrder": 14,
       "name": "Anis Mehmeti"
     },
     {
@@ -50514,13 +50526,13 @@
       "nationality": "Norway",
       "id": "epl_ipswich_town_8_Sindre_Walle_Egeli",
       "teamId": "epl_ipswich_town",
-      "sortOrder": 19,
+      "sortOrder": 16,
       "name": "Sindre Walle Egeli",
       "pos": "FW"
     },
     {
       "teamId": "epl_ipswich_town",
-      "sortOrder": 23,
+      "sortOrder": 21,
       "name": "George Hirst",
       "pos": "FW",
       "number": 9,
@@ -50531,7 +50543,7 @@
     },
     {
       "pos": "FW",
-      "sortOrder": 21,
+      "sortOrder": 19,
       "teamId": "epl_ipswich_town",
       "name": "Jaden Philogene",
       "id": "epl_ipswich_town_11_Jaden_Philogene",
@@ -50547,7 +50559,7 @@
       "id": "epl_ipswich_town_29_Chuba_Akpom",
       "nationality": "England",
       "name": "Chuba Akpom",
-      "sortOrder": 24,
+      "sortOrder": 23,
       "teamId": "epl_ipswich_town",
       "pos": "FW"
     },
@@ -50557,7 +50569,7 @@
       "number": 47,
       "pos": "FW",
       "teamId": "epl_ipswich_town",
-      "sortOrder": 22,
+      "sortOrder": 20,
       "name": "Jack Clarke",
       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
       "role": "LW"
@@ -50792,6 +50804,483 @@
       "nationality": "Cameroon",
       "id": "laliga_deportivo_a_coruna_31_Bil_Nsongo",
       "number": 31
+    },
+    {
+      "id": "epl_arsenal_17_Christos_Tzolis",
+      "teamId": "epl_arsenal",
+      "number": 17,
+      "name": "Christos Tzolis",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇬🇷",
+      "nationality": "Greece",
+      "sortOrder": 24,
+      "displayLastName": "Tzolis",
+      "instagram": "https://www.instagram.com/christostzolis/"
+    },
+    {
+      "id": "epl_aston_villa_17_Alejandro_Garnacho",
+      "teamId": "epl_aston_villa",
+      "number": 17,
+      "name": "Alejandro Garnacho",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇦🇷",
+      "nationality": "Argentina",
+      "sortOrder": 23,
+      "displayLastName": "Garnacho",
+      "instagram": "https://www.instagram.com/garnacho7/"
+    },
+    {
+      "id": "epl_aston_villa_35_Joao_Gomes",
+      "teamId": "epl_aston_villa",
+      "number": 35,
+      "name": "Joao Gomes",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇧🇷",
+      "nationality": "Brazil",
+      "sortOrder": 16,
+      "displayLastName": "Gomes",
+      "instagram": "https://www.instagram.com/joaogomes.01/"
+    },
+    {
+      "id": "epl_aston_villa_44_Johan_Manzambi",
+      "teamId": "epl_aston_villa",
+      "number": 44,
+      "name": "Johan Manzambi",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇨🇭",
+      "nationality": "Switzerland",
+      "sortOrder": 17,
+      "displayLastName": "Manzambi",
+      "instagram": "https://www.instagram.com/_jkmanzambi/"
+    },
+    {
+      "id": "epl_aston_villa_46_Joe_Gauci",
+      "teamId": "epl_aston_villa",
+      "number": 46,
+      "name": "Joe Gauci",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🇦🇺",
+      "nationality": "Australia",
+      "sortOrder": 2,
+      "displayLastName": "Gauci",
+      "instagram": "https://www.instagram.com/joe_gauci/"
+    },
+    {
+      "id": "epl_aston_villa_48_Modou_Cisse",
+      "teamId": "epl_aston_villa",
+      "number": 48,
+      "name": "Modou Cisse",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇸🇳",
+      "nationality": "Senegal",
+      "sortOrder": 7,
+      "displayLastName": "Cisse",
+      "instagram": "https://www.instagram.com/papa_ciisse/"
+    },
+    {
+      "id": "epl_bournemouth_2_Julian_Araujo",
+      "teamId": "epl_bournemouth",
+      "number": 2,
+      "name": "Julian Araujo",
+      "pos": "DF",
+      "role": "RB",
+      "flag": "🇲🇽",
+      "nationality": "Mexico",
+      "sortOrder": 1,
+      "displayLastName": "Araujo"
+    },
+    {
+      "id": "epl_bournemouth_30_Alvaro_Rodriguez",
+      "teamId": "epl_bournemouth",
+      "number": 30,
+      "name": "Alvaro Rodriguez",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇺🇾",
+      "nationality": "Uruguay",
+      "sortOrder": 21
+    },
+    {
+      "id": "epl_bournemouth_40_Will_Dennis",
+      "teamId": "epl_bournemouth",
+      "number": 40,
+      "name": "Will Dennis",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 23
+    },
+    {
+      "id": "epl_bournemouth_47_Ben_Winterburn",
+      "teamId": "epl_bournemouth",
+      "number": 47,
+      "name": "Ben Winterburn",
+      "pos": "MF",
+      "role": "DM",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 26
+    },
+    {
+      "id": "epl_brentford_13_Callum_Wilson",
+      "teamId": "epl_brentford",
+      "number": 13,
+      "name": "Callum Wilson",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 31
+    },
+    {
+      "id": "epl_brentford_19_Jaidon_Anthony",
+      "teamId": "epl_brentford",
+      "number": 19,
+      "name": "Jaidon Anthony",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 28
+    },
+    {
+      "id": "epl_brentford_21_Jayden_Meghoma",
+      "teamId": "epl_brentford",
+      "number": 21,
+      "name": "Jayden Meghoma",
+      "pos": "DF",
+      "role": "LB",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 15
+    },
+    {
+      "id": "epl_brentford_36_Kim_Ji-Soo",
+      "teamId": "epl_brentford",
+      "number": 36,
+      "name": "Kim Ji-Soo",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇰🇷",
+      "nationality": "South Korea",
+      "sortOrder": 8
+    },
+    {
+      "id": "epl_brentford_39_Gustavo_Nunes",
+      "teamId": "epl_brentford",
+      "number": 39,
+      "name": "Gustavo Nunes",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇧🇷",
+      "nationality": "Brazil",
+      "sortOrder": 29
+    },
+    {
+      "id": "epl_brentford_43_Benjamin_Arthur",
+      "teamId": "epl_brentford",
+      "number": 43,
+      "name": "Benjamin Arthur",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 9
+    },
+    {
+      "id": "epl_brentford_44_Jannik_Schuster",
+      "teamId": "epl_brentford",
+      "number": 44,
+      "name": "Jannik Schuster",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇦🇹",
+      "nationality": "Austria",
+      "sortOrder": 10
+    },
+    {
+      "id": "epl_brentford_48_Benjamin_Fredrick",
+      "teamId": "epl_brentford",
+      "number": 48,
+      "name": "Benjamin Fredrick",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇳🇬",
+      "nationality": "Nigeria",
+      "sortOrder": 11
+    },
+    {
+      "id": "epl_brighton_2_Costinha",
+      "teamId": "epl_brighton",
+      "number": 2,
+      "name": "Costinha",
+      "pos": "DF",
+      "role": "RB",
+      "flag": "🇵🇹",
+      "nationality": "Portugal",
+      "sortOrder": 8
+    },
+    {
+      "id": "epl_brighton_14_Tom_Watson",
+      "teamId": "epl_brighton",
+      "number": 14,
+      "name": "Tom Watson",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 21
+    },
+    {
+      "id": "epl_brighton_16_Eiran_Cashin",
+      "teamId": "epl_brighton",
+      "number": 16,
+      "name": "Eiran Cashin",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇮🇪",
+      "nationality": "Ireland",
+      "sortOrder": 6
+    },
+    {
+      "id": "epl_brighton_28_Evan_Ferguson",
+      "teamId": "epl_brighton",
+      "number": 28,
+      "name": "Evan Ferguson",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇮🇪",
+      "nationality": "Ireland",
+      "sortOrder": 27
+    },
+    {
+      "id": "epl_brighton_36_Malick_Yalcouye",
+      "teamId": "epl_brighton",
+      "number": 36,
+      "name": "Malick Yalcouye",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇨🇮",
+      "nationality": "Ivory Coast",
+      "sortOrder": 15
+    },
+    {
+      "id": "epl_brighton_39_Carl_Rushworth",
+      "teamId": "epl_brighton",
+      "number": 39,
+      "name": "Carl Rushworth",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 3
+    },
+    {
+      "id": "epl_brighton_40_Facundo_Buonanotte",
+      "teamId": "epl_brighton",
+      "number": 40,
+      "name": "Facundo Buonanotte",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇦🇷",
+      "nationality": "Argentina",
+      "sortOrder": 18
+    },
+    {
+      "id": "epl_chelsea_15_Nicolas_Jackson",
+      "teamId": "epl_chelsea",
+      "number": 15,
+      "name": "Nicolas Jackson",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇸🇳",
+      "nationality": "Senegal",
+      "sortOrder": 27
+    },
+    {
+      "id": "epl_chelsea_17_Morgan_Rogers",
+      "teamId": "epl_chelsea",
+      "number": 17,
+      "name": "Morgan Rogers",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 21
+    },
+    {
+      "id": "epl_chelsea_30_Aaron_Anselmino",
+      "teamId": "epl_chelsea",
+      "number": 30,
+      "name": "Aaron Anselmino",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇦🇷",
+      "nationality": "Argentina",
+      "sortOrder": 11
+    },
+    {
+      "id": "epl_chelsea_39_Mike_Penders",
+      "teamId": "epl_chelsea",
+      "number": 39,
+      "name": "Mike Penders",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🇧🇪",
+      "nationality": "Belgium",
+      "sortOrder": 3
+    },
+    {
+      "id": "epl_crystal_palace_21_Romain_Esse",
+      "teamId": "epl_crystal_palace",
+      "number": 21,
+      "name": "Romain Esse",
+      "pos": "FW",
+      "role": "RAM",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 20
+    },
+    {
+      "id": "epl_crystal_palace_30_Oscar_Mingueza",
+      "teamId": "epl_crystal_palace",
+      "number": 30,
+      "name": "Oscar Mingueza",
+      "pos": "DF",
+      "role": "LAM",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 24
+    },
+    {
+      "id": "epl_crystal_palace_49_Jesurun_Rak-Sakyi",
+      "teamId": "epl_crystal_palace",
+      "number": 49,
+      "name": "Jesurun Rak-Sakyi",
+      "pos": "FW",
+      "role": "RAM",
+      "flag": "🇬🇭",
+      "nationality": "Ghana",
+      "sortOrder": 22
+    },
+    {
+      "id": "epl_coventry_city_17_Raphael",
+      "teamId": "epl_coventry_city",
+      "number": 17,
+      "name": "Raphael",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇦🇺",
+      "nationality": "Australia",
+      "sortOrder": 19
+    },
+    {
+      "id": "epl_fulham_38_Luke_Harris",
+      "teamId": "epl_fulham",
+      "number": 38,
+      "name": "Luke Harris",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+      "nationality": "Wales",
+      "sortOrder": 16
+    },
+    {
+      "id": "epl_hull_city_32_Thimothee_Lo-Tutala",
+      "teamId": "epl_hull_city",
+      "number": 32,
+      "name": "Thimothee Lo-Tutala",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🇫🇷",
+      "nationality": "France",
+      "sortOrder": 1
+    },
+    {
+      "id": "epl_hull_city_34_Harvey_Cartwright",
+      "teamId": "epl_hull_city",
+      "number": 34,
+      "name": "Harvey Cartwright",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 2
+    },
+    {
+      "id": "epl_hull_city_39_Enis_Destan",
+      "teamId": "epl_hull_city",
+      "number": 39,
+      "name": "Enis Destan",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇹🇷",
+      "nationality": "Turkey",
+      "sortOrder": 20
+    },
+    {
+      "id": "epl_ipswich_town_2_Harry_Clarke",
+      "teamId": "epl_ipswich_town",
+      "number": 2,
+      "name": "Harry Clarke",
+      "pos": "DF",
+      "role": "RB",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 6
+    },
+    {
+      "id": "epl_ipswich_town_16_Ali_Al-Hamadi",
+      "teamId": "epl_ipswich_town",
+      "number": 16,
+      "name": "Ali Al-Hamadi",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇮🇶",
+      "nationality": "Iraq",
+      "sortOrder": 22
+    },
+    {
+      "id": "epl_ipswich_town_21_Chiedozie_Ogbene",
+      "teamId": "epl_ipswich_town",
+      "number": 21,
+      "name": "Chiedozie Ogbene",
+      "pos": "FW",
+      "role": "RW",
+      "flag": "🇮🇪",
+      "nationality": "Ireland",
+      "sortOrder": 18
+    },
+    {
+      "id": "epl_ipswich_town_23_Sammie_Szmodics",
+      "teamId": "epl_ipswich_town",
+      "number": 23,
+      "name": "Sammie Szmodics",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇮🇪",
+      "nationality": "Ireland",
+      "sortOrder": 13
+    },
+    {
+      "id": "epl_arsenal_35_Tommy_Setford",
+      "teamId": "epl_arsenal",
+      "number": 35,
+      "name": "Tommy Setford",
+      "pos": "GK",
+      "role": "GK",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "nationality": "England",
+      "sortOrder": 3,
+      "displayLastName": "Setford",
+      "instagram": "https://www.instagram.com/tommysetford/"
     }
   ],
   "matches": [
@@ -66589,406 +67078,6 @@
       "leagueId": "epl",
       "loanReturn": [
         {
-          "id": "epl_loanReturn_ethan_nwaneri_0",
-          "player": "Ethan Nwaneri",
-          "club": "Arsenal",
-          "otherClub": "Marseille",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_fabio_vieira_1",
-          "player": "Fabio Vieira",
-          "club": "Arsenal",
-          "otherClub": "Hamburg",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_reiss_nelson_2",
-          "player": "Reiss Nelson",
-          "club": "Arsenal",
-          "otherClub": "Brentford",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_will_dennis_0",
-          "player": "Will Dennis",
-          "club": "Bournemouth",
-          "otherClub": "Leyton Orient",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_julian_araujo_1",
-          "player": "Julian Araujo",
-          "club": "Bournemouth",
-          "otherClub": "Celtic",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_max_aarons_2",
-          "player": "Max Aarons",
-          "club": "Bournemouth",
-          "otherClub": "Rangers",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_ben_winterburn_3",
-          "player": "Ben Winterburn",
-          "club": "Bournemouth",
-          "otherClub": "Barnet",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_daniel_jebbison_4",
-          "player": "Daniel Jebbison",
-          "club": "Bournemouth",
-          "otherClub": "Preston",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_matthew_cox_0",
-          "player": "Matthew Cox",
-          "club": "Brentford",
-          "otherClub": "Shrewsbury Town",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_kim_ji_soo_1",
-          "player": "Kim Ji-Soo",
-          "club": "Brentford",
-          "otherClub": "Kaiserslautern",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_benjamin_arthur_2",
-          "player": "Benjamin Arthur",
-          "club": "Brentford",
-          "otherClub": "Celtic",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_jayden_meghoma_3",
-          "player": "Jayden Meghoma",
-          "club": "Brentford",
-          "otherClub": "Rangers",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_yunus_konak_4",
-          "player": "Yunus Konak",
-          "club": "Brentford",
-          "otherClub": "Oxford United",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_gustavo_nunes_5",
-          "player": "Gustavo Nunes",
-          "club": "Brentford",
-          "otherClub": "Swansea City",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_carl_rushworth_0",
-          "player": "Carl Rushworth",
-          "club": "Brighton",
-          "otherClub": "Coventry",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_eiran_cashin_3",
-          "player": "Eiran Cashin",
-          "club": "Brighton",
-          "otherClub": "Blackburn Rovers",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_malick_yalcouye_4",
-          "player": "Malick Yalcouye",
-          "club": "Brighton",
-          "otherClub": "Swansea City",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_facundo_buonanotte_5",
-          "player": "Facundo Buonanotte",
-          "club": "Brighton",
-          "otherClub": "Leeds United",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_amario_cozier_duberry_6",
-          "player": "Amario Cozier-Duberry",
-          "club": "Brighton",
-          "otherClub": "Bolton",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_tom_watson_7",
-          "player": "Tom Watson",
-          "club": "Brighton",
-          "otherClub": "Millwall",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_ibrahim_osman_8",
-          "player": "Ibrahim Osman",
-          "club": "Brighton",
-          "otherClub": "Birmingham",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_evan_ferguson_9",
-          "player": "Evan Ferguson",
-          "club": "Brighton",
-          "otherClub": "As Roma",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_joe_gauci_1",
-          "player": "Joe Gauci",
-          "club": "Aston Villa",
-          "otherClub": "Port Vale",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_kosta_nedeljkovic_2",
-          "player": "Kosta Nedeljkovic",
-          "club": "Aston Villa",
-          "otherClub": "RB Leipzig",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_evann_guessand_3",
-          "player": "Evann Guessand",
-          "club": "Aston Villa",
-          "otherClub": "Crystal Palace",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_samuel_iling_junior_5",
-          "player": "Samuel Iling-Junior",
-          "club": "Aston Villa",
-          "otherClub": "Pisa",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_mike_penders_0",
-          "player": "Mike Penders",
-          "club": "Chelsea",
-          "otherClub": "Strasbourg",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_axel_disasi_1",
-          "player": "Axel Disasi",
-          "club": "Chelsea",
-          "otherClub": "West Ham",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_aaron_anselmino_2",
-          "player": "Aaron Anselmino",
-          "club": "Chelsea",
-          "otherClub": "Strasbourg",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_nicolas_jackson_3",
-          "player": "Nicolas Jackson",
-          "club": "Chelsea",
-          "otherClub": "Bayern Munich",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_datro_fofana_4",
-          "player": "Datro Fofana",
-          "club": "Chelsea",
-          "otherClub": "Strasbourg",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_kai_andrews_0",
-          "player": "Kai Andrews",
-          "club": "Coventry City",
-          "otherClub": "Hibernian",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_raphael_borges_rodrigues_1",
-          "player": "Raphael Borges Rodrigues",
-          "club": "Coventry City",
-          "otherClub": "Wigan",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_owen_goodman_0",
-          "player": "Owen Goodman",
-          "club": "Crystal Palace",
-          "otherClub": "Barnsley",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_david_ozoh_1",
-          "player": "David Ozoh",
-          "club": "Crystal Palace",
-          "otherClub": "Derby County",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_matheus_franca_2",
-          "player": "Matheus Franca",
-          "club": "Crystal Palace",
-          "otherClub": "Vasco da Gama",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_romain_esse_3",
-          "player": "Romain Esse",
-          "club": "Crystal Palace",
-          "otherClub": "Coventry City",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_jesurun_rak_sakyi_4",
-          "player": "Jesurun Rak-Sakyi",
-          "club": "Crystal Palace",
-          "otherClub": "Stoke City",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_luke_harris_0",
-          "player": "Luke Harris",
-          "club": "Fulham",
-          "otherClub": "Wycombe Wanderers",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_thimothee_lo_tutala_0",
-          "player": "Thimothee Lo-Tutala",
-          "club": "Hull City",
-          "otherClub": "Doncaster Rovers",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_harvey_cartwright_1",
-          "player": "Harvey Cartwright",
-          "club": "Hull City",
-          "otherClub": "Hartlepool United",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_abdulkadir_omur_2",
-          "player": "Abdulkadir Omur",
-          "club": "Hull City",
-          "otherClub": "Antalyaspor",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_abu_kamara_3",
-          "player": "Abu Kamara",
-          "club": "Hull City",
-          "otherClub": "Getafe",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_mason_burstow_4",
-          "player": "Mason Burstow",
-          "club": "Hull City",
-          "otherClub": "Bolton",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_enis_destan_5",
-          "player": "Enis Destan",
-          "club": "Hull City",
-          "otherClub": "KVC Westerlo",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_harry_clarke_0",
-          "player": "Harry Clarke",
-          "club": "Ipswich Town",
-          "otherClub": "Charlton Athletic",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_cameron_humphreys_1",
-          "player": "Cameron Humphreys",
-          "club": "Ipswich Town",
-          "otherClub": "Huddersfield Town",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_sammie_szmodics_2",
-          "player": "Sammie Szmodics",
-          "club": "Ipswich Town",
-          "otherClub": "Derby County",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_chiedozie_ogbene_3",
-          "player": "Chiedozie Ogbene",
-          "club": "Ipswich Town",
-          "otherClub": "Sheffield United",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanReturn_ali_al_hamadi_4",
-          "player": "Ali Al-Hamadi",
-          "club": "Ipswich Town",
-          "otherClub": "Luton Town",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
           "id": "epl_loanReturn_largie_ramazani_1",
           "player": "Largie Ramazani",
           "club": "Leeds",
@@ -67275,189 +67364,406 @@
           "otherClub": "Moreirense",
           "fee": "Loan",
           "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_joe_gauci_1",
+          "player": "Joe Gauci",
+          "club": "Aston Villa",
+          "otherClub": "Port Vale",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_kosta_nedeljkovic_2",
+          "player": "Kosta Nedeljkovic",
+          "club": "Aston Villa",
+          "otherClub": "RB Leipzig",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_evann_guessand_3",
+          "player": "Evann Guessand",
+          "club": "Aston Villa",
+          "otherClub": "Crystal Palace",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_samuel_iling_junior_5",
+          "player": "Samuel Iling-Junior",
+          "club": "Aston Villa",
+          "otherClub": "Pisa",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_will_dennis_0",
+          "player": "Will Dennis",
+          "club": "Bournemouth",
+          "otherClub": "Leyton Orient",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_julian_araujo_1",
+          "player": "Julian Araujo",
+          "club": "Bournemouth",
+          "otherClub": "Celtic",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_max_aarons_2",
+          "player": "Max Aarons",
+          "club": "Bournemouth",
+          "otherClub": "Rangers",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_ben_winterburn_3",
+          "player": "Ben Winterburn",
+          "club": "Bournemouth",
+          "otherClub": "Barnet",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_daniel_jebbison_4",
+          "player": "Daniel Jebbison",
+          "club": "Bournemouth",
+          "otherClub": "Preston",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_matthew_cox_0",
+          "player": "Matthew Cox",
+          "club": "Brentford",
+          "otherClub": "Shrewsbury Town",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_kim_ji_soo_1",
+          "player": "Kim Ji-Soo",
+          "club": "Brentford",
+          "otherClub": "Kaiserslautern",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_benjamin_arthur_2",
+          "player": "Benjamin Arthur",
+          "club": "Brentford",
+          "otherClub": "Celtic",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_jayden_meghoma_3",
+          "player": "Jayden Meghoma",
+          "club": "Brentford",
+          "otherClub": "Rangers",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_yunus_konak_4",
+          "player": "Yunus Konak",
+          "club": "Brentford",
+          "otherClub": "Oxford United",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_gustavo_nunes_5",
+          "player": "Gustavo Nunes",
+          "club": "Brentford",
+          "otherClub": "Swansea City",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_carl_rushworth_0",
+          "player": "Carl Rushworth",
+          "club": "Brighton",
+          "otherClub": "Coventry",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_eiran_cashin_3",
+          "player": "Eiran Cashin",
+          "club": "Brighton",
+          "otherClub": "Blackburn Rovers",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_malick_yalcouye_4",
+          "player": "Malick Yalcouye",
+          "club": "Brighton",
+          "otherClub": "Swansea City",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_facundo_buonanotte_5",
+          "player": "Facundo Buonanotte",
+          "club": "Brighton",
+          "otherClub": "Leeds United",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_amario_cozier_duberry_6",
+          "player": "Amario Cozier-Duberry",
+          "club": "Brighton",
+          "otherClub": "Bolton",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_tom_watson_7",
+          "player": "Tom Watson",
+          "club": "Brighton",
+          "otherClub": "Millwall",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_ibrahim_osman_8",
+          "player": "Ibrahim Osman",
+          "club": "Brighton",
+          "otherClub": "Birmingham",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_evan_ferguson_9",
+          "player": "Evan Ferguson",
+          "club": "Brighton",
+          "otherClub": "As Roma",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_mike_penders_0",
+          "player": "Mike Penders",
+          "club": "Chelsea",
+          "otherClub": "Strasbourg",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_axel_disasi_1",
+          "player": "Axel Disasi",
+          "club": "Chelsea",
+          "otherClub": "West Ham",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_aaron_anselmino_2",
+          "player": "Aaron Anselmino",
+          "club": "Chelsea",
+          "otherClub": "Strasbourg",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_nicolas_jackson_3",
+          "player": "Nicolas Jackson",
+          "club": "Chelsea",
+          "otherClub": "Bayern Munich",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_datro_fofana_4",
+          "player": "Datro Fofana",
+          "club": "Chelsea",
+          "otherClub": "Strasbourg",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_owen_goodman_0",
+          "player": "Owen Goodman",
+          "club": "Crystal Palace",
+          "otherClub": "Barnsley",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_david_ozoh_1",
+          "player": "David Ozoh",
+          "club": "Crystal Palace",
+          "otherClub": "Derby County",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_matheus_franca_2",
+          "player": "Matheus Franca",
+          "club": "Crystal Palace",
+          "otherClub": "Vasco da Gama",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_romain_esse_3",
+          "player": "Romain Esse",
+          "club": "Crystal Palace",
+          "otherClub": "Coventry City",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_jesurun_rak_sakyi_4",
+          "player": "Jesurun Rak-Sakyi",
+          "club": "Crystal Palace",
+          "otherClub": "Stoke City",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_kai_andrews_0",
+          "player": "Kai Andrews",
+          "club": "Coventry City",
+          "otherClub": "Hibernian",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_raphael_borges_rodrigues_1",
+          "player": "Raphael",
+          "club": "Coventry City",
+          "otherClub": "Wigan",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_luke_harris_0",
+          "player": "Luke Harris",
+          "club": "Fulham",
+          "otherClub": "Wycombe Wanderers",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_thimothee_lo_tutala_0",
+          "player": "Thimothee Lo-Tutala",
+          "club": "Hull City",
+          "otherClub": "Doncaster Rovers",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_harvey_cartwright_1",
+          "player": "Harvey Cartwright",
+          "club": "Hull City",
+          "otherClub": "Hartlepool United",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_abdulkadir_omur_2",
+          "player": "Abdulkadir Omur",
+          "club": "Hull City",
+          "otherClub": "Antalyaspor",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_abu_kamara_3",
+          "player": "Abu Kamara",
+          "club": "Hull City",
+          "otherClub": "Getafe",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_mason_burstow_4",
+          "player": "Mason Burstow",
+          "club": "Hull City",
+          "otherClub": "Bolton",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_enis_destan_5",
+          "player": "Enis Destan",
+          "club": "Hull City",
+          "otherClub": "KVC Westerlo",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_harry_clarke_0",
+          "player": "Harry Clarke",
+          "club": "Ipswich Town",
+          "otherClub": "Charlton Athletic",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_cameron_humphreys_1",
+          "player": "Cameron Humphreys",
+          "club": "Ipswich Town",
+          "otherClub": "Huddersfield Town",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_sammie_szmodics_2",
+          "player": "Sammie Szmodics",
+          "club": "Ipswich Town",
+          "otherClub": "Derby County",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_chiedozie_ogbene_3",
+          "player": "Chiedozie Ogbene",
+          "club": "Ipswich Town",
+          "otherClub": "Sheffield United",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_ali_al_hamadi_4",
+          "player": "Ali Al-Hamadi",
+          "club": "Ipswich Town",
+          "otherClub": "Luton Town",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_ethan_nwaneri_0",
+          "player": "Ethan Nwaneri",
+          "club": "Arsenal",
+          "otherClub": "Marseille",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_fabio_vieira_1",
+          "player": "Fabio Vieira",
+          "club": "Arsenal",
+          "otherClub": "Hamburg",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanReturn_reiss_nelson_2",
+          "player": "Reiss Nelson",
+          "club": "Arsenal",
+          "otherClub": "Brentford",
+          "date": "30 June 2026"
         }
       ],
       "in": [
-        {
-          "id": "epl_in_illan_meslier_0",
-          "player": "Illan Meslier",
-          "club": "Arsenal",
-          "otherClub": "Leeds United",
-          "fee": "Free",
-          "date": "9 July 2026"
-        },
-        {
-          "id": "epl_in_tommy_setford_1",
-          "player": "Tommy Setford",
-          "club": "Arsenal",
-          "otherClub": "Arsenal U21",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_alvaro_rodriguez_0",
-          "player": "Alvaro Rodriguez",
-          "club": "Bournemouth",
-          "otherClub": "Elche",
-          "fee": "25M",
-          "date": "14 July 2026"
-        },
-        {
-          "id": "epl_in_callum_wilson_2",
-          "player": "Callum Wilson",
-          "club": "Brentford",
-          "otherClub": "West Ham",
-          "fee": "Free",
-          "date": "9 July 2026"
-        },
-        {
-          "id": "epl_in_jaidon_anthony_1",
-          "player": "Jaidon Anthony",
-          "club": "Brentford",
-          "otherClub": "Burnley",
-          "fee": "17.5M",
-          "date": "7 July 2026"
-        },
-        {
-          "id": "epl_in_jannik_schuster_0",
-          "player": "Jannik Schuster",
-          "club": "Brentford",
-          "otherClub": "RB Salzburg",
-          "fee": "18M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_benjamin_fredrick_3",
-          "player": "Benjamin Fredrick",
-          "club": "Brentford",
-          "otherClub": "Brentford B",
-          "date": "10 July 2026"
-        },
-        {
-          "id": "epl_in_luka_vuskovic_0",
-          "player": "Luka Vuskovic",
-          "club": "Brighton",
-          "otherClub": "Tottenham",
-          "fee": "54M",
-          "date": "14 July 2026"
-        },
-        {
-          "id": "epl_in_michael_svoboda_2",
-          "player": "Michael Svoboda",
-          "club": "Brighton",
-          "otherClub": "Venezia",
-          "fee": "5M",
-          "date": "2 July 2026"
-        },
-        {
-          "id": "epl_in_pascal_struijk_1",
-          "player": "Pascal Struijk",
-          "club": "Brighton",
-          "otherClub": "Leeds United",
-          "fee": "23.2M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_zadok_yohanna_4",
-          "player": "Zadok Yohanna",
-          "club": "Brighton",
-          "otherClub": "AIK Solna",
-          "fee": "28M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_costinha_3",
-          "player": "Costinha",
-          "club": "Brighton",
-          "otherClub": "Olympiacos",
-          "fee": "12.7M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_joao_gomes_0",
-          "player": "Joao Gomes",
-          "club": "Aston Villa",
-          "otherClub": "Wolves",
-          "fee": "40M",
-          "date": "20 July 2026"
-        },
-        {
-          "id": "epl_in_johan_manzambi_1",
-          "player": "Johan Manzambi",
-          "club": "Aston Villa",
-          "otherClub": "Freiburg",
-          "fee": "60M",
-          "date": "17 July 2026"
-        },
-        {
-          "id": "epl_in_modou_keba_cisse_0",
-          "player": "Modou Cisse",
-          "club": "Aston Villa",
-          "otherClub": "LASK",
-          "fee": "5.5M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_morgan_rogers_0",
-          "player": "Morgan Rogers",
-          "club": "Chelsea",
-          "otherClub": "Aston Villa",
-          "fee": "138M",
-          "date": "21 July 2026"
-        },
-        {
-          "id": "epl_in_geovany_quenda_2",
-          "player": "Geovany Quenda",
-          "club": "Chelsea",
-          "otherClub": "Sporting CP",
-          "fee": "50M",
-          "date": "8 July 2026"
-        },
-        {
-          "id": "epl_in_marco_palestra_0",
-          "player": "Marco Palestra",
-          "club": "Chelsea",
-          "otherClub": "Atalanta",
-          "fee": "57M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_emmanuel_emegha_3",
-          "player": "Emmanuel Emegha",
-          "club": "Chelsea",
-          "otherClub": "Strasbourg",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_denner_1",
-          "player": "Denner",
-          "club": "Chelsea",
-          "otherClub": "Corinthians U20",
-          "fee": "10M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_in_aurele_amenda_0",
-          "player": "Aurele Amenda",
-          "club": "Coventry City",
-          "otherClub": "Eintracht Frankfurt",
-          "fee": "18M",
-          "date": "16 July 2026"
-        },
-        {
-          "id": "epl_in_loum_tchaouna_0",
-          "player": "Loum Tchaouna",
-          "club": "Coventry City",
-          "otherClub": "Burnley",
-          "date": "11 July 2026"
-        },
-        {
-          "id": "epl_in_oscar_mingueza_0",
-          "player": "Oscar Mingueza",
-          "club": "Crystal Palace",
-          "otherClub": "Celta Vigo",
-          "fee": "Free",
-          "date": "9 July 2026"
-        },
         {
           "id": "epl_in_hayden_hackney_0",
           "player": "Hayden Hackney",
@@ -67465,61 +67771,6 @@
           "otherClub": "Middlesbrough",
           "fee": "19.3M",
           "date": "2 July 2026"
-        },
-        {
-          "id": "epl_in_matt_targett_0",
-          "player": "Matt Targett",
-          "club": "Hull City",
-          "otherClub": "Newcastle",
-          "fee": "Free",
-          "date": "23 July 2026"
-        },
-        {
-          "id": "epl_in_oscar_zambrano_1",
-          "player": "Oscar Zambrano",
-          "club": "Hull City",
-          "otherClub": "NK Maribor",
-          "date": "21 July 2026"
-        },
-        {
-          "id": "epl_in_jack_butland_0",
-          "player": "Jack Butland",
-          "club": "Hull City",
-          "otherClub": "Rangers",
-          "fee": "3.5M",
-          "date": "2 July 2026"
-        },
-        {
-          "id": "epl_in_issa_diop_1",
-          "player": "Issa Diop",
-          "club": "Ipswich Town",
-          "otherClub": "Fulham",
-          "fee": "10M",
-          "date": "22 July 2026"
-        },
-        {
-          "id": "epl_in_abdul_fatawu_1",
-          "player": "Abdul Fatawu",
-          "club": "Ipswich Town",
-          "otherClub": "Leicester",
-          "fee": "23.4M",
-          "date": "21 July 2026"
-        },
-        {
-          "id": "epl_in_kayne_van_oevelen_2",
-          "player": "Kayne Van Oevelen",
-          "club": "Ipswich Town",
-          "otherClub": "Volendam",
-          "fee": "4M",
-          "date": "21 July 2026"
-        },
-        {
-          "id": "epl_in_emersonn_0",
-          "player": "Emersonn",
-          "club": "Ipswich Town",
-          "otherClub": "Toulouse",
-          "fee": "28M",
-          "date": "8 July 2026"
         },
         {
           "id": "epl_in_tarik_muharemovic_0",
@@ -67744,22 +67995,306 @@
           "otherClub": "Lille",
           "fee": "Free",
           "date": "15 July 2026"
+        },
+        {
+          "id": "epl_in_alejandro_garnacho_0",
+          "player": "Alejandro Garnacho",
+          "club": "Aston Villa",
+          "otherClub": "Chelsea",
+          "fee": "Loan",
+          "date": "23 July 2026"
+        },
+        {
+          "id": "epl_in_joao_gomes_0",
+          "player": "Joao Gomes",
+          "club": "Aston Villa",
+          "otherClub": "Wolves",
+          "fee": "40M",
+          "date": "20 July 2026"
+        },
+        {
+          "id": "epl_in_johan_manzambi_1",
+          "player": "Johan Manzambi",
+          "club": "Aston Villa",
+          "otherClub": "Freiburg",
+          "fee": "60M",
+          "date": "17 July 2026"
+        },
+        {
+          "id": "epl_in_modou_keba_cisse_0",
+          "player": "Modou Cisse",
+          "club": "Aston Villa",
+          "otherClub": "LASK",
+          "fee": "5.5M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_alvaro_rodriguez_0",
+          "player": "Alvaro Rodriguez",
+          "club": "Bournemouth",
+          "otherClub": "Elche",
+          "fee": "25M",
+          "date": "14 July 2026"
+        },
+        {
+          "id": "epl_in_callum_wilson_2",
+          "player": "Callum Wilson",
+          "club": "Brentford",
+          "otherClub": "West Ham",
+          "fee": "Free",
+          "date": "9 July 2026"
+        },
+        {
+          "id": "epl_in_jaidon_anthony_1",
+          "player": "Jaidon Anthony",
+          "club": "Brentford",
+          "otherClub": "Burnley",
+          "fee": "17.5M",
+          "date": "7 July 2026"
+        },
+        {
+          "id": "epl_in_jannik_schuster_0",
+          "player": "Jannik Schuster",
+          "club": "Brentford",
+          "otherClub": "RB Salzburg",
+          "fee": "18M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_benjamin_fredrick_3",
+          "player": "Benjamin Fredrick",
+          "club": "Brentford",
+          "otherClub": "Brentford B",
+          "date": "10 July 2026"
+        },
+        {
+          "id": "epl_in_luka_vuskovic_0",
+          "player": "Luka Vuskovic",
+          "club": "Brighton",
+          "otherClub": "Tottenham",
+          "fee": "54M",
+          "date": "14 July 2026"
+        },
+        {
+          "id": "epl_in_michael_svoboda_2",
+          "player": "Michael Svoboda",
+          "club": "Brighton",
+          "otherClub": "Venezia",
+          "fee": "5M",
+          "date": "2 July 2026"
+        },
+        {
+          "id": "epl_in_pascal_struijk_1",
+          "player": "Pascal Struijk",
+          "club": "Brighton",
+          "otherClub": "Leeds United",
+          "fee": "23.2M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_zadok_yohanna_4",
+          "player": "Zadok Yohanna",
+          "club": "Brighton",
+          "otherClub": "AIK Solna",
+          "fee": "28M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_costinha_3",
+          "player": "Costinha",
+          "club": "Brighton",
+          "otherClub": "Olympiacos",
+          "fee": "12.7M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_morgan_rogers_0",
+          "player": "Morgan Rogers",
+          "club": "Chelsea",
+          "otherClub": "Aston Villa",
+          "fee": "138M",
+          "date": "21 July 2026"
+        },
+        {
+          "id": "epl_in_geovany_quenda_2",
+          "player": "Geovany Quenda",
+          "club": "Chelsea",
+          "otherClub": "Sporting CP",
+          "fee": "50M",
+          "date": "8 July 2026"
+        },
+        {
+          "id": "epl_in_marco_palestra_0",
+          "player": "Marco Palestra",
+          "club": "Chelsea",
+          "otherClub": "Atalanta",
+          "fee": "57M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_emmanuel_emegha_3",
+          "player": "Emmanuel Emegha",
+          "club": "Chelsea",
+          "otherClub": "Strasbourg",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_denner_1",
+          "player": "Denner",
+          "club": "Chelsea",
+          "otherClub": "Corinthians U20",
+          "fee": "10M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_in_oscar_mingueza_0",
+          "player": "Oscar Mingueza",
+          "club": "Crystal Palace",
+          "otherClub": "Celta Vigo",
+          "fee": "Free",
+          "date": "9 July 2026"
+        },
+        {
+          "id": "epl_in_aurele_amenda_0",
+          "player": "Aurele Amenda",
+          "club": "Coventry City",
+          "otherClub": "Eintracht Frankfurt",
+          "fee": "18M",
+          "date": "16 July 2026"
+        },
+        {
+          "id": "epl_in_loum_tchaouna_0",
+          "player": "Loum Tchaouna",
+          "club": "Coventry City",
+          "otherClub": "Burnley",
+          "date": "11 July 2026"
+        },
+        {
+          "id": "epl_in_matt_targett_0",
+          "player": "Matt Targett",
+          "club": "Hull City",
+          "otherClub": "Newcastle",
+          "fee": "Free",
+          "date": "23 July 2026"
+        },
+        {
+          "id": "epl_in_oscar_zambrano_1",
+          "player": "Oscar Zambrano",
+          "club": "Hull City",
+          "otherClub": "NK Maribor",
+          "date": "21 July 2026"
+        },
+        {
+          "id": "epl_in_jack_butland_0",
+          "player": "Jack Butland",
+          "club": "Hull City",
+          "otherClub": "Rangers",
+          "fee": "3.5M",
+          "date": "2 July 2026"
+        },
+        {
+          "id": "epl_in_issa_diop_1",
+          "player": "Issa Diop",
+          "club": "Ipswich Town",
+          "otherClub": "Fulham",
+          "fee": "10M",
+          "date": "22 July 2026"
+        },
+        {
+          "id": "epl_in_abdul_fatawu_1",
+          "player": "Abdul Fatawu",
+          "club": "Ipswich Town",
+          "otherClub": "Leicester",
+          "fee": "23.4M",
+          "date": "21 July 2026"
+        },
+        {
+          "id": "epl_in_kayne_van_oevelen_2",
+          "player": "Kayne Van Oevelen",
+          "club": "Ipswich Town",
+          "otherClub": "Volendam",
+          "fee": "4M",
+          "date": "21 July 2026"
+        },
+        {
+          "id": "epl_in_emersonn_0",
+          "player": "Emersonn",
+          "club": "Ipswich Town",
+          "otherClub": "Toulouse",
+          "fee": "28M",
+          "date": "8 July 2026"
+        },
+        {
+          "id": "epl_in_christos_tzolis_0",
+          "player": "Christos Tzolis",
+          "club": "Arsenal",
+          "otherClub": "Club Brugge",
+          "fee": "40M",
+          "date": "23 July 2026"
+        },
+        {
+          "id": "epl_in_illan_meslier_0",
+          "player": "Illan Meslier",
+          "club": "Arsenal",
+          "otherClub": "Leeds United",
+          "fee": "Free",
+          "date": "9 July 2026"
         }
       ],
       "loanRecall": [
         {
-          "id": "epl_loanRecall_christos_mandas_0",
-          "player": "Christos Mandas",
-          "club": "Bournemouth",
-          "otherClub": "Lazio",
+          "id": "epl_loanRecall_jack_grealish_0",
+          "player": "Jack Grealish",
+          "club": "Everton",
+          "otherClub": "Manchester City",
           "fee": "Loan",
           "date": "30 June 2026"
         },
         {
-          "id": "epl_loanRecall_reiss_nelson_0",
-          "player": "Reiss Nelson",
-          "club": "Brentford",
-          "otherClub": "Arsenal",
+          "id": "epl_loanRecall_facundo_buonanotte_0",
+          "player": "Facundo Buonanotte",
+          "club": "Leeds",
+          "otherClub": "Brighton",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_aaron_ramsdale_0",
+          "player": "Aaron Ramsdale",
+          "club": "Newcastle",
+          "otherClub": "Southampton",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_lorenzo_lucca_0",
+          "player": "Lorenzo Lucca",
+          "club": "Nottingham",
+          "otherClub": "Napoli",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_joao_palhinha_0",
+          "player": "Joao Palhinha",
+          "club": "Tottenham",
+          "otherClub": "Bayern Munich",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_randal_kolo_muani_1",
+          "player": "Randal Kolo Muani",
+          "club": "Tottenham",
+          "otherClub": "Paris Saint-Germain",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_lutsharel_geertruida_0",
+          "player": "Lutsharel Geertruida",
+          "club": "Sunderland",
+          "otherClub": "RB Leipzig",
           "fee": "Loan",
           "date": "30 June 2026"
         },
@@ -67788,26 +68323,18 @@
           "date": "30 June 2026"
         },
         {
-          "id": "epl_loanRecall_carl_rushworth_0",
-          "player": "Carl Rushworth",
-          "club": "Coventry City",
-          "otherClub": "Brighton",
+          "id": "epl_loanRecall_christos_mandas_0",
+          "player": "Christos Mandas",
+          "club": "Bournemouth",
+          "otherClub": "Lazio",
           "fee": "Loan",
           "date": "30 June 2026"
         },
         {
-          "id": "epl_loanRecall_romain_esse_1",
-          "player": "Romain Esse",
-          "club": "Coventry City",
-          "otherClub": "Crystal Palace",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_yang_min_hyuk_2",
-          "player": "Yang Min-Hyuk",
-          "club": "Coventry City",
-          "otherClub": "Tottenham",
+          "id": "epl_loanRecall_reiss_nelson_0",
+          "player": "Reiss Nelson",
+          "club": "Brentford",
+          "otherClub": "Arsenal",
           "fee": "Loan",
           "date": "30 June 2026"
         },
@@ -67828,10 +68355,26 @@
           "date": "30 June 2026"
         },
         {
-          "id": "epl_loanRecall_jack_grealish_0",
-          "player": "Jack Grealish",
-          "club": "Everton",
-          "otherClub": "Manchester City",
+          "id": "epl_loanRecall_carl_rushworth_0",
+          "player": "Carl Rushworth",
+          "club": "Coventry City",
+          "otherClub": "Brighton",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_romain_esse_1",
+          "player": "Romain Esse",
+          "club": "Coventry City",
+          "otherClub": "Crystal Palace",
+          "fee": "Loan",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "epl_loanRecall_yang_min_hyuk_2",
+          "player": "Yang Min-Hyuk",
+          "club": "Coventry City",
+          "otherClub": "Tottenham",
           "fee": "Loan",
           "date": "30 June 2026"
         },
@@ -67914,179 +68457,9 @@
           "otherClub": "Como",
           "fee": "Loan",
           "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_facundo_buonanotte_0",
-          "player": "Facundo Buonanotte",
-          "club": "Leeds",
-          "otherClub": "Brighton",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_aaron_ramsdale_0",
-          "player": "Aaron Ramsdale",
-          "club": "Newcastle",
-          "otherClub": "Southampton",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_lorenzo_lucca_0",
-          "player": "Lorenzo Lucca",
-          "club": "Nottingham",
-          "otherClub": "Napoli",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_joao_palhinha_0",
-          "player": "Joao Palhinha",
-          "club": "Tottenham",
-          "otherClub": "Bayern Munich",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_randal_kolo_muani_1",
-          "player": "Randal Kolo Muani",
-          "club": "Tottenham",
-          "otherClub": "Paris Saint-Germain",
-          "fee": "Loan",
-          "date": "30 June 2026"
-        },
-        {
-          "id": "epl_loanRecall_lutsharel_geertruida_0",
-          "player": "Lutsharel Geertruida",
-          "club": "Sunderland",
-          "otherClub": "RB Leipzig",
-          "fee": "Loan",
-          "date": "30 June 2026"
         }
       ],
       "out": [
-        {
-          "id": "epl_out_leandro_trossard_0",
-          "player": "Leandro Trossard",
-          "club": "Arsenal",
-          "otherClub": "Besiktas",
-          "fee": "18M",
-          "date": "14 July 2026"
-        },
-        {
-          "id": "epl_out_alex_jimenez_1",
-          "player": "Alex Jimenez",
-          "club": "Bournemouth",
-          "otherClub": "Fiorentina",
-          "fee": "Loan",
-          "date": "13 July 2026"
-        },
-        {
-          "id": "epl_out_marcos_senesi_0",
-          "player": "Marcos Senesi",
-          "club": "Bournemouth",
-          "otherClub": "Tottenham",
-          "fee": "Free",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_romelle_donovan_0",
-          "player": "Romelle Donovan",
-          "club": "Brentford",
-          "otherClub": "Sheffield United",
-          "fee": "Loan",
-          "date": "8 July 2026"
-        },
-        {
-          "id": "epl_out_jan_paul_van_hecke_0",
-          "player": "Jan Paul Van Hecke",
-          "club": "Brighton",
-          "otherClub": "Tottenham",
-          "fee": "60M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_joel_veltman_2",
-          "player": "Joel Veltman",
-          "club": "Brighton",
-          "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_adam_webster_1",
-          "player": "Adam Webster",
-          "club": "Brighton",
-          "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_solly_march_3",
-          "player": "Solly March",
-          "club": "Brighton",
-          "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_james_milner_3",
-          "player": "James Milner",
-          "club": "Brighton",
-          "otherClub": "Retired",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_morgan_rogers_0",
-          "player": "Morgan Rogers",
-          "club": "Aston Villa",
-          "otherClub": "Chelsea",
-          "fee": "138M",
-          "date": "21 July 2026"
-        },
-        {
-          "id": "epl_out_andres_garcia_1",
-          "player": "Andres Garcia",
-          "club": "Aston Villa",
-          "otherClub": "Getafe",
-          "fee": "Loan",
-          "date": "16 July 2026"
-        },
-        {
-          "id": "epl_out_youri_tielemans_2",
-          "player": "Youri Tielemans",
-          "club": "Aston Villa",
-          "otherClub": "Manchester United",
-          "fee": "41M",
-          "date": "14 July 2026"
-        },
-        {
-          "id": "epl_out_andrey_santos_1",
-          "player": "Andrey Santos",
-          "club": "Chelsea",
-          "otherClub": "Manchester United",
-          "fee": "56.3M",
-          "date": "13 July 2026"
-        },
-        {
-          "id": "epl_out_marc_cucurella_0",
-          "player": "Marc Cucurella",
-          "club": "Chelsea",
-          "otherClub": "Real Madrid",
-          "fee": "55M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_jamie_allen_0",
-          "player": "Jamie Allen",
-          "club": "Coventry City",
-          "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_kaden_rodney_0",
-          "player": "Kaden Rodney",
-          "club": "Crystal Palace",
-          "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
         {
           "id": "epl_out_seamus_coleman_0",
           "player": "Seamus Coleman",
@@ -68099,75 +68472,6 @@
           "player": "Idrissa Gueye",
           "club": "Everton",
           "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_issa_diop_2",
-          "player": "Issa Diop",
-          "club": "Fulham",
-          "otherClub": "Ipswich Town",
-          "fee": "10M",
-          "date": "22 July 2026"
-        },
-        {
-          "id": "epl_out_harry_wilson_0",
-          "player": "Harry Wilson",
-          "club": "Fulham",
-          "otherClub": "Leeds United",
-          "fee": "Free",
-          "date": "8 July 2026"
-        },
-        {
-          "id": "epl_out_raul_jimenez_1",
-          "player": "Raul Jimenez",
-          "club": "Fulham",
-          "otherClub": "Wolves",
-          "fee": "Free",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_kyle_joseph_1",
-          "player": "Kyle Joseph",
-          "club": "Hull City",
-          "otherClub": "Middlesbrough",
-          "fee": "4.7M",
-          "date": "10 July 2026"
-        },
-        {
-          "id": "epl_out_akin_famewo_0",
-          "player": "Akin Famewo",
-          "club": "Hull City",
-          "otherClub": "Bolton",
-          "fee": "7M",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_ivor_pandur_2",
-          "player": "Ivor Pandur",
-          "club": "Hull City",
-          "otherClub": "Rangers",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_elkan_baggott_0",
-          "player": "Elkan Baggott",
-          "club": "Ipswich Town",
-          "otherClub": "Millwall",
-          "fee": "1.1M",
-          "date": "15 July 2026"
-        },
-        {
-          "id": "epl_out_conor_townsend_2",
-          "player": "Conor Townsend",
-          "club": "Ipswich Town",
-          "otherClub": "Without club",
-          "date": "1 July 2026"
-        },
-        {
-          "id": "epl_out_ashley_young_1",
-          "player": "Ashley Young",
-          "club": "Ipswich Town",
-          "otherClub": "Retired",
           "date": "1 July 2026"
         },
         {
@@ -68389,6 +68693,206 @@
           "player": "Bertrand Traore",
           "club": "Sunderland",
           "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_morgan_rogers_0",
+          "player": "Morgan Rogers",
+          "club": "Aston Villa",
+          "otherClub": "Chelsea",
+          "fee": "138M",
+          "date": "21 July 2026"
+        },
+        {
+          "id": "epl_out_andres_garcia_1",
+          "player": "Andres Garcia",
+          "club": "Aston Villa",
+          "otherClub": "Getafe",
+          "fee": "Loan",
+          "date": "16 July 2026"
+        },
+        {
+          "id": "epl_out_youri_tielemans_2",
+          "player": "Youri Tielemans",
+          "club": "Aston Villa",
+          "otherClub": "Manchester United",
+          "fee": "41M",
+          "date": "14 July 2026"
+        },
+        {
+          "id": "epl_out_alex_jimenez_1",
+          "player": "Alex Jimenez",
+          "club": "Bournemouth",
+          "otherClub": "Fiorentina",
+          "fee": "Loan",
+          "date": "13 July 2026"
+        },
+        {
+          "id": "epl_out_marcos_senesi_0",
+          "player": "Marcos Senesi",
+          "club": "Bournemouth",
+          "otherClub": "Tottenham",
+          "fee": "Free",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_romelle_donovan_0",
+          "player": "Romelle Donovan",
+          "club": "Brentford",
+          "otherClub": "Sheffield United",
+          "fee": "Loan",
+          "date": "8 July 2026"
+        },
+        {
+          "id": "epl_out_jan_paul_van_hecke_0",
+          "player": "Jan Paul Van Hecke",
+          "club": "Brighton",
+          "otherClub": "Tottenham",
+          "fee": "60M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_joel_veltman_2",
+          "player": "Joel Veltman",
+          "club": "Brighton",
+          "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_adam_webster_1",
+          "player": "Adam Webster",
+          "club": "Brighton",
+          "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_solly_march_3",
+          "player": "Solly March",
+          "club": "Brighton",
+          "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_james_milner_3",
+          "player": "James Milner",
+          "club": "Brighton",
+          "otherClub": "Retired",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_andrey_santos_1",
+          "player": "Andrey Santos",
+          "club": "Chelsea",
+          "otherClub": "Manchester United",
+          "fee": "56.3M",
+          "date": "13 July 2026"
+        },
+        {
+          "id": "epl_out_marc_cucurella_0",
+          "player": "Marc Cucurella",
+          "club": "Chelsea",
+          "otherClub": "Real Madrid",
+          "fee": "55M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_kaden_rodney_0",
+          "player": "Kaden Rodney",
+          "club": "Crystal Palace",
+          "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_jamie_allen_0",
+          "player": "Jamie Allen",
+          "club": "Coventry City",
+          "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_issa_diop_2",
+          "player": "Issa Diop",
+          "club": "Fulham",
+          "otherClub": "Ipswich Town",
+          "fee": "10M",
+          "date": "22 July 2026"
+        },
+        {
+          "id": "epl_out_harry_wilson_0",
+          "player": "Harry Wilson",
+          "club": "Fulham",
+          "otherClub": "Leeds United",
+          "fee": "Free",
+          "date": "8 July 2026"
+        },
+        {
+          "id": "epl_out_raul_jimenez_1",
+          "player": "Raul Jimenez",
+          "club": "Fulham",
+          "otherClub": "Wolves",
+          "fee": "Free",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_kyle_joseph_1",
+          "player": "Kyle Joseph",
+          "club": "Hull City",
+          "otherClub": "Middlesbrough",
+          "fee": "4.7M",
+          "date": "10 July 2026"
+        },
+        {
+          "id": "epl_out_akin_famewo_0",
+          "player": "Akin Famewo",
+          "club": "Hull City",
+          "otherClub": "Bolton",
+          "fee": "7M",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_ivor_pandur_2",
+          "player": "Ivor Pandur",
+          "club": "Hull City",
+          "otherClub": "Rangers",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_elkan_baggott_0",
+          "player": "Elkan Baggott",
+          "club": "Ipswich Town",
+          "otherClub": "Millwall",
+          "fee": "1.1M",
+          "date": "15 July 2026"
+        },
+        {
+          "id": "epl_out_conor_townsend_2",
+          "player": "Conor Townsend",
+          "club": "Ipswich Town",
+          "otherClub": "Without club",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_ashley_young_1",
+          "player": "Ashley Young",
+          "club": "Ipswich Town",
+          "otherClub": "Retired",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "epl_out_leandro_trossard_0",
+          "player": "Leandro Trossard",
+          "club": "Arsenal",
+          "otherClub": "Besiktas",
+          "fee": "18M",
+          "date": "14 July 2026"
+        }
+      ],
+      "promoted": [
+        {
+          "id": "epl_promoted_tommy_setford_0",
+          "player": "Tommy Setford",
+          "club": "Arsenal",
+          "otherClub": "Arsenal U21",
           "date": "1 July 2026"
         }
       ]
@@ -69452,7 +69956,8 @@
       "epl_aston_villa_8_Youri_Tielemans",
       "epl_brentford_11_Reiss_Nelson",
       "epl_fulham_31_Issa_Diop",
-      "epl_hull_city_1_Ivor_Pandur"
+      "epl_hull_city_1_Ivor_Pandur",
+      "epl_coventry_city_17_Raphael_Borges_Rodrigues"
     ],
     "matches": [
       "epl_mw38_burnley_wolves",
