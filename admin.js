@@ -31,6 +31,13 @@ let nationalDutyTeamFilter = "";
 let transferTeamFilter = "";
 /** Unsaved per-club transfer rows (key: leagueId|teamId) — never written to store until Save. */
 const transferEditsByTeam = new Map();
+const currentSeasonStartYear = () => {
+  const now = new Date();
+  return now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+};
+let tmTransferSeason = currentSeasonStartYear();
+/** @type {{ tmLists: object, diff: object, clubId: number, season: number, ignoredAdd: Set<string>, ignoredRemove: Set<string> } | null} */
+let tmTransferSyncState = null;
 let matchEditId = "";
 let stadiumEditName = "";
 /** Preserves matchweek editor fields across renderPanel() (DOM is rebuilt each time). */
@@ -602,12 +609,60 @@ function tmSyncAvailableForTeam(team) {
   return typeof TransfermarktTeams !== "undefined" && TransfermarktTeams.hasMapping(team);
 }
 
+function tmSyncLocalProxyReady() {
+  return typeof TransfermarktSync !== "undefined" && TransfermarktSync.isLocalProxyHost?.();
+}
+
+function looksLikeHtmlToast(msg) {
+  const s = String(msg ?? "").trim().slice(0, 80).toLowerCase();
+  return s.startsWith("<!doctype") || s.startsWith("<html") || s.includes("<head");
+}
+
+function tmUrlValueForTeam(team) {
+  if (!team) return "";
+  if (team.transfermarktUrl) return String(team.transfermarktUrl);
+  const id = typeof TransfermarktTeams !== "undefined" ? TransfermarktTeams.clubIdForTeam(team) : null;
+  return id ? `https://www.transfermarkt.com/-/startseite/verein/${id}` : "";
+}
+
+function saveTeamTransfermarktLink(team, urlRaw) {
+  if (!team?.id) return { ok: false, message: "Select a team first" };
+  if (typeof TransfermarktTeams === "undefined") {
+    return { ok: false, message: "Transfermarkt module failed to load" };
+  }
+  const stored = state().teams.find((t) => t.id === team.id);
+  if (!stored) return { ok: false, message: "Team not found" };
+  const url = String(urlRaw ?? "").trim();
+  if (!url) {
+    delete stored.transfermarktUrl;
+    delete stored.transfermarktId;
+    FCDataStore.upsertTeam(stored);
+    syncToAppArrays();
+    return { ok: true, message: "Custom Transfermarkt link cleared", clubId: null };
+  }
+  const clubId = TransfermarktTeams.parseClubIdFromUrl(url);
+  if (!clubId) {
+    return {
+      ok: false,
+      message: "Paste a Transfermarkt club URL that contains /verein/123 (or just the club id number)",
+    };
+  }
+  stored.transfermarktUrl = url;
+  stored.transfermarktId = clubId;
+  FCDataStore.upsertTeam(stored);
+  syncToAppArrays();
+  return { ok: true, message: `Saved Transfermarkt club #${clubId}`, clubId };
+}
+
 function tmSyncStatusHtml(team, teamId) {
   if (!teamId || !team) {
     return `<span class="players-tm-sync__hint admin-muted">Select a team to compare with Transfermarkt.</span>`;
   }
   if (!tmSyncAvailableForTeam(team)) {
-    return `<span class="players-tm-sync__hint admin-muted">No Transfermarkt mapping for this team yet.</span>`;
+    return `<span class="players-tm-sync__hint admin-muted">Paste a Transfermarkt club link below (page with <code>/verein/…</code>), then Save link.</span>`;
+  }
+  if (!tmSyncLocalProxyReady()) {
+    return `<span class="players-tm-sync__hint admin-muted">Use <strong>serve.bat</strong> on your computer for Transfermarkt Refresh — it cannot run on phone / GitHub Pages.</span>`;
   }
   if (!tmSyncState) {
     return `<span class="players-tm-sync__hint admin-muted">Compare your squad with Transfermarkt and apply add/remove suggestions.</span>`;
@@ -627,7 +682,7 @@ function tmSyncStatusHtml(team, teamId) {
 }
 
 function tmSyncPanelHtml(team, teamId) {
-  if (!teamId || !team || !tmSyncAvailableForTeam(team)) return "";
+  if (!teamId || !team) return "";
 
   const diff = getTmSyncVisibleDiff();
   const hasDiff = diff && (diff.toAdd.length || diff.toRemove.length);
@@ -648,7 +703,7 @@ function tmSyncPanelHtml(team, teamId) {
           return `<li class="players-tm-sync__item players-tm-sync__item--add">
         <div class="players-tm-sync__copy">
           <strong>${esc(tm.name)}</strong>
-          <span class="players-tm-sync__meta">#${esc(tm.number)} · ${esc(tm.role)} · ${esc(tm.nationality || "—")}</span>
+          <span class="players-tm-sync__meta">${tm.number != null ? `#${esc(tm.number)}` : "No #"} · ${esc(tm.role)} · ${esc(tm.nationality || "—")}</span>
         </div>
         <div class="players-tm-sync__actions">
           <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-add-key="${esc(key)}">Add</button>
@@ -675,11 +730,21 @@ function tmSyncPanelHtml(team, teamId) {
       )
       .join("") ?? "";
 
+  const localReady = tmSyncLocalProxyReady();
+  const canRefresh = localReady && tmSyncAvailableForTeam(team);
+  const savedUrl = esc(tmUrlValueForTeam(team));
   return `
     <div class="players-tm-sync" id="playersTmSync">
+      <div class="players-tm-sync__link-row">
+        <div class="mw-field players-tm-sync__link-field">
+          <label for="teamTmUrl">Transfermarkt club link</label>
+          <input id="teamTmUrl" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" value="${savedUrl}" autocomplete="off" />
+        </div>
+        <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSaveTmUrl">Save link</button>
+      </div>
       <div class="players-tm-sync__head">
         <div class="players-toolbar-actions">
-          <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmRefresh">Refresh from Transfermarkt</button>
+          <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmRefresh"${canRefresh ? "" : " disabled"} title="${canRefresh ? "Fetch Transfermarkt squad" : localReady ? "Save a valid Transfermarkt link first" : "Only available via serve.bat on your computer"}">Refresh from Transfermarkt</button>
         </div>
         <span class="players-tm-sync__status" id="playersTmSyncStatus">${tmSyncStatusHtml(team, teamId)}</span>
       </div>
@@ -702,6 +767,18 @@ function tmSyncPanelHtml(team, teamId) {
     </div>`;
 }
 
+function nextFreeJerseyNumber(teamId) {
+  const used = new Set(
+    playersForTeam(teamId)
+      .map((p) => Number(p.number))
+      .filter((n) => Number.isFinite(n) && n > 0),
+  );
+  for (let n = 1; n <= 99; n++) {
+    if (!used.has(n)) return n;
+  }
+  return null;
+}
+
 function addPlayerFromTransfermarkt(teamId, tmPlayer) {
   const name = stripCaptainSuffix(String(tmPlayer?.name ?? "").trim());
   if (!teamId || !name) return false;
@@ -709,12 +786,14 @@ function addPlayerFromTransfermarkt(teamId, tmPlayer) {
     toast("Player is already on the squad");
     return false;
   }
-  const number = Number(tmPlayer.number);
+  let number = Number(tmPlayer.number);
   if (!Number.isFinite(number) || number < 1) {
-    toast("Invalid jersey number from Transfermarkt");
-    return false;
-  }
-  if (playersForTeam(teamId).some((p) => Number(p.number) === number)) {
+    number = nextFreeJerseyNumber(teamId);
+    if (number == null) {
+      toast("No free jersey number left (1–99) — set one manually");
+      return false;
+    }
+  } else if (playersForTeam(teamId).some((p) => Number(p.number) === number)) {
     toast(`Jersey #${number} is already used — edit the player manually`);
     return false;
   }
@@ -738,26 +817,35 @@ function addPlayerFromTransfermarkt(teamId, tmPlayer) {
     sortOrder: maxOrder + 1,
   });
   syncToAppArrays();
-  return true;
+  return number;
 }
 
 async function refreshTransfermarktSquad(team) {
-  if (!team || !tmSyncAvailableForTeam(team)) {
-    toast("Transfermarkt sync is not configured for this team");
+  if (!team) {
+    toast("Select a team first");
     return;
   }
-  if (typeof TransfermarktSync === "undefined") {
+  if (typeof TransfermarktSync === "undefined" || typeof TransfermarktTeams === "undefined") {
     toast("Transfermarkt sync module failed to load");
     return;
   }
-  const clubId = TransfermarktTeams.clubIdForTeam(team);
+  const liveTeam = state().teams.find((t) => t.id === team.id) || team;
+  const clubId = TransfermarktTeams.clubIdForTeam(liveTeam);
+  if (!clubId) {
+    toast("Paste and save a Transfermarkt club link first");
+    return;
+  }
+  if (!tmSyncLocalProxyReady()) {
+    toast("Run serve.bat locally — Transfermarkt sync needs the local server proxy");
+    return;
+  }
   const btn = $("#btnTmRefresh");
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Refreshing…";
   }
   try {
-    const local = playersForTeam(team.id);
+    const local = playersForTeam(liveTeam.id);
     const result = await TransfermarktSync.fetchAndCompare(local, clubId);
     tmSyncState = { ...result, clubId, ignoredAdd: new Set(), ignoredRemove: new Set() };
     const visible = getTmSyncVisibleDiff();
@@ -770,14 +858,19 @@ async function refreshTransfermarktSquad(team) {
   } catch (err) {
     console.error(err);
     const msg = String(err?.message ?? err);
-    if (/failed to fetch|networkerror/i.test(msg)) {
+    if (looksLikeHtmlToast(msg)) {
+      toast("Transfermarkt Refresh only works with serve.bat on your computer");
+    } else if (/failed to fetch|networkerror/i.test(msg)) {
       toast("Run serve.bat locally — Transfermarkt sync needs the local server proxy");
     } else {
-      toast(msg.slice(0, 120));
+      toast(msg.slice(0, 160));
     }
   } finally {
     if (btn) {
-      btn.disabled = false;
+      const still =
+        tmSyncLocalProxyReady() &&
+        tmSyncAvailableForTeam(state().teams.find((t) => t.id === team.id) || team);
+      btn.disabled = !still;
       btn.textContent = "Refresh from Transfermarkt";
     }
   }
@@ -788,8 +881,13 @@ function applyTransfermarktSuggestion(teamId, { addKey = null, removeId = null }
   if (addKey) {
     const tm = tmSyncState.diff.toAdd.find((t) => tmSyncNameKey(t.name) === addKey);
     if (!tm) return;
-    if (!addPlayerFromTransfermarkt(teamId, tm)) return;
-    toast(`${tm.name} added`);
+    const addedNumber = addPlayerFromTransfermarkt(teamId, tm);
+    if (!addedNumber) return;
+    toast(
+      tm.number == null || !(Number(tm.number) > 0)
+        ? `${tm.name} added as #${addedNumber} (no jersey on Transfermarkt)`
+        : `${tm.name} added`,
+    );
   } else if (removeId) {
     if (!confirm("Remove this player from the squad?")) return;
     FCDataStore.removePlayer(removeId);
@@ -814,6 +912,19 @@ function ignoreTransfermarktSuggestion({ addKey = null, removeId = null } = {}) 
 }
 
 function bindTransfermarktSync(team) {
+  $("#btnSaveTmUrl")?.addEventListener("click", () => {
+    const result = saveTeamTransfermarktLink(team, $("#teamTmUrl")?.value);
+    toast(result.message);
+    if (result.ok) {
+      tmSyncState = null;
+      renderPanel();
+    }
+  });
+  $("#teamTmUrl")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    $("#btnSaveTmUrl")?.click();
+  });
   $("#btnTmRefresh")?.addEventListener("click", () => refreshTransfermarktSquad(team));
   $("#playersTmSync")?.addEventListener("click", (e) => {
     const addBtn = e.target instanceof Element ? e.target.closest("[data-tm-add-key]") : null;
@@ -2069,6 +2180,9 @@ function panelTeams() {
           <div class="col-12 col-md-6">
             <div class="mw-field"><label for="teamLogo">Logo path</label><input id="teamLogo" class="mw-input" placeholder="./images/premierleague/arsenal.png" autocomplete="off" /></div>
           </div>
+          <div class="col-12">
+            <div class="mw-field"><label for="teamTmUrlForm">Transfermarkt club link</label><input id="teamTmUrlForm" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" autocomplete="off" /><span class="admin-muted" style="display:block;margin-top:6px;font-size:12px">Optional. Used by Players → Refresh from Transfermarkt (needs serve.bat).</span></div>
+          </div>
           <div class="col-6 col-md-6 col-lg-3">
             <div class="mw-field"><label for="teamC1">Color 1</label><input id="teamC1" class="mw-input mw-input--color" type="color" value="#2de2e6" /></div>
           </div>
@@ -2895,11 +3009,7 @@ function panelPlayers() {
             }
           </div>
         </div>
-        ${
-          teamId && tmSyncAvailableForTeam(team)
-            ? tmSyncPanelHtml(team, teamId)
-            : ""
-        }
+        ${teamId ? tmSyncPanelHtml(team, teamId) : ""}
         ${
           playerCount > 1
             ? `<div class="players-toolbar">
@@ -3718,6 +3828,126 @@ const ADMIN_TRANSFER_SECTIONS = [
   },
 ];
 
+function transferCategoryLabel(key) {
+  return (
+    ADMIN_TRANSFER_SECTIONS.find((section) => section.key === key)?.title ??
+    String(key ?? "")
+  );
+}
+
+function tmTransferSuggestionKey(category, row) {
+  const nameKey =
+    typeof TransfermarktSync !== "undefined"
+      ? TransfermarktSync.normalizeNameKey(row?.player)
+      : String(row?.player ?? "").toLowerCase().trim();
+  return `${category}:${nameKey}`;
+}
+
+function tmTransferDiffEntries(kind) {
+  if (!tmTransferSyncState?.diff?.byCategory) return [];
+  const ignored =
+    kind === "toAdd" ? tmTransferSyncState.ignoredAdd : tmTransferSyncState.ignoredRemove;
+  const entries = [];
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    for (const row of tmTransferSyncState.diff.byCategory[section.key]?.[kind] ?? []) {
+      const key = tmTransferSuggestionKey(section.key, row);
+      if (!ignored?.has(key)) entries.push({ category: section.key, row, key });
+    }
+  }
+  return entries;
+}
+
+function tmTransferSuggestionMeta(entry) {
+  const row = entry.row ?? {};
+  return [
+    transferCategoryLabel(entry.category),
+    row.otherClub || "",
+    row.fee || "",
+    row.date ? transferDateFromInputValue(row.date) : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function tmTransferSyncStatusHtml(team) {
+  if (!team) return `<span class="players-tm-sync__hint admin-muted">Select a club first.</span>`;
+  if (!tmSyncAvailableForTeam(team)) {
+    return `<span class="players-tm-sync__hint admin-muted">Paste and save the club’s Transfermarkt link above.</span>`;
+  }
+  if (!tmSyncLocalProxyReady()) {
+    return `<span class="players-tm-sync__hint admin-muted">Use <strong>serve.bat</strong> on your computer — Transfermarkt comparison cannot run on phone / GitHub Pages.</span>`;
+  }
+  if (!tmTransferSyncState) {
+    return `<span class="players-tm-sync__hint admin-muted">Compare this editor with Transfermarkt for the selected season.</span>`;
+  }
+  const addCount = tmTransferDiffEntries("toAdd").length;
+  const removeCount = tmTransferDiffEntries("toRemove").length;
+  const diff = tmTransferSyncState.diff;
+  return `<span class="players-tm-sync__hint">${esc(
+    `${diff.tmTotal} on Transfermarkt · ${diff.localTotal} in Squad Central · ${diff.matched} matched · ${addCount} to add · ${removeCount} to remove`,
+  )}</span>`;
+}
+
+function tmTransferSyncPanelHtml(team) {
+  if (!team) return "";
+  if (tmTransferSyncState?.teamId !== team.id) tmTransferSyncState = null;
+  const localReady = tmSyncLocalProxyReady();
+  const canRefresh = localReady && tmSyncAvailableForTeam(team);
+  const addEntries = tmTransferDiffEntries("toAdd");
+  const removeEntries = tmTransferDiffEntries("toRemove");
+  const suggestionHtml = (entry, kind) => `
+    <li class="players-tm-sync__item players-tm-sync__item--${kind === "add" ? "add" : "remove"}">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(entry.row.player)}</strong>
+        <span class="players-tm-sync__meta">${esc(tmTransferSuggestionMeta(entry))}</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="${kind === "add" ? "mw-btn-primary" : "mw-btn-danger"} players-tm-sync__apply" data-tm-transfer-${kind}="${esc(entry.key)}">${kind === "add" ? "Add" : "Remove"}</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-transfer-ignore-${kind}="${esc(entry.key)}" title="Ignore" aria-label="Ignore suggestion">×</button>
+      </div>
+    </li>`;
+  const hasResult = Boolean(tmTransferSyncState);
+  const noOpenSuggestions =
+    hasResult && !addEntries.length && !removeEntries.length
+      ? `<p class="players-tm-sync__empty admin-muted mb-0">No open suggestions — these transfer lists match Transfermarkt.</p>`
+      : "";
+
+  return `
+    <div class="players-tm-sync transfers-tm-sync" id="transfersTmSync">
+      <div class="players-tm-sync__link-row transfers-tm-sync__controls">
+        <div class="mw-field players-tm-sync__link-field">
+          <label for="teamTmTransferUrl">Transfermarkt club link</label>
+          <input id="teamTmTransferUrl" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" value="${esc(tmUrlValueForTeam(team))}" autocomplete="off" />
+        </div>
+        <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSaveTmTransferUrl">Save link</button>
+        <div class="mw-field transfers-tm-sync__season">
+          <label for="tmTransferSeason">Season starts</label>
+          <input id="tmTransferSeason" class="mw-input" type="number" min="1900" max="2100" step="1" value="${esc(tmTransferSeason)}" />
+        </div>
+        <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmTransferRefresh"${canRefresh ? "" : " disabled"} title="${canRefresh ? "Compare transfers with Transfermarkt" : localReady ? "Save a valid Transfermarkt link first" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
+      </div>
+      <div class="players-tm-sync__head">
+        <span class="players-tm-sync__status" id="transfersTmSyncStatus">${tmTransferSyncStatusHtml(team)}</span>
+      </div>
+      <div class="players-tm-sync__body${hasResult ? "" : " admin-hidden"}">
+        ${
+          addEntries.length || removeEntries.length
+            ? `<div class="players-tm-sync__cols">
+          <div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">On Transfermarkt — add here</h4>
+            <ul class="players-tm-sync__list">${addEntries.map((entry) => suggestionHtml(entry, "add")).join("") || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
+          </div>
+          <div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">Only in Squad Central — remove here</h4>
+            <ul class="players-tm-sync__list">${removeEntries.map((entry) => suggestionHtml(entry, "remove")).join("") || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
+          </div>
+        </div>`
+            : noOpenSuggestions
+        }
+      </div>
+    </div>`;
+}
+
 function transferTeamKey(leagueId, teamId) {
   return `${leagueId}|${teamId}`;
 }
@@ -4117,6 +4347,8 @@ function panelTransfers() {
             </div>
           </div>
         </div>
+
+        ${tmTransferSyncPanelHtml(team)}
 
         <div class="transfers-sections">${transferSectionsHtml}</div>
 
@@ -5159,6 +5391,7 @@ function bindTeams() {
     $("#teamFormation").value = "";
     $("#teamCoach").value = "";
     $("#teamLogo").value = "";
+    if ($("#teamTmUrlForm")) $("#teamTmUrlForm").value = "";
   });
 
   $("#btnSaveTeam")?.addEventListener("click", () => {
@@ -5173,6 +5406,12 @@ function bindTeams() {
       const maxOrder = teamsForLeague(leagueFilter).reduce((m, t) => Math.max(m, t.sortOrder ?? -1), -1);
       sortOrder = maxOrder + 1;
     }
+    const tmUrl = $("#teamTmUrlForm")?.value?.trim() || "";
+    const tmId =
+      typeof TransfermarktTeams !== "undefined" ? TransfermarktTeams.parseClubIdFromUrl(tmUrl) : null;
+    if (tmUrl && !tmId) {
+      return alert("Transfermarkt link must include /verein/123 (or be just the club id number)");
+    }
     const team = {
       id,
       leagueId: leagueFilter,
@@ -5185,7 +5424,19 @@ function bindTeams() {
     };
     if (sortOrder != null) team.sortOrder = sortOrder;
     if (prev?.squadDepth) team.squadDepth = prev.squadDepth;
+    if (tmId) {
+      team.transfermarktUrl = tmUrl;
+      team.transfermarktId = tmId;
+    }
     FCDataStore.upsertTeam(team);
+    if (!tmId) {
+      const stored = state().teams.find((t) => t.id === id);
+      if (stored) {
+        delete stored.transfermarktUrl;
+        delete stored.transfermarktId;
+        FCDataStore.upsertTeam(stored);
+      }
+    }
     syncToAppArrays();
     toast("Team saved");
     renderPanel();
@@ -5202,6 +5453,7 @@ function bindTeams() {
       $("#teamFormation").value = t.formation ?? "";
       $("#teamCoach").value = t.coach ?? "";
       $("#teamLogo").value = t.logo ?? "";
+      if ($("#teamTmUrlForm")) $("#teamTmUrlForm").value = tmUrlValueForTeam(t);
       $("#teamC1").value = t.colors?.[0] ?? "#2de2e6";
       $("#teamC2").value = t.colors?.[1] ?? "#111827";
     });
@@ -6358,6 +6610,168 @@ function readTransfersTable(tableId, dir, clubName) {
     .filter((t) => t.player && t.club);
 }
 
+function currentTransferEditorLists() {
+  return (
+    readTransfersDraftFromDom()?.lists ??
+    transferListsForEditor(leagueFilter, transferTeamFilter)
+  );
+}
+
+function recalculateTmTransferDiff(lists) {
+  if (!tmTransferSyncState || typeof TransfermarktSync === "undefined") return;
+  tmTransferSyncState.diff = TransfermarktSync.compareTransferLists(
+    lists,
+    tmTransferSyncState.tmLists,
+  );
+}
+
+async function refreshTransfermarktTransfers() {
+  const team = state().teams.find((t) => t.id === transferTeamFilter);
+  if (!team) return toast("Choose a club first");
+  if (typeof TransfermarktSync === "undefined" || typeof TransfermarktTeams === "undefined") {
+    return toast("Transfermarkt sync module failed to load");
+  }
+  const clubId = TransfermarktTeams.clubIdForTeam(team);
+  if (!clubId) return toast("Paste and save a Transfermarkt club link first");
+  if (!tmSyncLocalProxyReady()) {
+    return toast("Run serve.bat locally — Transfermarkt comparison needs the local server proxy");
+  }
+  const season = Number($("#tmTransferSeason")?.value ?? tmTransferSeason);
+  if (!Number.isInteger(season) || season < 1900 || season > 2100) {
+    return toast("Enter a valid season start year, for example 2026");
+  }
+  tmTransferSeason = season;
+  stashTransferEditsFromDom();
+  const btn = $("#btnTmTransferRefresh");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Comparing…";
+  }
+  try {
+    const localLists = transferListsForEditor(leagueFilter, team.id);
+    const result = await TransfermarktSync.fetchAndCompareTransfers(
+      localLists,
+      clubId,
+      season,
+      team.name,
+    );
+    tmTransferSyncState = {
+      ...result,
+      clubId,
+      season,
+      teamId: team.id,
+      ignoredAdd: new Set(),
+      ignoredRemove: new Set(),
+    };
+    const addCount = tmTransferDiffEntries("toAdd").length;
+    const removeCount = tmTransferDiffEntries("toRemove").length;
+    toast(
+      addCount || removeCount
+        ? `Transfermarkt: ${addCount} to add, ${removeCount} to remove`
+        : "Transfer lists match Transfermarkt",
+    );
+    renderPanel();
+  } catch (err) {
+    console.error(err);
+    const msg = String(err?.message ?? err);
+    if (looksLikeHtmlToast(msg)) {
+      toast("Transfermarkt comparison only works with serve.bat on your computer");
+    } else {
+      toast(msg.slice(0, 180));
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = !tmSyncLocalProxyReady() || !tmSyncAvailableForTeam(team);
+      btn.textContent = "Compare with Transfermarkt";
+    }
+  }
+}
+
+function applyTmTransferSuggestion(kind, suggestionKey) {
+  if (!tmTransferSyncState || !transferTeamFilter) return;
+  const sourceEntries = tmTransferDiffEntries(kind === "add" ? "toAdd" : "toRemove");
+  const entry = sourceEntries.find((item) => item.key === suggestionKey);
+  if (!entry) return;
+  const lists = currentTransferEditorLists();
+  const next = {};
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    next[section.key] = [...(lists[section.key] ?? [])];
+  }
+  if (kind === "add") {
+    const row = entry.row;
+    next[entry.category].push({
+      id: `${leagueFilter}_${transferTeamFilter}_${entry.category}_${FCDataStore.slugify(row.player)}_${tmTransferSeason}`,
+      player: row.player,
+      otherClub: row.otherClub || "",
+      fee: row.fee || undefined,
+      date: row.date || undefined,
+    });
+    toast(`${row.player} added to ${transferCategoryLabel(entry.category)}`);
+  } else {
+    const nameKey = TransfermarktSync.normalizeNameKey(entry.row.player);
+    next[entry.category] = next[entry.category].filter(
+      (row) => TransfermarktSync.normalizeNameKey(row.player) !== nameKey,
+    );
+    toast(`${entry.row.player} removed from ${transferCategoryLabel(entry.category)}`);
+  }
+  transferEditsByTeam.set(transferTeamKey(leagueFilter, transferTeamFilter), next);
+  recalculateTmTransferDiff(next);
+  renderPanel();
+}
+
+function ignoreTmTransferSuggestion(kind, suggestionKey) {
+  if (!tmTransferSyncState) return;
+  const ignored = kind === "add" ? tmTransferSyncState.ignoredAdd : tmTransferSyncState.ignoredRemove;
+  ignored.add(suggestionKey);
+  toast("Suggestion ignored");
+  renderPanel();
+}
+
+function bindTmTransferSync() {
+  const team = state().teams.find((t) => t.id === transferTeamFilter);
+  $("#btnSaveTmTransferUrl")?.addEventListener("click", () => {
+    const result = saveTeamTransfermarktLink(team, $("#teamTmTransferUrl")?.value);
+    toast(result.message);
+    if (result.ok) {
+      tmTransferSyncState = null;
+      renderPanel();
+    }
+  });
+  $("#teamTmTransferUrl")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    $("#btnSaveTmTransferUrl")?.click();
+  });
+  $("#tmTransferSeason")?.addEventListener("change", (e) => {
+    const season = Number(e.target.value);
+    if (Number.isInteger(season)) tmTransferSeason = season;
+  });
+  $("#btnTmTransferRefresh")?.addEventListener("click", refreshTransfermarktTransfers);
+  $("#transfersTmSync")?.addEventListener("click", (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    const add = target?.closest("[data-tm-transfer-add]");
+    if (add) return applyTmTransferSuggestion("add", add.getAttribute("data-tm-transfer-add"));
+    const remove = target?.closest("[data-tm-transfer-remove]");
+    if (remove) {
+      return applyTmTransferSuggestion("remove", remove.getAttribute("data-tm-transfer-remove"));
+    }
+    const ignoreAdd = target?.closest("[data-tm-transfer-ignore-add]");
+    if (ignoreAdd) {
+      return ignoreTmTransferSuggestion(
+        "add",
+        ignoreAdd.getAttribute("data-tm-transfer-ignore-add"),
+      );
+    }
+    const ignoreRemove = target?.closest("[data-tm-transfer-ignore-remove]");
+    if (ignoreRemove) {
+      return ignoreTmTransferSuggestion(
+        "remove",
+        ignoreRemove.getAttribute("data-tm-transfer-ignore-remove"),
+      );
+    }
+  });
+}
+
 function bindTransfers() {
   const teamSel = $("#transferTeamFilter");
   if (teamSel && teamSel.dataset.trBound !== "1") {
@@ -6367,6 +6781,7 @@ function bindTransfers() {
       const nextTeamId = e.target.value;
       clearTransferEditsForTeam(leagueFilter, nextTeamId);
       transferTeamFilter = nextTeamId;
+      tmTransferSyncState = null;
       renderPanel();
     });
   }
@@ -6414,6 +6829,7 @@ function bindTransfers() {
   }
 
   bindTransferTableHandlers();
+  bindTmTransferSync();
 }
 
 function bindTransferTableHandlers() {

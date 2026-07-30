@@ -4148,6 +4148,33 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   background: rgba(14, 37, 64, 0.35);
 }
 
+.players-tm-sync__link-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.players-tm-sync__link-field {
+  flex: 1;
+  min-width: min(100%, 240px);
+  margin-bottom: 0;
+}
+
+.transfers-tm-sync {
+  margin: 14px 0 18px;
+}
+
+.transfers-tm-sync__season {
+  width: 132px;
+  margin-bottom: 0;
+}
+
+.transfers-tm-sync__season .mw-input {
+  min-height: 42px;
+}
+
 .players-tm-sync__head {
   display: flex;
   flex-wrap: wrap;
@@ -4286,6 +4313,14 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   .players-tm-sync__head .players-auto-btn {
     width: 100%;
     text-align: center;
+  }
+
+  .transfers-tm-sync__season {
+    flex: 1 1 120px;
+  }
+
+  #btnTmTransferRefresh {
+    flex: 1 1 100%;
   }
 }
 

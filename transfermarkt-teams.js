@@ -135,14 +135,26 @@
     msl_terengganu: 15838,
   };
 
+  function parseClubIdFromUrl(url) {
+    const raw = String(url ?? "").trim();
+    if (!raw) return null;
+    const m = raw.match(/\/verein\/(\d+)/i) || raw.match(/^\s*(\d+)\s*$/);
+    if (!m) return null;
+    const id = Number(m[1]);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }
+
   global.TransfermarktTeams = {
     TRANSFERMARKT_CLUB_IDS,
     /** @deprecated use TRANSFERMARKT_CLUB_IDS */
     EPL_TRANSFERMARKT_CLUB_IDS: TRANSFERMARKT_CLUB_IDS,
+    parseClubIdFromUrl,
     clubIdForTeam(team) {
       if (!team) return null;
-      const fromTeam = Number(team.transfermarktId);
-      if (Number.isFinite(fromTeam) && fromTeam > 0) return fromTeam;
+      const fromId = Number(team.transfermarktId);
+      if (Number.isFinite(fromId) && fromId > 0) return fromId;
+      const fromUrl = parseClubIdFromUrl(team.transfermarktUrl);
+      if (fromUrl) return fromUrl;
       return TRANSFERMARKT_CLUB_IDS[team.id] ?? null;
     },
     hasMapping(team) {
