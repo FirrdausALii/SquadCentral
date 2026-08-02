@@ -777,29 +777,158 @@ html.reveal-init .reveal.is-visible {
 }
 
 /* Transfers panel */
-.transfer-panel { padding: 0; overflow: hidden; }
+.transfers-grid {
+  align-items: start;
+}
+.transfer-panel {
+  padding: 0;
+  overflow: hidden;
+  border: 0.5px solid var(--border-subtle);
+  border-left-width: 3px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-surface-1) 88%, transparent) 0%, var(--bg-surface-0) 100%);
+}
+.transfer-card--in { border-left-color: color-mix(in srgb, var(--color-win) 75%, transparent); }
+.transfer-card--promoted { border-left-color: color-mix(in srgb, #2dd4bf 75%, transparent); }
+.transfer-card--out { border-left-color: color-mix(in srgb, #3b82f6 75%, transparent); }
+.transfer-card--loan-return { border-left-color: color-mix(in srgb, #fbbf24 75%, transparent); }
+.transfer-card--loan-recall { border-left-color: color-mix(in srgb, #c084fc 75%, transparent); }
+
 .transfer-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
+  padding: 10px var(--sp-4);
   border-bottom: 0.5px solid var(--border-subtle);
-  background: var(--bg-surface-1);
+  background: color-mix(in srgb, var(--bg-surface-1) 70%, transparent);
 }
 .transfer-panel-head__meta {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 .transfer-panel-head__meta[hidden] {
   display: none;
 }
-.transfer-panel-body { padding: 0; min-height: 120px; }
+.transfer-panel-body {
+  padding: 0;
+  min-height: 96px;
+}
 
-.player-avatar,
-.transfer-row__avatar {
+.transfer-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.transfer-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--sp-4);
+  border-bottom: 0.5px solid var(--border-subtle);
+  transition: background-color var(--transition);
+}
+.transfer-row:last-child { border-bottom: none; }
+.transfer-row:hover { background-color: color-mix(in srgb, var(--bg-surface-3) 85%, transparent); }
+
+.transfer-dir-chip {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  border: 0.5px solid transparent;
+}
+.transfer-dir-chip--in {
+  color: #86efac;
+  background: color-mix(in srgb, var(--color-win) 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, var(--color-win) 32%, transparent);
+}
+.transfer-dir-chip--promoted {
+  color: #5eead4;
+  background: color-mix(in srgb, #2dd4bf 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #2dd4bf 32%, transparent);
+}
+.transfer-dir-chip--out {
+  color: #93c5fd;
+  background: color-mix(in srgb, #3b82f6 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #3b82f6 32%, transparent);
+}
+.transfer-dir-chip--loan-return {
+  color: #fde68a;
+  background: color-mix(in srgb, #fbbf24 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #fbbf24 32%, transparent);
+}
+.transfer-dir-chip--loan-recall {
+  color: #d8b4fe;
+  background: color-mix(in srgb, #c084fc 16%, var(--bg-surface-2));
+  border-color: color-mix(in srgb, #c084fc 32%, transparent);
+}
+
+.transfer-row__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.transfer-row__player {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.transfer-row__move {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+.transfer-row__move-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.transfer-row__move-club {
+  min-width: 0;
+  font-weight: 550;
+  color: var(--text-secondary, var(--text-muted));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.transfer-row__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  min-width: 4.25rem;
+  text-align: right;
+}
+.transfer-row__side-spacer {
+  display: block;
+  height: 0;
+}
+.player-avatar {
   flex-shrink: 0;
   width: 36px;
   height: 36px;
@@ -814,67 +943,27 @@ html.reveal-init .reveal.is-visible {
   background: linear-gradient(145deg, var(--bg-surface-3), var(--bg-surface-1));
   border: 0.5px solid var(--border-default);
 }
-
-.transfer-row__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.transfer-row__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-.transfer-row__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
-  min-width: 0;
-  flex-wrap: wrap;
-}
-.transfer-row__club {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.transfer-row__club-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  flex-shrink: 0;
-}
-.transfer-row__crest.team-crest-shell,
-.transfer-row__crest.squad-crest {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
 .transfer-row__date {
   font-size: 11px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .transfer-fee-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   max-width: 100%;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  border-radius: 6px;
   font-size: 11px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 700;
+  line-height: 1.2;
   white-space: nowrap;
   border: 0.5px solid transparent;
+  font-variant-numeric: tabular-nums;
 }
 .transfer-fee-badge--fee {
   color: var(--text-primary);
@@ -908,20 +997,21 @@ html.reveal-init .reveal.is-visible {
 }
 
 .transfer-skeleton {
-  padding: var(--sp-2) 0;
+  padding: 0;
 }
 .transfer-skeleton__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
+  gap: 12px;
+  padding: 10px var(--sp-4);
   border-bottom: 0.5px solid var(--border-subtle);
 }
 .transfer-skeleton__row:last-child { border-bottom: none; }
 .transfer-skeleton__chip {
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   flex-shrink: 0;
   background: linear-gradient(90deg, var(--bg-surface-3) 0%, var(--bg-surface-1) 50%, var(--bg-surface-3) 100%);
   background-size: 200% 100%;
@@ -934,9 +1024,8 @@ html.reveal-init .reveal.is-visible {
   background-size: 200% 100%;
   animation: transfer-shimmer 1.4s ease-in-out infinite;
 }
-.transfer-skeleton__line--name { flex: 1; min-width: 72px; max-width: 140px; }
-.transfer-skeleton__line--club { width: 64px; animation-delay: 0.12s; }
-.transfer-skeleton__line--fee { width: 40px; animation-delay: 0.24s; }
+.transfer-skeleton__line--name { width: 100%; max-width: 160px; }
+.transfer-skeleton__line--fee { width: 48px; animation-delay: 0.18s; }
 
 @keyframes transfer-shimmer {
   0% { background-position: 100% 0; }

@@ -481,8 +481,24 @@ body.fc-app {
   }
 
   .transfer-row {
-    padding: var(--sp-3);
-    gap: var(--sp-2);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 10px var(--sp-3);
+    gap: 10px;
+  }
+
+  .transfer-dir-chip {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    font-size: 12px;
+  }
+
+  .transfer-row__player {
+    font-size: 13px;
+  }
+
+  .transfer-row__side {
+    min-width: 3.75rem;
   }
 
   .transfer-fee-badge {
@@ -498,13 +514,18 @@ body.fc-app {
   }
 
   .transfer-row {
-    flex-wrap: wrap;
-    gap: var(--sp-2);
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 10px;
   }
 
-  .transfer-fee {
-    width: 100%;
-    padding-left: 28px;
+  .transfer-row__side {
+    grid-column: 2;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 0;
+    text-align: left;
   }
 }
 

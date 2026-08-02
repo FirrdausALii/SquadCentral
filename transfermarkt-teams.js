@@ -135,6 +135,16 @@
     msl_terengganu: 15838,
   };
 
+  /** Squad Central leagueId → Transfermarkt competition code (wettbewerb). */
+  const TRANSFERMARKT_COMPETITION_IDS = {
+    epl: "GB1",
+    laliga: "ES1",
+    seriea: "IT1",
+    bundesliga: "L1",
+    ligue1: "FR1",
+    msl: "MYS1",
+  };
+
   function parseClubIdFromUrl(url) {
     const raw = String(url ?? "").trim();
     if (!raw) return null;
@@ -144,11 +154,19 @@
     return Number.isFinite(id) && id > 0 ? id : null;
   }
 
+  function competitionIdForLeague(leagueId) {
+    const id = String(leagueId ?? "").trim();
+    if (!id) return null;
+    return TRANSFERMARKT_COMPETITION_IDS[id] ?? null;
+  }
+
   global.TransfermarktTeams = {
     TRANSFERMARKT_CLUB_IDS,
+    TRANSFERMARKT_COMPETITION_IDS,
     /** @deprecated use TRANSFERMARKT_CLUB_IDS */
     EPL_TRANSFERMARKT_CLUB_IDS: TRANSFERMARKT_CLUB_IDS,
     parseClubIdFromUrl,
+    competitionIdForLeague,
     clubIdForTeam(team) {
       if (!team) return null;
       const fromId = Number(team.transfermarktId);

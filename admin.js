@@ -36,10 +36,17 @@ const currentSeasonStartYear = () => {
   return now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
 };
 let tmTransferSeason = currentSeasonStartYear();
-/** @type {{ tmLists: object, diff: object, clubId: number, season: number, ignoredAdd: Set<string>, ignoredRemove: Set<string> } | null} */
+/** @type {{ tmLists: object, diff: object, clubId: number, season: number, ignoredAdd: Set<string>, ignoredRemove: Set<string>, ignoredUpdate: Set<string>, ignoredMove: Set<string> } | null} */
 let tmTransferSyncState = null;
+/** Prefill for + Squad after Transfermarkt Add — key: normalizeNameKey(player). */
+const tmTransferSquadPrefillByName = new Map();
 let matchEditId = "";
 let stadiumEditName = "";
+/** @type {{ leagueId: string, diff: object, tmByTeamId: object, ignoredAdd: Set<string>, ignoredLink: Set<string>, ignoredRename: Set<string>, ignoredRemove: Set<string> } | null} */
+let tmStadiumSyncState = null;
+let tmMatchdaySeason = currentSeasonStartYear();
+/** @type {{ leagueId: string, matchweek: number, season: number, tmFixtures: object[], diff: object, ignoredAdd: Set<string>, ignoredUpdate: Set<string>, ignoredRemove: Set<string> } | null} */
+let tmMatchdaySyncState = null;
 /** Preserves matchweek editor fields across renderPanel() (DOM is rebuilt each time). */
 let mwEditorDraft = null;
 /** Preserves squad depth editor across formation change re-renders. */
@@ -600,9 +607,13 @@ function getTmSyncVisibleDiff() {
   if (!tmSyncState?.diff) return null;
   const ignoreAdd = tmSyncState.ignoredAdd ?? new Set();
   const ignoreRemove = tmSyncState.ignoredRemove ?? new Set();
+  const ignoreUpdate = tmSyncState.ignoredUpdate ?? new Set();
   const toAdd = tmSyncState.diff.toAdd.filter((tm) => !ignoreAdd.has(tmSyncNameKey(tm.name)));
   const toRemove = tmSyncState.diff.toRemove.filter((p) => !ignoreRemove.has(p.id));
-  return { ...tmSyncState.diff, toAdd, toRemove };
+  const toUpdate = (tmSyncState.diff.toUpdate ?? []).filter(
+    (row) => !ignoreUpdate.has(row.local?.id),
+  );
+  return { ...tmSyncState.diff, toAdd, toRemove, toUpdate };
 }
 
 function tmSyncAvailableForTeam(team) {
@@ -654,6 +665,19 @@ function saveTeamTransfermarktLink(team, urlRaw) {
   return { ok: true, message: `Saved Transfermarkt club #${clubId}`, clubId };
 }
 
+function tmSyncUpdateMeta(row) {
+  const tm = row?.tm ?? {};
+  const changes = (row?.changes ?? []).join(", ");
+  return [
+    tm.number != null ? `#${tm.number}` : "No #",
+    tm.role || tm.pos || "",
+    tm.nationality || "",
+    changes ? `update ${changes}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function tmSyncStatusHtml(team, teamId) {
   if (!teamId || !team) {
     return `<span class="players-tm-sync__hint admin-muted">Select a team to compare with Transfermarkt.</span>`;
@@ -665,7 +689,7 @@ function tmSyncStatusHtml(team, teamId) {
     return `<span class="players-tm-sync__hint admin-muted">Use <strong>serve.bat</strong> on your computer for Transfermarkt Refresh — it cannot run on phone / GitHub Pages.</span>`;
   }
   if (!tmSyncState) {
-    return `<span class="players-tm-sync__hint admin-muted">Compare your squad with Transfermarkt and apply add/remove suggestions.</span>`;
+    return `<span class="players-tm-sync__hint admin-muted">Compare your squad with Transfermarkt and apply add/remove/sync suggestions.</span>`;
   }
   const diff = getTmSyncVisibleDiff() ?? tmSyncState.diff;
   const parts = [
@@ -675,8 +699,11 @@ function tmSyncStatusHtml(team, teamId) {
   ];
   if (diff.toAdd.length) parts.push(`${diff.toAdd.length} to add`);
   if (diff.toRemove.length) parts.push(`${diff.toRemove.length} to remove`);
+  if ((diff.toUpdate ?? []).length) parts.push(`${diff.toUpdate.length} details to sync`);
   const ignored =
-    (tmSyncState.ignoredAdd?.size ?? 0) + (tmSyncState.ignoredRemove?.size ?? 0);
+    (tmSyncState.ignoredAdd?.size ?? 0) +
+    (tmSyncState.ignoredRemove?.size ?? 0) +
+    (tmSyncState.ignoredUpdate?.size ?? 0);
   if (ignored) parts.push(`${ignored} ignored`);
   return `<span class="players-tm-sync__hint">${esc(parts.join(" · "))}</span>`;
 }
@@ -685,11 +712,14 @@ function tmSyncPanelHtml(team, teamId) {
   if (!teamId || !team) return "";
 
   const diff = getTmSyncVisibleDiff();
-  const hasDiff = diff && (diff.toAdd.length || diff.toRemove.length);
+  const hasDiff =
+    diff && (diff.toAdd.length || diff.toRemove.length || (diff.toUpdate ?? []).length);
   const emptyMsg =
     tmSyncState && !hasDiff
       ? `<p class="players-tm-sync__empty admin-muted mb-0">${
-          (tmSyncState.ignoredAdd?.size ?? 0) + (tmSyncState.ignoredRemove?.size ?? 0)
+          (tmSyncState.ignoredAdd?.size ?? 0) +
+          (tmSyncState.ignoredRemove?.size ?? 0) +
+          (tmSyncState.ignoredUpdate?.size ?? 0)
             ? "No open suggestions — ignored items are hidden until you refresh."
             : "Squad matches Transfermarkt — no changes suggested."
         }</p>`
@@ -730,9 +760,34 @@ function tmSyncPanelHtml(team, teamId) {
       )
       .join("") ?? "";
 
+  const updateRows =
+    (diff?.toUpdate ?? [])
+      .map(
+        (row) => `<li class="players-tm-sync__item players-tm-sync__item--update">
+        <div class="players-tm-sync__copy">
+          <strong>${esc(stripCaptainSuffix(row.local.name))}</strong>
+          <span class="players-tm-sync__meta">${esc(tmSyncUpdateMeta(row))}</span>
+        </div>
+        <div class="players-tm-sync__actions">
+          <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-sync-id="${esc(row.local.id)}">Sync</button>
+          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-update="${esc(row.local.id)}" title="Ignore" aria-label="Ignore detail sync">×</button>
+        </div>
+      </li>`,
+      )
+      .join("") ?? "";
+
   const localReady = tmSyncLocalProxyReady();
   const canRefresh = localReady && tmSyncAvailableForTeam(team);
   const savedUrl = esc(tmUrlValueForTeam(team));
+  const bulkBar =
+    hasDiff
+      ? `<div class="players-tm-sync__bulk">
+          ${diff.toAdd.length ? `<button type="button" class="mw-btn-primary players-auto-btn" id="btnTmAddAll">Add all (${diff.toAdd.length})</button>` : ""}
+          ${(diff.toUpdate ?? []).length ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmSyncAll">Sync details (${diff.toUpdate.length})</button>` : ""}
+          ${diff.toRemove.length ? `<button type="button" class="mw-btn-danger players-auto-btn" id="btnTmRemoveAll">Remove all (${diff.toRemove.length})</button>` : ""}
+        </div>`
+      : "";
+
   return `
     <div class="players-tm-sync" id="playersTmSync">
       <div class="players-tm-sync__link-row">
@@ -748,14 +803,23 @@ function tmSyncPanelHtml(team, teamId) {
         </div>
         <span class="players-tm-sync__status" id="playersTmSyncStatus">${tmSyncStatusHtml(team, teamId)}</span>
       </div>
+      ${bulkBar}
       <div class="players-tm-sync__body${hasDiff || emptyMsg ? "" : " admin-hidden"}" id="playersTmSyncBody">
         ${
           hasDiff
-            ? `<div class="players-tm-sync__cols">
+            ? `<div class="players-tm-sync__cols${(diff.toUpdate ?? []).length ? " players-tm-sync__cols--3" : ""}">
           <div class="players-tm-sync__col">
             <h4 class="players-tm-sync__title">On Transfermarkt — add to squad</h4>
             <ul class="players-tm-sync__list">${addRows || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
           </div>
+          ${
+            (diff.toUpdate ?? []).length
+              ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">Matched — sync details</h4>
+            <ul class="players-tm-sync__list">${updateRows || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
+          </div>`
+              : ""
+          }
           <div class="players-tm-sync__col">
             <h4 class="players-tm-sync__title">Not on Transfermarkt — remove from squad</h4>
             <ul class="players-tm-sync__list">${removeRows || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
@@ -767,9 +831,10 @@ function tmSyncPanelHtml(team, teamId) {
     </div>`;
 }
 
-function nextFreeJerseyNumber(teamId) {
+function nextFreeJerseyNumber(teamId, excludePlayerId = null) {
   const used = new Set(
     playersForTeam(teamId)
+      .filter((p) => p.id !== excludePlayerId)
       .map((p) => Number(p.number))
       .filter((n) => Number.isFinite(n) && n > 0),
   );
@@ -779,23 +844,38 @@ function nextFreeJerseyNumber(teamId) {
   return null;
 }
 
-function addPlayerFromTransfermarkt(teamId, tmPlayer) {
-  const name = stripCaptainSuffix(String(tmPlayer?.name ?? "").trim());
-  if (!teamId || !name) return false;
-  if (rosterPlayerByName(teamId, name)) {
-    toast("Player is already on the squad");
-    return false;
+function rosterPlayerByLooseName(teamId, name) {
+  const exact = rosterPlayerByName(teamId, name);
+  if (exact) return exact;
+  if (!teamId || !name || typeof TransfermarktSync === "undefined") return null;
+  return (
+    playersForTeam(teamId).find((p) => TransfermarktSync.namesLooselyMatch?.(p.name, name)) ?? null
+  );
+}
+
+function addPlayerFromTransfermarkt(teamId, tmPlayer, { quiet = false } = {}) {
+  const raw = stripCaptainSuffix(String(tmPlayer?.name ?? "").trim());
+  const name =
+    typeof TransfermarktSync !== "undefined" && TransfermarktSync.toAsciiName
+      ? TransfermarktSync.toAsciiName(raw)
+      : raw;
+  if (!teamId || !name) return null;
+  if (rosterPlayerByLooseName(teamId, name)) {
+    if (!quiet) toast("Player is already on the squad (close name match)");
+    return null;
   }
   let number = Number(tmPlayer.number);
+  let reassigned = false;
   if (!Number.isFinite(number) || number < 1) {
     number = nextFreeJerseyNumber(teamId);
-    if (number == null) {
-      toast("No free jersey number left (1–99) — set one manually");
-      return false;
-    }
+    reassigned = true;
   } else if (playersForTeam(teamId).some((p) => Number(p.number) === number)) {
-    toast(`Jersey #${number} is already used — edit the player manually`);
-    return false;
+    number = nextFreeJerseyNumber(teamId);
+    reassigned = true;
+  }
+  if (number == null) {
+    if (!quiet) toast("No free jersey number left (1–99) — set one manually");
+    return null;
   }
   const pos = String(tmPlayer.pos ?? "MF").trim().toUpperCase();
   const role = String(tmPlayer.role ?? "CM").trim().toUpperCase();
@@ -817,7 +897,49 @@ function addPlayerFromTransfermarkt(teamId, tmPlayer) {
     sortOrder: maxOrder + 1,
   });
   syncToAppArrays();
-  return number;
+  return { number, reassigned, name };
+}
+
+function syncPlayerDetailsFromTransfermarkt(teamId, updateRow, { quiet = false } = {}) {
+  const local = updateRow?.local;
+  const tm = updateRow?.tm;
+  if (!teamId || !local?.id || !tm) return { ok: false, skippedNumber: false };
+  const live = state().players.find((p) => p.id === local.id);
+  if (!live || live.teamId !== teamId) return { ok: false, skippedNumber: false };
+
+  const next = { ...live };
+  let skippedNumber = false;
+  const tmNumber = Number(tm.number);
+  if (Number.isFinite(tmNumber) && tmNumber > 0 && Number(live.number) !== tmNumber) {
+    const taken = playersForTeam(teamId).some(
+      (p) => p.id !== live.id && Number(p.number) === tmNumber,
+    );
+    if (taken) skippedNumber = true;
+    else next.number = tmNumber;
+  }
+  const pos = String(tm.pos ?? "").trim().toUpperCase();
+  if (["GK", "DF", "MF", "FW"].includes(pos)) next.pos = pos;
+  const role = String(tm.role ?? "").trim().toUpperCase();
+  if (role) next.role = role;
+  const nationality = String(tm.nationality ?? "").trim();
+  if (nationality) {
+    next.nationality = nationality;
+    if (typeof NationalityFlags !== "undefined") {
+      next.flag = NationalityFlags.getFlag(nationality) || next.flag || "";
+    }
+  }
+  FCDataStore.upsertPlayer(next);
+  syncToAppArrays();
+  if (!quiet && skippedNumber) {
+    toast(`Synced ${stripCaptainSuffix(live.name)} — jersey #${tmNumber} already used, number left unchanged`);
+  }
+  return { ok: true, skippedNumber, name: stripCaptainSuffix(live.name) };
+}
+
+function recalculateTmSquadDiff(teamId) {
+  if (!tmSyncState || typeof TransfermarktSync === "undefined") return;
+  const local = playersForTeam(teamId);
+  tmSyncState.diff = TransfermarktSync.compareSquads(local, tmSyncState.tmPlayers);
 }
 
 async function refreshTransfermarktSquad(team) {
@@ -847,11 +969,18 @@ async function refreshTransfermarktSquad(team) {
   try {
     const local = playersForTeam(liveTeam.id);
     const result = await TransfermarktSync.fetchAndCompare(local, clubId);
-    tmSyncState = { ...result, clubId, ignoredAdd: new Set(), ignoredRemove: new Set() };
+    tmSyncState = {
+      ...result,
+      clubId,
+      ignoredAdd: new Set(),
+      ignoredRemove: new Set(),
+      ignoredUpdate: new Set(),
+    };
     const visible = getTmSyncVisibleDiff();
+    const updateCount = visible.toUpdate?.length ?? 0;
     toast(
-      visible.toAdd.length || visible.toRemove.length
-        ? `Transfermarkt: ${visible.toAdd.length} to add, ${visible.toRemove.length} to remove`
+      visible.toAdd.length || visible.toRemove.length || updateCount
+        ? `Transfermarkt: ${visible.toAdd.length} to add, ${updateCount} to sync, ${visible.toRemove.length} to remove`
         : "Squad matches Transfermarkt",
     );
     renderPanel();
@@ -876,37 +1005,108 @@ async function refreshTransfermarktSquad(team) {
   }
 }
 
-function applyTransfermarktSuggestion(teamId, { addKey = null, removeId = null } = {}) {
+function applyTransfermarktSuggestion(teamId, { addKey = null, removeId = null, syncId = null } = {}) {
   if (!teamId || !tmSyncState?.diff) return;
   if (addKey) {
     const tm = tmSyncState.diff.toAdd.find((t) => tmSyncNameKey(t.name) === addKey);
     if (!tm) return;
-    const addedNumber = addPlayerFromTransfermarkt(teamId, tm);
-    if (!addedNumber) return;
+    const added = addPlayerFromTransfermarkt(teamId, tm);
+    if (!added) return;
     toast(
-      tm.number == null || !(Number(tm.number) > 0)
-        ? `${tm.name} added as #${addedNumber} (no jersey on Transfermarkt)`
-        : `${tm.name} added`,
+      added.reassigned
+        ? `${added.name} added as #${added.number}`
+        : `${added.name} added`,
     );
   } else if (removeId) {
     if (!confirm("Remove this player from the squad?")) return;
     FCDataStore.removePlayer(removeId);
     syncToAppArrays();
     toast("Player removed");
+  } else if (syncId) {
+    const row = (tmSyncState.diff.toUpdate ?? []).find((u) => u.local?.id === syncId);
+    if (!row) return;
+    const result = syncPlayerDetailsFromTransfermarkt(teamId, row);
+    if (!result.ok) return;
+    if (!result.skippedNumber) toast(`${result.name} details synced`);
   } else {
     return;
   }
-  const local = playersForTeam(teamId);
-  tmSyncState.diff = TransfermarktSync.compareSquads(local, tmSyncState.tmPlayers);
+  recalculateTmSquadDiff(teamId);
   renderPanel();
 }
 
-function ignoreTransfermarktSuggestion({ addKey = null, removeId = null } = {}) {
+function applyAllTransfermarktAdds(teamId) {
+  const diff = getTmSyncVisibleDiff();
+  if (!teamId || !diff?.toAdd?.length) return;
+  let added = 0;
+  let reassigned = 0;
+  let failed = 0;
+  for (const tm of [...diff.toAdd]) {
+    const result = addPlayerFromTransfermarkt(teamId, tm, { quiet: true });
+    if (!result) {
+      failed += 1;
+      continue;
+    }
+    added += 1;
+    if (result.reassigned) reassigned += 1;
+  }
+  recalculateTmSquadDiff(teamId);
+  const bits = [`Added ${added}`];
+  if (reassigned) bits.push(`${reassigned} got a free jersey #`);
+  if (failed) bits.push(`${failed} skipped`);
+  toast(bits.join(" · "));
+  renderPanel();
+}
+
+function applyAllTransfermarktRemoves(teamId) {
+  const diff = getTmSyncVisibleDiff();
+  if (!teamId || !diff?.toRemove?.length) return;
+  if (
+    !confirm(
+      `Remove ${diff.toRemove.length} player${diff.toRemove.length === 1 ? "" : "s"} not on Transfermarkt from this squad?`,
+    )
+  ) {
+    return;
+  }
+  for (const p of [...diff.toRemove]) {
+    FCDataStore.removePlayer(p.id);
+  }
+  syncToAppArrays();
+  recalculateTmSquadDiff(teamId);
+  toast(`Removed ${diff.toRemove.length} player${diff.toRemove.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function applyAllTransfermarktUpdates(teamId) {
+  const diff = getTmSyncVisibleDiff();
+  if (!teamId || !diff?.toUpdate?.length) return;
+  let synced = 0;
+  let skippedNumber = 0;
+  for (const row of [...diff.toUpdate]) {
+    const result = syncPlayerDetailsFromTransfermarkt(teamId, row, { quiet: true });
+    if (!result.ok) continue;
+    synced += 1;
+    if (result.skippedNumber) skippedNumber += 1;
+  }
+  recalculateTmSquadDiff(teamId);
+  const bits = [`Synced ${synced}`];
+  if (skippedNumber) bits.push(`${skippedNumber} jersey # left unchanged (already used)`);
+  toast(bits.join(" · "));
+  renderPanel();
+}
+
+function ignoreTransfermarktSuggestion({
+  addKey = null,
+  removeId = null,
+  updateId = null,
+} = {}) {
   if (!tmSyncState) return;
   if (!tmSyncState.ignoredAdd) tmSyncState.ignoredAdd = new Set();
   if (!tmSyncState.ignoredRemove) tmSyncState.ignoredRemove = new Set();
+  if (!tmSyncState.ignoredUpdate) tmSyncState.ignoredUpdate = new Set();
   if (addKey) tmSyncState.ignoredAdd.add(addKey);
   if (removeId) tmSyncState.ignoredRemove.add(removeId);
+  if (updateId) tmSyncState.ignoredUpdate.add(updateId);
   toast("Suggestion ignored");
   renderPanel();
 }
@@ -926,6 +1126,9 @@ function bindTransfermarktSync(team) {
     $("#btnSaveTmUrl")?.click();
   });
   $("#btnTmRefresh")?.addEventListener("click", () => refreshTransfermarktSquad(team));
+  $("#btnTmAddAll")?.addEventListener("click", () => applyAllTransfermarktAdds(team?.id));
+  $("#btnTmRemoveAll")?.addEventListener("click", () => applyAllTransfermarktRemoves(team?.id));
+  $("#btnTmSyncAll")?.addEventListener("click", () => applyAllTransfermarktUpdates(team?.id));
   $("#playersTmSync")?.addEventListener("click", (e) => {
     const addBtn = e.target instanceof Element ? e.target.closest("[data-tm-add-key]") : null;
     if (addBtn) {
@@ -937,6 +1140,11 @@ function bindTransfermarktSync(team) {
       applyTransfermarktSuggestion(team?.id, { removeId: removeBtn.getAttribute("data-tm-remove") });
       return;
     }
+    const syncBtn = e.target instanceof Element ? e.target.closest("[data-tm-sync-id]") : null;
+    if (syncBtn) {
+      applyTransfermarktSuggestion(team?.id, { syncId: syncBtn.getAttribute("data-tm-sync-id") });
+      return;
+    }
     const ignoreAddBtn = e.target instanceof Element ? e.target.closest("[data-tm-ignore-add]") : null;
     if (ignoreAddBtn) {
       ignoreTransfermarktSuggestion({ addKey: ignoreAddBtn.getAttribute("data-tm-ignore-add") });
@@ -945,6 +1153,13 @@ function bindTransfermarktSync(team) {
     const ignoreRemoveBtn = e.target instanceof Element ? e.target.closest("[data-tm-ignore-remove]") : null;
     if (ignoreRemoveBtn) {
       ignoreTransfermarktSuggestion({ removeId: ignoreRemoveBtn.getAttribute("data-tm-ignore-remove") });
+      return;
+    }
+    const ignoreUpdateBtn = e.target instanceof Element ? e.target.closest("[data-tm-ignore-update]") : null;
+    if (ignoreUpdateBtn) {
+      ignoreTransfermarktSuggestion({
+        updateId: ignoreUpdateBtn.getAttribute("data-tm-ignore-update"),
+      });
     }
   });
 }
@@ -1725,6 +1940,299 @@ function afterLeagueChange() {
   if (typeof syncLeagueConfigFromStore === "function") syncLeagueConfigFromStore();
 }
 
+function tmMatchdayFixtureKey(row) {
+  if (row?.local?.id) return `id:${row.local.id}`;
+  if (row?.id) return `id:${row.id}`;
+  const home = row?.homeTeamId || row?.tm?.homeTeamId || "";
+  const away = row?.awayTeamId || row?.tm?.awayTeamId || "";
+  return `pair:${home}|${away}`;
+}
+
+function tmMatchdayVisibleDiff() {
+  if (!tmMatchdaySyncState?.diff) return null;
+  const ignoreAdd = tmMatchdaySyncState.ignoredAdd ?? new Set();
+  const ignoreUpdate = tmMatchdaySyncState.ignoredUpdate ?? new Set();
+  const ignoreRemove = tmMatchdaySyncState.ignoredRemove ?? new Set();
+  const diff = tmMatchdaySyncState.diff;
+  return {
+    ...diff,
+    toAdd: (diff.toAdd ?? []).filter((row) => !ignoreAdd.has(tmMatchdayFixtureKey(row))),
+    toUpdate: (diff.toUpdate ?? []).filter((row) => !ignoreUpdate.has(tmMatchdayFixtureKey(row))),
+    toRemove: (diff.toRemove ?? []).filter((row) => !ignoreRemove.has(tmMatchdayFixtureKey(row))),
+  };
+}
+
+function tmMatchdaySyncStatusHtml(matchweek) {
+  if (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter)) {
+    return `<span class="players-tm-sync__hint admin-muted">World Cup fixtures are managed manually.</span>`;
+  }
+  if (!tmSyncLocalProxyReady()) {
+    return `<span class="players-tm-sync__hint admin-muted">Use <strong>serve.bat</strong> on your computer — Transfermarkt comparison cannot run on phone / GitHub Pages.</span>`;
+  }
+  const compId =
+    typeof TransfermarktTeams !== "undefined"
+      ? TransfermarktTeams.competitionIdForLeague?.(leagueFilter)
+      : null;
+  if (!compId) {
+    return `<span class="players-tm-sync__hint admin-muted">No Transfermarkt competition mapping for this league yet.</span>`;
+  }
+  if (
+    !tmMatchdaySyncState ||
+    tmMatchdaySyncState.leagueId !== leagueFilter ||
+    tmMatchdaySyncState.matchweek !== matchweek
+  ) {
+    return `<span class="players-tm-sync__hint admin-muted">Compare MW ${matchweek} with Transfermarkt (${compId}) for the selected season.</span>`;
+  }
+  const diff = tmMatchdayVisibleDiff() ?? tmMatchdaySyncState.diff;
+  const parts = [
+    `${diff.tmTotal} on Transfermarkt`,
+    `${diff.localTotal} local`,
+    `${diff.matched} matched`,
+  ];
+  if (diff.toAdd?.length) parts.push(`${diff.toAdd.length} to add`);
+  if (diff.toUpdate?.length) parts.push(`${diff.toUpdate.length} to sync`);
+  if (diff.toRemove?.length) parts.push(`${diff.toRemove.length} to remove`);
+  if (diff.skipped?.length) parts.push(`${diff.skipped.length} skipped`);
+  const ignored =
+    (tmMatchdaySyncState.ignoredAdd?.size ?? 0) +
+    (tmMatchdaySyncState.ignoredUpdate?.size ?? 0) +
+    (tmMatchdaySyncState.ignoredRemove?.size ?? 0);
+  if (ignored) parts.push(`${ignored} ignored`);
+  return `<span class="players-tm-sync__hint">${esc(parts.join(" · "))}</span>`;
+}
+
+function tmMatchdayScoreLabel(score) {
+  if (!score) return "No score";
+  return `${score[0]}–${score[1]}`;
+}
+
+function tmMatchdaySyncPanelHtml(matchweek) {
+  if (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter)) return "";
+  if (
+    tmMatchdaySyncState &&
+    (tmMatchdaySyncState.leagueId !== leagueFilter || tmMatchdaySyncState.matchweek !== matchweek)
+  ) {
+    tmMatchdaySyncState = null;
+  }
+  const localReady = tmSyncLocalProxyReady();
+  const compId =
+    typeof TransfermarktTeams !== "undefined"
+      ? TransfermarktTeams.competitionIdForLeague?.(leagueFilter)
+      : null;
+  const canCompare = localReady && Boolean(compId);
+  const diff = tmMatchdayVisibleDiff();
+  const hasOpen =
+    diff && (diff.toAdd.length || diff.toUpdate.length || diff.toRemove.length);
+  const ignoredTotal =
+    (tmMatchdaySyncState?.ignoredAdd?.size ?? 0) +
+    (tmMatchdaySyncState?.ignoredUpdate?.size ?? 0) +
+    (tmMatchdaySyncState?.ignoredRemove?.size ?? 0);
+  const emptyMsg =
+    tmMatchdaySyncState && !hasOpen
+      ? `<p class="players-tm-sync__empty admin-muted mb-0">${
+          ignoredTotal
+            ? "No open suggestions — ignored items are hidden until you compare again."
+            : "This matchweek matches Transfermarkt."
+        }</p>`
+      : "";
+
+  const addRows =
+    diff?.toAdd
+      .map((row) => {
+        const key = tmMatchdayFixtureKey(row);
+        return `<li class="players-tm-sync__item players-tm-sync__item--add">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(row.homeTeamName)} vs ${esc(row.awayTeamName)}</strong>
+        <span class="players-tm-sync__meta">${esc(
+          [row.timeLabel || "", tmMatchdayScoreLabel(row.score), `${(row.goals ?? []).length} goals`]
+            .filter(Boolean)
+            .join(" · "),
+        )}</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-matchday-add="${esc(key)}">Add</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-matchday-ignore-add="${esc(key)}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`;
+      })
+      .join("") ?? "";
+
+  const updateRows =
+    diff?.toUpdate
+      .map((row) => {
+        const key = tmMatchdayFixtureKey(row);
+        const tm = row.tm;
+        return `<li class="players-tm-sync__item players-tm-sync__item--update">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(tm.homeTeamName)} vs ${esc(tm.awayTeamName)}</strong>
+        <span class="players-tm-sync__meta">${esc(
+          [tmMatchdayScoreLabel(tm.score), tm.timeLabel || "", `update ${(row.changes ?? []).join(", ")}`]
+            .filter(Boolean)
+            .join(" · "),
+        )}</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-matchday-sync="${esc(key)}">Sync</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-matchday-ignore-update="${esc(key)}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`;
+      })
+      .join("") ?? "";
+
+  const removeRows =
+    diff?.toRemove
+      .map((row) => {
+        const key = tmMatchdayFixtureKey(row);
+        const home = state().teams.find((t) => t.id === row.homeTeamId)?.name ?? row.homeTeamId;
+        const away = state().teams.find((t) => t.id === row.awayTeamId)?.name ?? row.awayTeamId;
+        return `<li class="players-tm-sync__item players-tm-sync__item--remove">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(home)} vs ${esc(away)}</strong>
+        <span class="players-tm-sync__meta">Only in Squad Central</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-danger players-tm-sync__apply" data-tm-matchday-remove="${esc(key)}">Remove</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-matchday-ignore-remove="${esc(key)}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`;
+      })
+      .join("") ?? "";
+
+  const bulkBar = hasOpen
+    ? `<div class="players-tm-sync__bulk">
+        ${diff.toAdd.length ? `<button type="button" class="mw-btn-primary players-auto-btn" id="btnTmMatchdayAddAll">Add all (${diff.toAdd.length})</button>` : ""}
+        ${diff.toUpdate.length ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmMatchdaySyncAll">Sync details (${diff.toUpdate.length})</button>` : ""}
+        ${diff.toRemove.length ? `<button type="button" class="mw-btn-danger players-auto-btn" id="btnTmMatchdayRemoveAll">Remove all (${diff.toRemove.length})</button>` : ""}
+      </div>`
+    : "";
+
+  const colCount =
+    (diff?.toAdd.length ? 1 : 0) +
+    (diff?.toUpdate.length ? 1 : 0) +
+    (diff?.toRemove.length ? 1 : 0);
+
+  return `
+    <div class="players-tm-sync matchweek-tm-sync" id="matchweekTmSync">
+      <div class="players-tm-sync__link-row matchweek-tm-sync__controls">
+        <div class="mw-field matchweek-tm-sync__season">
+          <label for="tmMatchdaySeason">Season starts</label>
+          <input id="tmMatchdaySeason" class="mw-input" type="number" min="1900" max="2100" step="1" value="${esc(tmMatchdaySeason)}" />
+        </div>
+        <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmMatchdayRefresh"${canCompare ? "" : " disabled"} title="${canCompare ? "Compare this matchweek with Transfermarkt" : localReady ? "No competition mapping for this league" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
+      </div>
+      <div class="players-tm-sync__head">
+        <span class="players-tm-sync__status" id="matchweekTmSyncStatus">${tmMatchdaySyncStatusHtml(matchweek)}</span>
+      </div>
+      ${bulkBar}
+      <div class="players-tm-sync__body${tmMatchdaySyncState || emptyMsg ? "" : " admin-hidden"}">
+        ${
+          hasOpen
+            ? `<div class="players-tm-sync__cols${colCount >= 3 ? " players-tm-sync__cols--3" : ""}">
+          ${
+            diff.toAdd.length
+              ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">On Transfermarkt — add fixtures</h4>
+            <ul class="players-tm-sync__list">${addRows}</ul>
+          </div>`
+              : ""
+          }
+          ${
+            diff.toUpdate.length
+              ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">Matched — sync details</h4>
+            <ul class="players-tm-sync__list">${updateRows}</ul>
+          </div>`
+              : ""
+          }
+          ${
+            diff.toRemove.length
+              ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">Only in Squad Central — remove</h4>
+            <ul class="players-tm-sync__list">${removeRows}</ul>
+          </div>`
+              : ""
+          }
+        </div>`
+            : emptyMsg
+        }
+      </div>
+    </div>`;
+}
+
+function leagueMatchweekCeiling(leagueId) {
+  let max = 38;
+  for (const m of state().matches ?? []) {
+    if (m.leagueId !== leagueId) continue;
+    const n =
+      typeof parseMatchweekNumber === "function"
+        ? parseMatchweekNumber(m.matchday)
+        : Number(String(m.matchday ?? "").match(/MW\s*(\d+)/i)?.[1]);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return Math.min(Math.max(max, 1), 50);
+}
+
+function matchweekFixtureCount(leagueId, weekNum) {
+  const list =
+    typeof filterMatchesForLeagueWeek === "function"
+      ? filterMatchesForLeagueWeek(state().matches, leagueId, weekNum)
+      : (state().matches ?? []).filter(
+          (m) => m.leagueId === leagueId && (m.matchday === `MW ${weekNum}` || !m.matchday),
+        );
+  return list.length;
+}
+
+function matchweekSelectField(leagueId, selected, opts = {}) {
+  const { id = "mwNum", label = "Matchweek", fieldClass = "mw-field mb-0" } = opts;
+  const sel = Number(selected);
+  const current = Number.isInteger(sel) && sel > 0 ? sel : 1;
+  const max = Math.max(leagueMatchweekCeiling(leagueId), current);
+  const options = [];
+  for (let n = 1; n <= max; n++) {
+    const count = matchweekFixtureCount(leagueId, n);
+    const countLabel = count ? ` · ${count}` : "";
+    options.push(
+      `<option value="${n}"${n === current ? " selected" : ""}>Matchweek ${n}${countLabel}</option>`,
+    );
+  }
+  return `<div class="${fieldClass}">
+    <label for="${id}">${label}</label>
+    <div class="mw-select-wrap">
+      <select id="${id}" class="mw-select" aria-label="${esc(label)}">${options.join("")}</select>
+    </div>
+  </div>`;
+}
+
+function applySelectedMatchweek(num, { toastMsg = false } = {}) {
+  if (!Number.isInteger(num) || num < 1) return false;
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const prev = Number(meta.matchweek) || 0;
+  const prevTitle = String(meta.matchweekTitle ?? "").trim();
+  const autoTitle =
+    !prevTitle ||
+    /^Matchweek\s+\d+$/i.test(prevTitle) ||
+    /^Gameweek\s+\d+$/i.test(prevTitle);
+  FCDataStore.setLeagueMeta(leagueFilter, {
+    ...meta,
+    matchweek: num,
+    matchweekTitle: autoTitle ? `Matchweek ${num}` : prevTitle,
+  });
+  matchEditId = "";
+  mwEditorDraft = null;
+  if (tmMatchdaySyncState && tmMatchdaySyncState.matchweek !== num) tmMatchdaySyncState = null;
+  syncToAppArrays();
+  if (toastMsg && prev !== num) toast(`Showing Matchweek ${num}`);
+  renderPanel();
+  return true;
+}
+
+function bindMatchweekFilterSelect() {
+  $("#mwNum")?.addEventListener("change", () => {
+    const num = Number($("#mwNum")?.value);
+    applySelectedMatchweek(num, { toastMsg: true });
+  });
+}
+
 function matchweekStats(matches) {
   let goals = 0;
   let withLineups = 0;
@@ -1770,15 +2278,15 @@ function panelLeague() {
     : "";
   const mwNumField = isWc
     ? ""
-    : `<div class="col-6 col-md-4">
-            <div class="mw-field">
-              <label for="mwNum">Gameweek number</label>
-              <input id="mwNum" class="mw-input" type="number" min="1" max="50" value="${esc(meta.matchweek ?? 36)}" />
-            </div>
+    : `<div class="col-12 col-md-4">
+            ${matchweekSelectField(leagueFilter, meta.matchweek ?? 36, {
+              id: "mwNum",
+              label: "Select matchweek",
+            })}
           </div>`;
   const settingsHint = isWc
     ? "Tournament title and dates shown above the full fixture list on the site."
-    : "Title and range shown above the fixture list on the site.";
+    : "Pick a matchweek to filter fixtures. Title and date range are shown on the public site.";
   const fixturesTitle = isWc ? "All fixtures" : `Fixtures <span class="mw-badge">MW ${mw}</span>`;
   const fixturesHint = isWc
     ? `${list.length} match${list.length === 1 ? "" : "es"} · every round is kept`
@@ -1846,6 +2354,7 @@ function panelLeague() {
         <div class="matchweek-settings-footer">
           <button type="button" class="mw-btn-primary matchweek-save-meta-btn" id="btnSaveMeta">${isWc ? "Save tournament header" : "Save matchweek header"}</button>
         </div>
+        ${tmMatchdaySyncPanelHtml(mw)}
       </section>
 
       <section class="mw-card mw-card--striped matchweek-fixtures-card">
@@ -1952,6 +2461,219 @@ function stadiumCardHtml(name, leagueId) {
   </article>`;
 }
 
+function tmStadiumNameKey(name) {
+  return typeof TransfermarktSync !== "undefined"
+    ? TransfermarktSync.normalizeNameKey(name)
+    : String(name ?? "")
+        .toLowerCase()
+        .trim();
+}
+
+function tmStadiumVisibleDiff() {
+  if (!tmStadiumSyncState?.diff) return null;
+  const ignoreAdd = tmStadiumSyncState.ignoredAdd ?? new Set();
+  const ignoreLink = tmStadiumSyncState.ignoredLink ?? new Set();
+  const ignoreRename = tmStadiumSyncState.ignoredRename ?? new Set();
+  const ignoreRemove = tmStadiumSyncState.ignoredRemove ?? new Set();
+  const diff = tmStadiumSyncState.diff;
+  return {
+    ...diff,
+    toAdd: (diff.toAdd ?? []).filter((row) => !ignoreAdd.has(tmStadiumNameKey(row.name))),
+    toLink: (diff.toLink ?? []).filter((row) => !ignoreLink.has(row.teamId)),
+    toRename: (diff.toRename ?? []).filter(
+      (row) => !ignoreRename.has(`${row.teamId}:${tmStadiumNameKey(row.from)}:${tmStadiumNameKey(row.to)}`),
+    ),
+    toRemove: (diff.toRemove ?? []).filter((row) => !ignoreRemove.has(tmStadiumNameKey(row.name))),
+  };
+}
+
+function tmStadiumSyncStatusHtml() {
+  if (leagueFilter === "worldcup") {
+    return `<span class="players-tm-sync__hint admin-muted">World Cup venues are managed manually — Transfermarkt club grounds do not apply.</span>`;
+  }
+  if (!tmSyncLocalProxyReady()) {
+    return `<span class="players-tm-sync__hint admin-muted">Use <strong>serve.bat</strong> on your computer — Transfermarkt comparison cannot run on phone / GitHub Pages.</span>`;
+  }
+  const teams = teamsForLeague(leagueFilter);
+  const withTm = teams.filter((t) => tmSyncAvailableForTeam(t)).length;
+  if (!withTm) {
+    return `<span class="players-tm-sync__hint admin-muted">Save Transfermarkt club links on the Teams (or Players) tab first.</span>`;
+  }
+  if (!tmStadiumSyncState || tmStadiumSyncState.leagueId !== leagueFilter) {
+    return `<span class="players-tm-sync__hint admin-muted">Compare this league’s stadiums and club links with Transfermarkt (${withTm} club${withTm === 1 ? "" : "s"} linked).</span>`;
+  }
+  const diff = tmStadiumVisibleDiff() ?? tmStadiumSyncState.diff;
+  const parts = [
+    `${diff.tmTotal} on Transfermarkt`,
+    `${diff.localTotal} in list`,
+    `${diff.matched} matched`,
+  ];
+  if (diff.toAdd?.length) parts.push(`${diff.toAdd.length} to add`);
+  if (diff.toLink?.length) parts.push(`${diff.toLink.length} to link`);
+  if (diff.toRename?.length) parts.push(`${diff.toRename.length} to rename`);
+  if (diff.toRemove?.length) parts.push(`${diff.toRemove.length} unused`);
+  if (diff.skipped?.length) parts.push(`${diff.skipped.length} skipped`);
+  if (diff.failed?.length) parts.push(`${diff.failed.length} failed`);
+  const ignored =
+    (tmStadiumSyncState.ignoredAdd?.size ?? 0) +
+    (tmStadiumSyncState.ignoredLink?.size ?? 0) +
+    (tmStadiumSyncState.ignoredRename?.size ?? 0) +
+    (tmStadiumSyncState.ignoredRemove?.size ?? 0);
+  if (ignored) parts.push(`${ignored} ignored`);
+  return `<span class="players-tm-sync__hint">${esc(parts.join(" · "))}</span>`;
+}
+
+function tmStadiumSyncPanelHtml() {
+  if (leagueFilter === "worldcup") return "";
+  if (tmStadiumSyncState && tmStadiumSyncState.leagueId !== leagueFilter) tmStadiumSyncState = null;
+  const localReady = tmSyncLocalProxyReady();
+  const teams = teamsForLeague(leagueFilter);
+  const withTm = teams.filter((t) => tmSyncAvailableForTeam(t)).length;
+  const canCompare = localReady && withTm > 0;
+  const diff = tmStadiumVisibleDiff();
+  const hasOpen =
+    diff &&
+    (diff.toAdd.length || diff.toLink.length || diff.toRename.length || diff.toRemove.length);
+  const ignoredTotal =
+    (tmStadiumSyncState?.ignoredAdd?.size ?? 0) +
+    (tmStadiumSyncState?.ignoredLink?.size ?? 0) +
+    (tmStadiumSyncState?.ignoredRename?.size ?? 0) +
+    (tmStadiumSyncState?.ignoredRemove?.size ?? 0);
+  const emptyMsg =
+    tmStadiumSyncState && !hasOpen
+      ? `<p class="players-tm-sync__empty admin-muted mb-0">${
+          ignoredTotal
+            ? "No open suggestions — ignored items are hidden until you compare again."
+            : "Stadiums and club links match Transfermarkt."
+        }</p>`
+      : "";
+
+  const addRows =
+    diff?.toAdd
+      .map(
+        (row) => `<li class="players-tm-sync__item players-tm-sync__item--add">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(row.name)}</strong>
+        <span class="players-tm-sync__meta">Add to league list</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-stadium-add="${esc(tmStadiumNameKey(row.name))}">Add</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-stadium-ignore-add="${esc(tmStadiumNameKey(row.name))}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`,
+      )
+      .join("") ?? "";
+
+  const linkRows =
+    diff?.toLink
+      .map(
+        (row) => `<li class="players-tm-sync__item players-tm-sync__item--update">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(row.teamName)}</strong>
+        <span class="players-tm-sync__meta">${esc(
+          row.from ? `${row.from} → ${row.to}` : `Set ${row.to}`,
+        )}</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-stadium-link="${esc(row.teamId)}">Link</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-stadium-ignore-link="${esc(row.teamId)}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`,
+      )
+      .join("") ?? "";
+
+  const renameRows =
+    diff?.toRename
+      .map((row) => {
+        const key = `${row.teamId}:${tmStadiumNameKey(row.from)}:${tmStadiumNameKey(row.to)}`;
+        return `<li class="players-tm-sync__item players-tm-sync__item--move">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(row.teamName)}</strong>
+        <span class="players-tm-sync__meta">${esc(`${row.from} → ${row.to}`)}</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-stadium-rename="${esc(key)}">Rename</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-stadium-ignore-rename="${esc(key)}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`;
+      })
+      .join("") ?? "";
+
+  const removeRows =
+    diff?.toRemove
+      .map(
+        (row) => `<li class="players-tm-sync__item players-tm-sync__item--remove">
+      <div class="players-tm-sync__copy">
+        <strong>${esc(row.name)}</strong>
+        <span class="players-tm-sync__meta">Unused in this league</span>
+      </div>
+      <div class="players-tm-sync__actions">
+        <button type="button" class="mw-btn-danger players-tm-sync__apply" data-tm-stadium-remove="${esc(tmStadiumNameKey(row.name))}">Remove</button>
+        <button type="button" class="players-tm-sync__dismiss" data-tm-stadium-ignore-remove="${esc(tmStadiumNameKey(row.name))}" title="Ignore" aria-label="Ignore">×</button>
+      </div>
+    </li>`,
+      )
+      .join("") ?? "";
+
+  const bulkBar = hasOpen
+    ? `<div class="players-tm-sync__bulk">
+        ${diff.toAdd.length ? `<button type="button" class="mw-btn-primary players-auto-btn" id="btnTmStadiumAddAll">Add all (${diff.toAdd.length})</button>` : ""}
+        ${diff.toLink.length ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmStadiumLinkAll">Link all (${diff.toLink.length})</button>` : ""}
+        ${diff.toRename.length ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmStadiumRenameAll">Apply renames (${diff.toRename.length})</button>` : ""}
+        ${diff.toRemove.length ? `<button type="button" class="mw-btn-danger players-auto-btn" id="btnTmStadiumRemoveAll">Remove unused (${diff.toRemove.length})</button>` : ""}
+      </div>`
+    : "";
+
+  const colCount =
+    (diff?.toAdd.length ? 1 : 0) +
+    (diff?.toLink.length || diff?.toRename.length ? 1 : 0) +
+    (diff?.toRemove.length ? 1 : 0);
+
+  const middleCol =
+    diff?.toLink.length || diff?.toRename.length
+      ? `<div class="players-tm-sync__col">
+          <h4 class="players-tm-sync__title">Clubs — link / rename</h4>
+          <ul class="players-tm-sync__list">${linkRows}${renameRows}</ul>
+        </div>`
+      : "";
+
+  return `
+    <div class="players-tm-sync stadiums-tm-sync" id="stadiumsTmSync">
+      <div class="players-tm-sync__head">
+        <div class="players-toolbar-actions">
+          <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmStadiumRefresh"${canCompare ? "" : " disabled"} title="${canCompare ? "Compare stadiums with Transfermarkt" : localReady ? "Save Transfermarkt club links on Teams first" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
+        </div>
+        <span class="players-tm-sync__status" id="stadiumsTmSyncStatus">${tmStadiumSyncStatusHtml()}</span>
+      </div>
+      ${bulkBar}
+      <div class="players-tm-sync__body${tmStadiumSyncState || emptyMsg ? "" : " admin-hidden"}">
+        ${
+          hasOpen
+            ? `<div class="players-tm-sync__cols${colCount >= 3 ? " players-tm-sync__cols--3" : ""}">
+          ${
+            diff.toAdd.length
+              ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">On Transfermarkt — add to list</h4>
+            <ul class="players-tm-sync__list">${addRows}</ul>
+          </div>`
+              : ""
+          }
+          ${middleCol}
+          ${
+            diff.toRemove.length
+              ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">Unused in Squad Central</h4>
+            <ul class="players-tm-sync__list">${removeRows}</ul>
+          </div>`
+              : ""
+          }
+        </div>`
+            : emptyMsg
+        }
+      </div>
+    </div>`;
+}
+
 function panelStadiums() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const list = stadiumsForLeague(leagueFilter);
@@ -2009,6 +2731,7 @@ function panelStadiums() {
             </div>
           </div>
         </div>
+        ${tmStadiumSyncPanelHtml()}
         ${listBody}
       </section>
 
@@ -2018,7 +2741,7 @@ function panelStadiums() {
           <div class="mw-card-head__icon mw-card-head__icon--stadium-add" aria-hidden="true"></div>
           <div>
             <h3 id="stadiumFormTitle">${editing ? "Edit stadium" : "Add stadium"}</h3>
-            <p>${editing ? `Renaming updates fixtures that use “${esc(stadiumEditName)}”.` : "New venues appear in the Matchweek stadium dropdown."}</p>
+            <p>${editing ? `Renaming updates fixtures and clubs that use “${esc(stadiumEditName)}”.` : "New venues appear in the Matchweek stadium dropdown."}</p>
           </div>
         </div>
         <input type="hidden" id="stadiumEditName" value="${esc(stadiumEditName)}" />
@@ -2160,7 +2883,7 @@ function panelTeams() {
           <div class="mw-card-head__icon mw-card-head__icon--team-add" aria-hidden="true"></div>
           <div>
             <h3 id="teamFormTitle">Add team</h3>
-            <p>Formation is used in Club Spotlight and squad depth on the site. Stadiums are managed per league in the <strong>Stadiums</strong> tab.</p>
+            <p>Formation is used in Club Spotlight and squad depth on the site. Home stadium links appear on the Stadiums tab.</p>
           </div>
         </div>
         <input type="hidden" id="teamEditId" value="" />
@@ -2178,10 +2901,13 @@ function panelTeams() {
             <div class="mw-field"><label for="teamCoach">Coach</label><input id="teamCoach" class="mw-input" autocomplete="off" /></div>
           </div>
           <div class="col-12 col-md-6">
+            ${stadiumSelectField(leagueFilter, "", { id: "teamStadium", label: "Home stadium", note: "Optional. Manage the league list in the Stadiums tab, or use Compare with Transfermarkt there." })}
+          </div>
+          <div class="col-12 col-md-6">
             <div class="mw-field"><label for="teamLogo">Logo path</label><input id="teamLogo" class="mw-input" placeholder="./images/premierleague/arsenal.png" autocomplete="off" /></div>
           </div>
           <div class="col-12">
-            <div class="mw-field"><label for="teamTmUrlForm">Transfermarkt club link</label><input id="teamTmUrlForm" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" autocomplete="off" /><span class="admin-muted" style="display:block;margin-top:6px;font-size:12px">Optional. Used by Players → Refresh from Transfermarkt (needs serve.bat).</span></div>
+            <div class="mw-field"><label for="teamTmUrlForm">Transfermarkt club link</label><input id="teamTmUrlForm" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" autocomplete="off" /><span class="admin-muted" style="display:block;margin-top:6px;font-size:12px">Optional. Used by Players / Transfers / Stadiums Transfermarkt tools (needs serve.bat).</span></div>
           </div>
           <div class="col-6 col-md-6 col-lg-3">
             <div class="mw-field"><label for="teamC1">Color 1</label><input id="teamC1" class="mw-input mw-input--color" type="color" value="#2de2e6" /></div>
@@ -2511,7 +3237,106 @@ function nationalDutyStatChipsHtml(stats) {
 
 function nationalDutyEmptyListHtml() {
   return `<div class="nationalduty-empty-list">
-    <p class="nationalduty-empty-list__text">No players on national duty yet — use <strong>Add player</strong> below.</p>
+    <p class="nationalduty-empty-list__text">No players on national duty yet — use <strong>Add player</strong> or <strong>Add by nationality</strong> below.</p>
+  </div>`;
+}
+
+function nationalDutyWindowFromMeta(meta) {
+  if (typeof NationalDuty !== "undefined") {
+    return NationalDuty.normalizeWindow({
+      from: meta?.nationalDutyFrom,
+      until: meta?.nationalDutyUntil,
+    });
+  }
+  return {
+    from: String(meta?.nationalDutyFrom ?? "").trim(),
+    until: String(meta?.nationalDutyUntil ?? "").trim(),
+  };
+}
+
+function nationalDutyWindowStatus(meta) {
+  const window = nationalDutyWindowFromMeta(meta);
+  if (typeof NationalDuty !== "undefined") return NationalDuty.windowStatus(window);
+  if (!window.from && !window.until) {
+    return { key: "missing", label: "Missing dates", active: false, window };
+  }
+  return { key: "inactive", label: "Not active", active: false, window };
+}
+
+function nationalDutyWindowBarHtml(meta) {
+  const status = nationalDutyWindowStatus(meta);
+  const { from, until } = status.window;
+  return `<section class="mw-card mw-card--striped nationalduty-window-card">
+    <div class="mw-card__stripe mw-card__stripe--transfer" aria-hidden="true"></div>
+    <div class="mw-card-head mw-card-head--icon">
+      <div class="mw-card-head__icon mw-card-head__icon--duty" aria-hidden="true"></div>
+      <div>
+        <h3>Live window</h3>
+        <p>Live Squads only shows national duty inside this date range. Leave both blank to hide duty on the public site.</p>
+      </div>
+    </div>
+    <div class="nationalduty-window-bar">
+      <div class="row g-2 g-md-3 align-items-end">
+        <div class="col-6 col-md-3 col-lg-2">
+          <div class="mw-field mb-0">
+            <label for="ndWindowFrom">From</label>
+            <input id="ndWindowFrom" class="mw-input" type="date" value="${esc(from)}" />
+          </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <div class="mw-field mb-0">
+            <label for="ndWindowUntil">Until</label>
+            <input id="ndWindowUntil" class="mw-input" type="date" value="${esc(until)}" />
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="nationalduty-window-status nationalduty-window-status--${esc(status.key)}" id="ndWindowStatus">
+            <span class="nationalduty-window-status__label">${esc(status.label)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+function nationalDutyNationalityOptions(roster, selected = []) {
+  const counts = new Map();
+  for (const p of roster ?? []) {
+    const nat = String(p.nationality ?? "").trim();
+    if (!nat) continue;
+    counts.set(nat, (counts.get(nat) || 0) + 1);
+  }
+  const selectedSet = new Set(selected);
+  return [...counts.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([nat, n]) => {
+      const sel = selectedSet.has(nat) ? " selected" : "";
+      return `<option value="${esc(nat)}"${sel}>${esc(nat)} · ${n}</option>`;
+    })
+    .join("");
+}
+
+function nationalDutyBulkBarHtml(roster) {
+  const natOpts = nationalDutyNationalityOptions(roster);
+  return `<div class="nationalduty-bulk-bar">
+    <div class="nationalduty-bulk-bar__row">
+      <div class="mw-field mb-0 nationalduty-bulk-bar__nats">
+        <label for="ndBulkNats">Add by nationality</label>
+        <div class="mw-select-wrap">
+          <select id="ndBulkNats" class="mw-select" multiple size="4" aria-label="Nationalities to add"${
+            natOpts ? "" : " disabled"
+          }>
+            ${natOpts || `<option value="">No nationalities on squad</option>`}
+          </select>
+        </div>
+        <p class="mw-field-note admin-muted">Hold Ctrl/Cmd to pick several. Adds roster players not already on duty.</p>
+      </div>
+      <div class="nationalduty-bulk-bar__actions">
+        <button type="button" class="mw-btn-ghost" id="btnNdAddByNat"${natOpts ? "" : " disabled"}>Add selected</button>
+        <button type="button" class="mw-btn-ghost" id="btnNdApplyUntil">Apply window until</button>
+        <button type="button" class="mw-btn-danger" id="btnNdClearAll">Clear all</button>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -2580,6 +3405,7 @@ function readNationalDutyFromDom() {
 function panelNationalDuty() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const isWorldCup = leagueFilter === "worldcup";
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
   const teams = teamsForLeague(leagueFilter);
   if (!teams.length) nationalDutyTeamFilter = "";
   else if (!teams.some((t) => t.id === nationalDutyTeamFilter)) nationalDutyTeamFilter = teams[0].id;
@@ -2594,6 +3420,7 @@ function panelNationalDuty() {
       : (team?.nationalDuty ?? []);
   const count = entries.length;
   const stats = nationalDutyStats(entries, roster);
+  const windowStatus = nationalDutyWindowStatus(meta);
 
   if (isWorldCup) {
     return `
@@ -2669,7 +3496,9 @@ function panelNationalDuty() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">International windows</p>
             <h2 class="mw-heading">National duty</h2>
-            <p class="mw-lead">List squad players away with their national team (e.g. Piero Hincapie · Ecuador). Shown on the public <strong>Squads</strong> page for the selected club.</p>
+            <p class="mw-lead">List squad players away with their national team. Live Squads shows duty only when the league window status is <strong>Active now</strong>${
+              windowStatus.key === "active" ? "" : ` (currently <strong>${esc(windowStatus.label)}</strong>)`
+            }.</p>
             ${team && roster.length ? nationalDutyStatChipsHtml(stats) : ""}
           </div>
           <aside class="mw-hero__aside">
@@ -2678,12 +3507,14 @@ function panelNationalDuty() {
               <div class="mw-hero-preview nationalduty-hero-preview__box">
                 <span class="mw-hero-preview-label">${esc(team?.name ?? "Club")}</span>
                 <strong class="mw-hero-preview-title">${count} on duty</strong>
-                <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+                <span class="mw-hero-preview-range">${esc(leagueName)} · ${esc(windowStatus.label)}</span>
               </div>
             </div>
           </aside>
         </div>
       </header>
+
+      ${nationalDutyWindowBarHtml(meta)}
 
       <section class="mw-card mw-card--striped">
         <div class="mw-card__stripe" aria-hidden="true"></div>
@@ -2691,7 +3522,7 @@ function panelNationalDuty() {
           <div class="mw-card-head__icon mw-card-head__icon--duty" aria-hidden="true"></div>
           <div>
             <h3>Duty list${team ? ` · ${esc(team.name)}` : ""}</h3>
-            <p>Pick a player from the club squad and set their national team. Drag rows to arrange display order. Country defaults from the player profile when you select them.</p>
+            <p>Pick players from the club squad or bulk-add by nationality. Drag rows to arrange display order. Country defaults from the player profile when you select them.</p>
           </div>
         </div>
         <div class="nationalduty-filter-bar">
@@ -2712,7 +3543,8 @@ function panelNationalDuty() {
         ${
           emptyTeam
             ? emptyTeam
-            : `<div class="nd-list-wrap admin-table-wrap admin-table-wrap--sort">
+            : `${nationalDutyBulkBarHtml(roster)}
+        <div class="nd-list-wrap admin-table-wrap admin-table-wrap--sort">
           <div class="nd-list" id="ndList">${listBody}</div>
         </div>
         <div class="nationalduty-form-footer">
@@ -3011,13 +3843,22 @@ function panelPlayers() {
         </div>
         ${teamId ? tmSyncPanelHtml(team, teamId) : ""}
         ${
-          playerCount > 1
+          playerCount > 0
             ? `<div class="players-toolbar">
                 <div class="players-toolbar-actions">
-                  <button type="button" class="mw-btn-primary players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
-                  <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSortByNumber">Sort by jersey #</button>
+                  ${
+                    playerCount > 1
+                      ? `<button type="button" class="mw-btn-primary players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
+                  <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSortByNumber">Sort by jersey #</button>`
+                      : ""
+                  }
+                  <button type="button" class="mw-btn-ghost players-auto-btn" id="btnFillBlankPitchLabels">Fill blank pitch labels</button>
                 </div>
-                <span class="admin-muted players-toolbar-hint">Position: GK → CF. Jersey #: 1 → 99 — easier to spot free shirt numbers. Both save the squad order.</span>
+                <span class="admin-muted players-toolbar-hint">${
+                  playerCount > 1
+                    ? "Position / jersey tools reorder the squad. Pitch labels: one click fills empty short names from each player’s full name (keeps custom labels)."
+                    : "Pitch labels: fill empty short names from the player’s full name (keeps a custom label if set)."
+                }</span>
               </div>`
             : ""
         }
@@ -3086,16 +3927,19 @@ function panelPlayers() {
             <div class="mw-field"><label for="playerName">Name</label><input id="playerName" class="mw-input" /></div>
           </div>
           <div class="col-12 col-md-6 col-lg-4">
-            <div class="mw-field">
+            <div class="mw-field players-form-pitch">
               <label for="playerDisplayLastName">Pitch label <span class="admin-muted">(short)</span></label>
-              <input
-                id="playerDisplayLastName"
-                class="mw-input"
-                maxlength="20"
-                placeholder="e.g. Foden — leave blank to auto-derive"
-                autocomplete="off"
-              />
-              <p class="mw-field-note admin-muted">Shown on pitch lineups and share graphics. Max 20 characters.</p>
+              <div class="player-flag-row">
+                <input
+                  id="playerDisplayLastName"
+                  class="mw-input"
+                  maxlength="20"
+                  placeholder="e.g. Foden — leave blank to auto-derive"
+                  autocomplete="off"
+                />
+                <button type="button" class="mw-btn-ghost players-fill-btn" id="btnFillPitchLabel" title="Fill from player name">Fill</button>
+              </div>
+              <p class="mw-field-note admin-muted">Shown on pitch lineups. Blank = auto from last name. Max 20 characters.</p>
             </div>
           </div>
           <div class="col-12 col-md-6 col-lg-4">
@@ -3292,6 +4136,16 @@ function panelMatches() {
             <div class="col-12 col-md-6 col-lg-4">
               ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
             </div>
+            ${
+              isWc
+                ? ""
+                : `<div class="col-12 col-md-6 col-lg-4">
+              ${matchweekSelectField(leagueFilter, mw, {
+                id: "mwNum",
+                label: "Filter by matchweek",
+              })}
+            </div>`
+            }
           </div>
         </div>
         ${rosterBody}
@@ -3548,11 +4402,40 @@ function nextSquadShirtNumber(teamId) {
   return nums.length ? Math.max(...nums) + 1 : 1;
 }
 
+function stashTmTransferSquadPrefill(row) {
+  const player = String(row?.player ?? "").trim();
+  if (!player || typeof TransfermarktSync === "undefined") return;
+  const pos = String(row?.pos ?? "").trim().toUpperCase();
+  const role = String(row?.role ?? "").trim().toUpperCase();
+  const nationality = String(row?.nationality ?? "").trim();
+  if (!pos && !role && !nationality) return;
+  tmTransferSquadPrefillByName.set(TransfermarktSync.normalizeNameKey(player), {
+    name: player,
+    pos,
+    role,
+    nationality,
+  });
+}
+
+function lookupTmTransferSquadPrefill(playerName) {
+  const name = String(playerName ?? "").trim();
+  if (!name || typeof TransfermarktSync === "undefined") return null;
+  const key = TransfermarktSync.normalizeNameKey(name);
+  if (tmTransferSquadPrefillByName.has(key)) return tmTransferSquadPrefillByName.get(key);
+  for (const entry of tmTransferSquadPrefillByName.values()) {
+    if (TransfermarktSync.namesLooselyMatch?.(name, entry.name)) return entry;
+  }
+  return null;
+}
+
 function transferSquadDetailsHtml(teamId, playerName) {
   const name = String(playerName ?? "").trim();
   const suggestedNum = teamId ? nextSquadShirtNumber(teamId) : "";
   const sample = teamId ? playersForTeam(teamId).find((p) => p.nationality?.trim()) : null;
-  const suggestedNat = sample?.nationality?.trim() ?? "";
+  const prefill = lookupTmTransferSquadPrefill(name);
+  const suggestedNat = prefill?.nationality || sample?.nationality?.trim() || "";
+  const suggestedPos = prefill?.pos || "";
+  const suggestedRole = prefill?.role || "";
   return `
     <div class="tr-squad-details admin-hidden" aria-label="Squad details for ${esc(name || "player")}">
       <p class="tr-squad-details-lead">Complete roster details before adding to the squad.</p>
@@ -3563,11 +4446,11 @@ function transferSquadDetailsHtml(teamId, playerName) {
         </label>
         <label class="tr-squad-field">
           <span class="tr-squad-label">Pos</span>
-          <input class="tr-squad-pos transfers-input mw-input" placeholder="GK/DF/MF/FW" />
+          <input class="tr-squad-pos transfers-input mw-input" placeholder="GK/DF/MF/FW" value="${esc(suggestedPos)}" />
         </label>
         <label class="tr-squad-field">
           <span class="tr-squad-label">Role</span>
-          <input class="tr-squad-role transfers-input mw-input" placeholder="CB, CM, CF…" />
+          <input class="tr-squad-role transfers-input mw-input" placeholder="CB, CM, CF…" value="${esc(suggestedRole)}" />
         </label>
         <label class="tr-squad-field tr-squad-field--wide">
           <span class="tr-squad-label">Country</span>
@@ -3691,6 +4574,18 @@ function openTransferSquadForm(row, teamId) {
 
   const numInput = details.querySelector(".tr-squad-num");
   if (numInput && !String(numInput.value ?? "").trim()) numInput.value = String(nextSquadShirtNumber(teamId));
+
+  const prefill = lookupTmTransferSquadPrefill(name);
+  if (prefill) {
+    const posInput = details.querySelector(".tr-squad-pos");
+    const roleInput = details.querySelector(".tr-squad-role");
+    const natInput = details.querySelector(".tr-squad-nat");
+    if (posInput && prefill.pos && !String(posInput.value ?? "").trim()) posInput.value = prefill.pos;
+    if (roleInput && prefill.role && !String(roleInput.value ?? "").trim()) roleInput.value = prefill.role;
+    if (natInput && prefill.nationality && !String(natInput.value ?? "").trim()) {
+      natInput.value = prefill.nationality;
+    }
+  }
 
   details.classList.remove("admin-hidden");
   row?.querySelector(".tr-add-squad")?.classList.add("admin-hidden");
@@ -3843,15 +4738,60 @@ function tmTransferSuggestionKey(category, row) {
   return `${category}:${nameKey}`;
 }
 
+function tmTransferLocalRowKey(category, local) {
+  const id = String(local?.id ?? "").trim();
+  if (id) return `${category}:id:${id}`;
+  return tmTransferSuggestionKey(category, local);
+}
+
+function tmTransferUpdateKey(item) {
+  return `update:${tmTransferLocalRowKey(item.category ?? item.local?.category, item.local)}`;
+}
+
+function tmTransferMoveKey(item) {
+  return `move:${item.fromCategory}:${item.toCategory}:${tmTransferLocalRowKey(item.fromCategory, item.local)}`;
+}
+
+function transferPlayersMatch(a, b) {
+  if (!a || !b) return false;
+  if (typeof TransfermarktSync === "undefined") {
+    return String(a).toLowerCase().trim() === String(b).toLowerCase().trim();
+  }
+  return (
+    TransfermarktSync.normalizeNameKey(a) === TransfermarktSync.normalizeNameKey(b) ||
+    Boolean(TransfermarktSync.namesLooselyMatch?.(a, b))
+  );
+}
+
 function tmTransferDiffEntries(kind) {
   if (!tmTransferSyncState?.diff?.byCategory) return [];
   const ignored =
-    kind === "toAdd" ? tmTransferSyncState.ignoredAdd : tmTransferSyncState.ignoredRemove;
+    kind === "toAdd"
+      ? tmTransferSyncState.ignoredAdd
+      : kind === "toRemove"
+        ? tmTransferSyncState.ignoredRemove
+        : kind === "toUpdate"
+          ? tmTransferSyncState.ignoredUpdate
+          : tmTransferSyncState.ignoredMove;
   const entries = [];
   for (const section of ADMIN_TRANSFER_SECTIONS) {
-    for (const row of tmTransferSyncState.diff.byCategory[section.key]?.[kind] ?? []) {
-      const key = tmTransferSuggestionKey(section.key, row);
-      if (!ignored?.has(key)) entries.push({ category: section.key, row, key });
+    for (const item of tmTransferSyncState.diff.byCategory[section.key]?.[kind] ?? []) {
+      if (kind === "toAdd" || kind === "toRemove") {
+        const key = tmTransferSuggestionKey(section.key, item);
+        if (!ignored?.has(key)) entries.push({ category: section.key, row: item, key });
+        continue;
+      }
+      if (kind === "toUpdate") {
+        const key = tmTransferUpdateKey(item);
+        if (!ignored?.has(key)) {
+          entries.push({ ...item, category: section.key, row: item.tm, key });
+        }
+        continue;
+      }
+      const key = tmTransferMoveKey(item);
+      if (!ignored?.has(key)) {
+        entries.push({ ...item, category: section.key, row: item.tm, key });
+      }
     }
   }
   return entries;
@@ -3864,6 +4804,32 @@ function tmTransferSuggestionMeta(entry) {
     row.otherClub || "",
     row.fee || "",
     row.date ? transferDateFromInputValue(row.date) : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function tmTransferUpdateMeta(entry) {
+  const tm = entry.tm ?? entry.row ?? {};
+  const changes = (entry.changes ?? []).join(", ");
+  return [
+    transferCategoryLabel(entry.category),
+    tm.otherClub || "",
+    tm.fee || "",
+    tm.date ? transferDateFromInputValue(tm.date) : "",
+    changes ? `update ${changes}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function tmTransferMoveMeta(entry) {
+  const tm = entry.tm ?? entry.row ?? {};
+  return [
+    `${transferCategoryLabel(entry.fromCategory)} → ${transferCategoryLabel(entry.toCategory)}`,
+    tm.otherClub || "",
+    tm.fee || "",
+    tm.date ? transferDateFromInputValue(tm.date) : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -3882,10 +4848,25 @@ function tmTransferSyncStatusHtml(team) {
   }
   const addCount = tmTransferDiffEntries("toAdd").length;
   const removeCount = tmTransferDiffEntries("toRemove").length;
+  const updateCount = tmTransferDiffEntries("toUpdate").length;
+  const moveCount = tmTransferDiffEntries("toReclassify").length;
   const diff = tmTransferSyncState.diff;
-  return `<span class="players-tm-sync__hint">${esc(
-    `${diff.tmTotal} on Transfermarkt · ${diff.localTotal} in Squad Central · ${diff.matched} matched · ${addCount} to add · ${removeCount} to remove`,
-  )}</span>`;
+  const parts = [
+    `${diff.tmTotal} on Transfermarkt`,
+    `${diff.localTotal} in Squad Central`,
+    `${diff.matched} matched`,
+  ];
+  if (addCount) parts.push(`${addCount} to add`);
+  if (updateCount) parts.push(`${updateCount} to sync`);
+  if (moveCount) parts.push(`${moveCount} to move`);
+  if (removeCount) parts.push(`${removeCount} to remove`);
+  const ignored =
+    (tmTransferSyncState.ignoredAdd?.size ?? 0) +
+    (tmTransferSyncState.ignoredRemove?.size ?? 0) +
+    (tmTransferSyncState.ignoredUpdate?.size ?? 0) +
+    (tmTransferSyncState.ignoredMove?.size ?? 0);
+  if (ignored) parts.push(`${ignored} ignored`);
+  return `<span class="players-tm-sync__hint">${esc(parts.join(" · "))}</span>`;
 }
 
 function tmTransferSyncPanelHtml(team) {
@@ -3895,21 +4876,97 @@ function tmTransferSyncPanelHtml(team) {
   const canRefresh = localReady && tmSyncAvailableForTeam(team);
   const addEntries = tmTransferDiffEntries("toAdd");
   const removeEntries = tmTransferDiffEntries("toRemove");
-  const suggestionHtml = (entry, kind) => `
-    <li class="players-tm-sync__item players-tm-sync__item--${kind === "add" ? "add" : "remove"}">
+  const updateEntries = tmTransferDiffEntries("toUpdate");
+  const moveEntries = tmTransferDiffEntries("toReclassify");
+  const hasOpen =
+    addEntries.length || removeEntries.length || updateEntries.length || moveEntries.length;
+  const suggestionHtml = (entry, kind) => {
+    const itemClass =
+      kind === "add"
+        ? "add"
+        : kind === "remove"
+          ? "remove"
+          : kind === "update"
+            ? "update"
+            : "move";
+    const meta =
+      kind === "update"
+        ? tmTransferUpdateMeta(entry)
+        : kind === "move"
+          ? tmTransferMoveMeta(entry)
+          : tmTransferSuggestionMeta(entry);
+    const label =
+      kind === "add" ? "Add" : kind === "remove" ? "Remove" : kind === "update" ? "Sync" : "Move";
+    const btnClass =
+      kind === "add"
+        ? "mw-btn-primary"
+        : kind === "remove"
+          ? "mw-btn-danger"
+          : "mw-btn-ghost";
+    const dataAttr =
+      kind === "add"
+        ? "data-tm-transfer-add"
+        : kind === "remove"
+          ? "data-tm-transfer-remove"
+          : kind === "update"
+            ? "data-tm-transfer-sync"
+            : "data-tm-transfer-move";
+    const ignoreAttr =
+      kind === "add"
+        ? "data-tm-transfer-ignore-add"
+        : kind === "remove"
+          ? "data-tm-transfer-ignore-remove"
+          : kind === "update"
+            ? "data-tm-transfer-ignore-update"
+            : "data-tm-transfer-ignore-move";
+    const playerName = entry.local?.player || entry.row?.player || "";
+    return `
+    <li class="players-tm-sync__item players-tm-sync__item--${itemClass}">
       <div class="players-tm-sync__copy">
-        <strong>${esc(entry.row.player)}</strong>
-        <span class="players-tm-sync__meta">${esc(tmTransferSuggestionMeta(entry))}</span>
+        <strong>${esc(playerName)}</strong>
+        <span class="players-tm-sync__meta">${esc(meta)}</span>
       </div>
       <div class="players-tm-sync__actions">
-        <button type="button" class="${kind === "add" ? "mw-btn-primary" : "mw-btn-danger"} players-tm-sync__apply" data-tm-transfer-${kind}="${esc(entry.key)}">${kind === "add" ? "Add" : "Remove"}</button>
-        <button type="button" class="players-tm-sync__dismiss" data-tm-transfer-ignore-${kind}="${esc(entry.key)}" title="Ignore" aria-label="Ignore suggestion">×</button>
+        <button type="button" class="${btnClass} players-tm-sync__apply" ${dataAttr}="${esc(entry.key)}">${label}</button>
+        <button type="button" class="players-tm-sync__dismiss" ${ignoreAttr}="${esc(entry.key)}" title="Ignore" aria-label="Ignore suggestion">×</button>
       </div>
     </li>`;
+  };
   const hasResult = Boolean(tmTransferSyncState);
+  const ignoredTotal =
+    (tmTransferSyncState?.ignoredAdd?.size ?? 0) +
+    (tmTransferSyncState?.ignoredRemove?.size ?? 0) +
+    (tmTransferSyncState?.ignoredUpdate?.size ?? 0) +
+    (tmTransferSyncState?.ignoredMove?.size ?? 0);
   const noOpenSuggestions =
-    hasResult && !addEntries.length && !removeEntries.length
-      ? `<p class="players-tm-sync__empty admin-muted mb-0">No open suggestions — these transfer lists match Transfermarkt.</p>`
+    hasResult && !hasOpen
+      ? `<p class="players-tm-sync__empty admin-muted mb-0">${
+          ignoredTotal
+            ? "No open suggestions — ignored items are hidden until you compare again."
+            : "No open suggestions — these transfer lists match Transfermarkt."
+        }</p>`
+      : "";
+  const colCount =
+    (addEntries.length ? 1 : 0) +
+    (updateEntries.length || moveEntries.length ? 1 : 0) +
+    (removeEntries.length ? 1 : 0);
+  const bulkBar = hasOpen
+    ? `<div class="players-tm-sync__bulk">
+          ${addEntries.length ? `<button type="button" class="mw-btn-primary players-auto-btn" id="btnTmTransferAddAll">Add all (${addEntries.length})</button>` : ""}
+          ${updateEntries.length ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmTransferSyncAll">Sync details (${updateEntries.length})</button>` : ""}
+          ${moveEntries.length ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmTransferMoveAll">Apply moves (${moveEntries.length})</button>` : ""}
+          ${removeEntries.length ? `<button type="button" class="mw-btn-danger players-auto-btn" id="btnTmTransferRemoveAll">Remove all (${removeEntries.length})</button>` : ""}
+        </div>`
+    : "";
+  const middleCol =
+    updateEntries.length || moveEntries.length
+      ? `<div class="players-tm-sync__col">
+            <h4 class="players-tm-sync__title">Matched — sync / move</h4>
+            <ul class="players-tm-sync__list">${[
+              ...updateEntries.map((entry) => suggestionHtml(entry, "update")),
+              ...moveEntries.map((entry) => suggestionHtml(entry, "move")),
+            ].join("")}</ul>
+          </div>`
       : "";
 
   return `
@@ -3929,18 +4986,28 @@ function tmTransferSyncPanelHtml(team) {
       <div class="players-tm-sync__head">
         <span class="players-tm-sync__status" id="transfersTmSyncStatus">${tmTransferSyncStatusHtml(team)}</span>
       </div>
+      ${bulkBar}
       <div class="players-tm-sync__body${hasResult ? "" : " admin-hidden"}">
         ${
-          addEntries.length || removeEntries.length
-            ? `<div class="players-tm-sync__cols">
-          <div class="players-tm-sync__col">
+          hasOpen
+            ? `<div class="players-tm-sync__cols${colCount >= 3 ? " players-tm-sync__cols--3" : ""}">
+          ${
+            addEntries.length
+              ? `<div class="players-tm-sync__col">
             <h4 class="players-tm-sync__title">On Transfermarkt — add here</h4>
-            <ul class="players-tm-sync__list">${addEntries.map((entry) => suggestionHtml(entry, "add")).join("") || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
-          </div>
-          <div class="players-tm-sync__col">
+            <ul class="players-tm-sync__list">${addEntries.map((entry) => suggestionHtml(entry, "add")).join("")}</ul>
+          </div>`
+              : ""
+          }
+          ${middleCol}
+          ${
+            removeEntries.length
+              ? `<div class="players-tm-sync__col">
             <h4 class="players-tm-sync__title">Only in Squad Central — remove here</h4>
-            <ul class="players-tm-sync__list">${removeEntries.map((entry) => suggestionHtml(entry, "remove")).join("") || `<li class="players-tm-sync__none admin-muted">None</li>`}</ul>
-          </div>
+            <ul class="players-tm-sync__list">${removeEntries.map((entry) => suggestionHtml(entry, "remove")).join("")}</ul>
+          </div>`
+              : ""
+          }
         </div>`
             : noOpenSuggestions
         }
@@ -4413,8 +5480,10 @@ function standingsTeamForClub(clubName, teams) {
 function standingsRowHtml(rk, club, pts, i, teams) {
   const team = standingsTeamForClub(club, teams);
   const tier = standingsRankTierClass(rk);
-  return `<article class="st-card st-row ${tier}" data-i="${i}">
+  const key = `st-row-${i}-${String(club || "empty").replace(/\s+/g, "_")}`;
+  return `<article class="st-card st-row st-sort-row ${tier}" data-i="${i}" data-st-row-key="${esc(key)}">
     <div class="st-card__stripe" aria-hidden="true"></div>
+    <span class="player-drag-handle st-card__drag" draggable="true" title="Drag to set table position" tabindex="-1" aria-hidden="true">⋮⋮</span>
     <div class="st-field st-field--rank">
       <label class="st-field-label">#</label>
       <input class="st-rk standings-input standings-input--rk mw-input" type="number" value="${esc(rk)}" aria-label="Rank" min="1" />
@@ -4488,7 +5557,7 @@ function panelStandings() {
           <div class="mw-card-head__icon mw-card-head__icon--standings" aria-hidden="true"></div>
           <div>
             <h3>Top ${rows.length || 10} standings</h3>
-            <p>Set rank, club, and points for each row. Top three rows get gold, silver, and bronze styling on the public widget.</p>
+            <p>Drag the <strong>⋮⋮</strong> handle to set table position, or edit rank numbers. Top three rows get gold, silver, and bronze styling on the public widget.</p>
           </div>
         </div>
         <div class="standings-filter-bar">
@@ -4501,7 +5570,7 @@ function panelStandings() {
         ${
           emptyTeams
             ? emptyTeams
-            : `<div class="standings-list-wrap">
+            : `<div class="standings-list-wrap admin-table-wrap--sort">
           <div class="standings-list" id="standingsList">${listBody}</div>
         </div>
         <div class="standings-form-footer">
@@ -4652,6 +5721,8 @@ function bindLeagueSelect() {
     transferTeamFilter = "";
     matchEditId = "";
     stadiumEditName = "";
+    tmStadiumSyncState = null;
+    tmMatchdaySyncState = null;
     renderPanel();
   });
 }
@@ -4777,6 +5848,8 @@ function bindPanelHandlers() {
     toast(isWc ? "Tournament header saved" : "Matchweek saved");
     renderPanel();
   });
+
+  bindMatchweekFilterSelect();
 
   bindLeagues();
   bindMatchweek();
@@ -4991,6 +6064,312 @@ function bindGoalEventRowHandlers() {
   });
 }
 
+function recalculateTmMatchdayDiff() {
+  if (!tmMatchdaySyncState || typeof TransfermarktSync === "undefined") return;
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const mw = tmMatchdaySyncState.matchweek || meta.matchweek || 36;
+  const mwTag = `MW ${mw}`;
+  const localMatches =
+    typeof filterMatchesForLeagueWeek === "function"
+      ? filterMatchesForLeagueWeek(state().matches, leagueFilter, mw)
+      : state().matches.filter((m) => m.leagueId === leagueFilter && (m.matchday === mwTag || !m.matchday));
+  const teams = teamsForLeague(leagueFilter).map((t) => ({
+    id: t.id,
+    name: t.name,
+    stadium: t.stadium,
+    clubId: typeof TransfermarktTeams !== "undefined" ? TransfermarktTeams.clubIdForTeam(t) : null,
+  }));
+  tmMatchdaySyncState.diff = TransfermarktSync.compareMatchday({
+    localMatches,
+    tmFixtures: tmMatchdaySyncState.tmFixtures,
+    teams,
+  });
+}
+
+function tmGoalsForSave(goals) {
+  return (goals ?? []).map((g) => ({
+    minute: Number(g.minute) || 0,
+    side: g.side === "away" ? "away" : "home",
+    scorer: String(g.scorer ?? "").trim(),
+    assist: null,
+  })).filter((g) => g.scorer);
+}
+
+function buildMatchFromTmFixture(tm, matchweek) {
+  const home = state().teams.find((t) => t.id === tm.homeTeamId);
+  const away = state().teams.find((t) => t.id === tm.awayTeamId);
+  const stadium = String(home?.stadium ?? "").trim() || "—";
+  if (stadium && stadium !== "—") FCDataStore.addLeagueStadium(leagueFilter, stadium);
+  const id = `${leagueFilter}_mw${matchweek}_${FCDataStore.slugify(home?.name ?? "h")}_${FCDataStore.slugify(away?.name ?? "a")}`;
+  return {
+    id,
+    leagueId: leagueFilter,
+    matchday: `MW ${matchweek}`,
+    status: tm.score ? "FT" : "NS",
+    time: tm.timeLabel || "—",
+    stadium,
+    homeTeamId: tm.homeTeamId,
+    awayTeamId: tm.awayTeamId,
+    score: tm.score ? [tm.score[0], tm.score[1]] : [0, 0],
+    scorers: [],
+    goalEvents: tmGoalsForSave(tm.goals),
+    possession: [],
+    momentum: 0.5,
+    formation: ["—", "—"],
+    lineups: { home: [], away: [] },
+  };
+}
+
+function patchMatchFromTm(local, tm, changes) {
+  const next = { ...local };
+  const changeSet = new Set(changes ?? []);
+  if (changeSet.has("score") && tm.score) {
+    next.score = [tm.score[0], tm.score[1]];
+    next.status = "FT";
+  }
+  if (changeSet.has("time") && tm.timeLabel) next.time = tm.timeLabel;
+  if (changeSet.has("goals") && (tm.goals ?? []).length) {
+    next.goalEvents = tmGoalsForSave(tm.goals);
+  }
+  return next;
+}
+
+function maybeUpdateMatchweekDateRangeFromTm() {
+  const dates = (tmMatchdaySyncState?.tmFixtures ?? [])
+    .map((f) => f.dateIso)
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+    .sort();
+  if (!dates.length) return;
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  if (String(meta.dateRange ?? "").trim()) return;
+  const fmt = (iso) => {
+    const d = new Date(`${iso}T12:00:00`);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  };
+  const range =
+    dates[0] === dates[dates.length - 1]
+      ? fmt(dates[0])
+      : `${fmt(dates[0])} – ${fmt(dates[dates.length - 1])}`;
+  FCDataStore.setLeagueMeta(leagueFilter, { ...meta, dateRange: range });
+}
+
+async function refreshTransfermarktMatchday() {
+  if (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter)) {
+    return toast("World Cup fixtures are managed manually");
+  }
+  if (typeof TransfermarktSync === "undefined" || typeof TransfermarktTeams === "undefined") {
+    return toast("Transfermarkt sync module failed to load");
+  }
+  if (!tmSyncLocalProxyReady()) {
+    return toast("Run serve.bat locally — Transfermarkt comparison needs the local server proxy");
+  }
+  const compId = TransfermarktTeams.competitionIdForLeague?.(leagueFilter);
+  if (!compId) return toast("No Transfermarkt competition mapping for this league");
+
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const mwFromInput = Number($("#mwNum")?.value);
+  const matchweek = Number.isInteger(mwFromInput) && mwFromInput > 0 ? mwFromInput : meta.matchweek ?? 36;
+  const season = Number($("#tmMatchdaySeason")?.value ?? tmMatchdaySeason);
+  if (!Number.isInteger(season) || season < 1900 || season > 2100) {
+    return toast("Enter a valid season start year, for example 2025");
+  }
+  tmMatchdaySeason = season;
+
+  const btn = $("#btnTmMatchdayRefresh");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Comparing…";
+  }
+  try {
+    const mwTag = `MW ${matchweek}`;
+    const localMatches =
+      typeof filterMatchesForLeagueWeek === "function"
+        ? filterMatchesForLeagueWeek(state().matches, leagueFilter, matchweek)
+        : state().matches.filter((m) => m.leagueId === leagueFilter && (m.matchday === mwTag || !m.matchday));
+    const teams = teamsForLeague(leagueFilter).map((t) => ({
+      id: t.id,
+      name: t.name,
+      stadium: t.stadium,
+      clubId: TransfermarktTeams.clubIdForTeam(t),
+    }));
+    const result = await TransfermarktSync.fetchAndCompareMatchday({
+      localMatches,
+      teams,
+      compId,
+      season,
+      matchday: matchweek,
+    });
+    tmMatchdaySyncState = {
+      ...result,
+      leagueId: leagueFilter,
+      matchweek,
+      season,
+      ignoredAdd: new Set(),
+      ignoredUpdate: new Set(),
+      ignoredRemove: new Set(),
+    };
+    const diff = tmMatchdayVisibleDiff();
+    toast(
+      diff.toAdd.length || diff.toUpdate.length || diff.toRemove.length
+        ? `Transfermarkt: ${diff.toAdd.length} to add · ${diff.toUpdate.length} to sync · ${diff.toRemove.length} to remove`
+        : "Matchweek matches Transfermarkt",
+    );
+    renderPanel();
+  } catch (err) {
+    console.error(err);
+    const msg = String(err?.message ?? err);
+    if (looksLikeHtmlToast(msg)) {
+      toast("Transfermarkt comparison only works with serve.bat on your computer");
+    } else {
+      toast(msg.slice(0, 180));
+    }
+  } finally {
+    if (btn) {
+      const ready =
+        tmSyncLocalProxyReady() && Boolean(TransfermarktTeams.competitionIdForLeague?.(leagueFilter));
+      btn.disabled = !ready;
+      btn.textContent = "Compare with Transfermarkt";
+    }
+  }
+}
+
+function maybeAdvanceLiveMatchweek(week) {
+  const n = Number(week);
+  if (!Number.isInteger(n) || n < 1) return;
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const cur = Number(meta.matchweek) || 0;
+  if (n > cur) applySelectedMatchweek(n);
+}
+
+function applyTmMatchdayAdd(key) {
+  const entry = tmMatchdayVisibleDiff()?.toAdd?.find((row) => tmMatchdayFixtureKey(row) === key);
+  if (!entry || !tmMatchdaySyncState) return;
+  FCDataStore.upsertMatch(buildMatchFromTmFixture(entry, tmMatchdaySyncState.matchweek));
+  maybeUpdateMatchweekDateRangeFromTm();
+  maybeAdvanceLiveMatchweek(tmMatchdaySyncState.matchweek);
+  syncToAppArrays();
+  recalculateTmMatchdayDiff();
+  toast(`${entry.homeTeamName} vs ${entry.awayTeamName} added`);
+  renderPanel();
+}
+
+function applyTmMatchdaySync(key) {
+  const entry = tmMatchdayVisibleDiff()?.toUpdate?.find((row) => tmMatchdayFixtureKey(row) === key);
+  if (!entry) return;
+  FCDataStore.upsertMatch(patchMatchFromTm(entry.local, entry.tm, entry.changes));
+  syncToAppArrays();
+  recalculateTmMatchdayDiff();
+  toast(`Synced ${entry.tm.homeTeamName} vs ${entry.tm.awayTeamName}`);
+  renderPanel();
+}
+
+function applyTmMatchdayRemove(key) {
+  const entry = tmMatchdayVisibleDiff()?.toRemove?.find((row) => tmMatchdayFixtureKey(row) === key);
+  if (!entry) return;
+  if (!confirm("Remove this fixture?")) return;
+  FCDataStore.removeMatch(entry.id);
+  if (matchEditId === entry.id) matchEditId = "";
+  syncToAppArrays();
+  recalculateTmMatchdayDiff();
+  toast("Fixture removed");
+  renderPanel();
+}
+
+function applyAllTmMatchdayAdds() {
+  const entries = tmMatchdayVisibleDiff()?.toAdd ?? [];
+  if (!entries.length || !tmMatchdaySyncState) return;
+  for (const entry of entries) {
+    FCDataStore.upsertMatch(buildMatchFromTmFixture(entry, tmMatchdaySyncState.matchweek));
+  }
+  maybeUpdateMatchweekDateRangeFromTm();
+  maybeAdvanceLiveMatchweek(tmMatchdaySyncState.matchweek);
+  syncToAppArrays();
+  recalculateTmMatchdayDiff();
+  toast(`Added ${entries.length} fixture${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function applyAllTmMatchdaySyncs() {
+  const entries = tmMatchdayVisibleDiff()?.toUpdate ?? [];
+  if (!entries.length) return;
+  for (const entry of entries) {
+    FCDataStore.upsertMatch(patchMatchFromTm(entry.local, entry.tm, entry.changes));
+  }
+  syncToAppArrays();
+  recalculateTmMatchdayDiff();
+  toast(`Synced ${entries.length} fixture${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function applyAllTmMatchdayRemoves() {
+  const entries = tmMatchdayVisibleDiff()?.toRemove ?? [];
+  if (!entries.length) return;
+  if (!confirm(`Remove ${entries.length} fixture${entries.length === 1 ? "" : "s"} only in Squad Central?`)) {
+    return;
+  }
+  for (const entry of entries) {
+    FCDataStore.removeMatch(entry.id);
+    if (matchEditId === entry.id) matchEditId = "";
+  }
+  syncToAppArrays();
+  recalculateTmMatchdayDiff();
+  toast(`Removed ${entries.length} fixture${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function ignoreTmMatchdaySuggestion(kind, key) {
+  if (!tmMatchdaySyncState) return;
+  if (!tmMatchdaySyncState.ignoredAdd) tmMatchdaySyncState.ignoredAdd = new Set();
+  if (!tmMatchdaySyncState.ignoredUpdate) tmMatchdaySyncState.ignoredUpdate = new Set();
+  if (!tmMatchdaySyncState.ignoredRemove) tmMatchdaySyncState.ignoredRemove = new Set();
+  const map = {
+    add: tmMatchdaySyncState.ignoredAdd,
+    update: tmMatchdaySyncState.ignoredUpdate,
+    remove: tmMatchdaySyncState.ignoredRemove,
+  };
+  map[kind]?.add(key);
+  toast("Suggestion ignored");
+  renderPanel();
+}
+
+function bindTmMatchdaySync() {
+  $("#tmMatchdaySeason")?.addEventListener("change", (e) => {
+    const season = Number(e.target.value);
+    if (Number.isInteger(season)) tmMatchdaySeason = season;
+  });
+  $("#btnTmMatchdayRefresh")?.addEventListener("click", refreshTransfermarktMatchday);
+  $("#btnTmMatchdayAddAll")?.addEventListener("click", applyAllTmMatchdayAdds);
+  $("#btnTmMatchdaySyncAll")?.addEventListener("click", applyAllTmMatchdaySyncs);
+  $("#btnTmMatchdayRemoveAll")?.addEventListener("click", applyAllTmMatchdayRemoves);
+  $("#matchweekTmSync")?.addEventListener("click", (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    const add = target?.closest("[data-tm-matchday-add]");
+    if (add) return applyTmMatchdayAdd(add.getAttribute("data-tm-matchday-add"));
+    const sync = target?.closest("[data-tm-matchday-sync]");
+    if (sync) return applyTmMatchdaySync(sync.getAttribute("data-tm-matchday-sync"));
+    const remove = target?.closest("[data-tm-matchday-remove]");
+    if (remove) return applyTmMatchdayRemove(remove.getAttribute("data-tm-matchday-remove"));
+    const ignoreAdd = target?.closest("[data-tm-matchday-ignore-add]");
+    if (ignoreAdd) {
+      return ignoreTmMatchdaySuggestion("add", ignoreAdd.getAttribute("data-tm-matchday-ignore-add"));
+    }
+    const ignoreUpdate = target?.closest("[data-tm-matchday-ignore-update]");
+    if (ignoreUpdate) {
+      return ignoreTmMatchdaySuggestion(
+        "update",
+        ignoreUpdate.getAttribute("data-tm-matchday-ignore-update"),
+      );
+    }
+    const ignoreRemove = target?.closest("[data-tm-matchday-ignore-remove]");
+    if (ignoreRemove) {
+      return ignoreTmMatchdaySuggestion(
+        "remove",
+        ignoreRemove.getAttribute("data-tm-matchday-ignore-remove"),
+      );
+    }
+  });
+}
+
 function bindMatchweek() {
   if (activeTab !== "league") return;
 
@@ -5130,6 +6509,8 @@ function bindMatchweek() {
     toast(rosterAdded ? `Fixture saved · ${rosterAdded} player${rosterAdded === 1 ? "" : "s"} added to roster` : "Fixture saved");
     renderPanel();
   });
+
+  bindTmMatchdaySync();
 }
 
 function bindCopyLineupHandlers() {
@@ -5213,6 +6594,267 @@ function syncToAppArrays() {
   if (typeof rebuildLineupRosterIndex === "function") rebuildLineupRosterIndex();
 }
 
+function recalculateTmStadiumDiff() {
+  if (!tmStadiumSyncState || typeof TransfermarktSync === "undefined") return;
+  const teams = teamsForLeague(leagueFilter).map((t) => ({
+    id: t.id,
+    name: t.name,
+    stadium: t.stadium,
+    clubId: typeof TransfermarktTeams !== "undefined" ? TransfermarktTeams.clubIdForTeam(t) : null,
+  }));
+  tmStadiumSyncState.diff = TransfermarktSync.compareLeagueStadiums({
+    localNames: stadiumsForLeague(leagueFilter),
+    teams,
+    tmByTeamId: tmStadiumSyncState.tmByTeamId,
+  });
+}
+
+function retargetStadiumName(from, to) {
+  const fromN = String(from ?? "").trim();
+  const toN = String(to ?? "").trim();
+  if (!toN) return false;
+  const list = stadiumsForLeague(leagueFilter);
+  const hasFrom = Boolean(fromN && list.includes(fromN));
+  const hasTo = list.includes(toN);
+
+  if (hasFrom && fromN !== toN) {
+    if (!hasTo) {
+      FCDataStore.renameLeagueStadium(leagueFilter, fromN, toN);
+      return true;
+    }
+    for (const t of teamsForLeague(leagueFilter)) {
+      if (String(t.stadium ?? "").trim() === fromN) {
+        FCDataStore.upsertTeam({ ...t, stadium: toN });
+      }
+    }
+    for (const m of state().matches ?? []) {
+      if (m.leagueId === leagueFilter && String(m.stadium ?? "").trim() === fromN) {
+        FCDataStore.upsertMatch({ ...m, stadium: toN });
+      }
+    }
+    FCDataStore.removeLeagueStadium(leagueFilter, fromN);
+    return true;
+  }
+
+  FCDataStore.addLeagueStadium(leagueFilter, toN);
+  return true;
+}
+
+function linkTeamStadium(teamId, stadiumName) {
+  const team = state().teams.find((t) => t.id === teamId);
+  const name = String(stadiumName ?? "").trim();
+  if (!team || !name) return false;
+  FCDataStore.addLeagueStadium(leagueFilter, name);
+  FCDataStore.upsertTeam({ ...team, stadium: name });
+  return true;
+}
+
+async function refreshTransfermarktStadiums() {
+  if (leagueFilter === "worldcup") return toast("World Cup venues are managed manually");
+  if (typeof TransfermarktSync === "undefined" || typeof TransfermarktTeams === "undefined") {
+    return toast("Transfermarkt sync module failed to load");
+  }
+  if (!tmSyncLocalProxyReady()) {
+    return toast("Run serve.bat locally — Transfermarkt comparison needs the local server proxy");
+  }
+  const teams = teamsForLeague(leagueFilter).map((t) => ({
+    id: t.id,
+    name: t.name,
+    stadium: t.stadium,
+    clubId: TransfermarktTeams.clubIdForTeam(t),
+  }));
+  if (!teams.some((t) => t.clubId)) {
+    return toast("Save Transfermarkt club links on Teams first");
+  }
+  const btn = $("#btnTmStadiumRefresh");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Comparing…";
+  }
+  try {
+    const result = await TransfermarktSync.fetchAndCompareLeagueStadiums({
+      localNames: stadiumsForLeague(leagueFilter),
+      teams,
+    });
+    tmStadiumSyncState = {
+      ...result,
+      leagueId: leagueFilter,
+      ignoredAdd: new Set(),
+      ignoredLink: new Set(),
+      ignoredRename: new Set(),
+      ignoredRemove: new Set(),
+    };
+    const diff = tmStadiumVisibleDiff();
+    toast(
+      diff.toAdd.length || diff.toLink.length || diff.toRename.length || diff.toRemove.length
+        ? `Transfermarkt: ${diff.toAdd.length} to add · ${diff.toLink.length} to link · ${diff.toRename.length} to rename · ${diff.toRemove.length} unused`
+        : "Stadiums match Transfermarkt",
+    );
+    renderPanel();
+  } catch (err) {
+    console.error(err);
+    const msg = String(err?.message ?? err);
+    if (looksLikeHtmlToast(msg)) {
+      toast("Transfermarkt comparison only works with serve.bat on your computer");
+    } else {
+      toast(msg.slice(0, 180));
+    }
+  } finally {
+    if (btn) {
+      const withTm = teamsForLeague(leagueFilter).some((t) => tmSyncAvailableForTeam(t));
+      btn.disabled = !tmSyncLocalProxyReady() || !withTm;
+      btn.textContent = "Compare with Transfermarkt";
+    }
+  }
+}
+
+function applyTmStadiumAdd(nameKey) {
+  const entry = tmStadiumVisibleDiff()?.toAdd?.find((row) => tmStadiumNameKey(row.name) === nameKey);
+  if (!entry) return;
+  FCDataStore.addLeagueStadium(leagueFilter, entry.name);
+  recalculateTmStadiumDiff();
+  toast(`${entry.name} added`);
+  renderPanel();
+}
+
+function applyTmStadiumLink(teamId) {
+  const entry = tmStadiumVisibleDiff()?.toLink?.find((row) => row.teamId === teamId);
+  if (!entry) return;
+  if (!linkTeamStadium(teamId, entry.to)) return;
+  syncToAppArrays();
+  recalculateTmStadiumDiff();
+  toast(`${entry.teamName} → ${entry.to}`);
+  renderPanel();
+}
+
+function applyTmStadiumRename(renameKey) {
+  const entry = tmStadiumVisibleDiff()?.toRename?.find(
+    (row) => `${row.teamId}:${tmStadiumNameKey(row.from)}:${tmStadiumNameKey(row.to)}` === renameKey,
+  );
+  if (!entry) return;
+  retargetStadiumName(entry.from, entry.to);
+  linkTeamStadium(entry.teamId, entry.to);
+  syncToAppArrays();
+  recalculateTmStadiumDiff();
+  toast(`${entry.from} → ${entry.to}`);
+  renderPanel();
+}
+
+function applyTmStadiumRemove(nameKey) {
+  const entry = tmStadiumVisibleDiff()?.toRemove?.find((row) => tmStadiumNameKey(row.name) === nameKey);
+  if (!entry) return;
+  if (!confirm(`Remove unused stadium “${entry.name}”?`)) return;
+  FCDataStore.removeLeagueStadium(leagueFilter, entry.name);
+  recalculateTmStadiumDiff();
+  toast(`${entry.name} removed`);
+  renderPanel();
+}
+
+function applyAllTmStadiumAdds() {
+  const entries = tmStadiumVisibleDiff()?.toAdd ?? [];
+  if (!entries.length) return;
+  for (const entry of entries) FCDataStore.addLeagueStadium(leagueFilter, entry.name);
+  recalculateTmStadiumDiff();
+  toast(`Added ${entries.length} stadium${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function applyAllTmStadiumLinks() {
+  const entries = tmStadiumVisibleDiff()?.toLink ?? [];
+  if (!entries.length) return;
+  for (const entry of entries) linkTeamStadium(entry.teamId, entry.to);
+  syncToAppArrays();
+  recalculateTmStadiumDiff();
+  toast(`Linked ${entries.length} club${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function applyAllTmStadiumRenames() {
+  const entries = tmStadiumVisibleDiff()?.toRename ?? [];
+  if (!entries.length) return;
+  const seen = new Set();
+  for (const entry of entries) {
+    const pair = `${tmStadiumNameKey(entry.from)}→${tmStadiumNameKey(entry.to)}`;
+    if (!seen.has(pair)) {
+      seen.add(pair);
+      retargetStadiumName(entry.from, entry.to);
+    }
+    linkTeamStadium(entry.teamId, entry.to);
+  }
+  syncToAppArrays();
+  recalculateTmStadiumDiff();
+  toast(`Applied ${entries.length} rename${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function applyAllTmStadiumRemoves() {
+  const entries = tmStadiumVisibleDiff()?.toRemove ?? [];
+  if (!entries.length) return;
+  if (!confirm(`Remove ${entries.length} unused stadium${entries.length === 1 ? "" : "s"}?`)) return;
+  for (const entry of entries) FCDataStore.removeLeagueStadium(leagueFilter, entry.name);
+  recalculateTmStadiumDiff();
+  toast(`Removed ${entries.length} stadium${entries.length === 1 ? "" : "s"}`);
+  renderPanel();
+}
+
+function ignoreTmStadiumSuggestion(kind, key) {
+  if (!tmStadiumSyncState) return;
+  if (!tmStadiumSyncState.ignoredAdd) tmStadiumSyncState.ignoredAdd = new Set();
+  if (!tmStadiumSyncState.ignoredLink) tmStadiumSyncState.ignoredLink = new Set();
+  if (!tmStadiumSyncState.ignoredRename) tmStadiumSyncState.ignoredRename = new Set();
+  if (!tmStadiumSyncState.ignoredRemove) tmStadiumSyncState.ignoredRemove = new Set();
+  const map = {
+    add: tmStadiumSyncState.ignoredAdd,
+    link: tmStadiumSyncState.ignoredLink,
+    rename: tmStadiumSyncState.ignoredRename,
+    remove: tmStadiumSyncState.ignoredRemove,
+  };
+  map[kind]?.add(key);
+  toast("Suggestion ignored");
+  renderPanel();
+}
+
+function bindTmStadiumSync() {
+  $("#btnTmStadiumRefresh")?.addEventListener("click", refreshTransfermarktStadiums);
+  $("#btnTmStadiumAddAll")?.addEventListener("click", applyAllTmStadiumAdds);
+  $("#btnTmStadiumLinkAll")?.addEventListener("click", applyAllTmStadiumLinks);
+  $("#btnTmStadiumRenameAll")?.addEventListener("click", applyAllTmStadiumRenames);
+  $("#btnTmStadiumRemoveAll")?.addEventListener("click", applyAllTmStadiumRemoves);
+  $("#stadiumsTmSync")?.addEventListener("click", (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    const add = target?.closest("[data-tm-stadium-add]");
+    if (add) return applyTmStadiumAdd(add.getAttribute("data-tm-stadium-add"));
+    const link = target?.closest("[data-tm-stadium-link]");
+    if (link) return applyTmStadiumLink(link.getAttribute("data-tm-stadium-link"));
+    const rename = target?.closest("[data-tm-stadium-rename]");
+    if (rename) return applyTmStadiumRename(rename.getAttribute("data-tm-stadium-rename"));
+    const remove = target?.closest("[data-tm-stadium-remove]");
+    if (remove) return applyTmStadiumRemove(remove.getAttribute("data-tm-stadium-remove"));
+    const ignoreAdd = target?.closest("[data-tm-stadium-ignore-add]");
+    if (ignoreAdd) {
+      return ignoreTmStadiumSuggestion("add", ignoreAdd.getAttribute("data-tm-stadium-ignore-add"));
+    }
+    const ignoreLink = target?.closest("[data-tm-stadium-ignore-link]");
+    if (ignoreLink) {
+      return ignoreTmStadiumSuggestion("link", ignoreLink.getAttribute("data-tm-stadium-ignore-link"));
+    }
+    const ignoreRename = target?.closest("[data-tm-stadium-ignore-rename]");
+    if (ignoreRename) {
+      return ignoreTmStadiumSuggestion(
+        "rename",
+        ignoreRename.getAttribute("data-tm-stadium-ignore-rename"),
+      );
+    }
+    const ignoreRemove = target?.closest("[data-tm-stadium-ignore-remove]");
+    if (ignoreRemove) {
+      return ignoreTmStadiumSuggestion(
+        "remove",
+        ignoreRemove.getAttribute("data-tm-stadium-ignore-remove"),
+      );
+    }
+  });
+}
+
 function bindStadiums() {
   if (activeTab !== "stadiums") return;
 
@@ -5236,6 +6878,7 @@ function bindStadiums() {
       }
       syncToAppArrays();
       stadiumEditName = "";
+      if (tmStadiumSyncState?.leagueId === leagueFilter) recalculateTmStadiumDiff();
       toast("Stadium updated");
       renderPanel();
       return;
@@ -5243,6 +6886,7 @@ function bindStadiums() {
     if (!FCDataStore.addLeagueStadium(leagueFilter, name)) {
       return alert("That stadium already exists");
     }
+    if (tmStadiumSyncState?.leagueId === leagueFilter) recalculateTmStadiumDiff();
     toast("Stadium added");
     renderPanel();
   });
@@ -5261,10 +6905,13 @@ function bindStadiums() {
       if (!name || !confirm(`Remove “${name}” from this league?`)) return;
       FCDataStore.removeLeagueStadium(leagueFilter, name);
       if (stadiumEditName === name) stadiumEditName = "";
+      if (tmStadiumSyncState?.leagueId === leagueFilter) recalculateTmStadiumDiff();
       toast("Stadium removed");
       renderPanel();
     });
   });
+
+  bindTmStadiumSync();
 }
 
 function bindTeamRowDragSort() {
@@ -5391,6 +7038,7 @@ function bindTeams() {
     $("#teamFormation").value = "";
     $("#teamCoach").value = "";
     $("#teamLogo").value = "";
+    if ($("#teamStadium")) $("#teamStadium").value = "";
     if ($("#teamTmUrlForm")) $("#teamTmUrlForm").value = "";
   });
 
@@ -5412,6 +7060,7 @@ function bindTeams() {
     if (tmUrl && !tmId) {
       return alert("Transfermarkt link must include /verein/123 (or be just the club id number)");
     }
+    const stadium = $("#teamStadium")?.value?.trim() || "";
     const team = {
       id,
       leagueId: leagueFilter,
@@ -5421,6 +7070,7 @@ function bindTeams() {
       coach: $("#teamCoach").value.trim() || "—",
       colors: [$("#teamC1").value, $("#teamC2").value],
       logo: $("#teamLogo").value.trim() || undefined,
+      stadium: stadium || undefined,
     };
     if (sortOrder != null) team.sortOrder = sortOrder;
     if (prev?.squadDepth) team.squadDepth = prev.squadDepth;
@@ -5429,6 +7079,14 @@ function bindTeams() {
       team.transfermarktId = tmId;
     }
     FCDataStore.upsertTeam(team);
+    if (stadium) FCDataStore.addLeagueStadium(leagueFilter, stadium);
+    if (!stadium && prev?.stadium) {
+      const stored = state().teams.find((t) => t.id === id);
+      if (stored) {
+        delete stored.stadium;
+        FCDataStore.upsertTeam(stored);
+      }
+    }
     if (!tmId) {
       const stored = state().teams.find((t) => t.id === id);
       if (stored) {
@@ -5453,6 +7111,10 @@ function bindTeams() {
       $("#teamFormation").value = t.formation ?? "";
       $("#teamCoach").value = t.coach ?? "";
       $("#teamLogo").value = t.logo ?? "";
+      if ($("#teamStadium")) {
+        ensureStadiumSelectOption($("#teamStadium"), t.stadium);
+        $("#teamStadium").value = String(t.stadium ?? "").trim() || "";
+      }
       if ($("#teamTmUrlForm")) $("#teamTmUrlForm").value = tmUrlValueForTeam(t);
       $("#teamC1").value = t.colors?.[0] ?? "#2de2e6";
       $("#teamC2").value = t.colors?.[1] ?? "#111827";
@@ -5670,33 +7332,147 @@ function bindNationalDutyTableHandlers() {
   });
 }
 
+function appendNationalDutyRows(teamId, entries) {
+  const list = $("#ndList");
+  if (!list || !entries?.length) return 0;
+  list.querySelector(".nationalduty-empty-list")?.remove();
+  let added = 0;
+  for (const entry of entries) {
+    const key = `nd-row-${Date.now()}-${added}`;
+    list.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, entry, key));
+    const row = list.querySelector(`[data-nd-row-key="${CSS.escape(key)}"]`);
+    const sel = row?.querySelector(".nd-player");
+    bindNationalDutyPlayerAuto(sel);
+    row?.querySelector(".nd-del")?.addEventListener("click", () => {
+      row.remove();
+      if (!list.querySelector(".nd-row")) list.innerHTML = nationalDutyEmptyListHtml();
+    });
+    added += 1;
+  }
+  return added;
+}
+
+function saveNationalDutyWindowFromInputs({ toastMsg = true } = {}) {
+  const fromRaw = $("#ndWindowFrom")?.value?.trim() ?? "";
+  const untilRaw = $("#ndWindowUntil")?.value?.trim() ?? "";
+  const from =
+    typeof NationalDuty !== "undefined" ? NationalDuty.normalizeIsoDate(fromRaw) : fromRaw;
+  const until =
+    typeof NationalDuty !== "undefined" ? NationalDuty.normalizeIsoDate(untilRaw) : untilRaw;
+  if (from && until && from > until) {
+    toast("Window From must be on or before Until");
+    return false;
+  }
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  FCDataStore.setLeagueMeta(leagueFilter, {
+    ...meta,
+    nationalDutyFrom: from,
+    nationalDutyUntil: until,
+  });
+  const status = nationalDutyWindowStatus({ nationalDutyFrom: from, nationalDutyUntil: until });
+  const statusEl = $("#ndWindowStatus");
+  if (statusEl) {
+    statusEl.className = `nationalduty-window-status nationalduty-window-status--${status.key}`;
+    const label = statusEl.querySelector(".nationalduty-window-status__label");
+    if (label) label.textContent = status.label;
+  }
+  if (toastMsg) toast(`Live window · ${status.label}`);
+  return true;
+}
+
+function bindNationalDutyWindow() {
+  const onChange = () => saveNationalDutyWindowFromInputs({ toastMsg: true });
+  $("#ndWindowFrom")?.addEventListener("change", onChange);
+  $("#ndWindowUntil")?.addEventListener("change", onChange);
+}
+
+function bindNationalDutyBulk() {
+  $("#btnNdAddByNat")?.addEventListener("click", () => {
+    const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
+    if (!teamId) return toast("Choose a club first");
+    const select = $("#ndBulkNats");
+    const picked = [...(select?.selectedOptions ?? [])]
+      .map((o) => o.value.trim())
+      .filter(Boolean);
+    if (!picked.length) return toast("Select one or more nationalities");
+    const pickedSet = new Set(picked.map((n) => n.toLowerCase()));
+    const onDuty = new Set(readNationalDutyFromDom().map((e) => e.playerId));
+    const roster = squadDepthRoster(teamId);
+    const toAdd = [];
+    for (const p of roster) {
+      if (onDuty.has(p.id)) continue;
+      const nat = String(p.nationality ?? "").trim();
+      if (!nat || !pickedSet.has(nat.toLowerCase())) continue;
+      toAdd.push({
+        playerId: p.id,
+        country: nat,
+        note: "",
+        until: "",
+      });
+      onDuty.add(p.id);
+    }
+    if (!toAdd.length) return toast("No new players for those nationalities");
+    const n = appendNationalDutyRows(teamId, toAdd);
+    toast(`Added ${n} player${n === 1 ? "" : "s"} by nationality`);
+  });
+
+  $("#btnNdApplyUntil")?.addEventListener("click", () => {
+    const untilIso =
+      typeof NationalDuty !== "undefined"
+        ? NationalDuty.normalizeIsoDate($("#ndWindowUntil")?.value?.trim() ?? "")
+        : ($("#ndWindowUntil")?.value?.trim() ?? "");
+    if (!untilIso) return toast("Set the league Until date first");
+    const displayUntil = transferDateFromInputValue(untilIso) || untilIso;
+    const rows = [...document.querySelectorAll("#ndList .nd-row")];
+    if (!rows.length) return toast("No duty rows to update");
+    let filled = 0;
+    for (const row of rows) {
+      const input = row.querySelector(".nd-until");
+      if (!input) continue;
+      if (String(input.value ?? "").trim()) continue;
+      input.value = untilIso;
+      filled += 1;
+    }
+    toast(
+      filled
+        ? `Applied until ${displayUntil} to ${filled} row${filled === 1 ? "" : "s"}`
+        : "Every row already has an until date",
+    );
+  });
+
+  $("#btnNdClearAll")?.addEventListener("click", () => {
+    const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
+    const team = state().teams.find((t) => t.id === teamId);
+    if (!team) return toast("Choose a club first");
+    const list = $("#ndList");
+    const count = list?.querySelectorAll(".nd-row").length ?? 0;
+    if (!count) return toast("Duty list is already empty");
+    if (!confirm(`Clear all ${count} national duty row${count === 1 ? "" : "s"} for ${team.name}?`)) {
+      return;
+    }
+    if (list) list.innerHTML = nationalDutyEmptyListHtml();
+    toast("Duty list cleared — Save to keep");
+  });
+}
+
 function bindNationalDuty() {
   $("#ndTeam")?.addEventListener("change", () => {
     nationalDutyTeamFilter = $("#ndTeam")?.value ?? "";
     renderPanel();
   });
 
+  bindNationalDutyWindow();
+  bindNationalDutyBulk();
   bindNationalDutyTableHandlers();
 
   $("#btnNdAdd")?.addEventListener("click", () => {
     const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
     if (!teamId) return toast("Choose a club first");
-    const list = $("#ndList");
-    if (!list) return;
-    list.querySelector(".nationalduty-empty-list")?.remove();
-    list.insertAdjacentHTML("beforeend", nationalDutyRowHtml(teamId, {}, `nd-row-${Date.now()}`));
-    const rows = list.querySelectorAll(".nd-row");
-    const lastSel = rows[rows.length - 1]?.querySelector(".nd-player");
-    bindNationalDutyPlayerAuto(lastSel);
-    rows[rows.length - 1]?.querySelector(".nd-del")?.addEventListener("click", () => {
-      rows[rows.length - 1]?.remove();
-      if (!list.querySelector(".nd-row")) {
-        list.innerHTML = nationalDutyEmptyListHtml();
-      }
-    });
+    appendNationalDutyRows(teamId, [{}]);
   });
 
   $("#btnSaveNationalDuty")?.addEventListener("click", () => {
+    saveNationalDutyWindowFromInputs({ toastMsg: false });
     const teamId = $("#ndTeam")?.value ?? nationalDutyTeamFilter;
     const team = state().teams.find((t) => t.id === teamId);
     if (!team) return alert("Select a club");
@@ -5716,6 +7492,33 @@ function bindNationalDuty() {
     toast(entries.length ? `National duty saved (${entries.length})` : "National duty cleared");
     renderPanel();
   });
+}
+
+function fillPitchLabelFromName({ force = false } = {}) {
+  const nameInput = $("#playerName");
+  const pitchInput = $("#playerDisplayLastName");
+  if (!nameInput || !pitchInput) return;
+  const max = typeof DISPLAY_LAST_NAME_MAX === "number" ? DISPLAY_LAST_NAME_MAX : 20;
+  const derive =
+    typeof deriveLastNameFromFullName === "function"
+      ? deriveLastNameFromFullName
+      : (name) => {
+          const clean = typeof stripCaptainSuffix === "function" ? stripCaptainSuffix(name) : String(name ?? "");
+          const parts = String(clean).split(/\s+/).filter(Boolean);
+          return parts.length > 1 ? parts[parts.length - 1] : clean;
+        };
+  const suggested = String(derive(nameInput.value) ?? "").trim().slice(0, max);
+  if (!suggested) {
+    if (force) toast("Enter a player name first");
+    return;
+  }
+  const empty = !pitchInput.value.trim();
+  const wasAuto = pitchInput.dataset.auto === "1";
+  if (force || empty || wasAuto) {
+    pitchInput.value = suggested;
+    pitchInput.dataset.auto = "1";
+    if (force) toast(`Pitch label · ${suggested}`);
+  }
 }
 
 function setupPlayerFlagAuto() {
@@ -5949,6 +7752,45 @@ function bindPlayers() {
     renderPanel();
   });
 
+  $("#btnFillPitchLabel")?.addEventListener("click", () => {
+    fillPitchLabelFromName({ force: true });
+  });
+
+  $("#playerName")?.addEventListener("change", () => {
+    fillPitchLabelFromName({ force: false });
+  });
+
+  $("#btnFillBlankPitchLabels")?.addEventListener("click", () => {
+    const teamId = playerTeamFilter;
+    if (!teamId) return toast("Choose a team first");
+    const max =
+      typeof DISPLAY_LAST_NAME_MAX === "number" ? DISPLAY_LAST_NAME_MAX : 20;
+    const derive =
+      typeof deriveLastNameFromFullName === "function"
+        ? deriveLastNameFromFullName
+        : (name) => {
+            const clean = stripCaptainSuffix(name);
+            const parts = clean.split(/\s+/).filter(Boolean);
+            return parts.length > 1 ? parts[parts.length - 1] : clean;
+          };
+    const roster = playersForTeam(teamId);
+    let filled = 0;
+    for (const p of roster) {
+      if (String(p.displayLastName ?? "").trim()) continue;
+      const label = String(derive(p.name) ?? "").trim().slice(0, max);
+      if (!label) continue;
+      FCDataStore.upsertPlayer({ ...p, displayLastName: label });
+      filled += 1;
+    }
+    if (!filled) {
+      toast("Every player already has a pitch label (or no name to derive)");
+      return;
+    }
+    syncToAppArrays();
+    toast(`Filled ${filled} pitch label${filled === 1 ? "" : "s"}`);
+    renderPanel();
+  });
+
   $("#playerTeamFilter")?.addEventListener("change", (e) => {
     playerTeamFilter = e.target.value;
     playerSearchQuery = "";
@@ -6011,6 +7853,14 @@ function bindPlayers() {
     });
   });
 
+  const pitchEl = $("#playerDisplayLastName");
+  if (pitchEl && pitchEl.dataset.pitchBound !== "1") {
+    pitchEl.dataset.pitchBound = "1";
+    pitchEl.addEventListener("input", () => {
+      pitchEl.dataset.auto = "0";
+    });
+  }
+
   setupPlayerFlagAuto();
 
   $("#btnSavePlayer")?.addEventListener("click", () => {
@@ -6062,7 +7912,10 @@ function bindPlayers() {
       $("#playerTeam").value = p.teamId;
       $("#playerNumber").value = p.number;
       $("#playerName").value = stripCaptainSuffix(p.name);
-      if ($("#playerDisplayLastName")) $("#playerDisplayLastName").value = p.displayLastName ?? "";
+      if ($("#playerDisplayLastName")) {
+        $("#playerDisplayLastName").value = p.displayLastName ?? "";
+        $("#playerDisplayLastName").dataset.auto = p.displayLastName ? "0" : "1";
+      }
       if ($("#playerCaptain")) $("#playerCaptain").checked = rosterPlayerIsCaptain(p);
       $("#playerPos").value = p.pos;
       $("#playerRole").value = p.role ?? "";
@@ -6191,6 +8044,121 @@ function readWorldCupGroupsFromDom() {
   });
 }
 
+function renumberStandingsRows() {
+  const list = $("#standingsList");
+  if (!list) return;
+  [...list.querySelectorAll(".st-row")].forEach((row, index) => {
+    const rk = index + 1;
+    const input = row.querySelector(".st-rk");
+    if (input) input.value = String(rk);
+    row.setAttribute("data-i", String(index));
+    row.classList.remove("st-card--gold", "st-card--silver", "st-card--bronze");
+    const tier = standingsRankTierClass(rk);
+    if (tier) row.classList.add(tier);
+  });
+}
+
+function bindStandingsRowDragSort() {
+  const list = $("#standingsList");
+  if (!list || list.dataset.stDragBound === "1") return;
+  list.dataset.stDragBound = "1";
+
+  let draggedKey = null;
+  let touchRow = null;
+
+  const rowFromPoint = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest(".st-sort-row") : null;
+  };
+
+  list.addEventListener("dragstart", (e) => {
+    const handle = e.target.closest(".player-drag-handle");
+    if (!handle || !list.contains(handle)) return;
+    const row = handle.closest(".st-sort-row");
+    if (!row) return;
+    draggedKey = row.getAttribute("data-st-row-key");
+    row.classList.add("is-dragging");
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", draggedKey ?? "");
+    }
+  });
+
+  list.addEventListener("dragend", () => {
+    list.querySelector(".st-sort-row.is-dragging")?.classList.remove("is-dragging");
+    draggedKey = null;
+    list.querySelectorAll(".st-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    renumberStandingsRows();
+  });
+
+  list.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const target = e.target.closest(".st-sort-row");
+    if (!target || !draggedKey || target.getAttribute("data-st-row-key") === draggedKey) return;
+
+    const dragged = list.querySelector(`[data-st-row-key="${CSS.escape(draggedKey)}"]`);
+    if (!dragged) return;
+
+    list.querySelectorAll(".st-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    target.classList.add("is-drag-over");
+
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    if (before) list.insertBefore(dragged, target);
+    else list.insertBefore(dragged, target.nextSibling);
+  });
+
+  list.addEventListener("dragleave", (e) => {
+    const row = e.target.closest(".st-sort-row");
+    if (row) row.classList.remove("is-drag-over");
+  });
+
+  list.addEventListener("drop", (e) => {
+    e.preventDefault();
+    list.querySelectorAll(".st-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    renumberStandingsRows();
+  });
+
+  list.addEventListener(
+    "touchstart",
+    (e) => {
+      const handle = e.target.closest(".player-drag-handle");
+      if (!handle || !list.contains(handle)) return;
+      touchRow = handle.closest(".st-sort-row");
+      touchRow?.classList.add("is-dragging");
+    },
+    { passive: true },
+  );
+
+  list.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!touchRow) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const target = rowFromPoint(touch.clientX, touch.clientY);
+      if (!target || target === touchRow) return;
+      const rect = target.getBoundingClientRect();
+      const before = touch.clientY < rect.top + rect.height / 2;
+      if (before) list.insertBefore(touchRow, target);
+      else list.insertBefore(touchRow, target.nextSibling);
+    },
+    { passive: false },
+  );
+
+  const endTouch = () => {
+    if (!touchRow) return;
+    touchRow.classList.remove("is-dragging");
+    touchRow = null;
+    list.querySelectorAll(".st-sort-row").forEach((r) => r.classList.remove("is-drag-over"));
+    renumberStandingsRows();
+  };
+
+  list.addEventListener("touchend", endTouch);
+  list.addEventListener("touchcancel", endTouch);
+}
+
 function bindStandings() {
   if (leagueFilter === "worldcup") {
     $("#btnSaveStandings")?.addEventListener("click", () => {
@@ -6207,17 +8175,23 @@ function bindStandings() {
     const teams = teamsForLeague(leagueFilter);
     const i = list.querySelectorAll(".st-row").length;
     list.querySelector(".standings-empty-list")?.remove();
-    list.insertAdjacentHTML("beforeend", standingsRowHtml(i + 1, "", 0, i, teams));
+    const key = `st-row-${Date.now()}`;
+    list.insertAdjacentHTML("beforeend", standingsRowHtml(i + 1, "", 0, i, teams).replace(
+      /data-st-row-key="[^"]*"/,
+      `data-st-row-key="${key}"`,
+    ));
     bindStandDel();
     bindStandingsClubChange();
     bindStandingsRankChange();
+    renumberStandingsRows();
   });
 
   function readStandings() {
     const list = $("#standingsList");
     if (!list) return [];
-    return Array.from(list.querySelectorAll(".st-row")).map((row) => [
-      Number(row.querySelector(".st-rk")?.value) || 0,
+    renumberStandingsRows();
+    return Array.from(list.querySelectorAll(".st-row")).map((row, index) => [
+      index + 1,
       row.querySelector(".st-club")?.value.trim() ?? "",
       Number(row.querySelector(".st-pts")?.value) || 0,
     ]);
@@ -6232,6 +8206,7 @@ function bindStandings() {
   bindStandDel();
   bindStandingsClubChange();
   bindStandingsRankChange();
+  bindStandingsRowDragSort();
 }
 
 function bindStandingsRankChange() {
@@ -6276,6 +8251,8 @@ function bindStandDel() {
       const list = $("#standingsList");
       if (list && !list.querySelector(".st-row")) {
         list.innerHTML = standingsEmptyListHtml();
+      } else {
+        renumberStandingsRows();
       }
     });
   });
@@ -6625,6 +8602,66 @@ function recalculateTmTransferDiff(lists) {
   );
 }
 
+function cloneTransferEditorLists(lists) {
+  const next = {};
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    next[section.key] = [...(lists?.[section.key] ?? [])];
+  }
+  return next;
+}
+
+function mergeTmFieldsOntoLocal(local, tm, category) {
+  const next = { ...local };
+  const otherClub = String(tm?.otherClub ?? "").trim();
+  if (otherClub) next.otherClub = otherClub;
+  if (category !== "loanReturn" && category !== "loanRecall") {
+    const fee = String(tm?.fee ?? "").trim();
+    if (fee) next.fee = fee;
+    else if (tm?.fee === "" || tm?.fee == null) {
+      /* keep local fee when TM has none */
+    }
+  } else {
+    delete next.fee;
+  }
+  const date = String(tm?.date ?? "").trim();
+  if (date) next.date = date;
+  return next;
+}
+
+function findLocalTransferIndex(list, local) {
+  if (!list?.length || !local) return -1;
+  const localId = String(local.id ?? "").trim();
+  if (localId) {
+    const byId = list.findIndex((row) => String(row?.id ?? "").trim() === localId);
+    if (byId >= 0) return byId;
+  }
+  return list.findIndex((row) => transferPlayersMatch(row?.player, local.player));
+}
+
+function removeLocalTransferRow(list, local) {
+  const idx = findLocalTransferIndex(list, local);
+  if (idx < 0) return list;
+  return list.filter((_, i) => i !== idx);
+}
+
+function applyTmTransferAddRow(next, category, row) {
+  next[category].push({
+    id: `${leagueFilter}_${transferTeamFilter}_${category}_${FCDataStore.slugify(row.player)}_${tmTransferSeason}_${next[category].length}`,
+    player: row.player,
+    otherClub: row.otherClub || "",
+    fee: row.fee || undefined,
+    date: row.date || undefined,
+  });
+  stashTmTransferSquadPrefill(row);
+}
+
+function commitTransferEditorLists(next, toastMsg) {
+  transferEditsByTeam.set(transferTeamKey(leagueFilter, transferTeamFilter), next);
+  recalculateTmTransferDiff(next);
+  if (toastMsg) toast(toastMsg);
+  renderPanel();
+}
+
 async function refreshTransfermarktTransfers() {
   const team = state().teams.find((t) => t.id === transferTeamFilter);
   if (!team) return toast("Choose a club first");
@@ -6662,12 +8699,16 @@ async function refreshTransfermarktTransfers() {
       teamId: team.id,
       ignoredAdd: new Set(),
       ignoredRemove: new Set(),
+      ignoredUpdate: new Set(),
+      ignoredMove: new Set(),
     };
     const addCount = tmTransferDiffEntries("toAdd").length;
     const removeCount = tmTransferDiffEntries("toRemove").length;
+    const updateCount = tmTransferDiffEntries("toUpdate").length;
+    const moveCount = tmTransferDiffEntries("toReclassify").length;
     toast(
-      addCount || removeCount
-        ? `Transfermarkt: ${addCount} to add, ${removeCount} to remove`
+      addCount || removeCount || updateCount || moveCount
+        ? `Transfermarkt: ${addCount} to add · ${updateCount} to sync · ${moveCount} to move · ${removeCount} to remove`
         : "Transfer lists match Transfermarkt",
     );
     renderPanel();
@@ -6688,40 +8729,148 @@ async function refreshTransfermarktTransfers() {
 }
 
 function applyTmTransferSuggestion(kind, suggestionKey) {
-  if (!tmTransferSyncState || !transferTeamFilter) return;
-  const sourceEntries = tmTransferDiffEntries(kind === "add" ? "toAdd" : "toRemove");
-  const entry = sourceEntries.find((item) => item.key === suggestionKey);
-  if (!entry) return;
-  const lists = currentTransferEditorLists();
-  const next = {};
-  for (const section of ADMIN_TRANSFER_SECTIONS) {
-    next[section.key] = [...(lists[section.key] ?? [])];
-  }
+  if (!tmTransferSyncState || !transferTeamFilter) return false;
+  const sourceKind =
+    kind === "add"
+      ? "toAdd"
+      : kind === "remove"
+        ? "toRemove"
+        : kind === "update"
+          ? "toUpdate"
+          : "toReclassify";
+  const entry = tmTransferDiffEntries(sourceKind).find((item) => item.key === suggestionKey);
+  if (!entry) return false;
+  const next = cloneTransferEditorLists(currentTransferEditorLists());
+  let msg = "";
+
   if (kind === "add") {
-    const row = entry.row;
-    next[entry.category].push({
-      id: `${leagueFilter}_${transferTeamFilter}_${entry.category}_${FCDataStore.slugify(row.player)}_${tmTransferSeason}`,
-      player: row.player,
-      otherClub: row.otherClub || "",
-      fee: row.fee || undefined,
-      date: row.date || undefined,
-    });
-    toast(`${row.player} added to ${transferCategoryLabel(entry.category)}`);
-  } else {
-    const nameKey = TransfermarktSync.normalizeNameKey(entry.row.player);
-    next[entry.category] = next[entry.category].filter(
-      (row) => TransfermarktSync.normalizeNameKey(row.player) !== nameKey,
+    applyTmTransferAddRow(next, entry.category, entry.row);
+    msg = `${entry.row.player} added to ${transferCategoryLabel(entry.category)}`;
+  } else if (kind === "remove") {
+    next[entry.category] = removeLocalTransferRow(next[entry.category], entry.row);
+    msg = `${entry.row.player} removed from ${transferCategoryLabel(entry.category)}`;
+  } else if (kind === "update") {
+    const idx = findLocalTransferIndex(next[entry.category], entry.local);
+    if (idx < 0) return false;
+    next[entry.category][idx] = mergeTmFieldsOntoLocal(
+      next[entry.category][idx],
+      entry.tm,
+      entry.category,
     );
-    toast(`${entry.row.player} removed from ${transferCategoryLabel(entry.category)}`);
+    msg = `Synced details for ${entry.local.player}`;
+  } else {
+    const from = entry.fromCategory;
+    const to = entry.toCategory;
+    next[from] = removeLocalTransferRow(next[from], entry.local);
+    const moved = mergeTmFieldsOntoLocal(
+      {
+        id:
+          entry.local?.id ||
+          `${leagueFilter}_${transferTeamFilter}_${to}_${FCDataStore.slugify(entry.local.player)}_${tmTransferSeason}`,
+        player: entry.local.player,
+        otherClub: entry.local.otherClub || "",
+        fee: entry.local.fee,
+        date: entry.local.date,
+      },
+      entry.tm,
+      to,
+    );
+    next[to].push(moved);
+    stashTmTransferSquadPrefill({ ...entry.tm, player: entry.local.player });
+    msg = `${entry.local.player} moved to ${transferCategoryLabel(to)}`;
   }
-  transferEditsByTeam.set(transferTeamKey(leagueFilter, transferTeamFilter), next);
-  recalculateTmTransferDiff(next);
-  renderPanel();
+
+  commitTransferEditorLists(next, msg);
+  return true;
+}
+
+function applyAllTmTransferAdds() {
+  const entries = tmTransferDiffEntries("toAdd");
+  if (!entries.length) return;
+  const next = cloneTransferEditorLists(currentTransferEditorLists());
+  for (const entry of entries) applyTmTransferAddRow(next, entry.category, entry.row);
+  commitTransferEditorLists(next, `Added ${entries.length} transfer${entries.length === 1 ? "" : "s"}`);
+}
+
+function applyAllTmTransferRemoves() {
+  const entries = tmTransferDiffEntries("toRemove");
+  if (!entries.length) return;
+  if (
+    !confirm(
+      `Remove ${entries.length} transfer${entries.length === 1 ? "" : "s"} that are only in Squad Central?`,
+    )
+  ) {
+    return;
+  }
+  const next = cloneTransferEditorLists(currentTransferEditorLists());
+  for (const entry of entries) {
+    next[entry.category] = removeLocalTransferRow(next[entry.category], entry.row);
+  }
+  commitTransferEditorLists(
+    next,
+    `Removed ${entries.length} transfer${entries.length === 1 ? "" : "s"}`,
+  );
+}
+
+function applyAllTmTransferSyncs() {
+  const entries = tmTransferDiffEntries("toUpdate");
+  if (!entries.length) return;
+  const next = cloneTransferEditorLists(currentTransferEditorLists());
+  let count = 0;
+  for (const entry of entries) {
+    const idx = findLocalTransferIndex(next[entry.category], entry.local);
+    if (idx < 0) continue;
+    next[entry.category][idx] = mergeTmFieldsOntoLocal(
+      next[entry.category][idx],
+      entry.tm,
+      entry.category,
+    );
+    count += 1;
+  }
+  commitTransferEditorLists(next, `Synced details for ${count} transfer${count === 1 ? "" : "s"}`);
+}
+
+function applyAllTmTransferMoves() {
+  const entries = tmTransferDiffEntries("toReclassify");
+  if (!entries.length) return;
+  const next = cloneTransferEditorLists(currentTransferEditorLists());
+  let count = 0;
+  for (const entry of entries) {
+    const from = entry.fromCategory;
+    const to = entry.toCategory;
+    next[from] = removeLocalTransferRow(next[from], entry.local);
+    const moved = mergeTmFieldsOntoLocal(
+      {
+        id:
+          entry.local?.id ||
+          `${leagueFilter}_${transferTeamFilter}_${to}_${FCDataStore.slugify(entry.local.player)}_${tmTransferSeason}`,
+        player: entry.local.player,
+        otherClub: entry.local.otherClub || "",
+        fee: entry.local.fee,
+        date: entry.local.date,
+      },
+      entry.tm,
+      to,
+    );
+    next[to].push(moved);
+    stashTmTransferSquadPrefill({ ...entry.tm, player: entry.local.player });
+    count += 1;
+  }
+  commitTransferEditorLists(next, `Moved ${count} transfer${count === 1 ? "" : "s"}`);
 }
 
 function ignoreTmTransferSuggestion(kind, suggestionKey) {
   if (!tmTransferSyncState) return;
-  const ignored = kind === "add" ? tmTransferSyncState.ignoredAdd : tmTransferSyncState.ignoredRemove;
+  if (!tmTransferSyncState.ignoredUpdate) tmTransferSyncState.ignoredUpdate = new Set();
+  if (!tmTransferSyncState.ignoredMove) tmTransferSyncState.ignoredMove = new Set();
+  const ignored =
+    kind === "add"
+      ? tmTransferSyncState.ignoredAdd
+      : kind === "remove"
+        ? tmTransferSyncState.ignoredRemove
+        : kind === "update"
+          ? tmTransferSyncState.ignoredUpdate
+          : tmTransferSyncState.ignoredMove;
   ignored.add(suggestionKey);
   toast("Suggestion ignored");
   renderPanel();
@@ -6747,6 +8896,10 @@ function bindTmTransferSync() {
     if (Number.isInteger(season)) tmTransferSeason = season;
   });
   $("#btnTmTransferRefresh")?.addEventListener("click", refreshTransfermarktTransfers);
+  $("#btnTmTransferAddAll")?.addEventListener("click", applyAllTmTransferAdds);
+  $("#btnTmTransferRemoveAll")?.addEventListener("click", applyAllTmTransferRemoves);
+  $("#btnTmTransferSyncAll")?.addEventListener("click", applyAllTmTransferSyncs);
+  $("#btnTmTransferMoveAll")?.addEventListener("click", applyAllTmTransferMoves);
   $("#transfersTmSync")?.addEventListener("click", (e) => {
     const target = e.target instanceof Element ? e.target : null;
     const add = target?.closest("[data-tm-transfer-add]");
@@ -6755,6 +8908,10 @@ function bindTmTransferSync() {
     if (remove) {
       return applyTmTransferSuggestion("remove", remove.getAttribute("data-tm-transfer-remove"));
     }
+    const sync = target?.closest("[data-tm-transfer-sync]");
+    if (sync) return applyTmTransferSuggestion("update", sync.getAttribute("data-tm-transfer-sync"));
+    const move = target?.closest("[data-tm-transfer-move]");
+    if (move) return applyTmTransferSuggestion("move", move.getAttribute("data-tm-transfer-move"));
     const ignoreAdd = target?.closest("[data-tm-transfer-ignore-add]");
     if (ignoreAdd) {
       return ignoreTmTransferSuggestion(
@@ -6767,6 +8924,20 @@ function bindTmTransferSync() {
       return ignoreTmTransferSuggestion(
         "remove",
         ignoreRemove.getAttribute("data-tm-transfer-ignore-remove"),
+      );
+    }
+    const ignoreUpdate = target?.closest("[data-tm-transfer-ignore-update]");
+    if (ignoreUpdate) {
+      return ignoreTmTransferSuggestion(
+        "update",
+        ignoreUpdate.getAttribute("data-tm-transfer-ignore-update"),
+      );
+    }
+    const ignoreMove = target?.closest("[data-tm-transfer-ignore-move]");
+    if (ignoreMove) {
+      return ignoreTmTransferSuggestion(
+        "move",
+        ignoreMove.getAttribute("data-tm-transfer-ignore-move"),
       );
     }
   });

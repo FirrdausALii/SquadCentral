@@ -19,17 +19,34 @@
   }
 
   function defaultLeagueMeta() {
+    const dutyWindow = { nationalDutyFrom: "", nationalDutyUntil: "" };
     return {
-      epl: { matchweek: 36, matchweekTitle: "Matchweek 36", dateRange: "Saturday 9 May – Tuesday 12 May" },
-      laliga: { matchweek: 36, matchweekTitle: "Matchweek 36", dateRange: "Saturday 10 May – Tuesday 12 May" },
-      seriea: { matchweek: 36, matchweekTitle: "Matchweek 36", dateRange: "Saturday 9 May – Tuesday 12 May" },
-      bundesliga: { matchweek: 1, dateRange: "Set date range in admin" },
-      ligue1: { matchweek: 1, dateRange: "Set date range in admin" },
-      msl: { matchweek: 1, dateRange: "Set date range in admin" },
+      epl: {
+        matchweek: 36,
+        matchweekTitle: "Matchweek 36",
+        dateRange: "Saturday 9 May – Tuesday 12 May",
+        ...dutyWindow,
+      },
+      laliga: {
+        matchweek: 36,
+        matchweekTitle: "Matchweek 36",
+        dateRange: "Saturday 10 May – Tuesday 12 May",
+        ...dutyWindow,
+      },
+      seriea: {
+        matchweek: 36,
+        matchweekTitle: "Matchweek 36",
+        dateRange: "Saturday 9 May – Tuesday 12 May",
+        ...dutyWindow,
+      },
+      bundesliga: { matchweek: 1, dateRange: "Set date range in admin", ...dutyWindow },
+      ligue1: { matchweek: 1, dateRange: "Set date range in admin", ...dutyWindow },
+      msl: { matchweek: 1, dateRange: "Set date range in admin", ...dutyWindow },
       worldcup: {
         matchweek: 1,
         matchweekTitle: "Group Stage",
         dateRange: "Set date range in admin",
+        ...dutyWindow,
       },
     };
   }
@@ -452,7 +469,8 @@
       state.miniStandings = clone(state.miniStandings);
       state.topScorers = clone(state.topScorers);
       state.transfers = clone(state.transfers);
-      state.leagueMeta = { ...defaultLeagueMeta(), ...state.leagueMeta, ...(published.leagueMeta ?? {}) };
+      // Local leagueMeta wins — otherwise published matchweek (e.g. 38) overwrites admin selection.
+      state.leagueMeta = { ...defaultLeagueMeta(), ...(published.leagueMeta ?? {}), ...state.leagueMeta };
     } else {
       const keepLeague = (x) => !delLeagues.has(x.leagueId);
       state.miniStandings = clone(published.miniStandings ?? state.miniStandings).filter(keepLeague);
@@ -506,7 +524,17 @@
       state.leagueFeatures[id] = { ...state.leagueFeatures[id], ...features };
     }
     if (!state.leagueMeta) state.leagueMeta = {};
-    if (!state.leagueMeta[id]) state.leagueMeta[id] = { matchweek: 1, dateRange: "Set date range in admin" };
+    if (!state.leagueMeta[id]) {
+      state.leagueMeta[id] = {
+        matchweek: 1,
+        dateRange: "Set date range in admin",
+        nationalDutyFrom: "",
+        nationalDutyUntil: "",
+      };
+    } else {
+      if (state.leagueMeta[id].nationalDutyFrom == null) state.leagueMeta[id].nationalDutyFrom = "";
+      if (state.leagueMeta[id].nationalDutyUntil == null) state.leagueMeta[id].nationalDutyUntil = "";
+    }
     if (!state.leagueStadiums) state.leagueStadiums = {};
     if (!Array.isArray(state.leagueStadiums[id])) state.leagueStadiums[id] = [];
 
@@ -597,6 +625,9 @@
     setLeagueStadiums(leagueId, list);
     for (const m of state.matches ?? []) {
       if (m.leagueId === leagueId && String(m.stadium ?? "").trim() === from) m.stadium = to;
+    }
+    for (const t of state.teams ?? []) {
+      if (t.leagueId === leagueId && String(t.stadium ?? "").trim() === from) t.stadium = to;
     }
     touchRevision();
     save();

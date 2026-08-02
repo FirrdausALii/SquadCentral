@@ -124,6 +124,39 @@ function parseMatchweekNumber(matchday) {
   return m ? Number(m[1]) : 0;
 }
 
+function matchweekNumbersForLeague(matches, leagueId) {
+  const weeks = new Set();
+  for (const m of matches ?? []) {
+    if (m.leagueId !== leagueId) continue;
+    const n = parseMatchweekNumber(m.matchday);
+    if (n > 0) weeks.add(n);
+  }
+  return [...weeks].sort((a, b) => a - b);
+}
+
+/** Highest matchweek that currently has fixtures for this league. */
+function latestMatchweekForLeague(matches, leagueId) {
+  const weeks = matchweekNumbersForLeague(matches, leagueId);
+  return weeks.length ? weeks[weeks.length - 1] : 0;
+}
+
+/**
+ * Public “current” matchweek: admin leagueMeta from the Matchweek select.
+ * That way the live site follows the week you choose (e.g. leave 38 behind
+ * for a new season) instead of staying locked on a published pointer.
+ * Falls back to the highest week with fixtures when meta is missing.
+ */
+function publishedMatchweekForLeague(leagueId) {
+  if (typeof FCDataStore !== "undefined") {
+    const n = Number(FCDataStore.getLeagueMeta(leagueId)?.matchweek);
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  const matches = typeof MATCHES !== "undefined" ? MATCHES : [];
+  const latest = latestMatchweekForLeague(matches, leagueId);
+  if (latest > 0) return latest;
+  return 36;
+}
+
 /** World Cup lists every fixture; club leagues filter by gameweek tag. */
 function leagueShowsAllFixtures(leagueId) {
   return isWorldCupLeague(leagueId);
@@ -5512,6 +5545,30 @@ function rosterColumns(leagueId, showClub) {
 
 const ROSTER_COL_ORDER = ["num", "player", "pos", "club", "nat"];
 
+function nationalDutyWindowForLeague(leagueId) {
+  const meta =
+    typeof FCDataStore !== "undefined" ? FCDataStore.getLeagueMeta(leagueId) : null;
+  if (typeof NationalDuty !== "undefined") {
+    return NationalDuty.normalizeWindow({
+      from: meta?.nationalDutyFrom,
+      until: meta?.nationalDutyUntil,
+    });
+  }
+  return {
+    from: String(meta?.nationalDutyFrom ?? "").trim(),
+    until: String(meta?.nationalDutyUntil ?? "").trim(),
+  };
+}
+
+function isNationalDutyLiveActive(leagueId) {
+  if (!leagueHasNationalDuty(leagueId)) return false;
+  const window = nationalDutyWindowForLeague(leagueId);
+  if (typeof NationalDuty !== "undefined") {
+    return NationalDuty.isNationalDutyWindowActive(window);
+  }
+  return Boolean(window.from || window.until);
+}
+
 function nationalDutyEntriesForTeam(team) {
   if (!team) return [];
   return typeof NationalDuty !== "undefined"
@@ -5521,13 +5578,14 @@ function nationalDutyEntriesForTeam(team) {
       : [];
 }
 
-function nationalDutyPlayerIdsForTeam(team) {
+function nationalDutyPlayerIdsForTeam(team, leagueId) {
+  if (leagueId != null && !isNationalDutyLiveActive(leagueId)) return new Set();
   if (typeof NationalDuty !== "undefined") return NationalDuty.dutyPlayerIds(team?.nationalDuty);
   return new Set(nationalDutyEntriesForTeam(team).map((e) => e.playerId));
 }
 
 function renderNationalDutyBlock(team, leagueId) {
-  if (!leagueHasNationalDuty(leagueId) || !team) return "";
+  if (!isNationalDutyLiveActive(leagueId) || !team) return "";
   const entries = nationalDutyEntriesForTeam(team);
   if (!entries.length) return "";
 
@@ -5739,7 +5797,7 @@ function renderRoster() {
     depthWrap.innerHTML = "";
   }
 
-  const dutyIds = nationalDutyPlayerIdsForTeam(team);
+  const dutyIds = nationalDutyPlayerIdsForTeam(team, state.leagueId);
   const arrivalsMap = squadArrivalsByPlayerName(state.leagueId, state.teamId);
 
   const order = { GK: 0, DF: 1, MF: 2, FW: 3 };
@@ -6165,7 +6223,7 @@ function renderHeroFeaturedMatch(leagueId) {
   if (!wrap) return;
 
   const meta = heroLeagueMeta(leagueId);
-  const mw = meta.matchweek ?? 36;
+  const mw = publishedMatchweekForLeague(leagueId);
   const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, mw);
   const featured = pickHeroFeaturedMatch(matches);
 
@@ -6391,13 +6449,21 @@ function heroLeagueMeta(leagueId) {
 function renderHeroLeagueMeta(leagueId) {
   const league = LEAGUES.find((l) => l.id === leagueId);
   const meta = heroLeagueMeta(leagueId);
-  const mw = meta.matchweek ?? 36;
+  const mw = publishedMatchweekForLeague(leagueId);
   const nameEl = $("#heroLeagueName");
   const mwEl = $("#heroMwMeta");
   const rangeEl = $("#heroMwRange");
   if (nameEl) nameEl.textContent = league?.name ?? leagueId;
-  if (mwEl) mwEl.textContent = meta.matchweekTitle || `MW ${mw}`;
-  if (rangeEl) rangeEl.textContent = meta.dateRange ?? "—";
+  if (mwEl) {
+    mwEl.textContent =
+      Number(meta.matchweek) === mw
+        ? meta.matchweekTitle || `MW ${mw}`
+        : `Matchweek ${mw}`;
+  }
+  if (rangeEl) {
+    rangeEl.textContent =
+      Number(meta.matchweek) === mw ? meta.dateRange ?? "—" : "—";
+  }
 }
 
 let heroStandingsExpanded = false;
@@ -6598,7 +6664,7 @@ function renderHeroSpotlight(leagueId) {
   if (!track) return;
 
   const meta = heroLeagueMeta(leagueId);
-  const mw = meta.matchweek ?? 36;
+  const mw = publishedMatchweekForLeague(leagueId);
   const matches = filterMatchesForLeagueWeek(MATCHES, leagueId, mw);
   const buckets = categorizeHeroMatches(matches);
   const available = HERO_STRIP_ORDER.filter((k) => buckets[k].length);
@@ -6989,7 +7055,7 @@ function formatTransferFeeBadge(fee) {
   return { label: raw, kind: "fee" };
 }
 
-function renderTransferRows(items, direction, clubName, leagueId = "") {
+function renderTransferRows(items, direction, clubName) {
   if (!items?.length) {
     return transferEmptyHtml(direction, clubName);
   }
@@ -6997,39 +7063,34 @@ function renderTransferRows(items, direction, clubName, leagueId = "") {
   const dirClass = panel?.dirClass ?? direction;
   const dirSymbol = panel?.symbol ?? "•";
   const otherLabel = direction === "out" || direction === "loanRecall" ? "To" : "From";
-  return items
+  return `<div class="transfer-list" role="list">${items
     .map((t) => {
-      const otherClub = String(t.otherClub ?? "").trim();
+      const otherClub = String(t.otherClub ?? "").trim() || "—";
       const showFee = direction !== "loanReturn" && direction !== "loanRecall";
       const fee = showFee ? formatTransferFeeBadge(t.fee) : null;
       const date = String(t.date ?? "").trim();
-      const crest = clubCrestFromName(otherClub, leagueId, "squad-crest transfer-row__crest");
       return `
-        <article class="transfer-row">
-          <span class="transfer-direction ${dirClass}" aria-hidden="true">${dirSymbol}</span>
-          ${playerInitialsAvatarHtml(t.player, "player-avatar transfer-row__avatar")}
-          <div class="transfer-row__main">
-            <div class="transfer-row__top">
-              <span class="transfer-name">${escapeHtml(t.player)}</span>
-              ${
-                fee
-                  ? `<span class="transfer-fee-badge transfer-fee-badge--${fee.kind}">${escapeHtml(fee.label)}</span>`
-                  : ""
-              }
+        <article class="transfer-row transfer-row--${dirClass}" role="listitem">
+          <span class="transfer-dir-chip transfer-dir-chip--${dirClass}" aria-hidden="true">${dirSymbol}</span>
+          <div class="transfer-row__body">
+            <div class="transfer-row__player">${escapeHtml(t.player)}</div>
+            <div class="transfer-row__move">
+              <span class="transfer-row__move-label">${otherLabel}</span>
+              <span class="transfer-row__move-club">${escapeHtml(otherClub)}</span>
             </div>
-            <div class="transfer-row__meta">
-              <span class="transfer-row__club">
-                <span class="transfer-row__club-label">${otherLabel}</span>
-                ${crest}
-                <span class="transfer-club">${escapeHtml(otherClub || "—")}</span>
-              </span>
-              ${date ? `<time class="transfer-row__date">${escapeHtml(date)}</time>` : ""}
-            </div>
+          </div>
+          <div class="transfer-row__side">
+            ${
+              fee
+                ? `<span class="transfer-fee-badge transfer-fee-badge--${fee.kind}">${escapeHtml(fee.label)}</span>`
+                : `<span class="transfer-row__side-spacer" aria-hidden="true"></span>`
+            }
+            ${date ? `<time class="transfer-row__date">${escapeHtml(date)}</time>` : ""}
           </div>
         </article>
       `;
     })
-    .join("");
+    .join("")}</div>`;
 }
 
 function toggleTransfersSection(leagueId) {
@@ -7066,7 +7127,7 @@ function renderTransfers(leagueId, preferredTeamId) {
   setTransferPanelMeta(block);
   for (const panel of TRANSFER_PANELS) {
     const el = $(`#${panel.elId}`);
-    if (el) el.innerHTML = renderTransferRows(block[panel.key], panel.key, clubName, leagueId);
+    if (el) el.innerHTML = renderTransferRows(block[panel.key], panel.key, clubName);
   }
 }
 
@@ -7241,7 +7302,7 @@ async function handleShareSquad() {
       leagueName: league?.name ?? state.leagueId,
       formation: formationForTeam(state.teamId),
       players,
-      dutyIds: nationalDutyPlayerIdsForTeam(team),
+      dutyIds: nationalDutyPlayerIdsForTeam(team, state.leagueId),
       showNumber: leagueFeatureOn(state.leagueId, "playerNumber"),
       showPos: leagueFeatureOn(state.leagueId, "playerPosition"),
       showNat: leagueFeatureOn(state.leagueId, "playerNationality"),
@@ -7263,7 +7324,7 @@ function getMatchCenterShareState() {
     typeof FCDataStore !== "undefined"
       ? FCDataStore.getLeagueMeta(leagueId)
       : { matchweek: 36, dateRange: "—", matchweekTitle: "" };
-  const publishedWeek = meta.matchweek ?? 36;
+  const publishedWeek = publishedMatchweekForLeague(leagueId);
   const showAll = leagueShowsAllFixtures(leagueId);
   const viewWeek = showAll ? publishedWeek : renderMatchCenter._viewWeek ?? publishedWeek;
   const weekMatches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
@@ -7272,10 +7333,14 @@ function getMatchCenterShareState() {
   const league = LEAGUES.find((l) => l.id === leagueId);
   const title = showAll
     ? meta.matchweekTitle || "World Cup"
-    : viewWeek === publishedWeek
+    : viewWeek === publishedWeek && Number(meta.matchweek) === publishedWeek
       ? meta.matchweekTitle || `Matchweek ${publishedWeek}`
       : `Matchweek ${viewWeek}`;
-  const dateRange = activeGroup?.label ?? meta.dateRange ?? "—";
+  const dateRange =
+    activeGroup?.label ??
+    (viewWeek === publishedWeek && Number(meta.matchweek) === publishedWeek
+      ? meta.dateRange ?? "—"
+      : "—");
 
   const shareMatches = matches.map((m) => ({
     ...m,
@@ -7949,10 +8014,17 @@ function renderMatchCenter(leagueId) {
     typeof FCDataStore !== "undefined"
       ? FCDataStore.getLeagueMeta(leagueId)
       : { matchweek: 36, dateRange: leagueId === "laliga" ? "Saturday 10 May – Tuesday 12 May" : "Saturday 9 May – Tuesday 12 May" };
-  const publishedWeek = meta.matchweek ?? 36;
+  const publishedWeek = publishedMatchweekForLeague(leagueId);
   const showAll = leagueShowsAllFixtures(leagueId);
   let viewWeek = showAll ? publishedWeek : renderMatchCenter._viewWeek ?? publishedWeek;
   if (!showAll && renderMatchCenter._viewWeek == null) renderMatchCenter._viewWeek = publishedWeek;
+  if (!showAll) {
+    const remembered = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);
+    if (!remembered.length && publishedWeek && viewWeek !== publishedWeek) {
+      viewWeek = publishedWeek;
+      renderMatchCenter._viewWeek = publishedWeek;
+    }
+  }
 
   const setWeek = (w, { edge = "start" } = {}) => {
     if (showAll) return;
@@ -7971,13 +8043,20 @@ function renderMatchCenter(leagueId) {
     rangeEl.hidden = false;
     rangeEl.classList.add("is-visible");
   } else {
+    const onPublished = viewWeek === publishedWeek;
+    const metaMatchesPublished = Number(meta.matchweek) === publishedWeek;
     titleEl.textContent =
-      viewWeek === publishedWeek
+      onPublished && metaMatchesPublished
         ? meta.matchweekTitle || `Matchweek ${publishedWeek}`
         : `Matchweek ${viewWeek}`;
-    rangeEl.textContent = viewWeek === publishedWeek ? meta.dateRange ?? "—" : "Browse earlier / later gameweeks";
-    rangeEl.hidden = viewWeek === publishedWeek;
-    rangeEl.classList.toggle("is-visible", viewWeek !== publishedWeek);
+    rangeEl.textContent =
+      onPublished && metaMatchesPublished
+        ? meta.dateRange ?? "—"
+        : onPublished
+          ? "—"
+          : "Browse earlier / later gameweeks";
+    rangeEl.hidden = onPublished;
+    rangeEl.classList.toggle("is-visible", !onPublished);
   }
 
   const weekMatches = filterMatchesForLeagueWeek(MATCHES, leagueId, viewWeek);

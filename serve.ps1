@@ -33,6 +33,49 @@ function Start-StaticListener([int[]]$ports) {
   return $null
 }
 
+function Get-TransfermarktHtml([string]$tmUrl) {
+  $ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+  if ($curl) {
+    $tmp = [IO.Path]::GetTempFileName()
+    try {
+      $httpCode = & curl.exe @(
+        "-sS", "-L", "--max-time", "25",
+        "-A", $ua,
+        "-H", "Accept-Language: en-GB,en;q=0.9",
+        "-H", "Accept: text/html,application/xhtml+xml",
+        "-o", $tmp,
+        "-w", "%{http_code}",
+        $tmUrl
+      ) 2>&1
+      if ($LASTEXITCODE -ne 0) {
+        throw "Transfermarkt request failed via curl (exit $LASTEXITCODE): $httpCode"
+      }
+      $code = [string]$httpCode
+      if ($code -ne "200") {
+        throw "Transfermarkt returned HTTP $code"
+      }
+      return [IO.File]::ReadAllText($tmp, [Text.Encoding]::UTF8)
+    }
+    finally {
+      Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    }
+  }
+
+  # Fallback — PowerShell Invoke-WebRequest often hangs on Transfermarkt
+  $tmResp = Invoke-WebRequest -Uri $tmUrl -UserAgent $ua -UseBasicParsing -TimeoutSec 25
+  return $tmResp.Content
+}
+
+function Write-JsonError($response, [int]$status, [string]$message) {
+  $response.StatusCode = $status
+  $response.ContentType = "application/json; charset=utf-8"
+  $safe = ($message -replace '\\', '\\' -replace '"', '\"' -replace "[\r\n]+", " ")
+  $err = "{`"error`":`"$safe`"}"
+  $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
+  $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+}
+
 if ($args.Count -gt 0) {
   $portsToTry = @([int]$args[0])
 }
@@ -77,30 +120,21 @@ try {
       if ($path -eq "/api/tm-squad") {
         $clubId = $request.QueryString.Get("clubId")
         if ([string]::IsNullOrWhiteSpace($clubId) -or $clubId -notmatch '^\d+$') {
-          $response.StatusCode = 400
-          $response.ContentType = "application/json; charset=utf-8"
-          $err = '{"error":"Missing or invalid clubId query parameter."}'
-          $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
-          $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+          Write-JsonError $response 400 "Missing or invalid clubId query parameter."
           continue
         }
 
         $tmUrl = "https://www.transfermarkt.com/-/kader/verein/$clubId/plus/1"
         try {
-          $tmResp = Invoke-WebRequest -Uri $tmUrl -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -UseBasicParsing -TimeoutSec 45
+          $html = Get-TransfermarktHtml $tmUrl
           $response.StatusCode = 200
           $response.ContentType = "text/html; charset=utf-8"
-          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($tmResp.Content)
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
           $response.ContentLength64 = $htmlBytes.Length
           $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
         }
         catch {
-          $response.StatusCode = 502
-          $response.ContentType = "application/json; charset=utf-8"
-          $msg = ($_.Exception.Message -replace '"', '\"')
-          $err = "{`"error`":`"Transfermarkt request failed: $msg`"}"
-          $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
-          $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
         }
         continue
       }
@@ -112,30 +146,71 @@ try {
           [string]::IsNullOrWhiteSpace($clubId) -or $clubId -notmatch '^\d+$' -or
           [string]::IsNullOrWhiteSpace($season) -or $season -notmatch '^\d{4}$'
         ) {
-          $response.StatusCode = 400
-          $response.ContentType = "application/json; charset=utf-8"
-          $err = '{"error":"Missing or invalid clubId/season query parameters."}'
-          $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
-          $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+          Write-JsonError $response 400 "Missing or invalid clubId/season query parameters."
           continue
         }
 
         $tmUrl = "https://www.transfermarkt.com/-/transfers/verein/$clubId/saison_id/$season"
         try {
-          $tmResp = Invoke-WebRequest -Uri $tmUrl -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -UseBasicParsing -TimeoutSec 45
+          $html = Get-TransfermarktHtml $tmUrl
           $response.StatusCode = 200
           $response.ContentType = "text/html; charset=utf-8"
-          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($tmResp.Content)
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
           $response.ContentLength64 = $htmlBytes.Length
           $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
         }
         catch {
-          $response.StatusCode = 502
-          $response.ContentType = "application/json; charset=utf-8"
-          $msg = ($_.Exception.Message -replace '"', '\"')
-          $err = "{`"error`":`"Transfermarkt request failed: $msg`"}"
-          $errBytes = [Text.Encoding]::UTF8.GetBytes($err)
-          $response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-club") {
+        $clubId = $request.QueryString.Get("clubId")
+        if ([string]::IsNullOrWhiteSpace($clubId) -or $clubId -notmatch '^\d+$') {
+          Write-JsonError $response 400 "Missing or invalid clubId query parameter."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/startseite/verein/$clubId"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-matchday") {
+        $compId = $request.QueryString.Get("compId")
+        $season = $request.QueryString.Get("season")
+        $matchday = $request.QueryString.Get("matchday")
+        if (
+          [string]::IsNullOrWhiteSpace($compId) -or $compId -notmatch '^[A-Za-z0-9]+$' -or
+          [string]::IsNullOrWhiteSpace($season) -or $season -notmatch '^\d{4}$' -or
+          [string]::IsNullOrWhiteSpace($matchday) -or $matchday -notmatch '^\d+$'
+        ) {
+          Write-JsonError $response 400 "Missing or invalid compId/season/matchday query parameters."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/spieltag/wettbewerb/$compId/saison_id/$season/spieltag/$matchday"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
         }
         continue
       }
