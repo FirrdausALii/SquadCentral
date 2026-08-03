@@ -2974,10 +2974,175 @@ function dedupeSquadDepthPicks(depth, keepFieldId) {
   return next;
 }
 
+function writeSquadDepthPicksToDom(depth) {
+  for (let i = 0; i < SquadDepth.DEPTH_GK_COUNT; i++) {
+    const el = $(`#sdGk${i}`);
+    if (el) el.value = depth.goalkeepers[i] ?? "";
+  }
+  for (let i = 0; i < SquadDepth.DEPTH_OUTFIELD_SLOTS; i++) {
+    const tagEl = $(`#sdTag${i}`);
+    if (tagEl && !tagEl.readOnly) tagEl.value = depth.slots[i]?.tag ?? "";
+    const a = $(`#sdSlot${i}A`);
+    const b = $(`#sdSlot${i}B`);
+    if (a) a.value = depth.slots[i]?.players[0] ?? "";
+    if (b) b.value = depth.slots[i]?.players[1] ?? "";
+  }
+  const formEl = $("#sdFormation");
+  if (formEl && depth.formation) formEl.value = depth.formation;
+}
+
+function squadDepthShortName(player) {
+  if (!player) return "";
+  if (typeof playerDisplayLastName === "function") return playerDisplayLastName({ player });
+  if (typeof deriveLastNameFromFullName === "function") return deriveLastNameFromFullName(player.name);
+  return String(player.name ?? "");
+}
+
+function renderAdminDepthPosNode(tag, players, focusFieldId, isGk = false) {
+  const label = esc(String(tag ?? "—").toUpperCase());
+  const namesHtml = players.length
+    ? players
+        .map((p) => {
+          const short = squadDepthShortName(p);
+          return `<span class="depth-pos-name depth-pos-name--static">${esc(short)}</span>`;
+        })
+        .join("")
+    : `<span class="depth-empty muted">—</span>`;
+  const focusAttr = focusFieldId ? ` data-sd-focus="${esc(focusFieldId)}"` : "";
+  return `
+    <button type="button" class="depth-pos-node${isGk ? " is-gk" : ""} sd-depth-node"${focusAttr} title="Edit ${label}">
+      <div class="player-circle pitch-token depth-pos-badge">${label}</div>
+      <div class="depth-pos-names">${namesHtml}</div>
+    </button>
+  `;
+}
+
+/** Full pitch preview (includes empty slots) for admin editing. */
+function renderAdminSquadDepthPitch(team, depth, roster) {
+  if (typeof SquadDepth === "undefined") return `<p class="admin-muted mb-0">Pitch preview unavailable.</p>`;
+  const normalized = SquadDepth.normalizeSquadDepth(depth, team?.formation);
+  const formation = normalized.formation || team?.formation || "4-2-3-1";
+  const playerMap = new Map((roster ?? []).map((p) => [p.id, p]));
+  const gks = normalized.goalkeepers.map((id) => playerMap.get(id)).filter(Boolean);
+  const outfieldTopStart = 72;
+  const outfieldTopEnd = 12;
+  const markings = typeof pitchMarkingsSvg === "function" ? pitchMarkingsSvg() : "";
+
+  const lines = SquadDepth.parseFormationLines(formation);
+  const sum = lines.reduce((a, b) => a + b, 0);
+  const useLines = lines.length && sum === SquadDepth.DEPTH_OUTFIELD_SLOTS;
+
+  let builtOutfield = "";
+  if (useLines) {
+    let idx = 0;
+    builtOutfield = lines
+      .map((n, r) => {
+        const row = SquadDepth.centerDmInPitchRow(
+          normalized.slots.slice(idx, idx + n).map((s, j) => ({
+            tag: s.tag,
+            players: s.players.map((id) => playerMap.get(id)).filter(Boolean),
+            slotIndex: idx + j,
+          })),
+        );
+        idx += n;
+        const top = lines.length > 1 ? outfieldTopStart - (r / (lines.length - 1)) * (outfieldTopStart - outfieldTopEnd) : 50;
+        return row
+          .map((slot, c) => {
+            const left = ((c + 1) / (row.length + 1)) * 100;
+            return `
+              <div class="depth-slot" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%">
+                ${renderAdminDepthPosNode(slot.tag, slot.players, `sdSlot${slot.slotIndex}A`)}
+              </div>`;
+          })
+          .join("");
+      })
+      .join("");
+  } else {
+    builtOutfield = normalized.slots
+      .map((s, i) => {
+        const left = ((i + 1) / (normalized.slots.length + 1)) * 100;
+        const players = s.players.map((id) => playerMap.get(id)).filter(Boolean);
+        return `
+          <div class="depth-slot" style="left:${left.toFixed(1)}%;top:50%">
+            ${renderAdminDepthPosNode(s.tag, players, `sdSlot${i}A`)}
+          </div>`;
+      })
+      .join("");
+  }
+
+  const chartCount = SquadDepth.countDepthPlayers(normalized);
+  const teamName = team?.name ?? "Team";
+
+  return `
+    <section class="lineup-block pitch-side squad-depth-side sd-pitch-preview-side">
+      <div class="lineup-team-header pitch-side-head">
+        <h3 class="lineup-team-name pitch-team">${esc(teamName)}</h3>
+        <span class="lineup-formation-badge">${esc(formation)}</span>
+      </div>
+      <div class="pitch squad-depth-pitch sd-pitch-preview">
+        ${markings}
+        <div class="pitch-players">
+          <div class="depth-slot depth-slot--gk" style="left:50%;top:86%">${renderAdminDepthPosNode("GK", gks, "sdGk0", true)}</div>
+          ${builtOutfield}
+        </div>
+      </div>
+      <p class="sd-preview-footnote admin-muted mb-0">${chartCount} on chart · click a badge to jump to its pick</p>
+    </section>
+  `;
+}
+
+function squadDepthStatusMeta(depth, roster) {
+  const validation = SquadDepth.validateSquadDepth(depth);
+  const chartCount = SquadDepth.countDepthPlayers(depth);
+  const statusClass = validation.ok ? (chartCount > 0 ? "sd-status--ok" : "sd-status--warn") : "sd-status--warn";
+  const statusText = !validation.ok
+    ? validation.errors[0]
+    : chartCount > 0
+      ? `${chartCount} player${chartCount === 1 ? "" : "s"} on chart (up to ${SquadDepth.DEPTH_CHART_SIZE}). Save anytime — picks are optional.`
+      : "No players picked yet. Use Auto-fill or Seed from last XI, or pick manually.";
+  return { validation, chartCount, statusClass, statusText, stats: squadDepthStats(depth, roster) };
+}
+
+function refreshSquadDepthUiFromDraft() {
+  const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
+  const team = state().teams.find((t) => t.id === teamId);
+  const roster = team ? squadDepthRoster(team.id) : [];
+  const depth = squadDepthDraft ?? readSquadDepthFromDom();
+  writeSquadDepthPicksToDom(depth);
+
+  const pitchHost = $("#sdPitchPreview");
+  if (pitchHost && team) pitchHost.innerHTML = renderAdminSquadDepthPitch(team, depth, roster);
+
+  const meta = squadDepthStatusMeta(depth, roster);
+  const statusEl = $("#sdStatus");
+  if (statusEl) {
+    statusEl.className = `sd-status ${meta.statusClass}`;
+    statusEl.textContent = meta.statusText;
+  }
+
+  const chipsHost = $("#sdStatChips");
+  if (chipsHost) chipsHost.innerHTML = squadDepthStatChipsHtml(meta.stats);
+
+  const heroMeta = $("#sdHeroMeta");
+  if (heroMeta) {
+    heroMeta.innerHTML = `
+      <span class="mw-hero-preview-label">${esc(team?.name ?? "—")}</span>
+      <strong class="mw-hero-preview-title">${esc(depth.formation)}</strong>
+      <span class="mw-hero-preview-range">${meta.chartCount} on chart · ${roster.length} in squad</span>
+    `;
+  }
+
+  const hint = $("#sdFormationHint");
+  if (hint) {
+    const summary = SquadDepth.formationSlotSummary(depth.formation);
+    hint.textContent = `Slots: ${summary.label}`;
+  }
+}
+
 function applySquadDepthEditorChange(changedFieldId) {
   if (!changedFieldId) return;
   squadDepthDraft = dedupeSquadDepthPicks(readSquadDepthFromDom(), changedFieldId);
-  renderPanel();
+  refreshSquadDepthUiFromDraft();
 }
 
 function readSquadDepthFromDom() {
@@ -3033,6 +3198,55 @@ function sdSlotPosClass(tag) {
   return "sd-slot-row--na";
 }
 
+function confirmReplaceDepthPicks(depth) {
+  const count = SquadDepth.countDepthPlayers(depth);
+  if (!count) return true;
+  return confirm(`Replace current ${count} depth pick${count === 1 ? "" : "s"}?`);
+}
+
+function applySquadDepthAutoFill() {
+  const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
+  const team = state().teams.find((t) => t.id === teamId);
+  if (!team) return;
+  const roster = squadDepthRoster(team.id);
+  if (!roster.length) {
+    alert("Add players for this team first.");
+    return;
+  }
+  const current = readSquadDepthFromDom();
+  if (!confirmReplaceDepthPicks(current)) return;
+  squadDepthDraft = SquadDepth.autoFillDepthFromRoster(current, roster, { replaceExisting: true });
+  writeSquadDepthPicksToDom(squadDepthDraft);
+  refreshSquadDepthUiFromDraft();
+  toast(`Auto-filled ${SquadDepth.countDepthPlayers(squadDepthDraft)} players by role`);
+}
+
+function applySquadDepthSeedFromLineup() {
+  const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
+  const team = state().teams.find((t) => t.id === teamId);
+  if (!team) return;
+  const sources = listLineupSources(leagueFilter, teamId, 9999, "");
+  if (!sources.length) {
+    alert("No saved match lineup for this team yet. Enter a lineup in Matches first.");
+    return;
+  }
+  const source = sources[0];
+  const current = readSquadDepthFromDom();
+  if (!confirmReplaceDepthPicks(current)) return;
+
+  squadDepthDraft = SquadDepth.seedDepthFromLineup(current, source.lineup, (slot) => {
+    const byRoster = findRosterPlayerForLineupSlot(teamId, slot);
+    if (byRoster) return byRoster;
+    const id = String(slot?.playerId ?? slot?.id ?? "").trim();
+    if (id) return playersForTeam(teamId).find((p) => p.id === id) ?? null;
+    return null;
+  });
+  writeSquadDepthPicksToDom(squadDepthDraft);
+  refreshSquadDepthUiFromDraft();
+  const n = SquadDepth.countDepthPlayers(squadDepthDraft);
+  toast(n ? `Seeded ${n} from ${source.label}` : `No roster matches from ${source.label}`);
+}
+
 function panelSquadDepth() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
   const teams = teamsForLeague(leagueFilter);
@@ -3059,7 +3273,7 @@ function panelSquadDepth() {
     .map((slot, i) => {
       const posClass = sdSlotPosClass(slot.tag);
       return `
-        <div class="sd-slot-row ${posClass}">
+        <div class="sd-slot-row ${posClass}" id="sdSlotRow${i}">
           <div class="sd-slot-row__stripe" aria-hidden="true"></div>
           <div class="sd-slot-head">
             <span class="sd-slot-num">${i + 1}</span>
@@ -3083,15 +3297,9 @@ function panelSquadDepth() {
     })
     .join("");
 
-  const validation = SquadDepth.validateSquadDepth(depth);
-  const chartCount = SquadDepth.countDepthPlayers(depth);
-  const stats = squadDepthStats(depth, roster);
-  const statusClass = validation.ok ? (chartCount > 0 ? "sd-status--ok" : "sd-status--warn") : "sd-status--warn";
-  const statusText = !validation.ok
-    ? validation.errors[0]
-    : chartCount > 0
-      ? `${chartCount} player${chartCount === 1 ? "" : "s"} on chart (up to ${SquadDepth.DEPTH_CHART_SIZE}). Save anytime — picks are optional.`
-      : "No players picked yet. Save formation and fill slots when ready.";
+  const meta = squadDepthStatusMeta(depth, roster);
+  const chartCount = meta.chartCount;
+  const stats = meta.stats;
 
   const emptyTeam = !team
     ? `<div class="squaddepth-empty">
@@ -3107,6 +3315,9 @@ function panelSquadDepth() {
         </div>`
       : "";
 
+  const lineupSources = team ? listLineupSources(leagueFilter, team.id, 9999, "") : [];
+  const seedHint = lineupSources[0]?.label ? `Latest: ${lineupSources[0].label}` : "Needs a saved match XI";
+
   return `
     <div class="mw-page squaddepth-page">
       <header class="mw-hero mw-hero--stadium">
@@ -3119,13 +3330,13 @@ function panelSquadDepth() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">Squad setup</p>
             <h2 class="mw-heading">Squad depth</h2>
-            <p class="mw-lead">Set the formation and pick players for the public depth chart — up to <strong>3 goalkeepers</strong> and <strong>10 positions × 2</strong>. Every pick is optional; save with 2 GK, one player per slot, or a partial chart.</p>
-            ${team && roster.length ? squadDepthStatChipsHtml(stats) : ""}
+            <p class="mw-lead">Set the formation and pick players for the public depth chart — up to <strong>3 goalkeepers</strong> and <strong>10 positions × 2</strong>. Use <strong>Auto-fill</strong> or <strong>Seed from last XI</strong>, then check the pitch preview.</p>
+            <div id="sdStatChips">${team && roster.length ? squadDepthStatChipsHtml(stats) : ""}</div>
           </div>
           <aside class="mw-hero__aside">
             <div class="squaddepth-hero-preview">
               ${adminTeamCrestHtml(team)}
-              <div class="mw-hero-preview squaddepth-hero-preview__box">
+              <div class="mw-hero-preview squaddepth-hero-preview__box" id="sdHeroMeta">
                 <span class="mw-hero-preview-label">${esc(team?.name ?? leagueName)}</span>
                 <strong class="mw-hero-preview-title">${esc(depth.formation)}</strong>
                 <span class="mw-hero-preview-range">${chartCount} on chart · ${roster.length} in squad</span>
@@ -3141,7 +3352,7 @@ function panelSquadDepth() {
           <div class="mw-card-head__icon mw-card-head__icon--depth" aria-hidden="true"></div>
           <div>
             <h3>Depth chart editor</h3>
-            <p>Formation drives the 10 outfield slots. Change any pick after saving — selecting a player in a new slot moves them automatically.</p>
+            <p>Formation drives the 10 outfield slots. The pitch on the right mirrors the live site — edits update instantly before you save.</p>
           </div>
         </div>
         <div class="squaddepth-filter-bar">
@@ -3183,22 +3394,38 @@ function panelSquadDepth() {
         ${
           team && roster.length
             ? `
-          <p class="sd-status ${statusClass}" id="sdStatus" aria-live="polite">${esc(statusText)}</p>
-          <div class="sd-editor-grid">
-            <section class="sd-block sd-block--gk">
-              <div class="sd-block__stripe sd-block__stripe--gk" aria-hidden="true"></div>
-              <h4 class="sd-block-title"><span class="sd-block-title__icon sd-block-title__icon--gk" aria-hidden="true"></span>Goalkeepers <span class="sd-block-count">up to 3</span></h4>
-              <div class="sd-gk-grid">${gkRows}</div>
-            </section>
-            <section class="sd-block sd-block--slots">
-              <div class="sd-pitch-bg" aria-hidden="true">
-                <div class="sd-pitch-bg__stripes"></div>
-                <div class="sd-pitch-bg__circle"></div>
+          <p class="sd-status ${meta.statusClass}" id="sdStatus" aria-live="polite">${esc(meta.statusText)}</p>
+          <div class="sd-toolbar">
+            <button type="button" class="mw-btn-ghost sd-tool-btn" id="btnSdAutoFill" title="Place squad by position/role">Auto-fill by role</button>
+            <button type="button" class="mw-btn-ghost sd-tool-btn" id="btnSdSeedLineup" title="${esc(seedHint)}">Seed from last XI</button>
+            <span class="sd-toolbar__hint admin-muted">${esc(seedHint)}</span>
+          </div>
+          <div class="sd-workspace">
+            <div class="sd-editor-grid">
+              <section class="sd-block sd-block--gk">
+                <div class="sd-block__stripe sd-block__stripe--gk" aria-hidden="true"></div>
+                <h4 class="sd-block-title"><span class="sd-block-title__icon sd-block-title__icon--gk" aria-hidden="true"></span>Goalkeepers <span class="sd-block-count">up to 3</span></h4>
+                <div class="sd-gk-grid">${gkRows}</div>
+              </section>
+              <section class="sd-block sd-block--slots">
+                <div class="sd-pitch-bg" aria-hidden="true">
+                  <div class="sd-pitch-bg__stripes"></div>
+                  <div class="sd-pitch-bg__circle"></div>
+                </div>
+                <div class="sd-block__stripe sd-block__stripe--outfield" aria-hidden="true"></div>
+                <h4 class="sd-block-title"><span class="sd-block-title__icon sd-block-title__icon--outfield" aria-hidden="true"></span>Outfield slots <span class="sd-block-count">10 × 2 (optional)</span></h4>
+                <div class="sd-slot-grid">${slotRows}</div>
+              </section>
+            </div>
+            <aside class="sd-preview-panel" aria-label="Depth chart pitch preview">
+              <div class="sd-preview-panel__head">
+                <h4 class="sd-preview-panel__title">Pitch preview</h4>
+                <span class="sd-preview-panel__live">Live layout</span>
               </div>
-              <div class="sd-block__stripe sd-block__stripe--outfield" aria-hidden="true"></div>
-              <h4 class="sd-block-title"><span class="sd-block-title__icon sd-block-title__icon--outfield" aria-hidden="true"></span>Outfield slots <span class="sd-block-count">10 × 2 (optional)</span></h4>
-              <div class="sd-slot-grid">${slotRows}</div>
-            </section>
+              <div class="sd-preview-panel__body" id="sdPitchPreview">
+                ${renderAdminSquadDepthPitch(team, depth, roster)}
+              </div>
+            </aside>
           </div>
           <div class="squaddepth-form-footer">
             <button type="button" class="mw-btn-primary squaddepth-save-btn" id="btnSaveSquadDepth">Save depth chart</button>
@@ -7145,6 +7372,7 @@ function bindSquadDepth() {
   document.querySelectorAll(".sd-tag").forEach((input) => {
     input.addEventListener("change", () => {
       squadDepthDraft = readSquadDepthFromDom();
+      refreshSquadDepthUiFromDraft();
     });
   });
 
@@ -7162,6 +7390,22 @@ function bindSquadDepth() {
     renderPanel();
   });
 
+  $("#btnSdAutoFill")?.addEventListener("click", () => applySquadDepthAutoFill());
+  $("#btnSdSeedLineup")?.addEventListener("click", () => applySquadDepthSeedFromLineup());
+
+  $("#sdPitchPreview")?.addEventListener("click", (e) => {
+    const node = e.target.closest("[data-sd-focus]");
+    if (!node) return;
+    const fieldId = node.getAttribute("data-sd-focus");
+    const field = fieldId ? document.getElementById(fieldId) : null;
+    if (!field) return;
+    field.focus();
+    field.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const row = field.closest(".sd-slot-row, .sd-gk-row");
+    row?.classList.add("sd-row--flash");
+    setTimeout(() => row?.classList.remove("sd-row--flash"), 900);
+  });
+
   $("#btnSaveSquadDepth")?.addEventListener("click", () => {
     const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
     const team = state().teams.find((t) => t.id === teamId);
@@ -7176,7 +7420,7 @@ function bindSquadDepth() {
     syncToAppArrays();
     squadDepthDraft = SquadDepth.normalizeSquadDepth(depth, depth.formation);
     toast("Squad depth saved");
-    renderPanel();
+    refreshSquadDepthUiFromDraft();
   });
 
   $("#btnResetSquadDepth")?.addEventListener("click", () => {
@@ -7185,11 +7429,12 @@ function bindSquadDepth() {
     if (!team) return;
     if (!confirm(`Clear depth chart picks for ${team.name}?`)) return;
     const formation = $("#sdFormation")?.value?.trim() || team.formation || "4-2-3-1";
-    squadDepthDraft = null;
-    FCDataStore.upsertTeam({ ...team, squadDepth: SquadDepth.emptySquadDepth(formation) });
+    squadDepthDraft = SquadDepth.emptySquadDepth(formation);
+    FCDataStore.upsertTeam({ ...team, squadDepth: squadDepthDraft });
     syncToAppArrays();
     toast("Depth chart cleared");
-    renderPanel();
+    writeSquadDepthPicksToDom(squadDepthDraft);
+    refreshSquadDepthUiFromDraft();
   });
 }
 
