@@ -4893,7 +4893,7 @@ const ADMIN_TRANSFER_SECTIONS = [
   {
     key: "in",
     title: "Transfers In",
-    hint: "External signings only. Academy / U21 promotions belong in <strong>Promoted</strong>. Use <strong>+ Squad</strong> to add them — enter jersey number, position, role, and country first.",
+    hint: "External signings only. Academy / U21 promotions belong in <strong>Promoted</strong>. Prefer <strong>Yes, player exists</strong> to pick League → Team → Player (moves the roster and creates the paired Transfer Out). Or enter manually and use <strong>+ Squad</strong>.",
     tableId: "transfersInTable",
     btnId: "btnAddTransferIn",
     btnLabel: "+ In",
@@ -4917,7 +4917,7 @@ const ADMIN_TRANSFER_SECTIONS = [
   {
     key: "out",
     title: "Transfers Out",
-    hint: "Type the outgoing player name. Use <strong>− Squad</strong> to remove them from the club roster.",
+    hint: "Prefer <strong>Yes, player exists</strong> to pick the player and destination (moves the roster and creates the paired Transfer In). Or enter manually and use <strong>− Squad</strong>.",
     tableId: "transfersOutTable",
     btnId: "btnAddTransferOut",
     btnLabel: "+ Out",
@@ -4929,7 +4929,7 @@ const ADMIN_TRANSFER_SECTIONS = [
   {
     key: "loanReturn",
     title: "Loan Return",
-    hint: "Player returning from a loan spell elsewhere. Use <strong>+ Squad</strong> and complete number, position, role, and country before adding.",
+    hint: "Prefer <strong>Yes, player exists</strong> to pick the player at the loan club (returns them here and creates the paired Recall). Or enter manually and use <strong>+ Squad</strong>.",
     tableId: "transfersLoanReturnTable",
     btnId: "btnAddTransferLoanReturn",
     btnLabel: "+ Loan Return",
@@ -4940,7 +4940,7 @@ const ADMIN_TRANSFER_SECTIONS = [
   {
     key: "loanRecall",
     title: "Recall",
-    hint: "Player loaned to this club sent back to their parent club. Use <strong>− Squad</strong> to remove them from the roster.",
+    hint: "Prefer <strong>Yes, player exists</strong> to pick the player and parent club (moves them back and creates the paired Loan Return). Or enter manually and use <strong>− Squad</strong>.",
     tableId: "transfersLoanRecallTable",
     btnId: "btnAddTransferLoanRecall",
     btnLabel: "+ Recall",
@@ -5421,15 +5421,422 @@ function transferFeeFieldHtml(mode, fee) {
     </div>`;
 }
 
-function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
+const TRANSFER_DB_PICK_MODES = new Set(["in", "out", "loanReturn", "loanRecall"]);
+
+function transferSupportsDbPick(mode) {
+  return TRANSFER_DB_PICK_MODES.has(mode);
+}
+
+function transferClubLeagues() {
+  return leagues().filter((l) => l.id !== "worldcup");
+}
+
+function transferLeagueOptionTags(selectedId = "") {
+  const opts = transferClubLeagues()
+    .map((l) => `<option value="${esc(l.id)}"${l.id === selectedId ? " selected" : ""}>${esc(l.name)}</option>`)
+    .join("");
+  return `<option value="">— Select league —</option>${opts}`;
+}
+
+function transferTeamOptionTags(leagueId, selectedId = "", { excludeTeamId = "" } = {}) {
+  const teams = teamsForLeague(leagueId).filter((t) => t.id !== excludeTeamId);
+  if (!leagueId) return `<option value="">— Select league first —</option>`;
+  if (!teams.length) return `<option value="">— No teams —</option>`;
+  return `<option value="">— Select team —</option>${teamOptionTags(teams, selectedId)}`;
+}
+
+function makeTransferEventId() {
+  return `tr_evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function transferPairDirection(mode) {
+  if (mode === "in") return "out";
+  if (mode === "out") return "in";
+  if (mode === "loanReturn") return "loanRecall";
+  if (mode === "loanRecall") return "loanReturn";
+  return "";
+}
+
+/** Append one transfer row for a club without wiping other clubs in that league. */
+function appendClubTransferRow(leagueId, teamId, direction, rowFields) {
+  const team = state().teams.find((t) => t.id === teamId);
+  if (!team) return { ok: false, error: "Team not found." };
+  if (!leagueId) return { ok: false, error: "League is required." };
+  const clubName = team.name;
+  const row = {
+    id:
+      rowFields.id ||
+      `${leagueId}_${direction}_${FCDataStore.slugify(rowFields.player || "row")}_${Date.now().toString(36)}`,
+    player: rowFields.player,
+    club: clubName,
+    otherClub: rowFields.otherClub ?? "",
+    date: rowFields.date || undefined,
+  };
+  if (rowFields.fee) row.fee = rowFields.fee;
+  if (rowFields.playerId) row.playerId = rowFields.playerId;
+  if (rowFields.eventId) row.eventId = rowFields.eventId;
+
+  const cacheKey = transferTeamKey(leagueId, teamId);
+  const baseLists = transferEditsByTeam.has(cacheKey)
+    ? transferEditsByTeam.get(cacheKey)
+    : transfersForTeam(leagueId, teamId);
+  const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "promoted", "loanReturn", "loanRecall"];
+  const lists = {};
+  for (const key of keys) lists[key] = [...(baseLists?.[key] ?? [])];
+  lists[direction] = [...lists[direction], row];
+  const merged = mergeTeamTransfersIntoLeague(leagueId, teamId, lists);
+  FCDataStore.setTransfers(leagueId, merged);
+  transferEditsByTeam.set(cacheKey, transfersForTeam(leagueId, teamId));
+  return { ok: true, row };
+}
+
+function resolveJerseyBeforeMove(player, toTeamId) {
+  if (!player || !toTeamId) return { ok: false, error: "Missing player or destination." };
+  const num = Number(player.number);
+  const taken = playersForTeam(toTeamId).some(
+    (p) => p.id !== player.id && Number(p.number) === num,
+  );
+  if (!taken) return { ok: true, playerId: player.id };
+  const suggested = nextSquadShirtNumber(toTeamId);
+  const raw = prompt(
+    `${player.name}: jersey #${player.number} is already used at the destination club. Enter a free number:`,
+    String(suggested),
+  );
+  if (raw == null) return { ok: false, error: "Cancelled." };
+  const nextNum = Number(raw);
+  if (!Number.isFinite(nextNum) || nextNum < 1 || nextNum > 99) {
+    return { ok: false, error: "Enter a jersey number between 1 and 99." };
+  }
+  if (playersForTeam(toTeamId).some((p) => Number(p.number) === nextNum)) {
+    return { ok: false, error: `Jersey #${nextNum} is still taken.` };
+  }
+  FCDataStore.upsertPlayer({ ...player, number: nextNum });
+  return { ok: true, playerId: player.id };
+}
+
+function transferDbPickerLabels(mode) {
+  if (mode === "in") {
+    return {
+      pickTitle: "Select the player’s current club (source)",
+      pickLeague: "Source league",
+      pickTeam: "Source team",
+      pickPlayer: "Player",
+      needDest: false,
+      destLeague: "",
+      destTeam: "",
+      applyLabel: "Apply transfer in",
+    };
+  }
+  if (mode === "out") {
+    return {
+      pickTitle: "Select the player leaving this club",
+      pickLeague: "Current league",
+      pickTeam: "Current team",
+      pickPlayer: "Player",
+      needDest: true,
+      destLeague: "Destination league",
+      destTeam: "Destination team",
+      applyLabel: "Apply transfer out",
+    };
+  }
+  if (mode === "loanReturn") {
+    return {
+      pickTitle: "Select the player currently on loan (loan club)",
+      pickLeague: "Loan league",
+      pickTeam: "Loan team",
+      pickPlayer: "Player",
+      needDest: false,
+      destLeague: "",
+      destTeam: "",
+      applyLabel: "Apply loan return",
+    };
+  }
+  return {
+    pickTitle: "Select the player to recall from this club",
+    pickLeague: "Current league",
+    pickTeam: "Current team",
+    pickPlayer: "Player",
+    needDest: true,
+    destLeague: "Parent league",
+    destTeam: "Parent team",
+    applyLabel: "Apply loan recall",
+  };
+}
+
+function transferDbPickerHtml(mode, homeTeamId, homeLeagueId) {
+  const labels = transferDbPickerLabels(mode);
+  const homeIsSource = mode === "out" || mode === "loanRecall";
+  const defaultLeague = homeIsSource ? homeLeagueId : "";
+  const defaultTeam = homeIsSource ? homeTeamId : "";
+  const destDefaultLeague = labels.needDest ? homeLeagueId : "";
+  const radioName = `tr-src-${mode}-${Math.random().toString(36).slice(2, 9)}`;
+  return `
+    <div class="tr-source-chooser" role="radiogroup" aria-label="Player source">
+      <p class="tr-source-chooser__lead">Is this player already in our database?</p>
+      <div class="tr-source-chooser__options">
+        <label class="tr-source-option">
+          <input type="radio" class="tr-src-mode" name="${esc(radioName)}" value="db" checked />
+          <span>Yes, player exists in database</span>
+        </label>
+        <label class="tr-source-option">
+          <input type="radio" class="tr-src-mode" name="${esc(radioName)}" value="manual" />
+          <span>No, enter details manually</span>
+        </label>
+      </div>
+    </div>
+    <div class="tr-db-panel">
+      <p class="tr-db-panel__hint">${esc(labels.pickTitle)}</p>
+      <div class="tr-db-grid">
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">${esc(labels.pickLeague)}</span>
+          <div class="mw-select-wrap"><select class="tr-db-league mw-select" aria-label="${esc(labels.pickLeague)}">${transferLeagueOptionTags(defaultLeague)}</select></div>
+        </div>
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">${esc(labels.pickTeam)}</span>
+          <div class="mw-select-wrap"><select class="tr-db-team mw-select" aria-label="${esc(labels.pickTeam)}">${transferTeamOptionTags(defaultLeague, defaultTeam)}</select></div>
+        </div>
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">${esc(labels.pickPlayer)}</span>
+          <div class="mw-select-wrap"><select class="tr-db-player mw-select" aria-label="${esc(labels.pickPlayer)}">${playerTransferPickOptions(defaultTeam, "")}</select></div>
+        </div>
+        ${
+          labels.needDest
+            ? `<div class="transfers-card__field">
+          <span class="transfers-card__label">${esc(labels.destLeague)}</span>
+          <div class="mw-select-wrap"><select class="tr-db-dest-league mw-select" aria-label="${esc(labels.destLeague)}">${transferLeagueOptionTags(destDefaultLeague)}</select></div>
+        </div>
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">${esc(labels.destTeam)}</span>
+          <div class="mw-select-wrap"><select class="tr-db-dest-team mw-select" aria-label="${esc(labels.destTeam)}">${transferTeamOptionTags(destDefaultLeague, "", { excludeTeamId: defaultTeam })}</select></div>
+        </div>`
+            : ""
+        }
+        ${
+          ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.showFee !== false
+            ? `<div class="transfers-card__field">
+          <span class="transfers-card__label">Fee</span>
+          ${transferFeeFieldHtml(mode, "")}
+        </div>`
+            : ""
+        }
+        <div class="transfers-card__field">
+          <span class="transfers-card__label">Date</span>
+          <input class="tr-db-date tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(new Date().toISOString().slice(0, 10))}" aria-label="Transfer date" />
+        </div>
+      </div>
+      <div class="tr-db-actions">
+        <button type="button" class="mw-btn-primary mw-btn-primary--sm tr-db-apply">${esc(labels.applyLabel)}</button>
+      </div>
+    </div>`;
+}
+
+function transferManualFieldsHtml(mode, teamId, t) {
   const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
   const isIncoming = transferDirectionIncoming(mode);
   const clubClass = isIncoming ? "tr-from" : "tr-to";
   const clubLabel = section?.clubHeader ?? (isIncoming ? "From" : "To");
   const clubPlaceholder = section?.clubPlaceholder ?? "Club";
   const showFee = section?.showFee !== false;
+  return `
+    <div class="transfers-card__field">
+      <span class="transfers-card__label">Player</span>
+      ${transferPlayerFieldHtml(mode, teamId, t.player)}
+    </div>
+    <div class="transfers-card__field">
+      <span class="transfers-card__label">${esc(clubLabel)}</span>
+      <input class="${clubClass} transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(clubPlaceholder)}" aria-label="${esc(clubLabel)}" />
+    </div>
+    ${
+      showFee
+        ? `<div class="transfers-card__field">
+      <span class="transfers-card__label">Fee</span>
+      ${transferFeeFieldHtml(mode, t.fee)}
+    </div>`
+        : ""
+    }
+    <div class="transfers-card__field">
+      <span class="transfers-card__label">Date</span>
+      <input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" aria-label="Transfer date" />
+    </div>`;
+}
+
+function setTransferCardSourceMode(card, mode) {
+  if (!card) return;
+  const useDb = mode === "db";
+  card.classList.toggle("transfers-card--db", useDb);
+  card.classList.toggle("transfers-card--manual", !useDb);
+  card.querySelector(".tr-db-panel")?.classList.toggle("admin-hidden", !useDb);
+  card.querySelector(".tr-manual-panel")?.classList.toggle("admin-hidden", useDb);
+}
+
+function refreshTransferDbTeamSelect(card) {
+  const leagueSel = card.querySelector(".tr-db-league");
+  const teamSel = card.querySelector(".tr-db-team");
+  const playerSel = card.querySelector(".tr-db-player");
+  if (!teamSel || !leagueSel) return;
+  const leagueId = leagueSel.value;
+  teamSel.innerHTML = transferTeamOptionTags(leagueId, "");
+  if (playerSel) playerSel.innerHTML = playerTransferPickOptions("", "");
+}
+
+function refreshTransferDbPlayerSelect(card) {
+  const teamSel = card.querySelector(".tr-db-team");
+  const playerSel = card.querySelector(".tr-db-player");
+  if (!playerSel) return;
+  playerSel.innerHTML = playerTransferPickOptions(teamSel?.value ?? "", "");
+}
+
+function refreshTransferDbDestTeamSelect(card) {
+  const destLeagueSel = card.querySelector(".tr-db-dest-league");
+  const destTeamSel = card.querySelector(".tr-db-dest-team");
+  const sourceTeamId = card.querySelector(".tr-db-team")?.value ?? "";
+  if (!destTeamSel || !destLeagueSel) return;
+  destTeamSel.innerHTML = transferTeamOptionTags(destLeagueSel.value, "", {
+    excludeTeamId: sourceTeamId,
+  });
+}
+
+function applyDbLinkedTransferFromCard(card) {
+  const mode = card.getAttribute("data-dir") || "in";
+  if (!transferSupportsDbPick(mode)) return;
+  const homeTeamId = transferTeamFilter;
+  const homeLeagueId = leagueFilter;
+  const homeTeam = state().teams.find((t) => t.id === homeTeamId);
+  if (!homeTeam || !homeTeamId) return toast("Choose a club first");
+
+  const playerId = card.querySelector(".tr-db-player")?.value?.trim() ?? "";
+  if (!playerId) return toast("Select a player");
+
+  const player = state().players.find((p) => p.id === playerId);
+  if (!player) return toast("Player not found in database");
+
+  const sourceTeamId = card.querySelector(".tr-db-team")?.value?.trim() ?? "";
+  const sourceLeagueId = card.querySelector(".tr-db-league")?.value?.trim() ?? "";
+  const destTeamId = card.querySelector(".tr-db-dest-team")?.value?.trim() ?? "";
+  const destLeagueId = card.querySelector(".tr-db-dest-league")?.value?.trim() ?? "";
+
+  let fromTeamId = "";
+  let toTeamId = "";
+  let otherTeamId = "";
+  let otherLeagueId = "";
+  let homeDirection = mode;
+  let otherDirection = transferPairDirection(mode);
+
+  if (mode === "in" || mode === "loanReturn") {
+    fromTeamId = sourceTeamId;
+    toTeamId = homeTeamId;
+    otherTeamId = sourceTeamId;
+    otherLeagueId = sourceLeagueId || state().teams.find((t) => t.id === sourceTeamId)?.leagueId || "";
+    if (!fromTeamId) return toast("Select the player’s current team");
+    if (fromTeamId === homeTeamId) return toast("Player is already on this club");
+  } else {
+    fromTeamId = sourceTeamId || homeTeamId;
+    toTeamId = destTeamId;
+    otherTeamId = destTeamId;
+    otherLeagueId = destLeagueId || state().teams.find((t) => t.id === destTeamId)?.leagueId || "";
+    if (!toTeamId) return toast(mode === "out" ? "Select the destination team" : "Select the parent team");
+    if (fromTeamId === toTeamId) return toast("Source and destination must differ");
+    if (fromTeamId !== homeTeamId) {
+      return toast(
+        `Select a player currently at ${homeTeam.name} (the club you are editing).`,
+      );
+    }
+  }
+
+  if (player.teamId !== fromTeamId) {
+    return toast("Selected player is not on the chosen source team — refresh and try again");
+  }
+
+  const otherTeam = state().teams.find((t) => t.id === otherTeamId);
+  if (!otherTeam || !otherLeagueId) {
+    return toast("The other club must exist in the database to create the paired transfer record");
+  }
+
+  const feeInput = card.querySelector(".tr-db-panel .tr-fee")?.value?.trim() || "";
+  const dateRaw = card.querySelector(".tr-db-panel .tr-db-date, .tr-db-panel .tr-date")?.value?.trim() || "";
+  const date =
+    transferDateFromInputValue(dateRaw) ||
+    dateRaw ||
+    transferDateFromInputValue(new Date().toISOString().slice(0, 10));
+  const showFee = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode)?.showFee !== false;
+  const fee = showFee ? feeInput || undefined : undefined;
+  const defaultLoanFee = mode === "loanReturn" || mode === "loanRecall" ? "Loan" : undefined;
+  const feeFinal = fee || defaultLoanFee;
+
+  const fromName = state().teams.find((t) => t.id === fromTeamId)?.name ?? fromTeamId;
+  const toName = state().teams.find((t) => t.id === toTeamId)?.name ?? toTeamId;
+  const pairLabel = otherDirection === "out" || otherDirection === "in"
+    ? `Transfer ${otherDirection === "out" ? "Out" : "In"}`
+    : otherDirection === "loanRecall"
+      ? "Loan Recall"
+      : "Loan Return";
+
+  if (
+    !confirm(
+      `${player.name}: ${fromName} → ${toName}\n\nThis will:\n• Move the existing player record (no duplicate)\n• Add ${transferCategoryLabel(homeDirection)} for ${homeTeam.name}\n• Add ${pairLabel} for ${otherTeam.name}\n\nContinue?`,
+    )
+  ) {
+    return;
+  }
+
+  stashTransferEditsFromDom();
+
+  const jersey = resolveJerseyBeforeMove(
+    state().players.find((p) => p.id === playerId) || player,
+    toTeamId,
+  );
+  if (!jersey.ok) return toast(jersey.error || "Could not resolve jersey number");
+
+  const moved = FCDataStore.transferPlayer(jersey.playerId, toTeamId, { fromTeamId });
+  if (!moved.ok) return alert(moved.error);
+
+  const eventId = makeTransferEventId();
+  const finalPlayerId = moved.player?.id || jersey.playerId;
+  const playerName = moved.player?.name || player.name;
+
+  const homeRow = {
+    player: playerName,
+    otherClub: otherTeam.name,
+    fee: feeFinal,
+    date,
+    playerId: finalPlayerId,
+    eventId,
+  };
+  const otherRow = {
+    player: playerName,
+    otherClub: homeTeam.name,
+    fee: feeFinal,
+    date,
+    playerId: finalPlayerId,
+    eventId,
+  };
+
+  const homeAdd = appendClubTransferRow(homeLeagueId, homeTeamId, homeDirection, homeRow);
+  if (!homeAdd.ok) return alert(homeAdd.error || "Failed to save home transfer row");
+
+  const otherAdd = appendClubTransferRow(otherLeagueId, otherTeamId, otherDirection, otherRow);
+  if (!otherAdd.ok) return alert(otherAdd.error || "Failed to save paired transfer row");
+
+  syncToAppArrays();
+  clearTransferEditsForTeam(homeLeagueId, homeTeamId);
+  clearTransferEditsForTeam(otherLeagueId, otherTeamId);
+  toast(`${playerName} moved · paired ${transferCategoryLabel(homeDirection)} / ${pairLabel} saved`);
+  renderPanel();
+}
+
+function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
+  const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === mode);
+  const isIncoming = transferDirectionIncoming(mode);
+  const clubLabel = section?.clubHeader ?? (isIncoming ? "From" : "To");
+  const showFee = section?.showFee !== false;
   const sortKey = t.id || `${mode}-${i}`;
   const foldedClass = folded ? " is-folded" : "";
+  const hasPlayer = Boolean(String(t.player ?? "").trim());
+  const showDbChooser = transferSupportsDbPick(mode) && !hasPlayer;
+  const linkedBadge =
+    t.eventId || t.playerId
+      ? `<span class="transfers-card__linked" title="Linked database transfer">Linked</span>`
+      : "";
   const summary = transferCardSummaryHtml(
     {
       player: t.player,
@@ -5440,13 +5847,16 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
     clubLabel,
     { showFee },
   );
+  const homeLeagueId = state().teams.find((x) => x.id === teamId)?.leagueId || leagueFilter;
   return `
     <article
-      class="tr-sort-row transfers-card transfers-row transfers-row--${esc(mode)}${foldedClass}"
+      class="tr-sort-row transfers-card transfers-row transfers-row--${esc(mode)}${foldedClass}${showDbChooser ? " transfers-card--db" : ""}"
       role="listitem"
       data-i="${i}"
       data-dir="${esc(mode)}"
       data-id="${esc(t.id ?? "")}"
+      data-player-id="${esc(t.playerId ?? "")}"
+      data-event-id="${esc(t.eventId ?? "")}"
       data-tr-sort-key="${esc(sortKey)}"
     >
       <div class="transfers-card__top">
@@ -5460,30 +5870,19 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
           <span class="transfers-card__chevron" aria-hidden="true"></span>
           <span class="transfers-card__summary">${summary}</span>
         </button>
+        ${linkedBadge}
         ${transferSquadStatusHtml(teamId, t.player, mode)}
         <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove entry" aria-label="Remove entry">×</button>
       </div>
       <div class="transfers-card__body">
-        <div class="transfers-card__field">
-          <span class="transfers-card__label">Player</span>
-          ${transferPlayerFieldHtml(mode, teamId, t.player)}
-        </div>
-        <div class="transfers-card__field">
-          <span class="transfers-card__label">${esc(clubLabel)}</span>
-          <input class="${clubClass} transfers-input mw-input" value="${esc(t.otherClub ?? "")}" placeholder="${esc(clubPlaceholder)}" aria-label="${esc(clubLabel)}" />
-        </div>
         ${
-          showFee
-            ? `<div class="transfers-card__field">
-          <span class="transfers-card__label">Fee</span>
-          ${transferFeeFieldHtml(mode, t.fee)}
+          showDbChooser
+            ? `${transferDbPickerHtml(mode, teamId, homeLeagueId)}
+        <div class="tr-manual-panel admin-hidden">
+          ${transferManualFieldsHtml(mode, teamId, t)}
         </div>`
-            : ""
+            : transferManualFieldsHtml(mode, teamId, t)
         }
-        <div class="transfers-card__field">
-          <span class="transfers-card__label">Date</span>
-          <input class="tr-date transfers-input transfers-input--date mw-input" type="date" value="${esc(transferDateToInputValue(t.date))}" aria-label="Transfer date" />
-        </div>
       </div>
     </article>`;
 }
@@ -5601,7 +6000,7 @@ function panelTransfers() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">Market moves</p>
             <h2 class="mw-heading">Transfers</h2>
-            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Promoted</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. Drag the <strong>⋮⋮</strong> handle to reorder rows within each list.</p>
+            <p class="mw-lead">Choose league and club — set <strong>In</strong>, <strong>Promoted</strong>, <strong>Out</strong>, <strong>Loan Return</strong>, and <strong>Recall</strong> for that team. For market moves, pick an existing player (League → Team → Player) to reuse the roster record and auto-create the paired opposite entry.</p>
             ${transfersStatChipsHtml(inCount, promotedCount, outCount, loanReturnCount, loanRecallCount)}
           </div>
           <aside class="mw-hero__aside">
@@ -8661,10 +9060,10 @@ function bindTransferRosterActions() {
       const feePreset = e.target instanceof Element ? e.target.closest(".tr-fee-preset") : null;
       if (feePreset) {
         const card = feePreset.closest(".transfers-card");
-        const feeInput = card?.querySelector(".tr-fee");
+        const feeInput = feePreset.closest(".tr-fee-field")?.querySelector(".tr-fee");
         if (feeInput) {
           feeInput.value = feePreset.getAttribute("data-fee") ?? "";
-          card.querySelectorAll(".tr-fee-preset").forEach((btn) => {
+          feePreset.closest(".tr-fee-field")?.querySelectorAll(".tr-fee-preset").forEach((btn) => {
             btn.classList.toggle("is-active", btn === feePreset);
           });
           syncTransferCardSummary(card);
@@ -8810,17 +9209,35 @@ function readTransfersTable(tableId, dir, clubName) {
   const showFee = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === dir)?.showFee !== false;
   return Array.from(list.querySelectorAll(".transfers-card"))
     .map((tr, i) => {
-      const playerEl = tr.querySelector(".tr-player");
+      // Prefer manual/saved player field; ignore unfinished DB-picker cards with no name yet
+      const playerEl =
+        tr.querySelector(".tr-manual-panel .tr-player") ||
+        tr.querySelector(".tr-player-field .tr-player") ||
+        (tr.querySelector(".tr-db-panel") ? null : tr.querySelector(".tr-player"));
       const player = playerEl?.value.trim() ?? "";
+      if (!player) return null;
       const otherClub =
-        (isIncoming ? tr.querySelector(".tr-from") : tr.querySelector(".tr-to"))?.value.trim() ?? "";
-      const fee = showFee ? tr.querySelector(".tr-fee")?.value.trim() ?? "" : "";
-      const dateRaw = tr.querySelector(".tr-date")?.value.trim() ?? "";
+        (isIncoming
+          ? tr.querySelector(".tr-manual-panel .tr-from, .tr-from")
+          : tr.querySelector(".tr-manual-panel .tr-to, .tr-to"))?.value.trim() ?? "";
+      const fee = showFee
+        ? tr.querySelector(".tr-manual-panel .tr-fee, .tr-fee-field .tr-fee")?.value.trim() ??
+          tr.querySelector(".tr-fee")?.value.trim() ??
+          ""
+        : "";
+      const dateRaw =
+        tr.querySelector(".tr-manual-panel .tr-date")?.value.trim() ??
+        [...tr.querySelectorAll("input.tr-date")]
+          .find((el) => !el.classList.contains("tr-db-date") || !tr.querySelector(".tr-db-panel"))
+          ?.value.trim() ??
+        "";
       const date = transferDateFromInputValue(dateRaw) || dateRaw || undefined;
       const id =
         tr.getAttribute("data-id")?.trim() ||
         `${leagueFilter}_${dir}_${FCDataStore.slugify(player || "row")}_${i}`;
-      return {
+      const playerId = tr.getAttribute("data-player-id")?.trim() || undefined;
+      const eventId = tr.getAttribute("data-event-id")?.trim() || undefined;
+      const row = {
         id,
         player,
         club: clubName,
@@ -8828,8 +9245,11 @@ function readTransfersTable(tableId, dir, clubName) {
         fee: fee || undefined,
         date,
       };
+      if (playerId) row.playerId = playerId;
+      if (eventId) row.eventId = eventId;
+      return row;
     })
-    .filter((t) => t.player && t.club);
+    .filter((t) => t && t.player && t.club);
 }
 
 function currentTransferEditorLists() {
@@ -9218,8 +9638,17 @@ function bindTransfers() {
         const card = list.querySelector(".transfers-card:last-of-type");
         syncTransferRosterBtn(card, transferTeamFilter, section.key);
         syncTransferCardSummary(card);
+        if (card?.classList.contains("transfers-card--db")) {
+          setTransferCardSourceMode(card, "db");
+        }
         card?.scrollIntoView({ behavior: "smooth", block: "center" });
-        queueMicrotask(() => card?.querySelector(".tr-player")?.focus?.());
+        queueMicrotask(() => {
+          if (card?.classList.contains("transfers-card--db")) {
+            card.querySelector(".tr-db-league")?.focus?.();
+          } else {
+            card?.querySelector(".tr-player")?.focus?.();
+          }
+        });
       });
     }
   }
@@ -9248,12 +9677,58 @@ function bindTransfers() {
   bindTmTransferSync();
 }
 
+function bindTransferDbPickers() {
+  for (const section of ADMIN_TRANSFER_SECTIONS) {
+    if (!transferSupportsDbPick(section.key)) continue;
+    const list = $(`#${section.tableId}`);
+    if (!list || list.dataset.trDbBound === "1") continue;
+    list.dataset.trDbBound = "1";
+
+    list.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const card = target.closest(".transfers-card");
+      if (!card || !list.contains(card)) return;
+
+      if (target.classList.contains("tr-src-mode")) {
+        setTransferCardSourceMode(card, target.value === "db" ? "db" : "manual");
+        if (target.value === "manual") {
+          queueMicrotask(() => card.querySelector(".tr-manual-panel .tr-player")?.focus?.());
+        }
+        return;
+      }
+      if (target.classList.contains("tr-db-league")) {
+        refreshTransferDbTeamSelect(card);
+        refreshTransferDbDestTeamSelect(card);
+        return;
+      }
+      if (target.classList.contains("tr-db-team")) {
+        refreshTransferDbPlayerSelect(card);
+        refreshTransferDbDestTeamSelect(card);
+        return;
+      }
+      if (target.classList.contains("tr-db-dest-league")) {
+        refreshTransferDbDestTeamSelect(card);
+      }
+    });
+
+    list.addEventListener("click", (e) => {
+      const applyBtn = e.target instanceof Element ? e.target.closest(".tr-db-apply") : null;
+      if (!applyBtn) return;
+      const card = applyBtn.closest(".transfers-card");
+      if (!card || !list.contains(card)) return;
+      applyDbLinkedTransferFromCard(card);
+    });
+  }
+}
+
 function bindTransferTableHandlers() {
   for (const section of ADMIN_TRANSFER_SECTIONS) {
     bindTransferRowDragSort(`#${section.tableId}`);
   }
   bindTransferDel();
   bindTransferRosterActions();
+  bindTransferDbPickers();
 }
 
 function setLoginError(msg) {

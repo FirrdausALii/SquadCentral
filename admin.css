@@ -6672,6 +6672,88 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   min-width: 0;
 }
 
+.tr-source-chooser {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--admin-border) 80%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.tr-source-chooser__lead {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.tr-source-chooser__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tr-source-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.tr-source-option input {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.tr-db-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tr-db-panel__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--admin-muted, #9aa4b2);
+}
+
+.tr-db-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.tr-db-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tr-manual-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transfers-card__linked {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: #dcecff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .tr-roster-btn {
   align-self: flex-start;
   min-height: 44px;
