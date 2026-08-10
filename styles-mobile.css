@@ -174,13 +174,21 @@ body.fc-app {
   .spotlight-card .player-profile-header,
   .spotlight-card .player-stats-grid,
   .spotlight-card__actions,
-  .spotlight-card__note {
+  .spotlight-card__note,
+  .spotlight-card__tip,
+  .spotlight-coach {
     padding-left: var(--sp-4);
     padding-right: var(--sp-4);
   }
 
   .spotlight-hub-strip,
-  .spotlight-card__nav {
+  .spotlight-card__nav,
+  .spotlight-coach {
+    margin-left: var(--sp-4);
+    margin-right: var(--sp-4);
+  }
+
+  .spotlight-card__tip {
     margin-left: var(--sp-4);
     margin-right: var(--sp-4);
   }
@@ -190,7 +198,7 @@ body.fc-app {
   }
 
   .spotlight-stat-text {
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: unset;
   }
 
   .player-profile-header {
@@ -445,7 +453,7 @@ body.fc-app {
   }
 
   .mc-score-rank {
-    width: 1.1rem;
+    width: 1.55rem;
     font-size: 11px;
   }
 

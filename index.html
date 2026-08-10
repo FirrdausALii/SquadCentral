@@ -163,34 +163,38 @@
               </div>
             </div>
 
-            <div class="home-rail home-enter" aria-label="Select competition">
-              <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
-                <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
-                <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
-                <div class="home-rail__scroll" id="leaguePillsScroll">
-                  <div class="league-tabs home-rail__pills" id="leaguePills"></div>
+            <div class="home-filters home-enter" aria-label="Competition and match filters">
+              <div class="home-rail" aria-label="Select competition">
+                <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
+                  <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
+                  <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
+                  <div class="home-rail__scroll" id="leaguePillsScroll">
+                    <div class="league-tabs home-rail__pills" id="leaguePills"></div>
+                  </div>
+                  <div class="home-rail__more-mount" id="homeRailMoreMount"></div>
+                  <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
+                  <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
                 </div>
-                <div class="home-rail__more-mount" id="homeRailMoreMount"></div>
-                <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
-                <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
+              </div>
+              <div class="home-filters__status" id="heroStripToggleMount" hidden>
+                <div class="home-hero__strip-toggle" role="tablist" aria-label="Match status" id="heroStripToggle"></div>
               </div>
             </div>
 
             <section class="home-hero__strip home-enter" aria-label="Matches">
               <div class="home-hero__strip-head">
-                <div class="home-hero__strip-toggle" role="tablist" aria-label="Match status" id="heroStripToggle"></div>
-                <div class="home-hero__strip-subhead">
-                  <div class="home-hero__strip-meta">
-                    <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
-                    <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
-                  </div>
-                  <a class="home-hero__strip-link" href="#match-center">Match center →</a>
-                </div>
+                <p class="home-hero__strip-crumb" id="heroStripCrumb">
+                  <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
+                  <span class="home-hero__strip-crumb-sep" aria-hidden="true">·</span>
+                  <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
+                </p>
+                <a class="home-hero__strip-link home-hero__strip-link--center" href="#match-center">Match center →</a>
               </div>
               <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
                 <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
                 <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
               </div>
+              <div class="home-spotlight__dots" id="heroSpotlightDots" role="tablist" aria-label="Match cards" hidden></div>
             </section>
           </header>
 
@@ -213,24 +217,34 @@
                   </div>
 
                   <div class="home-bento__spotlight" data-bento-panel="team">
-                    <div class="card player-profile-card spotlight-card home-panel-card" aria-label="Club spotlight">
+                    <div class="card player-profile-card spotlight-card home-panel-card" aria-label="Club spotlight" id="featuredSpotlightCard">
+                      <div class="spotlight-card__banner" aria-hidden="true"></div>
                       <div class="player-profile-header">
                         <div class="club-crest featured-crest" data-crest="home" aria-hidden="true"></div>
                         <div class="min-w-0">
                           <h3 class="player-profile-name" id="featuredTeam">—</h3>
                           <div class="player-profile-meta" id="featuredMeta">—</div>
-                          <div class="player-profile-meta mt-1" id="featuredHint">Choose a league → pick a team</div>
+                        </div>
+                      </div>
+
+                      <div class="spotlight-coach" id="featuredCoachRow" hidden>
+                        <span class="spotlight-coach__avatar" id="featuredCoachAvatar" aria-hidden="true">—</span>
+                        <div class="spotlight-coach__meta">
+                          <span class="spotlight-coach__label">Coach</span>
+                          <span class="spotlight-coach__name" id="featuredCoach">—</span>
                         </div>
                       </div>
 
                       <div class="spotlight-hub-strip" aria-label="Club snapshot" id="featuredHubStrip">
-                        <div class="spotlight-hub-stat">
+                        <div class="spotlight-hub-stat" id="featuredPosStat">
                           <span class="spotlight-hub-stat__value" id="featuredPos">—</span>
                           <span class="spotlight-hub-stat__label">Pos</span>
+                          <span class="spotlight-hub-stat__note" id="featuredPosNote" hidden></span>
                         </div>
-                        <div class="spotlight-hub-stat">
+                        <div class="spotlight-hub-stat" id="featuredPtsStat">
                           <span class="spotlight-hub-stat__value" id="featuredPts">—</span>
-                          <span class="spotlight-hub-stat__label">Pts</span>
+                          <span class="spotlight-hub-stat__label" id="featuredPtsLabel">Pts</span>
+                          <span class="spotlight-hub-stat__note" id="featuredPtsNote" hidden></span>
                         </div>
                         <div class="spotlight-hub-stat">
                           <span class="spotlight-hub-stat__value" id="featuredSquad">—</span>
@@ -253,7 +267,10 @@
                         <button class="spotlight-nav-pill is-active" type="button" id="featuredBtn">Open roster</button>
                         <a class="spotlight-nav-pill" href="#squads">All squads</a>
                       </nav>
-                      <p class="spotlight-card__note">Tap any player in Squads for full profile details.</p>
+                      <p class="spotlight-card__tip" id="featuredTip">
+                        <span class="spotlight-card__tip-arrow" aria-hidden="true">↗</span>
+                        Open roster, then tap a player for their full profile
+                      </p>
                     </div>
                   </div>
 

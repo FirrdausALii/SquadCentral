@@ -715,6 +715,7 @@
 }
 
 /* Lift the whole rail above the match strip while its menu is open */
+.home-hero--compact > .home-filters:has(.home-rail__more--open),
 .home-hero--compact > .home-rail:has(.home-rail__more--open),
 .home-rail:has(.home-rail__more--open) {
   position: relative;
@@ -915,20 +916,21 @@
   display: flex;
   gap: var(--sp-3);
   overflow-x: auto;
-  padding-bottom: var(--sp-2);
+  padding-bottom: var(--sp-1);
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
-.home-spotlight__track::-webkit-scrollbar { height: 4px; }
-.home-spotlight__track::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+.home-spotlight__track::-webkit-scrollbar { display: none; }
 
 .home-spotlight__fade {
   position: absolute;
   top: 0;
-  bottom: var(--sp-2);
-  width: 52px;
+  bottom: var(--sp-1);
+  width: 40px;
   pointer-events: none;
   z-index: 2;
   opacity: 0;
@@ -936,10 +938,72 @@
 }
 .home-spotlight__fade--end {
   right: 0;
-  background: linear-gradient(to right, transparent 0%, var(--bg-surface-2) 70%);
+  background: linear-gradient(to right, transparent 0%, rgba(13, 22, 37, 0.92) 85%);
 }
 .home-spotlight__track-wrap--overflow-end .home-spotlight__fade--end {
   opacity: 1;
+}
+
+.home-spotlight__dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--sp-3);
+  min-height: 10px;
+}
+.home-spotlight__dots--progress {
+  gap: var(--sp-2);
+}
+.home-spotlight__dot {
+  appearance: none;
+  border: none;
+  padding: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  transition: width 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+.home-spotlight__dot.is-active {
+  width: 16px;
+  background: var(--accent);
+}
+.home-spotlight__dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.home-spotlight__progress {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 7.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.home-spotlight__progress-btn {
+  appearance: none;
+  border: 0.5px solid var(--border-default);
+  background: rgba(17, 28, 46, 0.72);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: border-color var(--transition), color var(--transition), background-color var(--transition);
+}
+.home-spotlight__progress-btn:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border-strong));
+  background: var(--bg-surface-3);
 }
 
 .home-spotlight__scroll-hint {
@@ -958,20 +1022,29 @@
   width: 100%;
 }
 
-/* Spotlight cards — equal width, stacked teams */
+/* Spotlight cards — peek ~18% of next card, mandatory snap */
 .home-spotlight__track .match-card {
-  flex: 0 0 220px;
-  width: 220px;
-  min-width: 220px;
-  max-width: 220px;
+  flex: 0 0 calc(82% - 4px);
+  width: calc(82% - 4px);
+  min-width: calc(82% - 4px);
+  max-width: 280px;
   padding: var(--sp-3) var(--sp-4);
   gap: var(--sp-2);
   scroll-snap-align: start;
+  scroll-snap-stop: always;
   box-sizing: border-box;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(11, 17, 32, 0.92) 0%, rgba(17, 28, 46, 0.88) 100%);
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+@media (min-width: 520px) {
+  .home-spotlight__track .match-card {
+    flex-basis: 240px;
+    width: 240px;
+    min-width: 240px;
+  }
 }
 
 .home-spotlight__track .match-card:hover {
@@ -1180,23 +1253,85 @@
   padding: 0;
   overflow: hidden;
   border-color: rgba(255, 255, 255, 0.07);
+  --club-color: var(--league-accent, var(--accent));
+  --club-color-deep: #111111;
+}
+
+.spotlight-card__banner {
+  height: 10px;
+  background: linear-gradient(90deg, var(--club-color) 0%, var(--club-color-deep) 100%);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .spotlight-card .player-profile-header {
   margin-bottom: 0;
-  padding: var(--sp-5);
-  border-bottom: 0.5px solid var(--border-subtle);
+  padding: var(--sp-4) var(--sp-5) var(--sp-3);
+  border-bottom: none;
   background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--league-accent, var(--accent)) 12%, transparent), transparent 55%);
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--club-color) 16%, transparent), transparent 58%);
 }
-.spotlight-card .player-stats-grid { padding: var(--sp-4) var(--sp-5) var(--sp-4); }
+
+.spotlight-coach {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: 0 var(--sp-5) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-default);
+  background: rgba(17, 28, 46, 0.55);
+}
+.spotlight-coach[hidden] { display: none !important; }
+.spotlight-coach__avatar {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--club-color);
+  border: 1px solid color-mix(in srgb, var(--club-color) 55%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--club-color-deep) 35%, transparent);
+}
+.spotlight-coach__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.spotlight-coach__label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.spotlight-coach__name {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotlight-card .player-stats-grid {
+  padding: var(--sp-3) var(--sp-5) var(--sp-3);
+  gap: var(--sp-2);
+}
 
 /* Mini-hub snapshot strip */
 .spotlight-hub-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
-  margin: var(--sp-4) var(--sp-5) 0;
+  margin: 0 var(--sp-5);
   border: 0.5px solid var(--border-default);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -1207,9 +1342,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   gap: 2px;
-  padding: var(--sp-3) var(--sp-2);
+  padding: var(--sp-3) var(--sp-2) 10px;
   min-width: 0;
+  min-height: 64px;
 }
 .spotlight-hub-stat + .spotlight-hub-stat {
   border-left: 0.5px solid var(--border-default);
@@ -1222,6 +1359,8 @@
   letter-spacing: 0.02em;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
+  text-align: center;
+  width: 100%;
 }
 .spotlight-hub-stat__label {
   font-size: 9.5px;
@@ -1229,25 +1368,85 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
+  text-align: center;
+  width: 100%;
+}
+.spotlight-hub-stat__note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  line-height: 1.15;
+  margin-top: 1px;
+  text-align: center !important;
+  white-space: normal;
+  align-self: stretch;
+}
+.spotlight-hub-stat__note > span {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.spotlight-hub-stat__note[hidden] { display: none !important; }
+.spotlight-card--provisional #featuredPos {
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.spotlight-stats-grid .player-stat-item {
+  text-align: center !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 68px;
+  padding: var(--sp-3) var(--sp-2);
+}
+.spotlight-stats-grid .player-stat-item .value,
+.spotlight-stats-grid .player-stat-item .label,
+.spotlight-stats-grid .spotlight-stat-text {
+  text-align: center !important;
+  width: 100%;
+  margin-bottom: 0 !important;
+  align-self: stretch;
+}
+.spotlight-stats-grid .spotlight-stat-text {
+  font-size: 11.5px !important;
+  font-weight: 650 !important;
+  color: var(--text-primary) !important;
+  display: block !important;
+  max-width: 100%;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: initial !important;
+  text-align: center !important;
 }
 
 .spotlight-stat-text {
   font-size: 13px !important;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.2;
   color: var(--text-primary) !important;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
 }
 
 /* Pill nav matching home tab pattern */
 .spotlight-card__nav {
   display: flex;
   gap: 2px;
-  margin: 0 var(--sp-5) var(--sp-4);
+  margin: 0 var(--sp-5) var(--sp-2);
   padding: 3px;
   border-radius: var(--radius-pill);
   border: 0.5px solid var(--border-default);
@@ -1285,11 +1484,28 @@
   padding: 0 var(--sp-5) var(--sp-5);
 }
 .spotlight-card__note {
-  padding: var(--sp-3) var(--sp-5) var(--sp-5);
-  font-size: 12px;
-  color: var(--text-faint);
-  border-top: 0.5px solid var(--border-subtle);
-  margin: 0;
+  display: none;
+}
+.spotlight-card__tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 var(--sp-5) var(--sp-5);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid color-mix(in srgb, var(--accent) 22%, var(--border-default));
+  background: color-mix(in srgb, var(--accent) 8%, rgba(17, 28, 46, 0.5));
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+.spotlight-card__tip-arrow {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-weight: 700;
+  line-height: 1.2;
+  transform: translateY(1px);
 }
 
 .table-card {
@@ -1554,10 +1770,10 @@
   }
 
   .home-spotlight__track .match-card {
-    flex: 0 0 min(220px, 78vw);
-    width: min(220px, 78vw);
-    min-width: min(220px, 78vw);
-    max-width: min(220px, 78vw);
+    flex: 0 0 calc(82% - 4px);
+    width: calc(82% - 4px);
+    min-width: calc(82% - 4px);
+    max-width: none;
   }
 }
 
@@ -1650,7 +1866,7 @@ html.home-enter-init .home-enter.is-entered {
 .home-hero--compact {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   padding: var(--sp-4);
   margin-bottom: var(--sp-3);
   border-radius: calc(var(--radius-lg) + 4px);
@@ -1711,6 +1927,7 @@ html.home-enter-init .home-enter.is-entered {
   border: 0.5px solid var(--border-default);
   background: rgba(17, 28, 46, 0.6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  margin-bottom: 2px;
 }
 
 .home-statbar__item {
@@ -1747,6 +1964,23 @@ html.home-enter-init .home-enter.is-entered {
   flex-shrink: 0;
 }
 
+/* Unified filter bar: leagues primary, status secondary */
+.home-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.home-filters__status {
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+}
+.home-filters__status[hidden] {
+  display: none !important;
+}
+
 /* Competitions rail inside the hero */
 .home-hero--compact .home-rail {
   gap: 0;
@@ -1758,20 +1992,30 @@ html.home-enter-init .home-enter.is-entered {
   background: linear-gradient(to left, rgba(13, 22, 37, 0.98) 20%, transparent);
 }
 
-/* Match strip head — status toggle + league/matchweek meta */
+/* Match strip head — breadcrumb + icon button */
 .home-hero__strip-head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-3);
-}
-
-.home-hero__strip-subhead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
   min-width: 0;
+}
+
+.home-hero__strip-crumb {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.home-hero__strip-crumb-sep {
+  color: var(--text-faint);
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .home-hero__strip-toggle {
@@ -1820,7 +2064,7 @@ html.home-enter-init .home-enter.is-entered {
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
-  background: var(--live-pink);
+  background: var(--live-pink, #f0398a);
   flex-shrink: 0;
 }
 .hero-seg--live .dot {
@@ -1842,20 +2086,13 @@ html.home-enter-init .home-enter.is-entered {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.home-hero__strip-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-
 .home-hero__strip-league {
   font-family: "Barlow Condensed", var(--font);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1864,15 +2101,19 @@ html.home-enter-init .home-enter.is-entered {
 
 .home-hero__strip-mw {
   font-family: var(--font);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
   color: var(--text-muted);
-  background: var(--bg-surface-1);
-  border: 0.5px solid var(--border-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.home-hero__strip-iconbtn {
+  display: none;
 }
 
 .home-hero__strip-link {
@@ -1885,6 +2126,57 @@ html.home-enter-init .home-enter.is-entered {
 }
 .home-hero__strip-link:hover {
   color: var(--text-primary);
+}
+.home-hero__strip-link--center {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/* Upcoming kickoff emphasis on hero cards */
+.home-spotlight__track .match-card__kickoff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: var(--sp-2) 0 var(--sp-1);
+  margin-top: 2px;
+}
+.home-spotlight__track .match-card__kickoff-time {
+  font-family: "Barlow Condensed", var(--font);
+  font-size: 2.05rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.home-spotlight__track .match-card__kickoff-meta,
+.home-spotlight__track .match-card__kickoff-date {
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.home-spotlight__track .match-card--upcoming .match-card__row .match-card__team {
+  flex: 1 1 auto;
+}
+.home-spotlight__track .match-card__row .team-crest-shell,
+.home-spotlight__track .team-crest-shell--sm,
+.home-clubstrip .team-crest-shell,
+.clubstrip-chip .team-crest-shell {
+  width: 32px;
+  height: 32px;
+}
+.home-spotlight__track .match-card--ft .match-card__row .match-card__score-num {
+  font-size: 1.45rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+}
+.home-spotlight__track .match-card--live {
+  border-color: color-mix(in srgb, #ff4d3a 42%, var(--border-default));
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, #ff6a45 28%, transparent);
 }
 
 /* Content-preview module: club logo carousel */
@@ -1931,26 +2223,40 @@ html.home-enter-init .home-enter.is-entered {
 .home-clubstrip::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
 .clubstrip-chip {
+  position: relative;
   flex: 0 0 auto;
   scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 88px;
-  padding: var(--sp-3) var(--sp-2);
+  width: 96px;
+  padding: var(--sp-3) var(--sp-2) calc(var(--sp-3) + 2px);
   border-radius: var(--radius-md);
   border: 0.5px solid var(--border-default);
   background: var(--bg-surface-2);
   color: var(--text-secondary);
   cursor: pointer;
   text-align: center;
+  overflow: hidden;
   transition: transform var(--transition), border-color var(--transition), background-color var(--transition);
+}
+.clubstrip-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--accent) 22%, transparent), transparent 68%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
 }
 .clubstrip-chip:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--league-accent, var(--accent)) 45%, var(--border-strong));
   background: var(--bg-surface-3);
+}
+.clubstrip-chip:active::after {
+  opacity: 1;
 }
 .clubstrip-chip:focus-visible {
   outline: 2px solid var(--accent);
@@ -1970,11 +2276,45 @@ html.home-enter-init .home-enter.is-entered {
   overflow-wrap: anywhere;
   min-height: calc(2 * 1.25em);
 }
-.clubstrip-chip__meta {
+.clubstrip-chip__stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+.clubstrip-chip__meta,
+.clubstrip-chip__pos {
   font-size: 9.5px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.03em;
-  color: var(--text-faint);
+  color: var(--text-muted);
+}
+.clubstrip-chip__pos {
+  color: var(--accent);
+}
+.clubstrip-chip__form {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.clubstrip-chip__chevron {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-muted);
+  opacity: 0.4;
+  transition: opacity var(--transition), transform var(--transition), color var(--transition);
+}
+.clubstrip-chip:hover .clubstrip-chip__chevron {
+  opacity: 1;
+  color: var(--accent);
+  transform: translateX(2px);
 }
 
 /* Bento now holds spotlight + table only */
@@ -2001,11 +2341,15 @@ html.home-enter-init .home-enter.is-entered {
 
 @media (prefers-reduced-motion: reduce) {
   .home-hero__strip-live .dot,
-  .hero-seg--live .dot {
+  .hero-seg--live .dot,
+  .match-card__status--live .dot {
     animation: none !important;
   }
   .clubstrip-chip:hover {
     transform: none !important;
+  }
+  .home-spotlight__dot {
+    transition: none !important;
   }
 }
 

@@ -15,6 +15,57 @@
   padding: 14px var(--sp-4);
   border-bottom: 0.5px solid var(--border-default);
   background-color: var(--bg-surface-1);
+  flex-wrap: wrap;
+}
+
+.standings-header__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.standings-search {
+  display: block;
+  flex: 0 1 160px;
+  min-width: 120px;
+  margin: 0;
+}
+
+.standings-search__input {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  border-radius: var(--radius-pill);
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.standings-search__input::placeholder {
+  color: var(--text-faint);
+}
+
+.standings-search__input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.standings-season-banner {
+  margin: 0;
+  padding: 10px var(--sp-4);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface-1));
+  border-bottom: 0.5px solid var(--border-subtle);
 }
 
 .standings-league-badge {
@@ -106,10 +157,10 @@
   position: relative;
 }
 
-.zone-champions td.col-pos   { color: var(--accent); }
-.zone-europa td.col-pos      { color: #a78bfa; }
-.zone-conference td.col-pos  { color: var(--color-win); }
-.zone-relegation td.col-pos  { color: var(--color-loss); }
+.zone-champions td.col-pos   { color: #4da3ff; }
+.zone-europa td.col-pos      { color: #c4b5fd; }
+.zone-conference td.col-pos  { color: #34d399; }
+.zone-relegation td.col-pos  { color: #f87171; }
 
 .zone-champions td.col-pos::before,
 .zone-europa td.col-pos::before,
@@ -118,16 +169,16 @@
   content: "";
   position: absolute;
   left: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 3px;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
   border-radius: 0 2px 2px 0;
 }
 
-.zone-champions td.col-pos::before   { background: var(--accent); }
-.zone-europa td.col-pos::before      { background: #a78bfa; }
-.zone-conference td.col-pos::before  { background: var(--color-win); }
-.zone-relegation td.col-pos::before  { background: var(--color-loss); }
+.zone-champions td.col-pos::before   { background: #4da3ff; box-shadow: 0 0 0 1px rgba(77, 163, 255, 0.35); }
+.zone-europa td.col-pos::before      { background: #a78bfa; box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.4); }
+.zone-conference td.col-pos::before  { background: #34d399; box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35); }
+.zone-relegation td.col-pos::before  { background: #f87171; box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.4); }
 
 .standings-table td.col-club {
   text-align: left;
@@ -206,8 +257,38 @@
 
 .standings-table td.col-pts {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.standings-table th.col-pts {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.standings-table td.col-gd {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.standings-table--core {
+  min-width: 0;
+  width: 100%;
+}
+
+.standings-table--core th.col-stat,
+.standings-table--core td.col-stat {
+  width: 28px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.standings-table--core th.col-pts,
+.standings-table--core td.col-pts {
+  width: 36px;
+  padding-left: 6px;
+  padding-right: 10px;
 }
 
 .standings-table .form-dots {
@@ -287,10 +368,16 @@
 }
 
 .standings-table--expanded {
+  min-width: 0;
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.standings-table--expanded:not(.standings-table--core) {
   min-width: 560px;
   width: max-content;
   border-collapse: separate;
-  border-spacing: 0;
 }
 
 /* Scroll shell: fade + swipe hint when more columns exist */
@@ -333,43 +420,43 @@
   display: block;
 }
 
-/* Sticky identity columns while stat columns scroll */
-.standings-table--expanded th.col-pos,
-.standings-table--expanded td.col-pos,
-.standings-table--expanded th.col-club,
-.standings-table--expanded td.col-club {
+/* Sticky identity columns while stat columns scroll (legacy wide Form tables only) */
+.standings-table--expanded:not(.standings-table--core) th.col-pos,
+.standings-table--expanded:not(.standings-table--core) td.col-pos,
+.standings-table--expanded:not(.standings-table--core) th.col-club,
+.standings-table--expanded:not(.standings-table--core) td.col-club {
   position: sticky;
   z-index: 3;
   background-color: var(--bg-surface-2);
 }
-.standings-table--expanded thead th.col-pos,
-.standings-table--expanded thead th.col-club {
+.standings-table--expanded:not(.standings-table--core) thead th.col-pos,
+.standings-table--expanded:not(.standings-table--core) thead th.col-club {
   z-index: 5;
   background-color: var(--bg-surface-1);
 }
-.standings-table--expanded th.col-pos,
-.standings-table--expanded td.col-pos {
+.standings-table--expanded:not(.standings-table--core) th.col-pos,
+.standings-table--expanded:not(.standings-table--core) td.col-pos {
   left: 0;
   min-width: 32px;
   width: 32px;
 }
-.standings-table--expanded th.col-club,
-.standings-table--expanded td.col-club {
+.standings-table--expanded:not(.standings-table--core) th.col-club,
+.standings-table--expanded:not(.standings-table--core) td.col-club {
   left: 32px;
   min-width: 118px;
   max-width: 140px;
   box-shadow: 6px 0 10px -8px rgba(0, 0, 0, 0.55);
 }
-.standings-table--expanded tbody tr:hover td.col-pos,
-.standings-table--expanded tbody tr:hover td.col-club {
+.standings-table--expanded:not(.standings-table--core) tbody tr:hover td.col-pos,
+.standings-table--expanded:not(.standings-table--core) tbody tr:hover td.col-club {
   background-color: var(--bg-surface-3);
 }
-.standings-table--expanded tr.highlight-team td.col-pos,
-.standings-table--expanded tr.highlight-team td.col-club {
+.standings-table--expanded:not(.standings-table--core) tr.highlight-team td.col-pos,
+.standings-table--expanded:not(.standings-table--core) tr.highlight-team td.col-club {
   background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-surface-2));
 }
-.standings-table--expanded tr.highlight-team:hover td.col-pos,
-.standings-table--expanded tr.highlight-team:hover td.col-club {
+.standings-table--expanded:not(.standings-table--core) tr.highlight-team:hover td.col-pos,
+.standings-table--expanded:not(.standings-table--core) tr.highlight-team:hover td.col-club {
   background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-surface-3));
 }
 
@@ -424,8 +511,30 @@
     width: 100%;
   }
 
-  .standings-table--expanded {
+  .standings-table--expanded:not(.standings-table--core) {
     min-width: 560px;
+  }
+
+  .standings-table--core th.col-club,
+  .standings-table--core td.col-club {
+    position: static;
+    left: auto;
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .standings-table--core th.col-pos,
+  .standings-table--core td.col-pos {
+    position: static;
+    left: auto;
+  }
+
+  .standings-header {
+    padding: 12px var(--sp-3);
+  }
+
+  .standings-search {
+    flex: 1 1 100%;
   }
 
   .standings-table--expanded th.col-club,

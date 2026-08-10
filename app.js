@@ -1421,36 +1421,51 @@ const MINI_STANDINGS = [
   },
 ];
 
-/** Rows: [playerName, clubShortName, goals] */
+/** Rows: [playerName, clubShortName, goals, apps?] */
 const TOP_SCORERS = [
   {
     leagueId: "epl",
     rows: [
-      ["Erling Haaland", "Man City", 26],
-      ["Igor Thiago", "Brentford", 22],
-      ["Joao Pedro", "Chelsea", 15],
-      ["Antoine Semenyo", "Man City", 15],
-      ["Viktor Gyokeres", "Arsenal", 14],
+      ["Erling Haaland", "Man City", 26, 32],
+      ["Igor Thiago", "Brentford", 22, 34],
+      ["Joao Pedro", "Chelsea", 15, 31],
+      ["Antoine Semenyo", "Man City", 15, 33],
+      ["Viktor Gyokeres", "Arsenal", 14, 30],
+      ["Cole Palmer", "Chelsea", 13, 32],
+      ["Bryan Mbeumo", "Brentford", 12, 33],
+      ["Alexander Isak", "Newcastle", 12, 28],
+      ["Matheus Cunha", "Wolves", 11, 30],
+      ["Ollie Watkins", "Aston Villa", 10, 31],
     ],
   },
   {
     leagueId: "laliga",
     rows: [
-      ["Kylian Mbappe", "Real Madrid", 24],
-      ["Vedat Muriqi", "Mallorca", 22],
-      ["Ante Budimir", "Osasuna", 17],
-      ["Ferran Torres", "Barcelona", 16],
-      ["Lamine Yamal", "Barcelona", 16],
+      ["Kylian Mbappe", "Real Madrid", 24, 30],
+      ["Vedat Muriqi", "Mallorca", 22, 33],
+      ["Ante Budimir", "Osasuna", 17, 32],
+      ["Ferran Torres", "Barcelona", 16, 29],
+      ["Lamine Yamal", "Barcelona", 16, 31],
+      ["Robert Lewandowski", "Barcelona", 14, 28],
+      ["Ayoze Perez", "Villarreal", 13, 30],
+      ["Alexander Sorloth", "Atletico Madrid", 12, 29],
+      ["Raphinha", "Barcelona", 11, 30],
+      ["Vinicius Junior", "Real Madrid", 10, 27],
     ],
   },
   {
     leagueId: "seriea",
     rows: [
-      ["Lautaro Martinez", "Inter Milan", 17],
-      ["Marcus Thuram", "Inter Milan", 13],
-      ["Anastasios Douvikas", "Como", 13],
-      ["Donyell Malen", "AS Roma", 13],
-      ["Nico Paz", "Como", 12],
+      ["Lautaro Martinez", "Inter Milan", 17, 31],
+      ["Marcus Thuram", "Inter Milan", 13, 30],
+      ["Anastasios Douvikas", "Como", 13, 32],
+      ["Donyell Malen", "AS Roma", 13, 29],
+      ["Nico Paz", "Como", 12, 31],
+      ["Romelu Lukaku", "Napoli", 11, 28],
+      ["Ademola Lookman", "Atalanta", 10, 27],
+      ["Moise Kean", "Fiorentina", 10, 30],
+      ["Marcus Rashford", "AC Milan", 9, 26],
+      ["Christian Pulisic", "AC Milan", 9, 29],
     ],
   },
   {
@@ -1734,38 +1749,131 @@ function migrateFlatRowsToWorldCupGroups(rows) {
 function sortStandingsRows(rows) {
   return [...rows]
     .filter(([, club]) => String(club ?? "").trim())
-    .sort((a, b) => (Number(b[2]) || 0) - (Number(a[2]) || 0) || (Number(a[0]) || 0) - (Number(b[0]) || 0))
+    .sort((a, b) => {
+      const ptsDiff = (Number(b[2]) || 0) - (Number(a[2]) || 0);
+      if (ptsDiff) return ptsDiff;
+      const gdA = a.length >= 8 && a[7] != null && a[7] !== "" ? Number(a[7]) : null;
+      const gdB = b.length >= 8 && b[7] != null && b[7] !== "" ? Number(b[7]) : null;
+      if (gdA != null && gdB != null && gdB !== gdA) return gdB - gdA;
+      return String(a[1]).localeCompare(String(b[1]), undefined, { sensitivity: "base" });
+    })
     .map((row, i) => [i + 1, row[1], row[2] ?? 0, ...row.slice(3)]);
 }
 
-function standingsMatchesPlayed(leagueId) {
-  if (leagueId === "msl") return 22;
-  if (leagueId === "bundesliga") return 34;
-  if (leagueId === "worldcup") return 3;
-  return 38;
+/**
+ * Build league table from finished fixtures up to the published matchweek.
+ * Skips leftover higher-week results (e.g. old MW36 when the season is on MW1).
+ */
+function computeStandingsFromMatches(leagueId) {
+  const teams = (TEAMS ?? []).filter((t) => t.leagueId === leagueId);
+  if (!teams.length) return [];
+
+  const byId = new Map();
+  for (const t of teams) {
+    byId.set(t.id, {
+      club: t.name,
+      p: 0,
+      w: 0,
+      d: 0,
+      l: 0,
+      gf: 0,
+      ga: 0,
+      pts: 0,
+    });
+  }
+
+  const published = publishedMatchweekForLeague(leagueId);
+  const decided = new Set(["FT", "AET", "PEN", "AWD"]);
+
+  for (const m of MATCHES ?? []) {
+    if (m.leagueId !== leagueId) continue;
+    const status = String(m.status ?? "").trim().toUpperCase();
+    if (!decided.has(status)) continue;
+    const week = parseMatchweekNumber(m.matchday);
+    if (published > 0 && week > 0 && week > published) continue;
+
+    const hs = Number(m.score?.[0]);
+    const as = Number(m.score?.[1]);
+    if (!Number.isFinite(hs) || !Number.isFinite(as)) continue;
+
+    const home = byId.get(m.homeTeamId);
+    const away = byId.get(m.awayTeamId);
+    if (!home || !away) continue;
+
+    home.p += 1;
+    away.p += 1;
+    home.gf += hs;
+    home.ga += as;
+    away.gf += as;
+    away.ga += hs;
+
+    if (hs > as) {
+      home.w += 1;
+      home.pts += 3;
+      away.l += 1;
+    } else if (as > hs) {
+      away.w += 1;
+      away.pts += 3;
+      home.l += 1;
+    } else {
+      home.d += 1;
+      away.d += 1;
+      home.pts += 1;
+      away.pts += 1;
+    }
+  }
+
+  return [...byId.values()].map((r) => [
+    0,
+    r.club,
+    r.pts,
+    r.p,
+    r.w,
+    r.d,
+    r.l,
+    r.gf - r.ga,
+  ]);
+}
+
+/** Prefer fixture-derived rows; otherwise stored mini standings / club seed. */
+function standingsRowsForLeague(leagueId) {
+  const computed = computeStandingsFromMatches(leagueId);
+  if (computed.some((r) => Number(r[3]) > 0)) return computed;
+
+  const stored = miniStandingsBlock(leagueId)?.rows ?? [];
+  if (stored.length) return stored;
+
+  return (TEAMS ?? [])
+    .filter((t) => t.leagueId === leagueId)
+    .map((t) => [0, t.name, 0, 0, 0, 0, 0, 0]);
 }
 
 function enrichStandingsRow(row, rank, total, leagueId) {
   const rk = Number(row[0] ?? rank) || rank;
   const club = row[1];
   const pts = Number(row[2] ?? 0) || 0;
+
+  // Full row already provided: [rk, club, pts, p, w, d, l, gd, form?]
   if (row.length >= 8 && row[3] != null && row[4] != null) {
-    return [rk, club, pts, row[3], row[4], row[5], row[6], row[7], row[8]];
+    const played = Number(row[3]) || 0;
+    const won = Number(row[4]) || 0;
+    const drawn = Number(row[5]) || 0;
+    const lost = Number(row[6]) || 0;
+    const gd = row[7] != null && row[7] !== "" ? Number(row[7]) : 0;
+    return [rk, club, pts, played, won, drawn, lost, gd, row[8]];
   }
 
-  const played = Number(row[3]) || standingsMatchesPlayed(leagueId);
-  let won = Math.min(Math.floor(pts / 3), played);
-  let drawn = pts - won * 3;
-  let lost = played - won - drawn;
-  if (lost < 0) {
-    won += lost;
-    lost = 0;
-    drawn = Math.max(0, played - won);
+  // Points-only seed with nothing played — honest zeros (never invent a 38-game season).
+  if (pts === 0) {
+    return [rk, club, 0, 0, 0, 0, 0, 0, row[8]];
   }
-  const gd =
-    row[7] != null && row[7] !== ""
-      ? Number(row[7])
-      : Math.round((won - lost) * 1.1 + (pts - played * 1.05) * 0.25);
+
+  // Points without a breakdown: derive a minimal W/D line (no padded losses to season length).
+  const won = Math.floor(pts / 3);
+  const drawn = pts % 3;
+  const lost = 0;
+  const played = won + drawn;
+  const gd = row[7] != null && row[7] !== "" ? Number(row[7]) : 0;
   return [rk, club, pts, played, won, drawn, lost, gd, row[8]];
 }
 
@@ -1792,6 +1900,37 @@ function normalizeClubKey(name) {
     .trim();
 }
 
+/** Short labels ↔ official team names used in TEAMS / data.json. */
+const CLUB_NAME_ALIASES = {
+  "man city": "manchester city",
+  "manchester city": "manchester city",
+  "man united": "manchester united",
+  "man utd": "manchester united",
+  "manchester united": "manchester united",
+  "c palace": "crystal palace",
+  "crystal palace": "crystal palace",
+  "spurs": "tottenham",
+  "tottenham hotspur": "tottenham",
+  "nottm forest": "nottingham forest",
+  "nottingham forest": "nottingham forest",
+  "wolves": "wolverhampton wanderers",
+  "atletico": "atletico madrid",
+  "inter": "inter milan",
+  "psg": "paris saint germain",
+};
+
+function clubNameMatchKeys(clubName) {
+  const key = normalizeClubKey(clubName);
+  if (!key) return [];
+  const keys = new Set([key]);
+  const aliased = CLUB_NAME_ALIASES[key];
+  if (aliased) keys.add(aliased);
+  for (const [short, full] of Object.entries(CLUB_NAME_ALIASES)) {
+    if (full === key || full === aliased) keys.add(short);
+  }
+  return [...keys];
+}
+
 /** Resolve a club crest for any club label (league short names, U21 sides, cross-league clubs). */
 function resolveTeamByClubName(clubName, preferredLeagueId) {
   const raw = String(clubName ?? "").trim();
@@ -1808,10 +1947,14 @@ function resolveTeamByClubName(clubName, preferredLeagueId) {
     for (const c of candidates) {
       const exact = pool.find((t) => t.name === c);
       if (exact) return exact;
+      const keys = clubNameMatchKeys(c);
+      for (const key of keys) {
+        if (!key) continue;
+        const ci = pool.find((t) => clubNameMatchKeys(t.name).includes(key) || normalizeClubKey(t.name) === key);
+        if (ci) return ci;
+      }
       const key = normalizeClubKey(c);
       if (!key) continue;
-      const ci = pool.find((t) => normalizeClubKey(t.name) === key);
-      if (ci) return ci;
       const partial = pool.find((t) => {
         const tk = normalizeClubKey(t.name);
         return Boolean(tk) && (key.startsWith(`${tk} `) || tk.startsWith(`${key} `));
@@ -1977,9 +2120,9 @@ function standingsClubCode(clubName) {
 function standingsLegendHtml(showLegend, { zones } = {}) {
   if (!showLegend) return "";
   const items = [
-    { key: "champions", color: "#378ADD", label: "Champions League" },
-    { key: "europa", color: "#a78bfa", label: "Europa League" },
-    { key: "conference", color: "#4ade80", label: "Conference League" },
+    { key: "champions", color: "#4da3ff", label: "Champions League" },
+    { key: "europa", color: "#c4b5fd", label: "Europa League" },
+    { key: "conference", color: "#34d399", label: "Conference League" },
     { key: "relegation", color: "#f87171", label: "Relegation" },
   ];
   const list = Array.isArray(zones) && zones.length
@@ -2032,6 +2175,8 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     // Compact previews default to condensed (Pos/Club/P/Pts); full tables stay expanded.
     expanded = !compact,
     fullLegend = false,
+    showSearch = false,
+    provisional = false,
   } = typeof options === "string" ? { emptyLabel: options } : options;
 
   const sorted = sortStandingsRows(rows);
@@ -2044,8 +2189,17 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
   const enriched = fullStats
     ? list.map((row, i) => enrichStandingsRow(row, i + 1, totalTeams, leagueId))
     : list;
-  const showFullColumns = fullStats && enriched.some((row) => row.length >= 8);
-  // Condensed = Pos / Club / P / Pts. Expanded = full W/D/L/GD (+ Form when not compact).
+  // Re-rank after enrichment so GD tiebreaks are reflected in # when rows arrived points-only.
+  const ranked = fullStats
+    ? sortStandingsRows(enriched.map((r) => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]]))
+        .map((row, i) => {
+          const prev = enriched.find((e) => String(e[1]) === String(row[1])) ?? row;
+          return [i + 1, prev[1], prev[2], prev[3], prev[4], prev[5], prev[6], prev[7], prev[8]];
+        })
+    : enriched;
+
+  const showFullColumns = fullStats && ranked.some((row) => row.length >= 8);
+  // Core table when expanded: # Club P W D L GD Pts (Form only when not compact).
   const showExpandedCols = showFullColumns && expanded;
   const showPlayedOnly = showFullColumns && !expanded;
 
@@ -2053,7 +2207,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     ? `<thead><tr>
         <th class="col-pos">#</th>
         <th class="col-club">Club</th>
-        <th class="col-stat">P</th><th class="col-stat">W</th><th class="col-stat">D</th><th class="col-stat">L</th><th class="col-stat">GD</th>
+        <th class="col-stat">P</th><th class="col-stat">W</th><th class="col-stat">D</th><th class="col-stat">L</th><th class="col-stat col-gd">GD</th>
         <th class="col-pts">Pts</th>
         ${compact ? "" : `<th class="col-form">Form</th>`}
       </tr></thead>`
@@ -2071,8 +2225,8 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
         ${compact ? "" : `<th class="col-form">Form</th>`}
       </tr></thead>`;
 
-  const body = enriched
-    .map((row, i) => {
+  const body = ranked
+    .map((row) => {
       const [rk, club, pts, played, won, drawn, lost, gd, form] = row;
       const team = teamForStandingClub(club, leagueId);
       const zone = standingsZoneClass(Number(rk), totalTeams);
@@ -2095,7 +2249,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
 
       if (showExpandedCols) {
         return `
-        <tr class="${zone}${highlight}">
+        <tr class="${zone}${highlight}" data-club="${escapeHtml(String(club))}">
           <td class="col-pos">${escapeHtml(String(rk))}</td>
           <td class="col-club">${clubCell}</td>
           <td class="col-stat">${stat(played)}</td>
@@ -2114,7 +2268,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
 
       if (showPlayedOnly) {
         return `
-        <tr class="${zone}${highlight}">
+        <tr class="${zone}${highlight}" data-club="${escapeHtml(String(club))}">
           <td class="col-pos">${escapeHtml(String(rk))}</td>
           <td class="col-club">${clubCell}</td>
           <td class="col-stat col-played">${stat(played)}</td>
@@ -2123,7 +2277,7 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
       }
 
       return `
-        <tr class="${zone}${highlight}">
+        <tr class="${zone}${highlight}" data-club="${escapeHtml(String(club))}">
           <td class="col-pos">${escapeHtml(String(rk))}</td>
           <td class="col-club">${clubCell}</td>
           <td class="col-pts">${escapeHtml(String(pts))}</td>
@@ -2137,26 +2291,14 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
     .join("");
 
   const modeClass = showExpandedCols
-    ? " standings-table--full standings-table--expanded"
+    ? " standings-table--full standings-table--expanded standings-table--core"
     : showPlayedOnly
       ? " standings-table--condensed"
       : showFullColumns
         ? " standings-table--full"
         : "";
 
-  const tableHtml = showExpandedCols
-    ? `
-      <div class="standings-scroll" data-standings-scroll>
-        <div class="standings-table-wrap standings-table-wrap--compact standings-table-wrap--scroll">
-          <table class="standings-table${modeClass}">
-            ${thead}
-            <tbody>${body}</tbody>
-          </table>
-        </div>
-        <div class="standings-scroll__fade" aria-hidden="true"></div>
-        <p class="standings-scroll__hint">Swipe for more →</p>
-      </div>`
-    : `
+  const tableHtml = `
       <div class="standings-table-wrap${compact ? " standings-table-wrap--compact" : ""}">
         <table class="standings-table${modeClass}">
           ${thead}
@@ -2166,20 +2308,75 @@ function renderMiniStandingsTableHtml(rows, options = {}) {
 
   const legendZones = fullLegend
     ? standingsLeagueLegendZones(leagueId, totalTeams)
-    : standingsZonesPresent(enriched, totalTeams);
+    : standingsZonesPresent(ranked, totalTeams);
   const legend = standingsLegendHtml(showLegend, { zones: legendZones });
 
-  if (!wrapCard) return `${tableHtml}${legend}`;
+  const seasonBanner = provisional
+    ? `<div class="standings-season-banner" role="status">Season not yet started - all clubs on 0 pts. Table updates after fixtures are played.</div>`
+    : "";
+
+  const searchHtml =
+    showSearch || (!compact && totalTeams >= 12)
+      ? `<label class="standings-search">
+          <input type="search" class="standings-search__input" placeholder="Find club…" autocomplete="off" data-standings-filter aria-label="Find club in standings" />
+        </label>`
+      : "";
+
+  if (!wrapCard) {
+    return `${seasonBanner}${searchHtml}${tableHtml}${legend}`;
+  }
 
   return `
-    <div class="standings-card${compact ? " standings-card--compact" : ""}">
+    <div class="standings-card${compact ? " standings-card--compact" : ""}${provisional ? " standings-card--provisional" : ""}">
       <div class="standings-header">
-        <h3 class="panel-title standings-title">${escapeHtml(title)}</h3>
-        ${leagueId ? standingsLeagueBadge(leagueId) : ""}
+        <div class="standings-header__lead">
+          <h3 class="panel-title standings-title">${escapeHtml(title)}</h3>
+          ${leagueId ? standingsLeagueBadge(leagueId) : ""}
+        </div>
+        ${searchHtml}
       </div>
+      ${seasonBanner}
       ${tableHtml}
       ${legend}
     </div>`;
+}
+
+function bindStandingsFilters(root = document) {
+  const inputs =
+    root instanceof Element && root.matches?.("[data-standings-filter]")
+      ? [root]
+      : [...(root.querySelectorAll?.("[data-standings-filter]") ?? [])];
+  for (const input of inputs) {
+    if (!(input instanceof HTMLInputElement)) continue;
+    if (input.dataset.filterBound === "1") continue;
+    input.dataset.filterBound = "1";
+    const scope =
+      input.closest(".standings-card") ||
+      input.closest("#heroStandings") ||
+      input.closest("#miniStandings") ||
+      input.parentElement;
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      const rows = scope?.querySelectorAll?.("tbody tr") ?? [];
+      let visible = 0;
+      for (const tr of rows) {
+        const hay = (
+          tr.getAttribute("data-club") ||
+          tr.querySelector(".club-cell-name")?.textContent ||
+          ""
+        )
+          .toLowerCase()
+          .trim();
+        const show = !q || hay.includes(q);
+        tr.hidden = !show;
+        if (show) visible += 1;
+      }
+      const empty = scope?.querySelector?.("[data-standings-filter-empty]");
+      if (empty instanceof HTMLElement) {
+        empty.hidden = visible > 0 || !q;
+      }
+    });
+  }
 }
 
 function renderGroupStandingsHtml(groups, leagueId = "worldcup") {
@@ -4850,6 +5047,23 @@ function teamBrandColor(team) {
   return typeof c === "string" && /^#[0-9a-fA-F]{3,8}$/.test(c.trim()) ? c.trim() : "#378ADD";
 }
 
+/** Darken a hex color toward pure black (keeps hue; avoids navy mix → purple). */
+function darkenHexTowardBlack(hex, amount = 0.78) {
+  const raw = String(hex ?? "").trim();
+  const m = raw.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!m) return "#111111";
+  let h = m[1];
+  if (h.length === 3) h = h.split("").map((ch) => ch + ch).join("");
+  const t = Math.min(1, Math.max(0, amount));
+  const parts = [0, 2, 4].map((i) => {
+    const n = parseInt(h.slice(i, i + 2), 16);
+    return Math.round(n * (1 - t))
+      .toString(16)
+      .padStart(2, "0");
+  });
+  return `#${parts.join("")}`;
+}
+
 function matchCardBrandAttrs(ht, at, { featured = false } = {}) {
   const home = teamBrandColor(ht);
   const away = teamBrandColor(at);
@@ -5189,6 +5403,96 @@ function updateHomeSpotlightScroll() {
   const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
   wrap.classList.toggle("home-spotlight__track-wrap--overflow-end", overflow && !atEnd);
   if (hint) hint.hidden = !overflow;
+  updateHomeSpotlightDots();
+}
+
+function updateHomeSpotlightDots() {
+  const track = $("#heroSpotlight");
+  const dots = $("#heroSpotlightDots");
+  if (!track || !dots) return;
+
+  const cards = $$(".match-card", track);
+  if (cards.length <= 1) {
+    dots.hidden = true;
+    dots.innerHTML = "";
+    dots.classList.remove("home-spotlight__dots--progress");
+    return;
+  }
+
+  dots.hidden = false;
+  const useProgress = cards.length > 6;
+  dots.classList.toggle("home-spotlight__dots--progress", useProgress);
+
+  const trackRect = track.getBoundingClientRect();
+  let active = 0;
+  let best = Infinity;
+  cards.forEach((card, i) => {
+    const left = Math.abs(card.getBoundingClientRect().left - trackRect.left);
+    if (left < best) {
+      best = left;
+      active = i;
+    }
+  });
+
+  if (useProgress) {
+    const label = `Match ${active + 1} of ${cards.length}`;
+    if (!dots.querySelector("[data-spotlight-progress]")) {
+      dots.innerHTML = `
+        <button type="button" class="home-spotlight__progress-btn" data-spotlight-dir="-1" aria-label="Previous match">‹</button>
+        <span class="home-spotlight__progress" data-spotlight-progress role="status">${escapeHtml(label)}</span>
+        <button type="button" class="home-spotlight__progress-btn" data-spotlight-dir="1" aria-label="Next match">›</button>`;
+      for (const btn of $$("[data-spotlight-dir]", dots)) {
+        btn.addEventListener("click", () => {
+          const dir = Number(btn.getAttribute("data-spotlight-dir"));
+          const list = $$(".match-card", track);
+          const next = Math.max(0, Math.min(list.length - 1, activeIndexFromTrack(track) + dir));
+          list[next]?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+        });
+      }
+    }
+    const prog = dots.querySelector("[data-spotlight-progress]");
+    if (prog) prog.textContent = label;
+    return;
+  }
+
+  if (dots.childElementCount !== cards.length || dots.querySelector("[data-spotlight-progress]")) {
+    dots.innerHTML = cards
+      .map(
+        (_, i) =>
+          `<button type="button" class="home-spotlight__dot" role="tab" aria-label="Go to match ${i + 1}" data-spotlight-dot="${i}"></button>`,
+      )
+      .join("");
+    for (const btn of $$("[data-spotlight-dot]", dots)) {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-spotlight-dot"));
+        const target = $$(".match-card", track)[idx];
+        if (!target) return;
+        target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+      });
+    }
+  }
+
+  for (const btn of $$("[data-spotlight-dot]", dots)) {
+    const on = Number(btn.getAttribute("data-spotlight-dot")) === active;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  }
+}
+
+function activeIndexFromTrack(track) {
+  const cards = $$(".match-card", track);
+  if (!cards.length) return 0;
+  const trackRect = track.getBoundingClientRect();
+  let active = 0;
+  let best = Infinity;
+  cards.forEach((card, i) => {
+    const left = Math.abs(card.getBoundingClientRect().left - trackRect.left);
+    if (left < best) {
+      best = left;
+      active = i;
+    }
+  });
+  return active;
 }
 
 function bindHomeSpotlightScroll() {
@@ -5864,12 +6168,135 @@ function renderRoster() {
   bindSquadRowClicks(grid, startsMap, state.leagueId);
 }
 
+function matchStatusKind(status) {
+  const upper = String(status ?? "").trim().toUpperCase();
+  if (upper === "LIVE") return "live";
+  if (upper === "FT" || upper === "AET" || upper === "PEN" || upper === "AWD") return "ft";
+  if (!upper || upper === "NS" || upper === "SCHEDULED" || upper === "PST" || upper === "TBD") return "ns";
+  return "ns";
+}
+
+function matchIsUpcoming(m) {
+  return matchStatusKind(m?.status) === "ns";
+}
+
 function matchCardStatusClass(status) {
-  const live = String(status ?? "").toLowerCase() === "live";
-  return live ? "meta-pill live match-card__status" : "meta-pill match-card__status";
+  const kind = matchStatusKind(status);
+  if (kind === "live") return "meta-pill match-card__status match-card__status--live";
+  if (kind === "ft") return "meta-pill match-card__status match-card__status--ft";
+  return "meta-pill match-card__status match-card__status--ns";
+}
+
+/** Compact weekday + date from labels like "Friday 21 August". */
+function matchCompactDateLabel(raw) {
+  const datetime = String(raw ?? "").trim();
+  if (!datetime || datetime === "—") return "";
+  const parts = datetime.split(/\s+/).filter(Boolean);
+  const weekdays = {
+    monday: "Mon",
+    tuesday: "Tue",
+    wednesday: "Wed",
+    thursday: "Thu",
+    friday: "Fri",
+    saturday: "Sat",
+    sunday: "Sun",
+  };
+  if (parts.length >= 3 && /^\d{1,2}$/.test(parts[1])) {
+    const wd = weekdays[parts[0].toLowerCase()] || parts[0].slice(0, 3);
+    return `${wd} ${parts[1]} ${parts[2].slice(0, 3)}`;
+  }
+  if (parts.length === 2 && /^\d{1,2}$/.test(parts[0])) {
+    return `${parts[0]} ${parts[1].slice(0, 3)}`;
+  }
+  return datetime.length > 14 ? datetime.slice(0, 14) : datetime;
+}
+
+function matchKickoffTz(leagueId) {
+  const map = {
+    epl: "BST",
+    laliga: "CEST",
+    seriea: "CEST",
+    bundesliga: "CEST",
+    ligue1: "CEST",
+    msl: "MYT",
+  };
+  return map[leagueId] || "";
+}
+
+function normalizeKickoffClock(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  const hit = s.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+  if (!hit) return "";
+  return `${hit[1].padStart(2, "0")}:${hit[2]}`;
+}
+
+function inferKickoffClock(m) {
+  const day = String(m?.time ?? "").toLowerCase();
+  if (/friday|monday|tuesday|wednesday|thursday/.test(day)) return "20:00";
+  if (/sunday/.test(day)) return "14:00";
+  if (/saturday/.test(day)) return "15:00";
+  return "15:00";
+}
+
+/**
+ * Upcoming card display: large clock as primary, one compact meta line
+ * (e.g. "Fri 21 Aug · BST") — never duplicate the full date under itself.
+ * Pass omitDate when the page already shows the match date (match-center header).
+ */
+function matchKickoffDisplay(m, { omitDate = false } = {}) {
+  const datetime = String(m?.time ?? "").trim();
+  const clock =
+    normalizeKickoffClock(m?.kickoff) ||
+    normalizeKickoffClock(m?.ko) ||
+    normalizeKickoffClock(datetime) ||
+    (matchIsUpcoming(m) ? inferKickoffClock(m) : "");
+  const dateLine = omitDate ? "" : matchCompactDateLabel(datetime);
+  const tz = matchKickoffTz(m?.leagueId);
+  const metaParts = [dateLine, clock && tz ? tz : ""].filter(Boolean);
+  const meta = metaParts.join(" · ");
+  if (clock) {
+    return {
+      primary: clock,
+      meta: meta || (!omitDate ? dateLine : tz || ""),
+      secondary: "",
+      kind: "clock",
+      clock,
+      dateLine,
+      tz,
+    };
+  }
+  if (dateLine) {
+    return {
+      primary: dateLine,
+      meta: tz || "",
+      secondary: "",
+      kind: "date",
+      clock: "",
+      dateLine,
+      tz,
+    };
+  }
+  if (omitDate && tz) {
+    return { primary: "TBD", meta: tz, secondary: "", kind: "tbd", clock: "", dateLine: "", tz };
+  }
+  return { primary: "TBD", meta: "", secondary: "", kind: "tbd", clock: "", dateLine: "", tz: "" };
+}
+
+function matchKickoffBlockHtml(m, { ariaPrefix = "Kickoff", omitDate = false } = {}) {
+  const ko = matchKickoffDisplay(m, { omitDate });
+  const aria = [ko.primary, ko.meta].filter(Boolean).join(", ");
+  return `<div class="match-card__kickoff" aria-label="${escapeHtml(`${ariaPrefix} ${aria}`)}">
+    <span class="match-card__kickoff-time">${escapeHtml(ko.primary)}</span>
+    ${ko.meta ? `<span class="match-card__kickoff-meta">${escapeHtml(ko.meta)}</span>` : ""}
+  </div>`;
 }
 
 function matchCardAriaLabel(m, ht, at) {
+  if (matchIsUpcoming(m)) {
+    const ko = matchKickoffDisplay(m);
+    return `${ht?.name ?? "Home"} vs ${at?.name ?? "Away"}, ${[ko.primary, ko.meta].filter(Boolean).join(" ")}`;
+  }
   return `${ht?.name ?? "Home"} ${m.score[0]} to ${m.score[1]} ${at?.name ?? "Away"}`;
 }
 
@@ -5901,18 +6328,17 @@ function matchCardStatusHtml(m, { showStatus = true } = {}) {
   if (upper === "LIVE") {
     const minute = matchLiveMinute(m);
     const label = minute != null ? `LIVE ${minute}'` : "LIVE";
-    return `<span class="meta-pill live match-card__status match-card__status--live" aria-label="${escapeHtml(label)}"><span class="dot" aria-hidden="true"></span>${escapeHtml(label)}</span>`;
+    return `<span class="${matchCardStatusClass(status)}" aria-label="${escapeHtml(label)}"><span class="dot" aria-hidden="true"></span>${escapeHtml(label)}</span>`;
   }
-  return `<span class="${matchCardStatusClass(status)}">${escapeHtml(status)}</span>`;
+  const display = upper === "NS" ? "NS" : upper === "FT" ? "FT" : status;
+  return `<span class="${matchCardStatusClass(status)}">${escapeHtml(display)}</span>`;
 }
 
 function matchCenterDetailTabsHtml(m, ht, at) {
-  const lid = m?.leagueId;
-  const datetime = m.time || "";
   const overviewVenue = renderMatchVenueCoachesHtml(m, ht, at, { list: true, hero: true });
+  /* Kickoff date/time lives in the hero block above — do not repeat under Overview. */
   const overviewBody = `
     <div class="mc-tab-panel__stack">
-      ${datetime ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>` : ""}
       ${overviewVenue || `<p class="mc-tab-empty">No venue details yet.</p>`}
     </div>`;
 
@@ -6019,7 +6445,8 @@ function matchCenterFixtureHtml(m, { showStatus = true, matchId = m.id } = {}) {
   const awayName = at?.name ?? "Away";
   const hs = Number(m.score?.[0]);
   const as = Number(m.score?.[1]);
-  const decided = Number.isFinite(hs) && Number.isFinite(as) && status.toUpperCase() !== "LIVE";
+  const upcoming = matchIsUpcoming(m);
+  const decided = !upcoming && Number.isFinite(hs) && Number.isFinite(as) && status.toUpperCase() !== "LIVE";
   const homeWin = decided && hs > as;
   const awayWin = decided && as > hs;
   const rowCls = (win, lose) => (win ? " is-winner" : lose ? " is-loser" : "");
@@ -6033,21 +6460,35 @@ function matchCenterFixtureHtml(m, { showStatus = true, matchId = m.id } = {}) {
         </div>`
       : "";
 
-  return `
-    <div class="match-card match-card--fixture${isLive ? " match-card--live" : ""}">
-      ${headerHtml}
-      <div class="match-card__main match-card__main--compact">
+  const teamsBlock = upcoming
+    ? `<div class="match-card__main match-card__main--compact match-card__main--upcoming">
+        <div class="match-card__row match-card__row--home">
+          ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
+          <span class="match-card__team" title="${escapeHtml(homeName)}">${escapeHtml(homeName)}</span>
+        </div>
+        <div class="match-card__row match-card__row--away">
+          ${teamCrestHtml(at, { className: crestClass, size: 32 })}
+          <span class="match-card__team" title="${escapeHtml(awayName)}">${escapeHtml(awayName)}</span>
+        </div>
+        ${matchKickoffBlockHtml(m, { omitDate: true })}
+      </div>`
+    : `<div class="match-card__main match-card__main--compact">
         <div class="match-card__row match-card__row--home${rowCls(homeWin, awayWin)}">
-          ${teamCrestHtml(ht, { className: crestClass })}
+          ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
           <span class="match-card__team" title="${escapeHtml(homeName)}">${escapeHtml(homeName)}</span>
           <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
         </div>
         <div class="match-card__row match-card__row--away${rowCls(awayWin, homeWin)}">
-          ${teamCrestHtml(at, { className: crestClass })}
+          ${teamCrestHtml(at, { className: crestClass, size: 32 })}
           <span class="match-card__team" title="${escapeHtml(awayName)}">${escapeHtml(awayName)}</span>
           <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
         </div>
-      </div>
+      </div>`;
+
+  return `
+    <div class="match-card match-card--fixture${isLive ? " match-card--live" : ""}${upcoming ? " match-card--upcoming" : ""}">
+      ${headerHtml}
+      ${teamsBlock}
       <div class="match-card__action">
         <button class="live-blog" type="button" data-open="${escapeHtml(matchId)}">
           Live blog <span class="arr" aria-hidden="true">›</span>
@@ -6075,19 +6516,17 @@ function matchCardHtml(m, options = {}) {
   const headerKicker = kicker || m.matchday || "";
   const datetime = m.time || "";
   const status = String(m.status ?? "").trim();
+  const statusKind = matchStatusKind(status);
+  const upcoming = statusKind === "ns";
   const venueHtml = showVenue ? matchCardVenueHtml(m, ht, at, { list: variant === "list", hero: variant === "hero" }) : "";
 
   const headerHtml =
     headerKicker || (showStatus && status)
       ? `<div class="match-card__header">
           ${headerKicker ? `<span class="match-card__kicker">${escapeHtml(headerKicker)}</span>` : ""}
-          ${showStatus && status ? `<span class="${matchCardStatusClass(status)}">${escapeHtml(status)}</span>` : ""}
+          ${matchCardStatusHtml(m, { showStatus })}
         </div>`
       : "";
-
-  const datetimeHtml = datetime
-    ? `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>`
-    : "";
 
   const scoreHtml = `
         <div class="match-card__score" aria-label="Score">
@@ -6097,54 +6536,98 @@ function matchCardHtml(m, options = {}) {
         </div>`;
 
   let mainHtml;
+  let datetimeHtml = "";
+
   if (variant === "list") {
     mainHtml = `<div class="match-card__stack">
           <div class="match-card__row match-card__row--home">
-            ${teamCrestHtml(ht, { className: crestClass })}
+            ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
           </div>
-          ${scoreHtml}
+          ${upcoming ? matchKickoffBlockHtml(m) : scoreHtml}
           <div class="match-card__row match-card__row--away">
-            ${teamCrestHtml(at, { className: crestClass })}
+            ${teamCrestHtml(at, { className: crestClass, size: 32 })}
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
           </div>
         </div>`;
+    if (!upcoming && datetime) {
+      datetimeHtml = `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>`;
+    }
   } else if (variant === "hero") {
     const hs = Number(m.score?.[0]);
     const as = Number(m.score?.[1]);
-    const decided = Number.isFinite(hs) && Number.isFinite(as) && String(status).toUpperCase() !== "LIVE";
+    const decided = !upcoming && Number.isFinite(hs) && Number.isFinite(as) && statusKind !== "live";
     const homeWin = decided && hs > as;
     const awayWin = decided && as > hs;
     const rowCls = (win, lose) => (win ? " is-winner" : lose ? " is-loser" : "");
-    mainHtml = `<div class="match-card__main match-card__main--compact">
+
+    if (upcoming) {
+      mainHtml = `<div class="match-card__main match-card__main--compact match-card__main--upcoming">
+          <div class="match-card__row match-card__row--home">
+            ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
+            <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
+          </div>
+          <div class="match-card__row match-card__row--away">
+            ${teamCrestHtml(at, { className: crestClass, size: 32 })}
+            <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
+          </div>
+          ${matchKickoffBlockHtml(m)}
+        </div>`;
+    } else {
+      mainHtml = `<div class="match-card__main match-card__main--compact">
           <div class="match-card__row match-card__row--home${rowCls(homeWin, awayWin)}">
-            ${teamCrestHtml(ht, { className: crestClass })}
+            ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
             <span class="match-card__score-num">${escapeHtml(String(m.score[0]))}</span>
           </div>
           <div class="match-card__row match-card__row--away${rowCls(awayWin, homeWin)}">
-            ${teamCrestHtml(at, { className: crestClass })}
+            ${teamCrestHtml(at, { className: crestClass, size: 32 })}
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
             <span class="match-card__score-num">${escapeHtml(String(m.score[1]))}</span>
           </div>
         </div>`;
+      if (datetime) {
+        datetimeHtml = `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>`;
+      }
+    }
   } else {
-    mainHtml = `<div class="match-card__main">
+    if (upcoming) {
+      mainHtml = `<div class="match-card__main match-card__main--upcoming">
           <div class="match-card__side match-card__side--home">
-            ${teamCrestHtml(ht, { className: crestClass })}
+            ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
+            <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
+          </div>
+          ${matchKickoffBlockHtml(m)}
+          <div class="match-card__side match-card__side--away">
+            ${teamCrestHtml(at, { className: crestClass, size: 32 })}
+            <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
+          </div>
+        </div>`;
+    } else {
+      mainHtml = `<div class="match-card__main">
+          <div class="match-card__side match-card__side--home">
+            ${teamCrestHtml(ht, { className: crestClass, size: 32 })}
             <span class="match-card__team">${escapeHtml(ht?.name ?? "Home")}</span>
           </div>
           ${scoreHtml}
           <div class="match-card__side match-card__side--away">
-            ${teamCrestHtml(at, { className: crestClass })}
+            ${teamCrestHtml(at, { className: crestClass, size: 32 })}
             <span class="match-card__team">${escapeHtml(at?.name ?? "Away")}</span>
           </div>
         </div>`;
+      if (datetime) {
+        datetimeHtml = `<div class="match-card__datetime"><time class="match-card__time">${escapeHtml(datetime)}</time></div>`;
+      }
+    }
   }
+
+  const liveCls = statusKind === "live" ? " match-card--live" : "";
+  const upcomingCls = upcoming ? " match-card--upcoming" : "";
+  const ftCls = statusKind === "ft" ? " match-card--ft" : "";
 
   return `
     <${tag}
-      class="match-card match-card--${variant} ${brand.classExtra}"
+      class="match-card match-card--${variant}${liveCls}${upcomingCls}${ftCls} ${brand.classExtra}"
       ${brand.styleAttr}
       ${attrs}
     >
@@ -6451,15 +6934,17 @@ function renderHeroLeagueMeta(leagueId) {
   const meta = heroLeagueMeta(leagueId);
   const mw = publishedMatchweekForLeague(leagueId);
   const nameEl = $("#heroLeagueName");
+  const featuredEl = $("#heroFeaturedLeague");
   const mwEl = $("#heroMwMeta");
   const rangeEl = $("#heroMwRange");
-  if (nameEl) nameEl.textContent = league?.name ?? leagueId;
-  if (mwEl) {
-    mwEl.textContent =
-      Number(meta.matchweek) === mw
-        ? meta.matchweekTitle || `MW ${mw}`
-        : `Matchweek ${mw}`;
-  }
+  const leagueName = league?.name ?? leagueId;
+  if (nameEl) nameEl.textContent = leagueName;
+  if (featuredEl) featuredEl.textContent = leagueName;
+  const mwLabel =
+    Number(meta.matchweek) === mw
+      ? meta.matchweekTitle || `Matchweek ${mw}`
+      : `Matchweek ${mw}`;
+  if (mwEl) mwEl.textContent = mwLabel;
   if (rangeEl) {
     rangeEl.textContent =
       Number(meta.matchweek) === mw ? meta.dateRange ?? "—" : "—";
@@ -6469,11 +6954,141 @@ function renderHeroLeagueMeta(leagueId) {
 let heroStandingsExpanded = false;
 
 function featuredTeamStandingRow(leagueId, teamName) {
-  const rows = miniStandingsBlock(leagueId)?.rows ?? [];
+  const rows = standingsRowsForLeague(leagueId);
   const name = String(teamName ?? "").trim().toLowerCase();
   if (!name) return null;
-  const hit = rows.find((r) => String(r[1] ?? "").trim().toLowerCase() === name);
+  const hit = sortStandingsRows(rows).find(
+    (r) => String(r[1] ?? "").trim().toLowerCase() === name,
+  );
   return hit ?? null;
+}
+
+/** True when the table is still pre-season / alphabetical (no points earned yet). */
+function leagueStandingsAreProvisional(leagueId) {
+  const rows = standingsRowsForLeague(leagueId);
+  if (!rows.length) return true;
+  const anyPlayed = rows.some((r) => Number(r[3] ?? 0) > 0 || Number(r[2] ?? 0) > 0);
+  return !anyPlayed;
+}
+
+function coachInitials(name) {
+  const parts = String(name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
+function setFeaturedTeam(teamId) {
+  const team = teamById.get(teamId);
+  if (!team) return;
+  const league = LEAGUES.find((l) => l.id === team.leagueId);
+  const squadSize = playersForTeam(teamId).length;
+  const standing = featuredTeamStandingRow(team.leagueId, team.name);
+  const provisional = leagueStandingsAreProvisional(team.leagueId);
+  const mw = publishedMatchweekForLeague(team.leagueId);
+  const pts = standing != null ? Number(standing[2] ?? 0) : null;
+  const pos = standing != null ? Number(standing[0]) : null;
+
+  const card = $("#featuredSpotlightCard");
+  if (card) {
+    const accent = teamBrandColor(team);
+    card.style.setProperty("--club-color", accent);
+    card.style.setProperty("--club-color-deep", darkenHexTowardBlack(accent, 0.82));
+    card.classList.toggle("spotlight-card--provisional", provisional);
+  }
+
+  $("#featuredTeam").textContent = team.name;
+  $("#featuredMeta").textContent = `${league?.name ?? team.leagueId} • ${team.city} • ${squadSize} players`;
+
+  const coachRow = $("#featuredCoachRow");
+  const coachName = String(team.coach ?? "").trim();
+  const coachEl = $("#featuredCoach");
+  const coachAv = $("#featuredCoachAvatar");
+  if (coachRow) {
+    const hasCoach = Boolean(coachName) && coachName !== "—";
+    coachRow.hidden = !hasCoach;
+    if (coachEl) coachEl.textContent = hasCoach ? coachName : "—";
+    if (coachAv) coachAv.textContent = hasCoach ? coachInitials(coachName) : "?";
+  }
+
+  $("#featuredFormation").textContent = formationForTeam(teamId);
+  const stadiumEl = $("#featuredStadium");
+  if (stadiumEl) {
+    const stadium = stadiumForTeam(teamId);
+    stadiumEl.textContent = stadium;
+    stadiumEl.title = stadium && stadium !== "—" ? stadium : "";
+  }
+
+  const posEl = $("#featuredPos");
+  const ptsEl = $("#featuredPts");
+  const squadEl = $("#featuredSquad");
+  const posNote = $("#featuredPosNote");
+  const ptsLabel = $("#featuredPtsLabel");
+  const ptsNote = $("#featuredPtsNote");
+
+  if (posEl) posEl.textContent = Number.isFinite(pos) ? String(pos) : "—";
+  if (posNote) {
+    if (provisional && Number.isFinite(pos)) {
+      posNote.hidden = false;
+      posNote.textContent = "Provisional";
+    } else {
+      posNote.hidden = true;
+      posNote.textContent = "";
+    }
+  }
+
+  if (ptsEl) {
+    if (provisional && (pts === 0 || pts == null)) {
+      ptsEl.textContent = "0";
+    } else if (pts != null && Number.isFinite(pts)) {
+      ptsEl.textContent = String(pts);
+    } else {
+      ptsEl.textContent = "—";
+    }
+  }
+  if (ptsLabel) {
+    ptsLabel.textContent = "Pts";
+  }
+  if (ptsNote) {
+    if (provisional) {
+      ptsNote.hidden = false;
+      ptsNote.innerHTML = `<span>MW${escapeHtml(String(mw))}</span><span>0 games</span>`;
+    } else {
+      ptsNote.hidden = true;
+      ptsNote.textContent = "";
+    }
+  }
+  if (squadEl) squadEl.textContent = String(squadSize);
+
+  renderLeaguePills(team.leagueId);
+  setLeagueAccent(team.leagueId);
+  renderLeagueTrending(team.leagueId);
+  updateHeroLeagueContext(team.leagueId);
+
+  const homeCrest = $('[data-crest="home"]');
+  if (homeCrest) {
+    homeCrest.outerHTML = teamCrestHtml(team, {
+      className: "club-crest featured-crest",
+      size: 40,
+      attrs: 'data-crest="home"',
+    });
+  }
+
+  const featuredBtn = $("#featuredBtn");
+  if (featuredBtn) {
+    featuredBtn.onclick = () => {
+      const leagueSel = $("#leagueSelect");
+      const teamSel = $("#teamSelect");
+      if (leagueSel) leagueSel.value = team.leagueId;
+      renderTeamOptions(team.leagueId);
+      if (teamSel) teamSel.value = teamId;
+      renderRoster();
+      $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+  }
 }
 
 function updateHeroStandingsTitle(leagueId) {
@@ -6506,6 +7121,7 @@ function renderHeroStandings(leagueId) {
   updateHeroStandingsExpandBtn();
 
   const highlightClub = String($("#featuredTeam")?.textContent ?? "").trim();
+  const provisional = leagueStandingsAreProvisional(leagueId);
   const common = {
     leagueId,
     compact: true,
@@ -6514,6 +7130,7 @@ function renderHeroStandings(leagueId) {
     wrapCard: false,
     fullStats: true,
     expanded: heroStandingsExpanded,
+    provisional,
     highlightClub: highlightClub && highlightClub !== "—" ? highlightClub : "",
   };
 
@@ -6527,13 +7144,15 @@ function renderHeroStandings(leagueId) {
     el.innerHTML = renderMiniStandingsTableHtml(rows, {
       ...common,
       fullLegend: false,
+      provisional: false,
       limit: 4,
     });
+    bindStandingsFilters(el);
     bindStandingsScrollAffordances(el);
     return;
   }
 
-  const rows = miniStandingsBlock(leagueId)?.rows ?? [];
+  const rows = standingsRowsForLeague(leagueId);
   if (!rows.length) {
     el.innerHTML = `<div class="standings-empty">No standings for this league.</div>`;
     return;
@@ -6542,6 +7161,7 @@ function renderHeroStandings(leagueId) {
     ...common,
     limit: heroStandingsExpanded ? 8 : 6,
   });
+  bindStandingsFilters(el);
   bindStandingsScrollAffordances(el);
 }
 
@@ -6629,7 +7249,17 @@ function categorizeHeroMatches(matches) {
 
 function renderHeroStripToggle(leagueId, state, buckets) {
   const wrap = $("#heroStripToggle");
+  const mount = $("#heroStripToggleMount");
   if (!wrap) return;
+
+  const total = HERO_STRIP_ORDER.reduce((n, k) => n + (buckets[k]?.length ?? 0), 0);
+  // Always expose status filtering when the matchweek has fixtures (avoids silent regression).
+  const showStatus = total > 0;
+  if (mount) mount.hidden = !showStatus;
+  if (!showStatus) {
+    wrap.innerHTML = "";
+    return;
+  }
 
   wrap.innerHTML = HERO_STRIP_ORDER
     .map((k) => {
@@ -6675,9 +7305,14 @@ function renderHeroSpotlight(leagueId) {
 
   renderHeroStripToggle(leagueId, state, buckets);
 
-  const list = (buckets[state] ?? []).slice(0, 8);
+  const list = (buckets[state] ?? []).slice(0, 10);
   if (!list.length) {
     track.innerHTML = `<div class="home-spotlight__empty">No matches to show yet.</div>`;
+    const dots = $("#heroSpotlightDots");
+    if (dots) {
+      dots.hidden = true;
+      dots.innerHTML = "";
+    }
     updateHomeSpotlightScroll();
     return;
   }
@@ -6714,11 +7349,19 @@ function renderLeagueTrending(leagueId) {
   el.innerHTML = teams
     .map((t) => {
       const squad = playersForTeam(t.id).length;
+      const standing = featuredTeamStandingRow(leagueId, t.name);
+      const pos = standing ? String(standing[0]) : "";
+      const form = pseudoFormDots(t.id);
+      const formLabel = form.join("-");
+      const secondary = pos
+        ? `<span class="clubstrip-chip__pos">#${escapeHtml(pos)}</span><span class="clubstrip-chip__form" aria-label="Form ${escapeHtml(formLabel)}">${escapeHtml(formLabel)}</span>`
+        : `<span class="clubstrip-chip__meta">${escapeHtml(squad)} players</span><span class="clubstrip-chip__form" aria-label="Form ${escapeHtml(formLabel)}">${escapeHtml(formLabel)}</span>`;
       return `
         <button type="button" class="clubstrip-chip" data-club="${escapeHtml(t.id)}" aria-label="Open ${escapeHtml(t.name)} roster">
-          ${teamCrestHtml(t, { className: "clubstrip-chip__crest", size: 40 })}
+          ${teamCrestHtml(t, { className: "clubstrip-chip__crest", size: 32 })}
           <span class="clubstrip-chip__name">${escapeHtml(t.name)}</span>
-          <span class="clubstrip-chip__meta">${escapeHtml(squad)} players</span>
+          <span class="clubstrip-chip__stats">${secondary}</span>
+          <span class="clubstrip-chip__chevron" aria-hidden="true">›</span>
         </button>
       `;
     })
@@ -6745,55 +7388,6 @@ function openTeamRoster(leagueId, teamId) {
   setActiveLeague(leagueId, teamId);
   renderRoster();
   $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function setFeaturedTeam(teamId) {
-  const team = teamById.get(teamId);
-  if (!team) return;
-  const league = LEAGUES.find((l) => l.id === team.leagueId);
-  const squadSize = playersForTeam(teamId).length;
-  const standing = featuredTeamStandingRow(team.leagueId, team.name);
-
-  $("#featuredTeam").textContent = team.name;
-  $("#featuredMeta").textContent = `${league?.name ?? team.leagueId} • ${team.city} • ${squadSize} players`;
-  $("#featuredHint").textContent = `Coach: ${team.coach}`;
-  $("#featuredFormation").textContent = formationForTeam(teamId);
-  const stadiumEl = $("#featuredStadium");
-  if (stadiumEl) stadiumEl.textContent = stadiumForTeam(teamId);
-
-  const posEl = $("#featuredPos");
-  const ptsEl = $("#featuredPts");
-  const squadEl = $("#featuredSquad");
-  if (posEl) posEl.textContent = standing ? String(standing[0]) : "—";
-  if (ptsEl) ptsEl.textContent = standing ? String(standing[2] ?? 0) : "—";
-  if (squadEl) squadEl.textContent = String(squadSize);
-
-  renderLeaguePills(team.leagueId);
-  setLeagueAccent(team.leagueId);
-  renderLeagueTrending(team.leagueId);
-  updateHeroLeagueContext(team.leagueId);
-
-  const homeCrest = $('[data-crest="home"]');
-  if (homeCrest) {
-    homeCrest.outerHTML = teamCrestHtml(team, {
-      className: "club-crest featured-crest",
-      size: 40,
-      attrs: 'data-crest="home"',
-    });
-  }
-
-  const featuredBtn = $("#featuredBtn");
-  if (featuredBtn) {
-    featuredBtn.onclick = () => {
-      const leagueSel = $("#leagueSelect");
-      const teamSel = $("#teamSelect");
-      if (leagueSel) leagueSel.value = team.leagueId;
-      renderTeamOptions(team.leagueId);
-      if (teamSel) teamSel.value = teamId;
-      renderRoster();
-      $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
-  }
 }
 
 /** Keep hero, squads, and Match Center on the same league. */
@@ -7594,6 +8188,15 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false, hero = false } =
   const awayCoachOk = showCoaches && ac && ac !== "—";
   if (!stadiumOk && !homeCoachOk && !awayCoachOk) return "";
 
+  const coachLineHtml = (teamName, coachName) =>
+    `<span class="mw-coach-line-item">
+      <span class="mw-coach-avatar" aria-hidden="true">${escapeHtml(coachInitials(coachName))}</span>
+      <span class="mw-coach-text">
+        <span class="mw-coach-team">${escapeHtml(teamName)}</span>
+        <span class="mw-coach-name">${escapeHtml(coachName)}</span>
+      </span>
+    </span>`;
+
   if (hero) {
     const stadiumRowH = stadiumOk
       ? `<div class="mw-venue-row"><span class="mw-venue-label">Venue</span><span class="mw-venue-value">${escapeHtml(st)}</span></div>`
@@ -7601,16 +8204,8 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false, hero = false } =
     let coachesRowH = "";
     if (homeCoachOk || awayCoachOk) {
       const lines = [];
-      if (homeCoachOk) {
-        lines.push(
-          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(ht?.name ?? "Home")}</span><span class="mw-coach-name">${escapeHtml(hc)}</span></span>`,
-        );
-      }
-      if (awayCoachOk) {
-        lines.push(
-          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(at?.name ?? "Away")}</span><span class="mw-coach-name">${escapeHtml(ac)}</span></span>`,
-        );
-      }
+      if (homeCoachOk) lines.push(coachLineHtml(ht?.name ?? "Home", hc));
+      if (awayCoachOk) lines.push(coachLineHtml(at?.name ?? "Away", ac));
       const label = homeCoachOk && awayCoachOk ? "Managers" : "Manager";
       coachesRowH = `<div class="mw-venue-row mw-venue-row--coaches"><span class="mw-venue-label">${label}</span><span class="mw-coach-lines">${lines.join("")}</span></div>`;
     }
@@ -7625,16 +8220,8 @@ function renderMatchVenueCoachesHtml(m, ht, at, { list = false, hero = false } =
   if (homeCoachOk || awayCoachOk) {
     if (list) {
       const lines = [];
-      if (homeCoachOk) {
-        lines.push(
-          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(ht?.name ?? "Home")}</span><span class="mw-coach-name">${escapeHtml(hc)}</span></span>`,
-        );
-      }
-      if (awayCoachOk) {
-        lines.push(
-          `<span class="mw-coach-line-item"><span class="mw-coach-team">${escapeHtml(at?.name ?? "Away")}</span><span class="mw-coach-name">${escapeHtml(ac)}</span></span>`,
-        );
-      }
+      if (homeCoachOk) lines.push(coachLineHtml(ht?.name ?? "Home", hc));
+      if (awayCoachOk) lines.push(coachLineHtml(at?.name ?? "Away", ac));
       const label = homeCoachOk && awayCoachOk ? "Managers" : "Manager";
       coachesRow = `<div class="mw-venue-row mw-venue-row--coaches"><span class="mw-venue-label">${label}</span><span class="mw-coach-lines">${lines.join("")}</span></div>`;
     } else {
@@ -8081,14 +8668,25 @@ function renderMatchCenter(leagueId) {
     ));
   }
   const displayMatches = activeGroup?.items ?? [];
-  const fixtureWord = displayMatches.length === 1 ? "fixture" : "fixtures";
+  const metaSep = dateMetaEl.previousElementSibling;
 
   dateTitleEl.textContent = activeGroup?.label ?? "No dates";
-  dateMetaEl.textContent = displayMatches.length
-    ? `${displayMatches.length} ${fixtureWord}`
-    : weekMatches.length
-      ? "No fixtures on this date"
-      : "No fixtures this gameweek";
+  /* Count only when it adds value (multiple matches). Skip "1 fixture" on single-match views. */
+  if (!displayMatches.length) {
+    dateMetaEl.textContent = weekMatches.length
+      ? "No matches on this date"
+      : "No matches this gameweek";
+    dateMetaEl.hidden = false;
+    if (metaSep?.classList?.contains("mw-nav-bar__sep")) metaSep.hidden = false;
+  } else if (displayMatches.length === 1) {
+    dateMetaEl.textContent = "";
+    dateMetaEl.hidden = true;
+    if (metaSep?.classList?.contains("mw-nav-bar__sep")) metaSep.hidden = true;
+  } else {
+    dateMetaEl.textContent = `${displayMatches.length} matches`;
+    dateMetaEl.hidden = false;
+    if (metaSep?.classList?.contains("mw-nav-bar__sep")) metaSep.hidden = false;
+  }
 
   const setDateIndex = (index) => {
     const group = dateGroups[index];
@@ -8187,16 +8785,24 @@ function renderMatchCenter(leagueId) {
     const featuredTeam = teamById.get($("#teamSelect")?.value ?? "");
     if (leagueUsesGroupStandings(leagueId)) {
       stEl.innerHTML = renderGroupStandingsHtml(groupStandingsForLeague(leagueId), leagueId);
+      bindStandingsFilters(stEl);
     } else {
-      const rows = miniStandingsBlock(leagueId)?.rows ?? [];
+      const rows = standingsRowsForLeague(leagueId);
+      const provisional = leagueStandingsAreProvisional(leagueId);
       stEl.innerHTML = rows.length
         ? renderMiniStandingsTableHtml(rows, {
             leagueId,
             title: "Standings",
             showLegend: true,
+            fullLegend: true,
+            compact: true,
+            expanded: true,
+            showSearch: true,
+            provisional,
             highlightClub: featuredTeam?.name ?? "",
           })
         : "<div class='standings-empty'>No standings for this league.</div>";
+      bindStandingsFilters(stEl);
     }
   }
 
@@ -8207,19 +8813,27 @@ function renderMatchCenter(leagueId) {
 }
 
 let topScorerStatMode = "goals";
+let topScorerExpanded = false;
+const TOP_SCORER_PREVIEW_LIMIT = 5;
+const TOP_SCORER_FULL_LIMIT = 20;
 
-function topScorerRowsFromTable(leagueId) {
+function topScorerRowsFromTable(leagueId, limit = TOP_SCORER_FULL_LIMIT) {
   return (TOP_SCORERS.find((x) => x.leagueId === leagueId)?.rows ?? [])
-    .map(([name, club, goals]) => ({
-      name: String(name ?? "").trim(),
-      club: String(club ?? "").trim(),
-      value: Number(goals) || 0,
-    }))
+    .map((row) => {
+      const [name, club, goals, apps] = row;
+      return {
+        name: String(name ?? "").trim(),
+        club: String(club ?? "").trim(),
+        value: Number(goals) || 0,
+        apps: apps != null && apps !== "" ? Number(apps) : null,
+      };
+    })
     .filter((r) => r.name)
-    .slice(0, 5);
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))
+    .slice(0, limit);
 }
 
-function topAssistRowsFromMatches(leagueId, limit = 5) {
+function topAssistRowsFromMatches(leagueId, limit = TOP_SCORER_FULL_LIMIT) {
   const counts = new Map();
   for (const m of MATCHES) {
     if (m.leagueId !== leagueId) continue;
@@ -8229,43 +8843,98 @@ function topAssistRowsFromMatches(leagueId, limit = 5) {
       const teamId = ev.side === "away" ? m.awayTeamId : m.homeTeamId;
       const team = teamById.get(teamId);
       const club = team?.name ?? "";
-      const prev = counts.get(assist) ?? { name: assist, club, value: 0 };
+      const prev = counts.get(assist) ?? { name: assist, club, value: 0, apps: 0, _matches: new Set() };
       if (club) prev.club = club;
       prev.value += 1;
+      prev._matches.add(m.id);
+      prev.apps = prev._matches.size;
       counts.set(assist, prev);
     }
   }
   return [...counts.values()]
+    .map(({ name, club, value, apps }) => ({ name, club, value, apps }))
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))
     .slice(0, limit);
 }
 
+/** Competition ranking: ties share the same place (1, 2, 3, 3, 5). */
+function assignLeaderboardRanks(rows) {
+  let place = 1;
+  return rows.map((row, i) => {
+    if (i > 0 && rows[i - 1].value !== row.value) place = i + 1;
+    const tied =
+      (i > 0 && rows[i - 1].value === row.value) ||
+      (i < rows.length - 1 && rows[i + 1].value === row.value);
+    return {
+      ...row,
+      rank: place,
+      rankLabel: tied ? `${place}=` : String(place),
+    };
+  });
+}
+
+function scorerSecondaryMeta(row, mode) {
+  const club = standingsShortClubName(row.club) || row.club || "";
+  const apps = Number(row.apps);
+  if (!Number.isFinite(apps) || apps <= 0 || !row.value) {
+    return club;
+  }
+  const rate = row.value / apps;
+  const rateLabel = Number.isFinite(rate) ? `${rate.toFixed(2)}/g` : "";
+  return [club, `${apps} apps`, rateLabel].filter(Boolean).join(" · ");
+}
+
 function renderTopScorersHtml(leagueId, mode = "goals") {
-  const rows = mode === "assists" ? topAssistRowsFromMatches(leagueId) : topScorerRowsFromTable(leagueId);
-  if (!rows.length) {
+  const allRows =
+    mode === "assists"
+      ? topAssistRowsFromMatches(leagueId, TOP_SCORER_FULL_LIMIT)
+      : topScorerRowsFromTable(leagueId, TOP_SCORER_FULL_LIMIT);
+  if (!allRows.length) {
     const empty =
       mode === "assists" ? "No assists recorded for this league yet." : "No scorers for this league.";
     return `<div class="muted mc-empty">${empty}</div>`;
   }
+
+  const preview = !topScorerExpanded;
+  const rows = assignLeaderboardRanks(
+    preview ? allRows.slice(0, TOP_SCORER_PREVIEW_LIMIT) : allRows,
+  );
   const max = Math.max(...rows.map((r) => r.value), 1);
-  return `<div class="mc-score-list" role="table" aria-label="${mode === "assists" ? "Top assists" : "Top scorers"}">${rows
-    .map((row, i) => {
-      const rank = i + 1;
+  const canExpand = allRows.length > TOP_SCORER_PREVIEW_LIMIT;
+  const listLabel = mode === "assists" ? "Top assists" : "Top scorers";
+
+  const listHtml = `<div class="mc-score-list" role="table" aria-label="${listLabel}">${rows
+    .map((row) => {
       const pct = Math.max(8, Math.round((row.value / max) * 100));
       const crest = clubCrestFromName(row.club, leagueId, "squad-crest mc-score-crest");
-      const leaderClass = rank === 1 ? " mc-score-row--leader" : "";
+      const leaderClass = row.rank === 1 ? " mc-score-row--leader" : "";
+      const meta = scorerSecondaryMeta(row, mode);
+      const statWord = mode === "assists" ? "Assists" : "Goals";
       return `
         <div class="mc-score-row${leaderClass}" role="row" style="--mc-score-bar:${pct}%">
-          <span class="mc-score-rank" aria-label="Rank ${rank}">${rank}</span>
+          <span class="mc-score-rank" aria-label="Rank ${escapeHtml(row.rankLabel)}">${escapeHtml(row.rankLabel)}</span>
           ${crest}
           <div class="mc-score-main">
             <span class="mc-score-name">${escapeHtml(row.name)}</span>
-            <span class="mc-score-club">${escapeHtml(row.club)}</span>
+            <span class="mc-score-club">${escapeHtml(meta)}</span>
           </div>
-          <span class="mc-score-goals" aria-label="${mode === "assists" ? "Assists" : "Goals"} ${row.value}">${escapeHtml(String(row.value))}</span>
+          <span class="mc-score-goals" aria-label="${statWord} ${row.value}">${escapeHtml(String(row.value))}</span>
         </div>`;
     })
     .join("")}</div>`;
+
+  const footer =
+    canExpand
+      ? `<div class="mc-score-footer">
+          <button type="button" class="mc-score-more" data-scorer-expand="${topScorerExpanded ? "less" : "more"}">
+            ${topScorerExpanded ? "Show top 5" : `View full list →`}
+          </button>
+        </div>`
+      : allRows.length <= TOP_SCORER_PREVIEW_LIMIT
+        ? `<div class="mc-score-footer mc-score-footer--note"><span class="mc-score-note">Top ${allRows.length}</span></div>`
+        : "";
+
+  return `${listHtml}${footer}`;
 }
 
 function syncTopScorerStatToggle() {
@@ -8282,11 +8951,20 @@ function setupTopScorerControls() {
   if (!card || card.dataset.scorerToggleBound) return;
   card.dataset.scorerToggleBound = "1";
   card.addEventListener("click", (e) => {
+    const expandBtn = e.target.closest("[data-scorer-expand]");
+    if (expandBtn) {
+      topScorerExpanded = expandBtn.getAttribute("data-scorer-expand") === "more";
+      const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
+      const scEl = $("#topScorers");
+      if (scEl && leagueId) scEl.innerHTML = renderTopScorersHtml(leagueId, topScorerStatMode);
+      return;
+    }
     const btn = e.target.closest("[data-scorer-stat]");
     if (!btn) return;
     const mode = btn.getAttribute("data-scorer-stat");
     if (!mode || mode === topScorerStatMode) return;
     topScorerStatMode = mode;
+    topScorerExpanded = false;
     syncTopScorerStatToggle();
     const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
     const scEl = $("#topScorers");
