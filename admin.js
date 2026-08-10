@@ -38,6 +38,8 @@ const currentSeasonStartYear = () => {
 let tmTransferSeason = currentSeasonStartYear();
 /** @type {{ tmLists: object, diff: object, clubId: number, season: number, ignoredAdd: Set<string>, ignoredRemove: Set<string>, ignoredUpdate: Set<string>, ignoredMove: Set<string> } | null} */
 let tmTransferSyncState = null;
+/** Filter for Transfermarkt transfer suggestions (add / sync / remove lists). */
+let tmTransferSearchQuery = "";
 /** Prefill for + Squad after Transfermarkt Add — key: normalizeNameKey(player). */
 const tmTransferSquadPrefillByName = new Map();
 let matchEditId = "";
@@ -4580,6 +4582,25 @@ function transferDateFromInputValue(iso) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
+/** Prefer the visible panel on new DB/manual cards so hidden sibling fields are not read. */
+function transferCardActiveRoot(card) {
+  if (!card) return null;
+  const manual = card.querySelector(".tr-manual-panel");
+  const db = card.querySelector(".tr-db-panel");
+  if (manual && !manual.classList.contains("admin-hidden")) return manual;
+  if (db && !db.classList.contains("admin-hidden")) return db;
+  return card;
+}
+
+function transferCardQuery(card, selector) {
+  const root = transferCardActiveRoot(card) || card;
+  return root?.querySelector(selector) ?? null;
+}
+
+function transferCardInputValue(card, selector) {
+  return transferCardQuery(card, selector)?.value?.trim() ?? "";
+}
+
 function transfersForTeam(leagueId, teamId) {
   const team = state().teams.find((t) => t.id === teamId);
   const club = team?.name ?? "";
@@ -4708,9 +4729,9 @@ function transferPlayerFieldHtml(mode, teamId, playerName) {
 
 function syncTransferRosterBtn(row, teamId, mode) {
   if (!row) return;
-  const input = row.querySelector(".tr-player");
-  const btn = row.querySelector(".tr-roster-btn");
-  const details = row.querySelector(".tr-squad-details");
+  const input = transferCardQuery(row, ".tr-player");
+  const btn = transferCardQuery(row, ".tr-roster-btn") || row.querySelector(".tr-roster-btn");
+  const details = transferCardQuery(row, ".tr-squad-details") || row.querySelector(".tr-squad-details");
   if (!input || !btn) return;
   const name = input.value.trim();
   const onSquad = Boolean(name && rosterPlayerByName(teamId, name));
@@ -4779,7 +4800,7 @@ function syncTransferSquadStatus(row, teamId, mode) {
   if (!row) return;
   const el = row.querySelector(".transfers-card__squad-status");
   if (!el) return;
-  const name = row.querySelector(".tr-player")?.value?.trim() ?? "";
+  const name = transferCardInputValue(row, ".tr-player");
   const next = document.createElement("template");
   next.innerHTML = transferSquadStatusHtml(teamId ?? transferTeamFilter, name, mode || row.getAttribute("data-dir") || "in").trim();
   const fresh = next.content.firstElementChild;
@@ -4787,7 +4808,7 @@ function syncTransferSquadStatus(row, teamId, mode) {
 }
 
 function openTransferSquadForm(row, teamId) {
-  const name = row?.querySelector(".tr-player")?.value?.trim() ?? "";
+  const name = transferCardInputValue(row, ".tr-player");
   if (!teamId) return toast("Choose a club first");
   if (!name) return toast("Enter a player name first");
   if (rosterPlayerByName(teamId, name)) return toast("Player is already on the squad");
@@ -5098,7 +5119,10 @@ function tmTransferSyncStatusHtml(team) {
 
 function tmTransferSyncPanelHtml(team) {
   if (!team) return "";
-  if (tmTransferSyncState?.teamId !== team.id) tmTransferSyncState = null;
+  if (tmTransferSyncState?.teamId !== team.id) {
+    tmTransferSyncState = null;
+    tmTransferSearchQuery = "";
+  }
   const localReady = tmSyncLocalProxyReady();
   const canRefresh = localReady && tmSyncAvailableForTeam(team);
   const addEntries = tmTransferDiffEntries("toAdd");
@@ -5147,8 +5171,9 @@ function tmTransferSyncPanelHtml(team) {
             ? "data-tm-transfer-ignore-update"
             : "data-tm-transfer-ignore-move";
     const playerName = entry.local?.player || entry.row?.player || "";
+    const searchHay = `${playerName} ${meta}`.toLowerCase();
     return `
-    <li class="players-tm-sync__item players-tm-sync__item--${itemClass}">
+    <li class="players-tm-sync__item players-tm-sync__item--${itemClass}" data-tm-search="${esc(searchHay)}">
       <div class="players-tm-sync__copy">
         <strong>${esc(playerName)}</strong>
         <span class="players-tm-sync__meta">${esc(meta)}</span>
@@ -5185,6 +5210,25 @@ function tmTransferSyncPanelHtml(team) {
           ${removeEntries.length ? `<button type="button" class="mw-btn-danger players-auto-btn" id="btnTmTransferRemoveAll">Remove all (${removeEntries.length})</button>` : ""}
         </div>`
     : "";
+  const searchBar = hasOpen
+    ? `<div class="players-search-field transfers-tm-search">
+        <div class="players-search-wrap">
+          <span class="players-search-icon" aria-hidden="true">⌕</span>
+          <input
+            id="tmTransferSearch"
+            class="players-search-input mw-input"
+            type="search"
+            placeholder="Search fetched players…"
+            value="${esc(tmTransferSearchQuery)}"
+            autocomplete="off"
+            enterkeyhint="search"
+            aria-label="Search Transfermarkt transfer suggestions"
+          />
+          <button type="button" class="players-search-clear${tmTransferSearchQuery.trim() ? "" : " admin-hidden"}" id="btnClearTmTransferSearch" aria-label="Clear search">×</button>
+        </div>
+        <p class="players-search-meta admin-muted${tmTransferSearchQuery.trim() ? "" : " admin-hidden"}" id="tmTransferSearchMeta" aria-live="polite"></p>
+      </div>`
+    : "";
   const middleCol =
     updateEntries.length || moveEntries.length
       ? `<div class="players-tm-sync__col">
@@ -5214,6 +5258,7 @@ function tmTransferSyncPanelHtml(team) {
         <span class="players-tm-sync__status" id="transfersTmSyncStatus">${tmTransferSyncStatusHtml(team)}</span>
       </div>
       ${bulkBar}
+      ${searchBar}
       <div class="players-tm-sync__body${hasResult ? "" : " admin-hidden"}">
         ${
           hasOpen
@@ -5222,7 +5267,8 @@ function tmTransferSyncPanelHtml(team) {
             addEntries.length
               ? `<div class="players-tm-sync__col">
             <h4 class="players-tm-sync__title">On Transfermarkt — add here</h4>
-            <ul class="players-tm-sync__list">${addEntries.map((entry) => suggestionHtml(entry, "add")).join("")}</ul>
+            <ul class="players-tm-sync__list" id="tmTransferAddList">${addEntries.map((entry) => suggestionHtml(entry, "add")).join("")}</ul>
+            <p class="players-tm-sync__none admin-muted admin-hidden" id="tmTransferSearchEmpty">No players match your search.</p>
           </div>`
               : ""
           }
@@ -5240,6 +5286,38 @@ function tmTransferSyncPanelHtml(team) {
         }
       </div>
     </div>`;
+}
+
+function applyTmTransferSearch() {
+  const root = $("#transfersTmSync");
+  if (!root) return;
+  const q = tmTransferSearchQuery.trim().toLowerCase();
+  const items = root.querySelectorAll(".players-tm-sync__item[data-tm-search]");
+  let visible = 0;
+  for (const item of items) {
+    const hay = item.getAttribute("data-tm-search") ?? "";
+    const show = !q || hay.includes(q);
+    item.classList.toggle("admin-hidden", !show);
+    if (show) visible += 1;
+  }
+
+  const meta = $("#tmTransferSearchMeta");
+  if (meta) {
+    meta.textContent = q ? `${visible} of ${items.length} suggestions` : "";
+    meta.classList.toggle("admin-hidden", !q);
+  }
+
+  const clearBtn = $("#btnClearTmTransferSearch");
+  if (clearBtn) clearBtn.classList.toggle("admin-hidden", !q);
+
+  const addList = $("#tmTransferAddList");
+  const addEmpty = $("#tmTransferSearchEmpty");
+  if (addEmpty && addList) {
+    const addVisible = [...addList.querySelectorAll(".players-tm-sync__item")].filter(
+      (el) => !el.classList.contains("admin-hidden"),
+    ).length;
+    addEmpty.classList.toggle("admin-hidden", !q || addVisible > 0);
+  }
 }
 
 function transferTeamKey(leagueId, teamId) {
@@ -5381,11 +5459,10 @@ function syncTransferCardSummary(card) {
   const clubLabel = section?.clubHeader ?? (transferDirectionIncoming(mode) ? "From" : "To");
   const showFee = section?.showFee !== false;
   const isIncoming = transferDirectionIncoming(mode);
-  const player = card.querySelector(".tr-player")?.value?.trim() ?? "";
-  const otherClub =
-    (isIncoming ? card.querySelector(".tr-from") : card.querySelector(".tr-to"))?.value?.trim() ?? "";
-  const fee = showFee ? card.querySelector(".tr-fee")?.value?.trim() ?? "" : "";
-  const dateRaw = card.querySelector(".tr-date")?.value?.trim() ?? "";
+  const player = transferCardInputValue(card, ".tr-player");
+  const otherClub = transferCardInputValue(card, isIncoming ? ".tr-from" : ".tr-to");
+  const fee = showFee ? transferCardInputValue(card, ".tr-fee") : "";
+  const dateRaw = transferCardInputValue(card, ".tr-date");
   const date = transferDateFromInputValue(dateRaw) || dateRaw || "";
   const summary = card.querySelector(".transfers-card__summary");
   if (!summary) return;
@@ -5667,6 +5744,7 @@ function setTransferCardSourceMode(card, mode) {
   card.classList.toggle("transfers-card--manual", !useDb);
   card.querySelector(".tr-db-panel")?.classList.toggle("admin-hidden", !useDb);
   card.querySelector(".tr-manual-panel")?.classList.toggle("admin-hidden", useDb);
+  syncTransferCardSummary(card);
 }
 
 function refreshTransferDbTeamSelect(card) {
@@ -9021,11 +9099,19 @@ function bindTransferRosterActions() {
       }
       if (e.target.classList.contains("tr-fee")) {
         const val = e.target.value.trim().toLowerCase();
-        row.querySelectorAll(".tr-fee-preset").forEach((btn) => {
+        e.target.closest(".tr-fee-field")?.querySelectorAll(".tr-fee-preset").forEach((btn) => {
           const preset = String(btn.getAttribute("data-fee") ?? "").toLowerCase();
           btn.classList.toggle("is-active", Boolean(preset) && preset === val);
         });
       }
+    });
+    // Date pickers often commit on change rather than input in some browsers
+    list.addEventListener("change", (e) => {
+      if (!(e.target instanceof HTMLElement)) return;
+      if (!e.target.classList.contains("tr-date") && !e.target.classList.contains("tr-fee")) return;
+      const row = e.target.closest(".transfers-card");
+      if (!row) return;
+      syncTransferCardSummary(row);
     });
     list.addEventListener("click", (e) => {
       const foldBtn = e.target instanceof Element ? e.target.closest(".transfers-card__fold") : null;
@@ -9034,14 +9120,14 @@ function bindTransferRosterActions() {
         if (!card) return;
         const nextFolded = !card.classList.contains("is-folded");
         setTransferCardFolded(card, nextFolded);
-        if (!nextFolded) queueMicrotask(() => card.querySelector(".tr-player")?.focus?.());
+        if (!nextFolded) queueMicrotask(() => transferCardQuery(card, ".tr-player")?.focus?.());
         return;
       }
 
       const confirmBtn = e.target instanceof Element ? e.target.closest(".tr-squad-confirm") : null;
       if (confirmBtn) {
         const row = confirmBtn.closest(".transfers-card");
-        const name = row?.querySelector(".tr-player")?.value ?? "";
+        const name = transferCardInputValue(row, ".tr-player");
         const ok = addTransferPlayerToSquad(transferTeamFilter, name, readTransferSquadDetails(row));
         if (ok) {
           closeTransferSquadForm(row);
@@ -9075,7 +9161,7 @@ function bindTransferRosterActions() {
       const btn = e.target instanceof Element ? e.target.closest(selector) : null;
       if (!btn || btn.disabled) return;
       const row = btn.closest(".transfers-card");
-      const name = row?.querySelector(".tr-player")?.value ?? "";
+      const name = transferCardInputValue(row, ".tr-player");
       if (isIncoming) {
         openTransferSquadForm(row, transferTeamFilter);
       } else {
@@ -9209,28 +9295,12 @@ function readTransfersTable(tableId, dir, clubName) {
   const showFee = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === dir)?.showFee !== false;
   return Array.from(list.querySelectorAll(".transfers-card"))
     .map((tr, i) => {
-      // Prefer manual/saved player field; ignore unfinished DB-picker cards with no name yet
-      const playerEl =
-        tr.querySelector(".tr-manual-panel .tr-player") ||
-        tr.querySelector(".tr-player-field .tr-player") ||
-        (tr.querySelector(".tr-db-panel") ? null : tr.querySelector(".tr-player"));
-      const player = playerEl?.value.trim() ?? "";
+      // Prefer the visible panel (manual vs DB); ignore unfinished DB-picker cards with no player name
+      const player = transferCardInputValue(tr, ".tr-player");
       if (!player) return null;
-      const otherClub =
-        (isIncoming
-          ? tr.querySelector(".tr-manual-panel .tr-from, .tr-from")
-          : tr.querySelector(".tr-manual-panel .tr-to, .tr-to"))?.value.trim() ?? "";
-      const fee = showFee
-        ? tr.querySelector(".tr-manual-panel .tr-fee, .tr-fee-field .tr-fee")?.value.trim() ??
-          tr.querySelector(".tr-fee")?.value.trim() ??
-          ""
-        : "";
-      const dateRaw =
-        tr.querySelector(".tr-manual-panel .tr-date")?.value.trim() ??
-        [...tr.querySelectorAll("input.tr-date")]
-          .find((el) => !el.classList.contains("tr-db-date") || !tr.querySelector(".tr-db-panel"))
-          ?.value.trim() ??
-        "";
+      const otherClub = transferCardInputValue(tr, isIncoming ? ".tr-from" : ".tr-to");
+      const fee = showFee ? transferCardInputValue(tr, ".tr-fee") : "";
+      const dateRaw = transferCardInputValue(tr, ".tr-date");
       const date = transferDateFromInputValue(dateRaw) || dateRaw || undefined;
       const id =
         tr.getAttribute("data-id")?.trim() ||
@@ -9548,6 +9618,7 @@ function bindTmTransferSync() {
     toast(result.message);
     if (result.ok) {
       tmTransferSyncState = null;
+      tmTransferSearchQuery = "";
       renderPanel();
     }
   });
@@ -9565,6 +9636,18 @@ function bindTmTransferSync() {
   $("#btnTmTransferRemoveAll")?.addEventListener("click", applyAllTmTransferRemoves);
   $("#btnTmTransferSyncAll")?.addEventListener("click", applyAllTmTransferSyncs);
   $("#btnTmTransferMoveAll")?.addEventListener("click", applyAllTmTransferMoves);
+  $("#tmTransferSearch")?.addEventListener("input", (e) => {
+    tmTransferSearchQuery = e.target.value;
+    applyTmTransferSearch();
+  });
+  $("#btnClearTmTransferSearch")?.addEventListener("click", () => {
+    tmTransferSearchQuery = "";
+    const input = $("#tmTransferSearch");
+    if (input) input.value = "";
+    applyTmTransferSearch();
+    input?.focus();
+  });
+  applyTmTransferSearch();
   $("#transfersTmSync")?.addEventListener("click", (e) => {
     const target = e.target instanceof Element ? e.target : null;
     const add = target?.closest("[data-tm-transfer-add]");
@@ -9618,6 +9701,7 @@ function bindTransfers() {
       clearTransferEditsForTeam(leagueFilter, nextTeamId);
       transferTeamFilter = nextTeamId;
       tmTransferSyncState = null;
+      tmTransferSearchQuery = "";
       renderPanel();
     });
   }

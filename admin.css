@@ -4269,6 +4269,14 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   min-height: 42px;
 }
 
+.transfers-tm-search {
+  margin: 0 0 12px;
+}
+
+.transfers-tm-search .players-search-wrap {
+  max-width: 28rem;
+}
+
 .players-tm-sync__head {
   display: flex;
   flex-wrap: wrap;
