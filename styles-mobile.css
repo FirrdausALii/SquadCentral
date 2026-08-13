@@ -408,6 +408,27 @@ body.fc-app {
   }
 
   #match-center > .card > .league-tabs,
+  #transfers > .transfers-shell > .transfers-shell__filters > .league-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: var(--sp-2);
+    margin: 0 calc(-1 * var(--sp-4)) var(--sp-3);
+    padding: 0 var(--sp-4) var(--sp-1);
+    scrollbar-width: none;
+  }
+
+  #match-center > .card > .league-tabs::-webkit-scrollbar,
+  #transfers > .transfers-shell > .transfers-shell__filters > .league-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  #match-center > .card > .league-tabs .league-tab,
+  #transfers > .transfers-shell > .transfers-shell__filters > .league-tabs .league-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   #transfers > .card > .league-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -418,19 +439,13 @@ body.fc-app {
     scrollbar-width: none;
   }
 
-  #match-center > .card > .league-tabs::-webkit-scrollbar,
   #transfers > .card > .league-tabs::-webkit-scrollbar {
     display: none;
   }
 
-  #match-center > .card > .league-tabs .league-tab,
   #transfers > .card > .league-tabs .league-tab {
     flex-shrink: 0;
     white-space: nowrap;
-  }
-
-  #transfers > .transfers-shell > .transfers-shell__filters > .league-tabs {
-    margin-bottom: var(--sp-3);
   }
 
   .mini-card {
@@ -539,6 +554,11 @@ body.fc-app {
 
 /* Squads roster */
 @media (max-width: 575.98px) {
+  .squads-toolbar__search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
   .squad-team-head {
     padding: var(--sp-3) var(--sp-4);
   }
@@ -579,6 +599,15 @@ body.fc-app {
 
   .squad-profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .player-full__back {
+    min-height: 44px;
+    padding: 8px 0;
+  }
+
+  .fc-modal--compact .modal-actions #modalPrimary {
+    min-height: 44px;
   }
 }
 

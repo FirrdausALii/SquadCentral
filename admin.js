@@ -21,6 +21,9 @@ const TABS = [
 let activeTab = "overview";
 let leagueFilter = "epl";
 let leagueEditId = "";
+let leagueDeleteId = "";
+let leagueFormDirty = false;
+let leagueFormSnapshot = "";
 let playerTeamFilter = "";
 let playerTransferPickId = "";
 let playerSearchQuery = "";
@@ -55,13 +58,25 @@ let mwEditorDraft = null;
 let squadDepthDraft = null;
 const LINEUP_SLOTS = 11;
 
-function toast(msg) {
+function toast(msg, opts = {}) {
   const el = $("#toast");
   if (!el) return;
-  el.textContent = msg;
-  el.classList.remove("admin-hidden");
+  const actionLabel = opts.actionLabel;
+  const onAction = opts.onAction;
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("admin-hidden"), 2600);
+  if (actionLabel && typeof onAction === "function") {
+    el.innerHTML = `<span class="admin-toast__msg">${esc(msg)}</span><button type="button" class="admin-toast__action" id="toastAction">${esc(actionLabel)}</button>`;
+    $("#toastAction")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      clearTimeout(toast._t);
+      el.classList.add("admin-hidden");
+      onAction();
+    });
+  } else {
+    el.textContent = msg;
+  }
+  el.classList.remove("admin-hidden");
+  toast._t = setTimeout(() => el.classList.add("admin-hidden"), opts.ms || 2600);
 }
 
 function state() {
@@ -219,7 +234,7 @@ function playerRosterCardHtml(p, isWorldCup) {
     `<span class="player-roster-pos player-roster-pos--${esc(posKey.toLowerCase() || "na")}">${esc(p.pos)}</span>`,
     `<span class="player-roster-role">${esc(p.role ?? "")}</span>`,
     p.displayLastName
-      ? `<span class="player-roster-pitch-label" title="Pitch label">Pitch: ${esc(p.displayLastName)}</span>`
+      ? `<span class="player-roster-pitch-label" title="Short name shown on pitch lineups">Pitch label: ${esc(p.displayLastName)}</span>`
       : "",
     clubMeta,
   ].filter(Boolean);
@@ -228,7 +243,9 @@ function playerRosterCardHtml(p, isWorldCup) {
     : "";
   const flag = p.flag ? `<span class="player-roster-flag" aria-hidden="true">${esc(p.flag)}</span>` : "";
   return `<article class="player-roster-card player-sort-row ${posClass}" draggable="true" data-player-id="${esc(p.id)}" data-search="${esc(adminPlayerSearchHaystack(p))}">
-    <span class="player-drag-handle" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
+    <span class="player-drag-handle" title="Drag to reorder squad list" aria-hidden="true">
+      <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg>
+    </span>
     <div class="player-roster-body">
       <div class="player-roster-line">
         <span class="player-roster-num">${esc(p.number)}</span>
@@ -241,7 +258,7 @@ function playerRosterCardHtml(p, isWorldCup) {
       </div>
       <div class="admin-row-actions player-roster-actions">
         <button type="button" class="mw-btn-ghost players-row-btn" data-edit-player="${esc(p.id)}">Edit</button>
-        <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}" title="Transfer to another club"><span class="players-row-btn-long">Transfer</span><span class="players-row-btn-short">Move</span></button>
+        <button type="button" class="mw-btn-ghost players-row-btn players-row-btn--transfer" data-transfer-player="${esc(p.id)}" title="Transfer to another club">Transfer</button>
         <button type="button" class="mw-btn-danger players-row-btn" data-del-player="${esc(p.id)}">Remove</button>
       </div>
     </div>
@@ -268,7 +285,11 @@ function renderNav() {
   ).join("");
   for (const b of nav.querySelectorAll("[data-tab]")) {
     b.addEventListener("click", () => {
-      activeTab = b.getAttribute("data-tab");
+      const next = b.getAttribute("data-tab");
+      if (next === activeTab) return;
+      if (!confirmLeaveLeagueForm()) return;
+      if (activeTab === "leagues") leagueFormDirty = false;
+      activeTab = next;
       renderNav();
       renderPanel();
     });
@@ -341,6 +362,57 @@ function leagueSelect(id = "leagueFilter", value = leagueFilter, fieldClass = "a
   return `<div class="${fieldClass}"><label for="${id}">League</label><div class="mw-select-wrap"><select id="${id}" class="mw-select">${opts}</select></div></div>`;
 }
 
+const EXPORT_LOG_KEY = "fc_admin_export_log";
+const EXPORT_LOG_MAX = 3;
+
+function readExportLog() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(EXPORT_LOG_KEY) || "[]");
+    return Array.isArray(raw) ? raw.slice(0, EXPORT_LOG_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
+function pushExportLog(kind) {
+  const s = state();
+  const entry = {
+    at: Date.now(),
+    kind: kind === "copy" ? "copy" : "download",
+    teams: s.teams?.length ?? 0,
+    players: s.players?.length ?? 0,
+  };
+  const next = [entry, ...readExportLog()].slice(0, EXPORT_LOG_MAX);
+  try {
+    localStorage.setItem(EXPORT_LOG_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function renderExportLogHtml() {
+  const log = readExportLog();
+  if (!log.length) {
+    return `<div class="overview-export-log">
+      <p class="overview-export-log__title">Backup safety net</p>
+      <p class="overview-export-log__note">No downloads recorded yet. Export <code>data.json</code> before Import or Reset — those replace this browser’s copy and cannot be undone here.</p>
+    </div>`;
+  }
+  const items = log
+    .map((e) => {
+      const when = new Date(e.at).toLocaleString();
+      const iso = new Date(e.at).toISOString();
+      const kind = e.kind === "copy" ? "Copied" : "Downloaded";
+      return `<li><span>${esc(kind)}</span> <time datetime="${esc(iso)}">${esc(when)}</time></li>`;
+    })
+    .join("");
+  return `<div class="overview-export-log">
+    <p class="overview-export-log__title">Last ${log.length} export${log.length === 1 ? "" : "s"}</p>
+    <ul>${items}</ul>
+    <p class="overview-export-log__note">Import and Reset overwrite local work. Keep these files — there is no automatic version history.</p>
+  </div>`;
+}
+
 function panelOverview() {
   const s = state();
   const leagueCount = new Set(s.teams.map((t) => t.leagueId)).size;
@@ -384,52 +456,67 @@ function panelOverview() {
         </div>
       </header>
 
-      <div class="row g-2 g-md-3 overview-stats">
-        <div class="col-6 col-xl-3">
-          <article class="overview-stat overview-stat--teams h-100">
-            <span class="overview-stat-icon overview-stat-icon--teams" aria-hidden="true"></span>
-            <div class="overview-stat-body">
-              <span class="overview-stat-num">${s.teams.length}</span>
-              <span class="overview-stat-label">Teams</span>
-            </div>
-          </article>
+      <section class="overview-section" aria-labelledby="overviewStatsTitle">
+        <div class="overview-section__head">
+          <p class="overview-section__eyebrow">Squad snapshot</p>
+          <h3 id="overviewStatsTitle" class="overview-section__title">Database counts</h3>
         </div>
-        <div class="col-6 col-xl-3">
-          <article class="overview-stat overview-stat--players h-100">
-            <span class="overview-stat-icon overview-stat-icon--players" aria-hidden="true"></span>
-            <div class="overview-stat-body">
-              <span class="overview-stat-num">${s.players.length}</span>
-              <span class="overview-stat-label">Players</span>
-            </div>
-          </article>
+        <div class="row g-2 g-md-3 overview-stats">
+          <div class="col-6 col-xl-3">
+            <article class="overview-stat overview-stat--teams h-100">
+              <span class="overview-stat-icon overview-stat-icon--teams" aria-hidden="true"></span>
+              <div class="overview-stat-body">
+                <span class="overview-stat-num">${s.teams.length}</span>
+                <span class="overview-stat-label">Teams</span>
+              </div>
+            </article>
+          </div>
+          <div class="col-6 col-xl-3">
+            <article class="overview-stat overview-stat--players h-100">
+              <span class="overview-stat-icon overview-stat-icon--players" aria-hidden="true"></span>
+              <div class="overview-stat-body">
+                <span class="overview-stat-num">${s.players.length}</span>
+                <span class="overview-stat-label">Players</span>
+              </div>
+            </article>
+          </div>
+          <div class="col-6 col-xl-3">
+            <article class="overview-stat overview-stat--matches h-100">
+              <span class="overview-stat-icon overview-stat-icon--matches" aria-hidden="true"></span>
+              <div class="overview-stat-body">
+                <span class="overview-stat-num">${s.matches.length}</span>
+                <span class="overview-stat-label">Matches</span>
+              </div>
+            </article>
+          </div>
+          <div class="col-6 col-xl-3">
+            <article class="overview-stat overview-stat--leagues h-100">
+              <span class="overview-stat-icon overview-stat-icon--leagues" aria-hidden="true"></span>
+              <div class="overview-stat-body">
+                <span class="overview-stat-num">${leagueCount}</span>
+                <span class="overview-stat-label">Leagues active</span>
+              </div>
+            </article>
+          </div>
         </div>
-        <div class="col-6 col-xl-3">
-          <article class="overview-stat overview-stat--matches h-100">
-            <span class="overview-stat-icon overview-stat-icon--matches" aria-hidden="true"></span>
-            <div class="overview-stat-body">
-              <span class="overview-stat-num">${s.matches.length}</span>
-              <span class="overview-stat-label">Matches</span>
-            </div>
-          </article>
-        </div>
-        <div class="col-6 col-xl-3">
-          <article class="overview-stat overview-stat--leagues h-100">
-            <span class="overview-stat-icon overview-stat-icon--leagues" aria-hidden="true"></span>
-            <div class="overview-stat-body">
-              <span class="overview-stat-num">${leagueCount}</span>
-              <span class="overview-stat-label">Leagues active</span>
-            </div>
-          </article>
-        </div>
-      </div>
+      </section>
 
-      <div class="overview-layout">
-        <section class="overview-card overview-publish">
-          <div class="overview-card__stripe" aria-hidden="true"></div>
+      <section class="overview-section overview-section--publish" aria-labelledby="overviewPublishTitle">
+        <div class="overview-section__head">
+          <p class="overview-section__eyebrow">Go live</p>
+          <h3 id="overviewPublishTitle" class="overview-section__title">Publish</h3>
+          <p class="overview-compare"><strong>Firebase</strong> = instant live sync, no deploy step. <strong>GitHub</strong> = free static hosting, ~2–5 min to go live. Use Firebase day-to-day; use GitHub when you want the repo itself to be the source of truth.</p>
+        </div>
+        <div class="overview-layout">
+        <section class="overview-card overview-publish overview-publish--github">
+          <div class="overview-card__stripe overview-card__stripe--github" aria-hidden="true"></div>
           <div class="overview-card-head">
             <div class="overview-card-head__icon overview-card-head__icon--github" aria-hidden="true"></div>
             <div>
-              <h3>Publish to GitHub</h3>
+              <div class="overview-card-head__title-row">
+                <h3>Publish to GitHub</h3>
+                <span class="overview-rec-pill overview-rec-pill--github">Static hosting</span>
+              </div>
               <p>Visitors load <code>data.json</code> from your repo — not <code>app.js</code>.</p>
             </div>
           </div>
@@ -447,7 +534,10 @@ function panelOverview() {
           <div class="overview-card-head">
             <div class="overview-card-head__icon overview-card-head__icon--cloud" aria-hidden="true"></div>
             <div>
-              <h3>Publish to Firebase</h3>
+              <div class="overview-card-head__title-row">
+                <h3>Publish to Firebase</h3>
+                <span class="overview-rec-pill">Recommended</span>
+              </div>
               <p>Push live data to Firestore — visitors sync instantly without a git deploy.</p>
             </div>
           </div>
@@ -501,14 +591,21 @@ function panelOverview() {
           <a class="overview-doc-link" href="./FIREBASE.md" target="_blank" rel="noopener">Read FIREBASE.md setup guide →</a>`
           }
         </section>
+        </div>
+      </section>
 
+      <section class="overview-section overview-section--data" aria-labelledby="overviewDataTitle">
+        <div class="overview-section__head">
+          <p class="overview-section__eyebrow">This device</p>
+          <h3 id="overviewDataTitle" class="overview-section__title">Data actions</h3>
+        </div>
         <section class="overview-card overview-data">
           <div class="overview-card__stripe overview-card__stripe--data" aria-hidden="true"></div>
           <div class="overview-card-head">
             <div class="overview-card-head__icon overview-card-head__icon--data" aria-hidden="true"></div>
             <div>
-              <h3>Data actions</h3>
-              <p>Export, import, or reset your local copy.</p>
+              <h3>Local copy</h3>
+              <p>Export, import, or reset the data saved in this browser.</p>
             </div>
           </div>
           <div class="row g-2 overview-actions">
@@ -539,23 +636,37 @@ function panelOverview() {
                 </span>
               </button>
             </div>
-            <div class="col-12 col-md-6">
-              <button type="button" class="overview-action overview-action--danger w-100" id="btnReset">
-                <span class="overview-action-icon overview-action-icon--reset" aria-hidden="true"></span>
-                <span class="overview-action-text">
-                  <strong>Reset to published seed</strong>
-                  <small>Clears local overrides</small>
-                </span>
-              </button>
+          </div>
+          <div class="overview-danger-zone">
+            <p class="overview-danger-zone__label">Destructive</p>
+            <button type="button" class="overview-action overview-action--danger w-100" id="btnReset">
+              <span class="overview-action-icon overview-action-icon--reset" aria-hidden="true"></span>
+              <span class="overview-action-text">
+                <strong>Reset to published seed</strong>
+                <small>Wipes local overrides — confirmation required</small>
+              </span>
+            </button>
+            <div class="overview-reset-confirm admin-hidden" id="resetConfirmCard">
+              <p class="overview-reset-confirm__lead"><strong>This cannot be undone in admin.</strong> Reset restores the published seed and deletes local edits in this browser.</p>
+              ${
+                readExportLog().length
+                  ? `<p class="overview-reset-confirm__warn">Last export on file: ${esc(new Date(readExportLog()[0].at).toLocaleString())}. Keep that file if you might need these edits.</p>`
+                  : `<p class="overview-reset-confirm__warn">No download is recorded on this device. Export <code>data.json</code> first if you might need these edits.</p>`
+              }
+              <div class="overview-reset-confirm__actions">
+                <button type="button" class="overview-reset-confirm__go" id="btnResetConfirm">Yes, reset everything</button>
+                <button type="button" class="overview-reset-confirm__cancel" id="btnResetCancel">Cancel</button>
+              </div>
             </div>
           </div>
+          ${renderExportLogHtml()}
         </section>
-      </div>
+      </section>
 
       <section class="overview-card overview-import admin-hidden" id="importCard">
         <div class="overview-card-head">
           <h3>Import JSON</h3>
-          <p>Paste exported data below. This replaces your local database.</p>
+          <p>Paste exported data below. This replaces your local database and cannot be undone here — use a downloaded backup if you need to revert.</p>
         </div>
         <div class="admin-field">
           <textarea id="importText" class="overview-import-area" placeholder='{ "version": 1, "teams": […], … }'></textarea>
@@ -795,7 +906,7 @@ function tmSyncPanelHtml(team, teamId) {
       <div class="players-tm-sync__link-row">
         <div class="mw-field players-tm-sync__link-field">
           <label for="teamTmUrl">Transfermarkt club link</label>
-          <input id="teamTmUrl" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" value="${savedUrl}" autocomplete="off" />
+          <input id="teamTmUrl" class="mw-input admin-url-input players-tm-url" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" value="${savedUrl}" title="${savedUrl || "Paste a Transfermarkt club URL"}" autocomplete="off" spellcheck="false" />
         </div>
         <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSaveTmUrl">Save link</button>
       </div>
@@ -1721,6 +1832,93 @@ function leagueCardHtml(l) {
   </article>`;
 }
 
+const LEAGUE_MASK_META = {
+  trophy: { label: "Trophy", emoji: "🏆" },
+  sun: { label: "Sun", emoji: "☀️" },
+  boot: { label: "Boot", emoji: "👟" },
+  eagle: { label: "Eagle", emoji: "🦅" },
+  hex: { label: "Hex", emoji: "⬡" },
+};
+
+function leagueMaskMeta(key) {
+  return LEAGUE_MASK_META[key] || { label: String(key || "Icon").replace(/^./, (c) => c.toUpperCase()), emoji: "◆" };
+}
+
+function confirmLeaveLeagueForm() {
+  if (!leagueFormDirty) return true;
+  return window.confirm("You have unsaved league changes. Leave without saving?");
+}
+
+function readLeagueFormSnapshot() {
+  const features = Array.from(document.querySelectorAll(".lg-feature"))
+    .map((cb) => `${cb.getAttribute("data-feature")}:${cb.checked ? "1" : "0"}`)
+    .join("|");
+  return [
+    $("#lgName")?.value ?? "",
+    $("#lgId")?.value ?? "",
+    $("#lgC1")?.value ?? "",
+    $("#lgC2")?.value ?? "",
+    $("#lgMask")?.value ?? "",
+    features,
+  ].join("\n");
+}
+
+function syncLeagueFormDirty() {
+  leagueFormDirty = readLeagueFormSnapshot() !== leagueFormSnapshot;
+  $("#leagueUnsavedBanner")?.classList.toggle("admin-hidden", !leagueFormDirty);
+  $("#btnSaveLeague")?.classList.toggle("is-unsaved", leagueFormDirty);
+}
+
+function updateLeagueIdPreview() {
+  const live = $("#lgIdLive");
+  if (!live) return;
+  const editing = !!$("#leagueEditId")?.value;
+  if (editing) {
+    const locked = $("#leagueEditId").value;
+    live.innerHTML = `ID is locked: <code>${esc(locked)}</code>`;
+    return;
+  }
+  const custom = ($("#lgId")?.value ?? "").trim();
+  const name = ($("#lgName")?.value ?? "").trim();
+  const slugFn = typeof FCDataStore !== "undefined" ? FCDataStore.slugify : (s) => String(s).toLowerCase();
+  const slug = slugFn(custom || name);
+  if (!slug) {
+    live.textContent = "ID will appear here as you type the name.";
+    return;
+  }
+  live.innerHTML = `Will be saved as <code>${esc(slug)}</code>`;
+}
+
+function updateLeagueMaskGlyph() {
+  const glyph = $("#lgMaskGlyph");
+  const mask = $("#lgMask")?.value || "trophy";
+  if (!glyph) return;
+  if (typeof LEAGUE_MASKS !== "undefined" && LEAGUE_MASKS[mask]) {
+    glyph.style.setProperty("--lg-mask", LEAGUE_MASKS[mask]);
+  }
+}
+
+function updateLeagueSwatchChips() {
+  const c1 = $("#lgC1")?.value || "#2de2e6";
+  const c2 = $("#lgC2")?.value || "#7c5cff";
+  const chip1 = $("#lgC1Chip");
+  const chip2 = $("#lgC2Chip");
+  const hex1 = $("#lgC1Hex");
+  const hex2 = $("#lgC2Hex");
+  if (chip1) chip1.style.background = c1;
+  if (chip2) chip2.style.background = c2;
+  if (hex1) hex1.textContent = c1;
+  if (hex2) hex2.textContent = c2;
+}
+
+function leagueDeleteStats(id) {
+  const teams = state().teams.filter((t) => t.leagueId === id);
+  const teamIds = new Set(teams.map((t) => t.id));
+  const players = state().players.filter((p) => teamIds.has(p.teamId)).length;
+  const matches = state().matches.filter((m) => m.leagueId === id).length;
+  return { teams: teams.length, players, matches };
+}
+
 function panelLeagues() {
   const all = leagues();
   const editing = !!leagueEditId && all.some((l) => l.id === leagueEditId);
@@ -1734,10 +1932,14 @@ function panelLeagues() {
   const groups = {};
   for (const f of schema) (groups[f.group] ??= []).push(f);
   const featureGroupsHtml = Object.entries(groups)
-    .map(
-      ([group, items]) => `
+    .map(([group, items]) => {
+      const slug = String(group)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      return `
         <div class="col-12 col-md-6 col-xl-4">
-          <div class="lg-feature-group">
+          <div class="lg-feature-group lg-feature-group--${esc(slug)}">
             <p class="lg-feature-group-title">${esc(group)}</p>
             ${items
               .map(
@@ -1752,8 +1954,8 @@ function panelLeagues() {
               .join("")}
           </div>
         </div>
-      `,
-    )
+      `;
+    })
     .join("");
 
   const listBody = all.length
@@ -1779,7 +1981,7 @@ function panelLeagues() {
             <div class="mw-hero-preview leagues-hero-preview__box">
               <span class="mw-hero-preview-label">Total leagues</span>
               <strong class="mw-hero-preview-title">${all.length}</strong>
-              <span class="mw-hero-preview-range">${esc(all.map((l) => l.name).slice(0, 3).join(", "))}${all.length > 3 ? "…" : all.length ? "" : "None yet"}</span>
+              <span class="mw-hero-preview-range">${all.length ? "Active competitions" : "None yet"}</span>
             </div>
           </aside>
         </div>
@@ -1796,6 +1998,18 @@ function panelLeagues() {
         </div>
         <div class="leagues-list-wrap">
           <div class="leagues-list" id="leaguesList">${listBody}</div>
+        </div>
+        <div class="lg-delete-confirm admin-hidden" id="lgDeleteConfirm">
+          <p class="lg-delete-confirm__lead"><strong>This cannot be undone.</strong> Deleting a league also removes its teams, players, fixtures, standings, scorers, and transfers.</p>
+          <p class="lg-delete-confirm__stats admin-muted" id="lgDeleteConfirmStats"></p>
+          <div class="mw-field">
+            <label for="lgDeleteConfirmName">Type the league name to confirm</label>
+            <input id="lgDeleteConfirmName" class="mw-input" type="text" autocomplete="off" />
+          </div>
+          <div class="lg-delete-confirm__actions">
+            <button type="button" class="lg-delete-confirm__go" id="lgDeleteConfirmGo" disabled>Delete league</button>
+            <button type="button" class="lg-delete-confirm__cancel" id="lgDeleteConfirmCancel">Cancel</button>
+          </div>
         </div>
       </section>
 
@@ -1825,23 +2039,71 @@ function panelLeagues() {
             </div>
           </div>
           <div class="row g-2 g-md-3 mw-field-grid">
-            <div class="col-12 col-md-6"><div class="mw-field"><label for="lgName">League name</label><input id="lgName" class="mw-input" type="text" value="${esc(editLeague?.name ?? "")}" placeholder="Eredivisie" /></div></div>
-            <div class="col-12 col-md-6"><div class="mw-field"><label for="lgId">League ID</label><input id="lgId" class="mw-input" type="text" value="${esc(editing ? leagueEditId : "")}" placeholder="auto from name" ${editing ? "disabled" : ""} /><p class="mw-field-note admin-muted">${editing ? "ID can't change after creation." : "Leave blank to auto-generate from the name."}</p></div></div>
-            <div class="col-6 col-md-3"><div class="mw-field"><label for="lgC1">Accent 1</label><input id="lgC1" class="mw-input lg-color" type="color" value="${esc(ui.c1)}" /></div></div>
-            <div class="col-6 col-md-3"><div class="mw-field"><label for="lgC2">Accent 2</label><input id="lgC2" class="mw-input lg-color" type="color" value="${esc(ui.c2)}" /></div></div>
-            <div class="col-12 col-md-6"><div class="mw-field"><label for="lgMask">Icon style</label><div class="mw-select-wrap"><select id="lgMask" class="mw-select">${maskKeys
-              .map((k) => `<option value="${esc(k)}"${k === ui.mask ? " selected" : ""}>${esc(k.charAt(0).toUpperCase() + k.slice(1))}</option>`)
-              .join("")}</select></div></div>
+            <div class="col-12 col-md-6">
+              <div class="mw-field">
+                <label for="lgName">League name</label>
+                <input id="lgName" class="mw-input" type="text" value="${esc(editLeague?.name ?? "")}" placeholder="Eredivisie" />
+                <p class="mw-field-note lg-id-live" id="lgIdLive">${editing ? `ID is locked: <code>${esc(leagueEditId)}</code>` : "ID will appear here as you type the name."}</p>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="mw-field">
+                <label for="lgId">League ID</label>
+                <input id="lgId" class="mw-input" type="text" value="${esc(editing ? leagueEditId : "")}" placeholder="optional override" ${editing ? "disabled" : ""} />
+                <p class="mw-field-note admin-muted">${editing ? "ID can't change after creation." : "Leave blank to use the generated ID above."}</p>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="mw-field">
+                <label for="lgC1">Accent 1</label>
+                <div class="lg-swatch">
+                  <span class="lg-swatch__chip" id="lgC1Chip" style="background:${esc(ui.c1)}"></span>
+                  <span class="lg-swatch__hex" id="lgC1Hex">${esc(ui.c1)}</span>
+                  <span class="lg-swatch__edit" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  </span>
+                  <input id="lgC1" class="lg-swatch__input" type="color" value="${esc(ui.c1)}" aria-label="Accent 1 color" />
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="mw-field">
+                <label for="lgC2">Accent 2</label>
+                <div class="lg-swatch">
+                  <span class="lg-swatch__chip" id="lgC2Chip" style="background:${esc(ui.c2)}"></span>
+                  <span class="lg-swatch__hex" id="lgC2Hex">${esc(ui.c2)}</span>
+                  <span class="lg-swatch__edit" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  </span>
+                  <input id="lgC2" class="lg-swatch__input" type="color" value="${esc(ui.c2)}" aria-label="Accent 2 color" />
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="mw-field">
+                <label for="lgMask">Icon style</label>
+                <div class="mw-select-wrap lg-mask-select">
+                  <span class="lg-mask-select__glyph" id="lgMaskGlyph" style="${typeof LEAGUE_MASKS !== "undefined" && LEAGUE_MASKS[ui.mask] ? `--lg-mask:${LEAGUE_MASKS[ui.mask]}` : ""}" aria-hidden="true"></span>
+                  <select id="lgMask" class="mw-select">${maskKeys
+                    .map((k) => {
+                      const meta = leagueMaskMeta(k);
+                      return `<option value="${esc(k)}"${k === ui.mask ? " selected" : ""}>${meta.emoji} ${esc(meta.label)}</option>`;
+                    })
+                    .join("")}</select>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="mw-editor-section leagues-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">②</span> Sections &amp; fields</h4>
           <p class="mw-section-hint">Uncheck anything you don't want shown on the public site for this league.</p>
-          <div class="row g-3">${featureGroupsHtml}</div>
+          <div class="row g-3 g-lg-4 lg-feature-grid">${featureGroupsHtml}</div>
         </div>
 
         <div class="leagues-form-footer">
+          <p id="leagueUnsavedBanner" class="lg-unsaved admin-hidden" role="status">Unsaved changes — save before leaving this tab.</p>
           <button type="button" class="mw-btn-primary leagues-save-btn" id="btnSaveLeague">${editing ? "Save league" : "Create league"}</button>
         </div>
       </section>
@@ -1851,53 +2113,120 @@ function panelLeagues() {
 
 function bindLeagues() {
   $("#btnNewLeague")?.addEventListener("click", () => {
+    if (!confirmLeaveLeagueForm()) return;
+    leagueFormDirty = false;
     leagueEditId = "";
     renderPanel();
   });
 
   document.querySelectorAll("[data-edit-league]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      leagueEditId = btn.getAttribute("data-edit-league") || "";
+      const nextId = btn.getAttribute("data-edit-league") || "";
+      if (nextId !== leagueEditId && !confirmLeaveLeagueForm()) return;
+      leagueFormDirty = false;
+      leagueEditId = nextId;
       renderPanel();
       $("#leagueEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 
+  const deleteCard = $("#lgDeleteConfirm");
+  const deleteInput = $("#lgDeleteConfirmName");
+  const deleteGo = $("#lgDeleteConfirmGo");
+  const deleteStats = $("#lgDeleteConfirmStats");
+
+  const closeDeleteConfirm = () => {
+    leagueDeleteId = "";
+    deleteCard?.classList.add("admin-hidden");
+    if (deleteInput) deleteInput.value = "";
+    if (deleteGo) deleteGo.disabled = true;
+  };
+
+  const syncDeleteConfirm = () => {
+    const lg = leagues().find((l) => l.id === leagueDeleteId);
+    if (!lg || !deleteGo) return;
+    const typed = (deleteInput?.value ?? "").trim().toLowerCase();
+    deleteGo.disabled = typed !== String(lg.name).trim().toLowerCase();
+  };
+
   document.querySelectorAll("[data-del-league]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-del-league");
       if (!id) return;
+      if (leagueFormDirty && !confirmLeaveLeagueForm()) return;
       const lg = leagues().find((l) => l.id === id);
-      if (!confirm(`Delete "${lg?.name ?? id}" and ALL its teams, players, fixtures, standings, scorers and transfers? This cannot be undone.`)) return;
-      FCDataStore.removeLeague(id);
-      if (leagueFilter === id) leagueFilter = leagues()[0]?.id ?? "";
-      if (leagueEditId === id) leagueEditId = "";
-      afterLeagueChange();
-      toast("League deleted");
-      renderPanel();
+      if (!lg || !deleteCard) return;
+      leagueDeleteId = id;
+      const stats = leagueDeleteStats(id);
+      if (deleteStats) {
+        deleteStats.textContent = `${lg.name}: ${stats.teams} team${stats.teams === 1 ? "" : "s"}, ${stats.players} player${stats.players === 1 ? "" : "s"}, ${stats.matches} match${stats.matches === 1 ? "" : "es"}.`;
+      }
+      deleteCard.classList.remove("admin-hidden");
+      if (deleteInput) {
+        deleteInput.value = "";
+        deleteInput.placeholder = lg.name;
+        deleteInput.focus();
+      }
+      syncDeleteConfirm();
+      deleteCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  });
+
+  deleteInput?.addEventListener("input", syncDeleteConfirm);
+  deleteInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!deleteGo?.disabled) deleteGo?.click();
+    }
+  });
+  $("#lgDeleteConfirmCancel")?.addEventListener("click", closeDeleteConfirm);
+  deleteGo?.addEventListener("click", () => {
+    const id = leagueDeleteId;
+    const lg = leagues().find((l) => l.id === id);
+    if (!id || !lg || deleteGo.disabled) return;
+    FCDataStore.removeLeague(id);
+    if (leagueFilter === id) leagueFilter = leagues()[0]?.id ?? "";
+    if (leagueEditId === id) leagueEditId = "";
+    leagueFormDirty = false;
+    closeDeleteConfirm();
+    afterLeagueChange();
+    toast("League deleted");
+    renderPanel();
   });
 
   const updatePreview = () => {
     const emblem = $("#lgPreviewEmblem");
-    if (!emblem) return;
-    const c1 = $("#lgC1")?.value || "#2de2e6";
-    const c2 = $("#lgC2")?.value || "#7c5cff";
-    const mask = $("#lgMask")?.value || "trophy";
-    emblem.style.setProperty("--lg-c1", c1);
-    emblem.style.setProperty("--lg-c2", c2);
-    if (typeof LEAGUE_MASKS !== "undefined" && LEAGUE_MASKS[mask]) {
-      emblem.style.setProperty("--lg-mask", LEAGUE_MASKS[mask]);
+    if (emblem) {
+      const c1 = $("#lgC1")?.value || "#2de2e6";
+      const c2 = $("#lgC2")?.value || "#7c5cff";
+      const mask = $("#lgMask")?.value || "trophy";
+      emblem.style.setProperty("--lg-c1", c1);
+      emblem.style.setProperty("--lg-c2", c2);
+      if (typeof LEAGUE_MASKS !== "undefined" && LEAGUE_MASKS[mask]) {
+        emblem.style.setProperty("--lg-mask", LEAGUE_MASKS[mask]);
+      }
+      const title = emblem.closest(".lg-identity-preview")?.querySelector(".lg-identity-preview__title");
+      const name = $("#lgName")?.value.trim();
+      if (title && name) title.textContent = name;
     }
-    const title = emblem.closest(".lg-identity-preview")?.querySelector(".lg-identity-preview__title");
-    const name = $("#lgName")?.value.trim();
-    if (title && name) title.textContent = name;
+    updateLeagueIdPreview();
+    updateLeagueMaskGlyph();
+    updateLeagueSwatchChips();
+    syncLeagueFormDirty();
   };
 
   $("#lgC1")?.addEventListener("input", updatePreview);
   $("#lgC2")?.addEventListener("input", updatePreview);
   $("#lgMask")?.addEventListener("change", updatePreview);
   $("#lgName")?.addEventListener("input", updatePreview);
+  $("#lgId")?.addEventListener("input", updatePreview);
+  document.querySelectorAll(".lg-feature").forEach((cb) => cb.addEventListener("change", syncLeagueFormDirty));
+
+  updateLeagueIdPreview();
+  updateLeagueMaskGlyph();
+  leagueFormSnapshot = readLeagueFormSnapshot();
+  leagueFormDirty = false;
+  syncLeagueFormDirty();
 
   $("#btnSaveLeague")?.addEventListener("click", () => {
     const name = $("#lgName")?.value.trim();
@@ -1929,6 +2258,7 @@ function bindLeagues() {
     FCDataStore.upsertLeague({ id, name }, ui, features);
     leagueEditId = id;
     leagueFilter = id;
+    leagueFormDirty = false;
     afterLeagueChange();
     toast(editing ? "League saved" : "League created — now add its teams & players");
     renderPanel();
@@ -2909,7 +3239,7 @@ function panelTeams() {
             <div class="mw-field"><label for="teamLogo">Logo path</label><input id="teamLogo" class="mw-input" placeholder="./images/premierleague/arsenal.png" autocomplete="off" /></div>
           </div>
           <div class="col-12">
-            <div class="mw-field"><label for="teamTmUrlForm">Transfermarkt club link</label><input id="teamTmUrlForm" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" autocomplete="off" /><span class="admin-muted" style="display:block;margin-top:6px;font-size:12px">Optional. Used by Players / Transfers / Stadiums Transfermarkt tools (needs serve.bat).</span></div>
+            <div class="mw-field"><label for="teamTmUrlForm">Transfermarkt club link</label><input id="teamTmUrlForm" class="mw-input admin-url-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" title="Paste a Transfermarkt club URL" autocomplete="off" spellcheck="false" /><span class="admin-muted" style="display:block;margin-top:6px;font-size:12px">Optional. Used by Players / Transfers / Stadiums Transfermarkt tools (needs serve.bat).</span></div>
           </div>
           <div class="col-6 col-md-6 col-lg-3">
             <div class="mw-field"><label for="teamC1">Color 1</label><input id="teamC1" class="mw-input mw-input--color" type="color" value="#2de2e6" /></div>
@@ -3971,8 +4301,8 @@ function panelPlayers() {
   const playerCount = players.length;
   const posBreak = squadPositionBreakdown(players);
   const dragHint = isWorldCup
-    ? " Drag the <strong>⋮⋮</strong> handle to reorder. For World Cup squads, set each player’s <strong>club</strong> (domestic team)."
-    : " Drag the <strong>⋮⋮</strong> handle to reorder the squad list. Order saves when you drop a row and appears on the public site.";
+    ? " Drag the <strong>⠿</strong> handle on a row to reorder. For World Cup squads, set each player’s <strong>club</strong> (domestic team)."
+    : " Drag the <strong>⠿</strong> handle on a row to reorder the squad list. Order saves when you drop a row and appears on the public site. <strong>Transfer</strong> moves a player to another club.";
   const posChipsHtml =
     teamId && playerCount
       ? `<div class="players-pos-breakdown" aria-label="Squad by position">
@@ -3987,7 +4317,11 @@ function panelPlayers() {
 
   const rosterBody = !teams.length
     ? `<p class="admin-muted mb-0">Add teams in the <strong>Teams</strong> tab first, then return here to manage squads.</p>`
-    : `<div class="players-roster-wrap admin-table-wrap admin-table-wrap--sort">
+    : `${
+        playerCount
+          ? `<p class="players-pitch-legend admin-muted mb-2">Pitch label = short name on lineup graphics (e.g. “Raya”). Drag ⠿ to reorder; Transfer sends a player to another club.</p>`
+          : ""
+      }<div class="players-roster-wrap admin-table-wrap admin-table-wrap--sort">
           <div class="players-roster-list" id="playersSortTbody">${players.map((p) => playerRosterCardHtml(p, isWorldCup)).join("")}</div>
           <p class="players-roster-empty admin-hidden" id="playersRosterEmpty">No players match your search.</p>
         </div>`;
@@ -4077,7 +4411,7 @@ function panelPlayers() {
                 <div class="players-toolbar-actions">
                   ${
                     playerCount > 1
-                      ? `<button type="button" class="mw-btn-primary players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
+                      ? `<button type="button" class="mw-btn-ghost players-auto-btn" id="btnAutoArrange">Auto-arrange by position</button>
                   <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSortByNumber">Sort by jersey #</button>`
                       : ""
                   }
@@ -4158,15 +4492,15 @@ function panelPlayers() {
           <div class="col-12 col-md-6 col-lg-4">
             <div class="mw-field players-form-pitch">
               <label for="playerDisplayLastName">Pitch label <span class="admin-muted">(short)</span></label>
-              <div class="player-flag-row">
+              <div class="players-pitch-input">
                 <input
                   id="playerDisplayLastName"
                   class="mw-input"
                   maxlength="20"
-                  placeholder="e.g. Foden — leave blank to auto-derive"
+                  placeholder="e.g. Saliba"
                   autocomplete="off"
                 />
-                <button type="button" class="mw-btn-ghost players-fill-btn" id="btnFillPitchLabel" title="Fill from player name">Fill</button>
+                <button type="button" class="players-pitch-autofill" id="btnFillPitchLabel" title="Fill from player last name">Auto-fill</button>
               </div>
               <p class="mw-field-note admin-muted">Shown on pitch lineups. Blank = auto from last name. Max 20 characters.</p>
             </div>
@@ -4183,10 +4517,18 @@ function panelPlayers() {
             </div>
           </div>
           <div class="col-6 col-md-6 col-lg-4">
-            <div class="mw-field"><label for="playerPos">Pos (GK/DF/MF/FW)</label><input id="playerPos" class="mw-input" /></div>
+            <div class="mw-field">
+              <label for="playerPos">Position group</label>
+              <input id="playerPos" class="mw-input" placeholder="GK, DF, MF, or FW" autocomplete="off" />
+              <p class="mw-field-note admin-muted">Broad line: goalkeeper, defence, midfield, or attack.</p>
+            </div>
           </div>
           <div class="col-6 col-md-6 col-lg-4">
-            <div class="mw-field"><label for="playerRole">Role</label><input id="playerRole" class="mw-input" placeholder="CB, CM, CF…" /></div>
+            <div class="mw-field">
+              <label for="playerRole">Playing role</label>
+              <input id="playerRole" class="mw-input" placeholder="CB, CM, CF…" autocomplete="off" />
+              <p class="mw-field-note admin-muted">Specific spot — used for default squad sort order.</p>
+            </div>
           </div>
           ${isWorldCup ? `<div class="col-12 col-md-6 col-lg-4"><div class="mw-field"><label for="playerClub">Club</label><input id="playerClub" class="mw-input" placeholder="e.g. Barcelona, Chelsea" /></div></div>` : ""}
           <div class="col-12 col-md-6 col-lg-4">
@@ -4790,10 +5132,19 @@ function transferSquadStatusIconSvg(state) {
   return `<svg class="transfers-card__squad-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>`;
 }
 
+function transferSquadStatusChipLabel(state) {
+  if (state === "on") return "On squad";
+  if (state === "missing") return "Add to squad";
+  if (state === "still") return "Still on squad";
+  if (state === "off") return "Off squad";
+  return "No name";
+}
+
 function transferSquadStatusHtml(teamId, playerName, mode) {
   const info = transferSquadStatusInfo(teamId, playerName, mode);
   const tone = info.state === "empty" ? "empty" : info.done ? "done" : "needed";
-  return `<span class="transfers-card__squad-status transfers-card__squad-status--${tone} transfers-card__squad-status--${info.state}" title="${esc(info.label)}" aria-label="${esc(info.label)}">${transferSquadStatusIconSvg(info.state)}</span>`;
+  const chip = transferSquadStatusChipLabel(info.state);
+  return `<span class="transfers-card__squad-status transfers-card__squad-status--${tone} transfers-card__squad-status--${info.state}" title="${esc(info.label)}" aria-label="${esc(info.label)}">${transferSquadStatusIconSvg(info.state)}<span class="transfers-card__squad-label">${esc(chip)}</span></span>`;
 }
 
 function syncTransferSquadStatus(row, teamId, mode) {
@@ -5245,15 +5596,16 @@ function tmTransferSyncPanelHtml(team) {
       <div class="players-tm-sync__link-row transfers-tm-sync__controls">
         <div class="mw-field players-tm-sync__link-field">
           <label for="teamTmTransferUrl">Transfermarkt club link</label>
-          <input id="teamTmTransferUrl" class="mw-input" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" value="${esc(tmUrlValueForTeam(team))}" autocomplete="off" />
+          <input id="teamTmTransferUrl" class="mw-input admin-url-input players-tm-url" type="url" inputmode="url" placeholder="https://www.transfermarkt.com/…/verein/11" value="${esc(tmUrlValueForTeam(team))}" title="${esc(tmUrlValueForTeam(team) || "Paste a Transfermarkt club URL")}" autocomplete="off" spellcheck="false" />
         </div>
         <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSaveTmTransferUrl">Save link</button>
         <div class="mw-field transfers-tm-sync__season">
           <label for="tmTransferSeason">Season starts</label>
-          <input id="tmTransferSeason" class="mw-input" type="number" min="1900" max="2100" step="1" value="${esc(tmTransferSeason)}" />
+          <input id="tmTransferSeason" class="mw-input" type="number" min="1900" max="2100" step="1" value="${esc(tmTransferSeason)}" aria-describedby="tmTransferSeasonNote" />
         </div>
         <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmTransferRefresh"${canRefresh ? "" : " disabled"} title="${canRefresh ? "Compare transfers with Transfermarkt" : localReady ? "Save a valid Transfermarkt link first" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
       </div>
+      <p class="mw-field-note admin-muted transfers-tm-sync__season-note" id="tmTransferSeasonNote">Season starts selects which Transfermarkt window <strong>Compare with Transfermarkt</strong> uses (2026 = 2026/27 arrivals and departures).</p>
       <div class="players-tm-sync__head">
         <span class="players-tm-sync__status" id="transfersTmSyncStatus">${tmTransferSyncStatusHtml(team)}</span>
       </div>
@@ -5430,26 +5782,44 @@ function transfersStatChipsHtml(inCount, promotedCount, outCount, loanReturnCoun
   </div>`;
 }
 
+function transferFeeSummaryLabel(fee) {
+  if (typeof formatTransferFeeBadge === "function") {
+    return formatTransferFeeBadge(fee).label;
+  }
+  const raw = String(fee ?? "").trim();
+  return raw || "Undisclosed";
+}
+
 function transferCardSummaryParts(t, clubLabel, { showFee = true } = {}) {
   const player = String(t?.player ?? "").trim() || "New entry";
   const club = String(t?.otherClub ?? "").trim();
-  const fee = showFee ? String(t?.fee ?? "").trim() : "";
-  const date = String(t?.date ?? "").trim() || transferDateFromInputValue(transferDateToInputValue(t?.date));
-  const meta = [
-    club ? `${clubLabel} ${club}` : "",
-    fee || "",
-    date || "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return { player, meta: meta || "Tap to edit details" };
+  const clubLine = club ? `${clubLabel} ${club}` : `${clubLabel} —`;
+  const feeLabel = showFee ? transferFeeSummaryLabel(t?.fee) : "";
+  const date =
+    String(t?.date ?? "").trim() ||
+    transferDateFromInputValue(transferDateToInputValue(t?.date)) ||
+    "";
+  return { player, clubLine, feeLabel, date, showFee };
 }
 
 function transferCardSummaryHtml(t, clubLabel, opts) {
-  const { player, meta } = transferCardSummaryParts(t, clubLabel, opts);
+  const { player, clubLine, feeLabel, date, showFee } = transferCardSummaryParts(t, clubLabel, opts);
+  const facts = [
+    showFee && feeLabel
+      ? `<span class="transfers-card__fact transfers-card__fact--fee">${esc(feeLabel)}</span>`
+      : "",
+    date
+      ? `<time class="transfers-card__fact transfers-card__fact--date">${esc(date)}</time>`
+      : `<span class="transfers-card__fact transfers-card__fact--muted">No date</span>`,
+  ]
+    .filter(Boolean)
+    .join("");
   return `
     <span class="transfers-card__summary-title">${esc(player)}</span>
-    <span class="transfers-card__summary-meta">${esc(meta)}</span>`;
+    <span class="transfers-card__summary-meta">
+      <span class="transfers-card__summary-club">${esc(clubLine)}</span>
+      <span class="transfers-card__summary-facts">${facts}</span>
+    </span>`;
 }
 
 function syncTransferCardSummary(card) {
@@ -5938,7 +6308,9 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
       data-tr-sort-key="${esc(sortKey)}"
     >
       <div class="transfers-card__top">
-        <span class="player-drag-handle transfers-drag-handle" draggable="true" title="Drag to reorder" tabindex="-1" aria-hidden="true">⋮⋮</span>
+        <span class="player-drag-handle transfers-drag-handle" draggable="true" title="Drag to set public Transfers tab order" tabindex="-1" aria-hidden="true">
+          <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg>
+        </span>
         <button
           type="button"
           class="transfers-card__fold"
@@ -5949,8 +6321,13 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
           <span class="transfers-card__summary">${summary}</span>
         </button>
         ${linkedBadge}
-        ${transferSquadStatusHtml(teamId, t.player, mode)}
-        <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove entry" aria-label="Remove entry">×</button>
+        <div class="transfers-card__actions">
+          ${transferSquadStatusHtml(teamId, t.player, mode)}
+          <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove this transfer entry" aria-label="Remove entry">
+            <span class="transfers-del-btn__x" aria-hidden="true">×</span>
+            <span class="transfers-del-btn__label">Remove</span>
+          </button>
+        </div>
       </div>
       <div class="transfers-card__body">
         ${
@@ -6120,6 +6497,8 @@ function panelTransfers() {
         </div>
 
         ${tmTransferSyncPanelHtml(team)}
+
+        <p class="transfers-order-hint admin-muted">Drag <strong>⠿</strong> to set display order on the public Transfers tab — top of each list appears first. Save to keep the order.</p>
 
         <div class="transfers-sections">${transferSectionsHtml}</div>
 
@@ -6434,25 +6813,35 @@ function bindLeagueSelect() {
 function bindPanelHandlers() {
   for (const btn of document.querySelectorAll("[data-overview-tab]")) {
     btn.addEventListener("click", () => {
-      activeTab = btn.getAttribute("data-overview-tab");
+      const next = btn.getAttribute("data-overview-tab");
+      if (!confirmLeaveLeagueForm()) return;
+      leagueFormDirty = false;
+      activeTab = next;
       renderNav();
       renderPanel();
     });
   }
 
   $("#btnExport")?.addEventListener("click", () => {
-    const blob = new Blob([FCDataStore.exportJson()], { type: "application/json" });
+    const json = FCDataStore.exportJson();
+    const blob = new Blob([json], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "data.json";
     a.click();
+    pushExportLog("download");
     toast("Saved as data.json — commit this file for GitHub");
+    const logWrap = $(".overview-export-log");
+    if (logWrap) logWrap.outerHTML = renderExportLogHtml();
   });
 
   $("#btnExportCopy")?.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(FCDataStore.exportJson());
+      pushExportLog("copy");
       toast("Copied — paste into data.json in the project folder");
+      const logWrap = $(".overview-export-log");
+      if (logWrap) logWrap.outerHTML = renderExportLogHtml();
     } catch {
       alert("Copy failed — use Download data.json instead");
     }
@@ -6477,7 +6866,12 @@ function bindPanelHandlers() {
   });
 
   $("#btnReset")?.addEventListener("click", () => {
-    if (!confirm("Reset ALL data to the built-in seed from app.js?")) return;
+    const card = $("#resetConfirmCard");
+    card?.classList.remove("admin-hidden");
+    card?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  $("#btnResetCancel")?.addEventListener("click", () => $("#resetConfirmCard")?.classList.add("admin-hidden"));
+  $("#btnResetConfirm")?.addEventListener("click", () => {
     FCDataStore.resetToSeed();
     syncToAppArrays();
     toast("Reset complete");
@@ -7743,7 +8137,10 @@ function bindTeams() {
     $("#teamCoach").value = "";
     $("#teamLogo").value = "";
     if ($("#teamStadium")) $("#teamStadium").value = "";
-    if ($("#teamTmUrlForm")) $("#teamTmUrlForm").value = "";
+    if ($("#teamTmUrlForm")) {
+      $("#teamTmUrlForm").value = "";
+      $("#teamTmUrlForm").title = "Paste a Transfermarkt club URL";
+    }
   });
 
   $("#btnSaveTeam")?.addEventListener("click", () => {
@@ -7819,7 +8216,11 @@ function bindTeams() {
         ensureStadiumSelectOption($("#teamStadium"), t.stadium);
         $("#teamStadium").value = String(t.stadium ?? "").trim() || "";
       }
-      if ($("#teamTmUrlForm")) $("#teamTmUrlForm").value = tmUrlValueForTeam(t);
+      if ($("#teamTmUrlForm")) {
+        const tmFormUrl = tmUrlValueForTeam(t);
+        $("#teamTmUrlForm").value = tmFormUrl;
+        $("#teamTmUrlForm").title = tmFormUrl || "Paste a Transfermarkt club URL";
+      }
       $("#teamC1").value = t.colors?.[0] ?? "#2de2e6";
       $("#teamC2").value = t.colors?.[1] ?? "#111827";
     });
@@ -8239,7 +8640,14 @@ function fillPitchLabelFromName({ force = false } = {}) {
   if (force || empty || wasAuto) {
     pitchInput.value = suggested;
     pitchInput.dataset.auto = "1";
-    if (force) toast(`Pitch label · ${suggested}`);
+    if (force) {
+      pitchInput.classList.remove("is-filled");
+      void pitchInput.offsetWidth;
+      pitchInput.classList.add("is-filled");
+      pitchInput.focus();
+      window.setTimeout(() => pitchInput.classList.remove("is-filled"), 900);
+      toast(`Pitch label · ${suggested}`);
+    }
   }
 }
 
@@ -8655,11 +9063,25 @@ function bindPlayers() {
 
   document.querySelectorAll("[data-del-player]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (!confirm("Remove player?")) return;
-      FCDataStore.removePlayer(btn.getAttribute("data-del-player"));
+      const id = btn.getAttribute("data-del-player");
+      const player = state().players.find((x) => x.id === id);
+      if (!id || !player) return;
+      const snapshot = JSON.parse(JSON.stringify(player));
+      const label = stripCaptainSuffix(snapshot.name) || "Player";
+      FCDataStore.removePlayer(id);
+      if (playerTransferPickId === id) playerTransferPickId = "";
       syncToAppArrays();
-      toast("Player removed");
       renderPanel();
+      toast(`${label} removed`, {
+        actionLabel: "Undo",
+        ms: 7000,
+        onAction: () => {
+          FCDataStore.upsertPlayer(snapshot);
+          syncToAppArrays();
+          toast(`${label} restored`);
+          renderPanel();
+        },
+      });
     });
   });
 }
@@ -9815,22 +10237,121 @@ function bindTransferTableHandlers() {
   bindTransferDbPickers();
 }
 
-function setLoginError(msg) {
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MS = 30_000;
+const LOGIN_FAILS_KEY = "fc_admin_login_fails";
+const LOGIN_LOCK_KEY = "fc_admin_login_lock";
+
+let loginLockTimer = null;
+
+function readLoginFails() {
+  try {
+    return Math.max(0, Number(sessionStorage.getItem(LOGIN_FAILS_KEY)) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function writeLoginFails(n) {
+  try {
+    sessionStorage.setItem(LOGIN_FAILS_KEY, String(n));
+  } catch {
+    /* ignore */
+  }
+}
+
+function readLoginLockUntil() {
+  try {
+    return Number(sessionStorage.getItem(LOGIN_LOCK_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeLoginLockUntil(ts) {
+  try {
+    if (ts) sessionStorage.setItem(LOGIN_LOCK_KEY, String(ts));
+    else sessionStorage.removeItem(LOGIN_LOCK_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function remainingLoginLockMs() {
+  return Math.max(0, readLoginLockUntil() - Date.now());
+}
+
+function clearLoginThrottle() {
+  writeLoginFails(0);
+  writeLoginLockUntil(0);
+  if (loginLockTimer) {
+    clearInterval(loginLockTimer);
+    loginLockTimer = null;
+  }
+}
+
+function loginLockMessage(ms) {
+  const s = Math.max(1, Math.ceil(ms / 1000));
+  return `Too many attempts. Try again in ${s}s.`;
+}
+
+function setLoginError(msg, { shake = true } = {}) {
   const el = $("#loginError");
   const card = $("#loginCard");
+  const wrap = $("#loginPinWrap");
+  const input = $("#pinInput");
   if (!el) return;
   if (msg) {
     el.textContent = msg;
     el.classList.remove("admin-hidden");
-    card?.classList.add("login-shake");
-    setTimeout(() => card?.classList.remove("login-shake"), 500);
+    wrap?.classList.add("is-invalid");
+    input?.setAttribute("aria-invalid", "true");
+    if (shake) {
+      card?.classList.remove("login-shake");
+      void card?.offsetWidth;
+      card?.classList.add("login-shake");
+      setTimeout(() => card?.classList.remove("login-shake"), 500);
+    }
   } else {
     el.textContent = "";
     el.classList.add("admin-hidden");
+    wrap?.classList.remove("is-invalid");
+    input?.removeAttribute("aria-invalid");
   }
 }
 
+function syncLoginLockoutUi() {
+  const btn = $("#loginBtn");
+  const ms = remainingLoginLockMs();
+  if (ms <= 0) {
+    btn?.removeAttribute("disabled");
+    if (loginLockTimer) {
+      clearInterval(loginLockTimer);
+      loginLockTimer = null;
+    }
+    return false;
+  }
+  btn?.setAttribute("disabled", "true");
+  setLoginError(loginLockMessage(ms), { shake: false });
+  if (!loginLockTimer) {
+    loginLockTimer = setInterval(() => {
+      const left = remainingLoginLockMs();
+      if (left <= 0) {
+        clearInterval(loginLockTimer);
+        loginLockTimer = null;
+        clearLoginThrottle();
+        btn?.removeAttribute("disabled");
+        setLoginError("");
+        return;
+      }
+      setLoginError(loginLockMessage(left), { shake: false });
+    }, 250);
+  }
+  return true;
+}
+
 function tryLogin() {
+  if (syncLoginLockoutUi()) return;
   setLoginError("");
   if (typeof FCDataStore === "undefined") {
     setLoginError("Data store failed to load. Refresh the page.");
@@ -9842,22 +10363,35 @@ function tryLogin() {
   }
   const pin = ($("#pinInput")?.value ?? "").trim();
   const btn = $("#loginBtn");
+  if (!pin) {
+    setLoginError("Enter your PIN.");
+    $("#pinInput")?.focus();
+    return;
+  }
   btn?.classList.add("is-loading");
-  btn?.querySelector(".login-submit-text") &&
-    (btn.querySelector(".login-submit-text").textContent = "Signing in…");
+  const label = btn?.querySelector(".login-submit-text");
+  if (label) label.textContent = "Signing in…";
 
   window.setTimeout(() => {
     if (FCDataStore.login(pin)) {
+      clearLoginThrottle();
       showLogin(false);
       renderNav();
       renderPanel();
       toast("Signed in");
     } else {
-      setLoginError(`Incorrect PIN. Try "${FCDataStore.DEFAULT_PIN}" or your custom PIN.`);
-      $("#pinInput")?.focus();
+      const fails = readLoginFails() + 1;
+      writeLoginFails(fails);
+      if (fails >= LOGIN_MAX_ATTEMPTS) {
+        writeLoginLockUntil(Date.now() + LOGIN_LOCKOUT_MS);
+        syncLoginLockoutUi();
+      } else {
+        const left = LOGIN_MAX_ATTEMPTS - fails;
+        setLoginError(`Incorrect PIN. ${left} attempt${left === 1 ? "" : "s"} remaining.`);
+        $("#pinInput")?.focus();
+      }
     }
     btn?.classList.remove("is-loading");
-    const label = btn?.querySelector(".login-submit-text");
     if (label) label.textContent = "Sign in";
   }, 280);
 }
@@ -9876,7 +10410,10 @@ function initAuth() {
       tryLogin();
     }
   });
-  pinInput?.addEventListener("input", () => setLoginError(""));
+  pinInput?.addEventListener("input", () => {
+    if (remainingLoginLockMs() > 0) return;
+    setLoginError("");
+  });
 
   $("#pinToggle")?.addEventListener("click", () => {
     if (!pinInput) return;
@@ -9888,21 +10425,28 @@ function initAuth() {
     toggle?.setAttribute("aria-label", show ? "Hide PIN" : "Show PIN");
   });
 
-  $("#fillDefaultPin")?.addEventListener("click", () => {
-    if (pinInput && typeof FCDataStore !== "undefined") {
-      pinInput.value = FCDataStore.DEFAULT_PIN;
-      pinInput.focus();
-      setLoginError("");
-    }
-  });
+  syncLoginLockoutUi();
 
   if ($("#loginView") && !$("#loginView").classList.contains("admin-hidden")) {
     window.setTimeout(() => pinInput?.focus(), 400);
   }
   $("#logoutBtn")?.addEventListener("click", () => {
+    if (!confirmLeaveLeagueForm()) return;
+    leagueFormDirty = false;
     FCDataStore.logout();
     showLogin(true);
     toast("Logged out");
+  });
+}
+
+function bindAdminUrlInputTitles() {
+  if (document.documentElement.dataset.adminUrlTitleBound === "1") return;
+  document.documentElement.dataset.adminUrlTitleBound = "1";
+  document.addEventListener("input", (e) => {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement)) return;
+    if (!el.classList.contains("admin-url-input") && !el.classList.contains("players-tm-url")) return;
+    el.title = el.value.trim() || el.getAttribute("placeholder") || "Paste a Transfermarkt club URL";
   });
 }
 
@@ -9910,6 +10454,12 @@ function finishBoot() {
   setSeedLoading(false);
   initAuth();
   bindAdminNavScroll();
+  bindAdminUrlInputTitles();
+  window.addEventListener("beforeunload", (e) => {
+    if (!leagueFormDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
   if (FCDataStore.isAuthed()) {
     showLogin(false);
     renderNav();

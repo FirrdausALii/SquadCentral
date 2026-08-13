@@ -150,7 +150,47 @@ html.reveal-init .reveal.is-visible {
   flex-wrap: wrap;
   gap: var(--sp-2);
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+}
+.squads-toolbar__chips[hidden] {
+  display: none;
+}
+.squads-toolbar__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 160px;
+  min-width: 140px;
+  max-width: 280px;
+  margin: 0;
+  padding: 0 10px;
+  min-height: 32px;
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface-1);
+}
+.squads-toolbar__search .search-icon {
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+}
+.squads-toolbar__search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 0;
+  outline: none;
+}
+.squads-toolbar__search input::placeholder {
+  color: var(--text-faint);
+}
+.squads-toolbar__search:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .squads-toolbar__actions {
   display: flex;
@@ -158,6 +198,10 @@ html.reveal-init .reveal.is-visible {
   align-items: center;
   gap: var(--sp-2);
   flex-shrink: 0;
+}
+.squads-toolbar__btn {
+  min-height: 32px;
+  font-weight: 600;
 }
 .squads-toolbar__filters {
   margin-top: var(--sp-3);
@@ -893,6 +937,12 @@ html.reveal-init .reveal.is-visible {
 .transfers-shell__head {
   gap: var(--sp-2);
 }
+.transfers-shell.card,
+#transfers > .transfers-shell {
+  /* Neutral shell only — category cards own the colored left accents. */
+  border-left: 0.5px solid var(--border-default);
+  box-shadow: none;
+}
 .transfers-shell__desc {
   margin: 0;
   font-size: 13px;
@@ -912,6 +962,23 @@ html.reveal-init .reveal.is-visible {
 }
 .transfers-shell__filters {
   padding: var(--sp-4);
+}
+.transfers-shell__filters > .league-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin: 0 0 var(--sp-3);
+  padding: 0 0 var(--sp-1);
+}
+.transfers-shell__filters > .league-tabs::-webkit-scrollbar {
+  display: none;
+}
+.transfers-shell__filters > .league-tabs .league-tab {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Transfers panel */
@@ -996,6 +1063,10 @@ html.reveal-init .reveal.is-visible {
   color: #5eead4;
   background: color-mix(in srgb, #2dd4bf 16%, var(--bg-surface-2));
   border-color: color-mix(in srgb, #2dd4bf 32%, transparent);
+}
+.transfer-dir-chip__svg {
+  display: block;
+  flex-shrink: 0;
 }
 .transfer-dir-chip--out {
   color: #93c5fd;
@@ -1176,20 +1247,24 @@ html.reveal-init .reveal.is-visible {
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  padding: var(--sp-8) var(--sp-5);
+  padding: var(--sp-6) var(--sp-5) var(--sp-7);
   text-align: center;
-  min-height: 168px;
+  min-height: 148px;
 }
 .transfer-empty-state__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
-  margin-bottom: var(--sp-1);
+  margin-bottom: 2px;
   border: 0.5px solid var(--border-default);
   background: var(--bg-surface-1);
+}
+.transfer-empty-state__icon svg {
+  width: 22px;
+  height: 22px;
 }
 .transfer-empty-state__icon--in { color: var(--color-win); }
 .transfer-empty-state__icon--promoted { color: #2dd4bf; }
@@ -1204,7 +1279,7 @@ html.reveal-init .reveal.is-visible {
 }
 .transfer-empty-state__hint {
   margin: 0;
-  max-width: 26ch;
+  max-width: 28ch;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-muted);
@@ -1405,7 +1480,13 @@ html.reveal-init .reveal.is-visible {
 .squad-row:hover:focus-visible { background: var(--bg-surface-3); }
 .squad-list .squad-row:last-child { border-bottom: none; }
 
-.squad-num { color: var(--text-faint); font-weight: 600; font-size: 12px; }
+.squad-num {
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
 .squad-player {
   display: flex;
   align-items: center;
@@ -1417,6 +1498,26 @@ html.reveal-init .reveal.is-visible {
   width: 32px;
   height: 32px;
   font-size: 10px;
+}
+.squad-row__avatar--gk {
+  color: var(--pos-gk-text);
+  background: color-mix(in srgb, var(--pos-gk-text) 18%, var(--bg-surface-1));
+  border-color: color-mix(in srgb, var(--pos-gk-text) 38%, transparent);
+}
+.squad-row__avatar--df {
+  color: var(--pos-def-text);
+  background: color-mix(in srgb, var(--pos-def-text) 18%, var(--bg-surface-1));
+  border-color: color-mix(in srgb, var(--pos-def-text) 38%, transparent);
+}
+.squad-row__avatar--mf {
+  color: var(--pos-mid-text);
+  background: color-mix(in srgb, var(--pos-mid-text) 18%, var(--bg-surface-1));
+  border-color: color-mix(in srgb, var(--pos-mid-text) 38%, transparent);
+}
+.squad-row__avatar--fw {
+  color: var(--pos-fwd-text);
+  background: color-mix(in srgb, var(--pos-fwd-text) 18%, var(--bg-surface-1));
+  border-color: color-mix(in srgb, var(--pos-fwd-text) 38%, transparent);
 }
 .squad-name { font-weight: 500; color: var(--text-primary); }
 .squad-pos-tag {
@@ -1545,11 +1646,107 @@ html.reveal-init .reveal.is-visible {
 .squad-empty { padding: var(--sp-8); text-align: center; color: var(--text-muted); }
 
 /* Player modal profile */
+.squad-profile--preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
 .squad-profile-hero {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  margin-bottom: var(--sp-4);
+  margin-bottom: 0;
+}
+.squad-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.squad-profile-stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-1);
+  border: 0.5px solid var(--border-subtle);
+  text-align: center;
+}
+.squad-profile-stat-chip__val {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.squad-profile-stat-chip__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.squad-profile-transfer {
+  padding: var(--sp-3);
+  background: var(--bg-surface-1);
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-subtle);
+}
+.squad-profile-transfer__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.squad-profile-transfer__text {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.35;
+  min-width: 0;
+}
+.squad-profile-transfer .squad-arrival-badge {
+  margin-left: 0;
+  flex-shrink: 0;
+}
+.player-full-card {
+  padding: var(--sp-4);
+}
+.player-full__back {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  margin: 0 0 var(--sp-4);
+  cursor: pointer;
+}
+.player-full__back:hover { color: var(--text-primary); }
+.player-full__season {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.player-full .squad-profile-stats,
+.player-full .squad-profile-grid {
+  margin-bottom: var(--sp-3);
+}
+.player-full__sub {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.player-full__moves .squad-profile-transfer + .squad-profile-transfer {
+  margin-top: var(--sp-2);
 }
 .squad-profile-num {
   width: 48px;
@@ -1607,6 +1804,18 @@ html.reveal-init .reveal.is-visible {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sp-3);
 }
+.squad-profile-grid:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+.squad-panel[hidden],
+.player-full-card[hidden],
+.squads-toolbar[hidden],
+#squads > .text-secondary[hidden] {
+  display: none !important;
+}
+.player-full-card:hover {
+  border-color: var(--border-default);
+}
 .squad-profile-stat {
   padding: var(--sp-3);
   background: var(--bg-surface-1);
@@ -1646,12 +1855,26 @@ html.reveal-init .reveal.is-visible {
 }
 .modal-title { margin: 0; font-size: 16px; color: var(--text-primary); }
 .modal-body { padding: var(--sp-4) 0; }
+.fc-modal--compact .modal-body { padding: var(--sp-3) 0; }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--sp-2);
   padding-top: var(--sp-3);
   border-top: 0.5px solid var(--border-subtle);
+}
+.modal-actions[hidden],
+.modal-actions #modalDismiss[hidden],
+.modal-actions #modalPrimary[hidden] {
+  display: none !important;
+}
+.fc-modal--compact .modal-actions {
+  border-top: none;
+  padding-top: var(--sp-2);
+  justify-content: stretch;
+}
+.fc-modal--compact .modal-actions #modalPrimary {
+  width: 100%;
 }
 
 /* Match modal — goals, lineups, pitch */

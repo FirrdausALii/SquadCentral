@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="./squad-central-dark-stadium.css" />
     <link rel="stylesheet" href="./lineups-pitch.css" />
     <link rel="stylesheet" href="./dropdowns.css" />
-    <link rel="stylesheet" href="./admin.css?v=leagues-redesign-1" />
+    <link rel="stylesheet" href="./admin.css?v=transfers-1" />
   </head>
   <body data-page="admin">
     <script>
@@ -43,6 +43,8 @@
         <span class="login-orb login-orb--2"></span>
         <span class="login-orb login-orb--3"></span>
         <span class="login-grid"></span>
+        <span class="login-pitch"></span>
+        <img class="login-watermark" src="./logo.png" width="160" height="160" alt="" />
       </div>
 
       <header class="login-topbar container-fluid px-3 px-sm-4">
@@ -73,7 +75,7 @@
 
                 <form class="login-form" id="loginForm" onsubmit="return false">
                   <label class="login-label" for="pinInput">PIN code</label>
-                  <div class="login-pin-wrap">
+                  <div class="login-pin-wrap" id="loginPinWrap">
                     <span class="login-pin-icon" aria-hidden="true">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </span>
@@ -81,10 +83,9 @@
                       id="pinInput"
                       class="login-pin-input"
                       type="password"
-                      inputmode="numeric"
                       autocomplete="current-password"
-                      placeholder="••••••••••"
-                      aria-describedby="loginError loginHint"
+                      placeholder="Enter PIN"
+                      aria-describedby="loginError loginRecovery"
                     />
                     <button type="button" class="login-pin-toggle" id="pinToggle" aria-label="Show PIN">
                       <svg class="ico-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -93,15 +94,14 @@
                   </div>
 
                   <p id="loginError" class="login-error admin-hidden" role="alert"></p>
-                  <p id="loginHint" class="login-hint">First time? Default PIN is <button type="button" class="login-hint-btn" id="fillDefaultPin">squadcentral</button></p>
+                  <p id="loginRecovery" class="login-recovery">Forgot PIN? Contact your Squad Central admin. After you sign in, you can change it under <strong>Settings</strong>.</p>
 
                   <button type="button" class="login-submit" id="loginBtn">
                     <span class="login-submit-text">Sign in</span>
-                    <span class="login-submit-arrow" aria-hidden="true">→</span>
                   </button>
                 </form>
 
-                <p class="login-foot d-none d-sm-block">Change your PIN anytime under <strong>Settings</strong> after login.</p>
+                <p class="login-foot">PIN is stored only on this device.</p>
               </div>
             </section>
           </div>
@@ -134,8 +134,8 @@
         </a>
         <span class="admin-topbar-badge">Admin</span>
         <div class="topbar-actions ms-auto d-flex flex-wrap gap-2">
-          <a class="btn btn-ghost btn-sm" href="./index.html">View site</a>
-          <button class="btn btn-ghost btn-sm" type="button" id="logoutBtn">Log out</button>
+          <a class="btn btn-ghost btn-sm admin-topbar-view" href="./index.html">View site</a>
+          <button class="admin-topbar-logout" type="button" id="logoutBtn">Log out</button>
         </div>
       </header>
 
@@ -175,7 +175,7 @@
     <script src="./transfermarkt-teams.js"></script>
     <script src="./transfermarkt-sync.js"></script>
     <script src="./app.js"></script>
-    <script src="./admin.js?v=leagues-redesign-1"></script>
+    <script src="./admin.js?v=transfers-1"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"

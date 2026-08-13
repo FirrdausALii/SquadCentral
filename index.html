@@ -62,7 +62,6 @@
         <li><a href="#squads">Squads</a></li>
         <li><a href="#match-center">Match Center</a></li>
         <li><a href="#transfers">Transfers</a></li>
-        <li><a href="#about">About</a></li>
       </ul>
 
       <div class="topbar-actions d-none d-lg-flex align-items-center gap-2">
@@ -86,7 +85,6 @@
           <li class="nav-item"><a class="nav-link" href="#squads" data-bs-dismiss="offcanvas">Squads</a></li>
           <li class="nav-item"><a class="nav-link" href="#match-center" data-bs-dismiss="offcanvas">Match Center</a></li>
           <li class="nav-item"><a class="nav-link" href="#transfers" data-bs-dismiss="offcanvas">Transfers</a></li>
-          <li class="nav-item"><a class="nav-link" href="#about" data-bs-dismiss="offcanvas">About</a></li>
         </ul>
         <div class="mt-auto d-grid">
           <a class="btn btn-primary" href="#squads" data-bs-dismiss="offcanvas">Browse squads</a>
@@ -99,7 +97,6 @@
         <a class="home-tabbar__tab" href="#squads">Squads</a>
         <a class="home-tabbar__tab" href="#match-center">Results</a>
         <a class="home-tabbar__tab" href="#transfers">Transfers</a>
-        <a class="home-tabbar__tab" href="#about">About</a>
       </div>
     </nav>
 
@@ -364,7 +361,7 @@
               </p>
             </div>
             <div class="transfers-shell__filters">
-              <div class="league-tabs mb-4" aria-label="League filter" id="transferTabs"></div>
+              <div class="league-tabs" aria-label="League filter" id="transferTabs"></div>
               <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
                 <label class="d-grid gap-1 flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
                   <span class="field-label">Club</span>
@@ -450,17 +447,21 @@
           <div class="card squads-toolbar mb-3">
             <div class="squads-toolbar__summary" id="rosterFilterSummary">
               <div class="squads-toolbar__chips" id="rosterChips" aria-live="polite"></div>
+              <label class="squads-toolbar__search">
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input id="playerSearch" type="search" placeholder="Find player…" autocomplete="off" aria-label="Search players" />
+              </label>
               <div class="squads-toolbar__actions">
                 <button
                   type="button"
-                  class="btn btn-ghost btn-sm squads-toolbar__edit"
+                  class="btn btn-ghost btn-sm squads-toolbar__btn"
                   id="rosterFilterToggle"
                   aria-expanded="false"
                   aria-controls="rosterFilterPanel"
                 >
                   Filters
                 </button>
-                <button class="btn btn-ghost btn-sm share-btn" type="button" id="shareSquadBtn" aria-label="Share squad image">
+                <button class="btn btn-ghost btn-sm squads-toolbar__btn" type="button" id="shareSquadBtn" aria-label="Share squad image">
                   Share
                 </button>
               </div>
@@ -491,13 +492,6 @@
                     </select>
                   </div>
                 </label>
-                <label class="filter-field d-grid gap-1">
-                  <span class="field-label">Search</span>
-                  <div class="search-bar">
-                    <span class="search-icon" aria-hidden="true">⌕</span>
-                    <input id="playerSearch" type="search" placeholder="Search player…" aria-label="Search players" />
-                  </div>
-                </label>
               </div>
             </div>
           </div>
@@ -521,31 +515,14 @@
                 <span class="squad-col-num">#</span>
                 <span class="squad-col-player">Player</span>
                 <span class="squad-col-role">Pos</span>
-                <span class="squad-col-nat">Nation / Age</span>
+                <span class="squad-col-nat">Nation</span>
               </div>
               <div class="squad-body" id="rosterGrid" aria-live="polite"></div>
             </div>
             <div id="rosterDepthWrap" class="squad-depth-wrap is-hidden" aria-live="polite"></div>
           </div>
           <p class="visually-hidden" id="rosterCount" aria-live="polite"></p>
-        </section>
-
-        <!-- About -->
-        <section id="about" class="section reveal" aria-label="About">
-          <div class="section-divider">
-            <h2 class="section-title">About</h2>
-          </div>
-          <div class="card">
-            <p class="mb-3" style="color: var(--text-muted)">
-              Squad data loads from <code>data.json</code> when you run the site over
-              <strong>http://</strong> (for example VS Code Live Server or <code>npx serve</code>).
-              Opening <code>index.html</code> directly as a file will not load logos or Malaysia Super League rosters.
-              Use the <a href="./admin.html">admin page</a> to edit data, then export
-              <code>data.json</code>. If an old copy still appears, clear this site’s storage or use admin
-              <strong>Reset to published seed</strong>.
-            </p>
-            <p class="mb-0 d-none" id="dataLoadWarnAbout" role="status" style="color: var(--text-muted)"></p>
-          </div>
+          <div class="card player-full-card" id="playerProfileWrap" hidden></div>
         </section>
 
         <footer class="site-footer">
@@ -558,7 +535,6 @@
               <a href="#main">Back to top</a>
               <a href="#squads">Squads</a>
               <a href="#transfers">Transfers</a>
-              <a href="#about">About</a>
               <a href="./admin.html" data-admin-only hidden>Admin</a>
             </nav>
           </div>
@@ -575,8 +551,8 @@
           <button class="btn btn-ghost btn-sm" value="cancel" aria-label="Close">✕</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
-        <div class="modal-actions">
-          <button class="btn btn-ghost" value="cancel">Close</button>
+        <div class="modal-actions" id="modalActions">
+          <button class="btn btn-ghost" id="modalDismiss" value="cancel">Close</button>
           <button class="btn btn-primary" id="modalPrimary" value="cancel" type="submit">Done</button>
         </div>
       </form>
@@ -605,7 +581,7 @@
           location.protocol === "file:"
             ? "data.json cannot load from a file:// URL. Start a local server (e.g. serve.bat or VS Code Live Server) so Malaysia Super League squads, logos, and fixtures appear."
             : "data.json did not load in time — refresh the page. If this keeps happening, run the site via serve.bat or Live Server (not by opening index.html directly).";
-        for (const id of ["dataLoadWarn", "dataLoadWarnAbout"]) {
+        for (const id of ["dataLoadWarn"]) {
           const el = document.getElementById(id);
           if (!el) continue;
           el.classList.remove("d-none");

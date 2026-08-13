@@ -1487,7 +1487,7 @@ const TRANSFER_PANELS = [
     badge: "badge-teal",
     card: "transfer-card--promoted",
     elId: "transferPromoted",
-    symbol: "↗",
+    symbol: "★",
     dirClass: "promoted",
   },
   { key: "out", label: "Out", badge: "badge-blue", card: "transfer-card--out", elId: "transferOut", symbol: "↑", dirClass: "out" },
@@ -4898,18 +4898,46 @@ function isCaptainPlayer(p) {
   return playerNameMarksCaptain(p.name);
 }
 
-function openModal({ title, bodyHtml, primaryLabel = "Done" }) {
+function openModal({ title, bodyHtml, primaryLabel = "Done", showDismiss = true, onPrimary = null, compact = false } = {}) {
   const dlg = $("#modal");
   const titleEl = $("#modalTitle");
   const bodyEl = $("#modalBody");
   const primary = $("#modalPrimary");
+  const dismiss = $("#modalDismiss");
+  const actions = $("#modalActions");
 
-  titleEl.textContent = title;
-  bodyEl.innerHTML = bodyHtml;
-  primary.textContent = primaryLabel;
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.innerHTML = bodyHtml;
+  dlg?.classList.toggle("fc-modal--compact", Boolean(compact));
 
-  if (typeof dlg.showModal === "function") dlg.showModal();
-  else alert(`${title}\n\n${bodyEl.textContent}`);
+  if (dismiss) dismiss.hidden = !showDismiss;
+
+  if (primary) {
+    const showPrimary = Boolean(primaryLabel);
+    primary.hidden = !showPrimary;
+    if (showPrimary) primary.textContent = primaryLabel;
+    primary.onclick = null;
+    if (showPrimary && typeof onPrimary === "function") {
+      primary.type = "button";
+      primary.removeAttribute("value");
+      primary.onclick = (e) => {
+        e.preventDefault();
+        dlg?.close?.();
+        onPrimary();
+      };
+    } else {
+      primary.type = "submit";
+      primary.value = "cancel";
+    }
+  }
+
+  if (actions) {
+    const anyVisible = (dismiss && !dismiss.hidden) || (primary && !primary.hidden);
+    actions.hidden = !anyVisible;
+  }
+
+  if (typeof dlg?.showModal === "function") dlg.showModal();
+  else alert(`${title}\n\n${bodyEl?.textContent ?? ""}`);
 }
 
 function applyTheme(theme) {
@@ -4933,7 +4961,7 @@ function setupSidebarNav() {
   const panels = $$("[data-sidebar-panel]");
   const pageWrapper = $(".page-wrapper");
   const contextualSections = new Set(["squads", "match-center", "transfers"]);
-  const sectionIds = ["main", "squads", "match-center", "transfers", "about"];
+  const sectionIds = ["main", "squads", "match-center", "transfers"];
   const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
 
   const setNavActive = (id) => {
@@ -4948,7 +4976,7 @@ function setupSidebarNav() {
 
   const setSectionLayout = (id) => {
     const sectionId = id || "main";
-    const onHome = sectionId === "main" || sectionId === "about";
+    const onHome = sectionId === "main";
     const showSidebar = contextualSections.has(sectionId);
     pageWrapper?.classList.toggle("page-wrapper--home", onHome);
     pageWrapper?.classList.toggle("page-wrapper--section", showSidebar);
@@ -4973,7 +5001,7 @@ function setupSidebarNav() {
         const id = visible[0]?.target?.id;
         if (!id) return;
         setNavActive(id);
-        if (id === "main" || id === "about") setSectionLayout("main");
+        if (id === "main") setSectionLayout("main");
       },
       { rootMargin: "-40% 0px -45% 0px", threshold: [0, 0.12, 0.3] },
     );
@@ -5573,6 +5601,179 @@ function formatLineupStarts(n) {
   return n > 0 ? String(n) : "—";
 }
 
+function playerSeasonStats(p, leagueId, startsMap) {
+  const key = transferPlayerNameKey(p?.name);
+  const published = publishedMatchweekForLeague(leagueId);
+  const decided = new Set(["FT", "AET", "PEN", "AWD", "LIVE"]);
+  let goals = 0;
+  let assists = 0;
+  for (const m of MATCHES ?? []) {
+    if (m.leagueId !== leagueId) continue;
+    if (m.homeTeamId !== p.teamId && m.awayTeamId !== p.teamId) continue;
+    const status = String(m.status ?? "").trim().toUpperCase();
+    if (!decided.has(status)) continue;
+    const week = parseMatchweekNumber(m.matchday);
+    if (published > 0 && week > 0 && week > published) continue;
+    for (const ev of m.goalEvents ?? []) {
+      if (transferPlayerNameKey(ev.scorer) === key) goals += 1;
+      if (transferPlayerNameKey(ev.assist) === key) assists += 1;
+    }
+  }
+  return {
+    apps: lineupStartsFor(p, startsMap),
+    goals,
+    assists,
+  };
+}
+
+function findPlayerTransfers(p, leagueId, teamId) {
+  const key = transferPlayerNameKey(p?.name);
+  if (!key) return [];
+  const block = transfersForTeam(leagueId, teamId);
+  const cats = [
+    { key: "in", label: "Signed" },
+    { key: "promoted", label: "Promoted" },
+    { key: "loanReturn", label: "Loan return" },
+    { key: "out", label: "Sold" },
+    { key: "loanRecall", label: "Recalled" },
+  ];
+  const hits = [];
+  for (const cat of cats) {
+    for (const t of block[cat.key] ?? []) {
+      if (transferPlayerNameKey(t.player) === key) {
+        hits.push({ ...t, category: cat.key, categoryLabel: cat.label });
+      }
+    }
+  }
+  return hits;
+}
+
+function renderPlayerStatsRow(stats) {
+  const cell = (val, label) =>
+    `<div class="squad-profile-stat-chip"><span class="squad-profile-stat-chip__val">${escapeHtml(String(val))}</span><span class="squad-profile-stat-chip__label">${escapeHtml(label)}</span></div>`;
+  return `<div class="squad-profile-stats" aria-label="This season">
+    ${cell(stats.apps, "Apps")}
+    ${cell(stats.goals, "Goals")}
+    ${cell(stats.assists, "Assists")}
+  </div>`;
+}
+
+function renderPlayerTransferCard(t, { compact = true } = {}) {
+  if (!t) return "";
+  const arrivalKind = ["in", "promoted", "loanReturn"].includes(t.category) ? t.category : "";
+  const badge = arrivalKind ? squadArrivalBadgeHtml(arrivalKind) : "";
+  const dir = t.category === "out" || t.category === "loanRecall" ? "To" : "From";
+  const other = String(t.otherClub ?? "").trim();
+  const otherOk = other && other !== "—";
+  const showFee = t.category !== "loanReturn" && t.category !== "loanRecall";
+  const fee = showFee ? formatTransferFeeBadge(t.fee) : null;
+  const date = String(t.date ?? "").trim();
+  const bits = [
+    otherOk ? `${dir} ${other}` : "",
+    fee ? fee.label : "",
+    date,
+  ].filter(Boolean);
+  return `<div class="squad-profile-transfer${compact ? "" : " squad-profile-transfer--full"}">
+    <span class="squad-profile-stat-label">${compact ? "Recent transfer" : escapeHtml(t.categoryLabel)}</span>
+    <div class="squad-profile-transfer__row">
+      ${badge}
+      <span class="squad-profile-transfer__text">
+        ${compact ? `<strong>${escapeHtml(t.categoryLabel)}</strong>${bits.length ? ` · ${escapeHtml(bits.join(" · "))}` : ""}` : escapeHtml(bits.join(" · ") || t.categoryLabel)}
+      </span>
+    </div>
+  </div>`;
+}
+
+function closePlayerFullProfile() {
+  const wrap = $("#playerProfileWrap");
+  const panel = $("#rosterPanel");
+  const toolbar = $("#squads .squads-toolbar");
+  const intro = $("#squads > .text-secondary");
+  if (wrap) {
+    wrap.hidden = true;
+    wrap.innerHTML = "";
+  }
+  if (panel) panel.hidden = false;
+  if (toolbar) toolbar.hidden = false;
+  if (intro) intro.hidden = false;
+}
+
+function openPlayerFullProfile(p, startsMap = new Map(), leagueId) {
+  const wrap = $("#playerProfileWrap");
+  const panel = $("#rosterPanel");
+  if (!wrap) return;
+  const team = teamById.get(p.teamId);
+  const lid = leagueId || team?.leagueId || "";
+  const displayName = stripCaptainSuffix(p.name);
+  const role = p.role ?? POS_LABEL[p.pos] ?? p.pos;
+  const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain">C</span>` : "";
+  const stats = playerSeasonStats(p, lid, startsMap);
+  const transfers = findPlayerTransfers(p, lid, p.teamId);
+  const ageLabel = formatPlayerAge(p);
+  const height = Number(p.heightCm) > 0 ? `${Math.round(Number(p.heightCm))} cm` : "";
+  const foot = String(p.foot ?? "").trim();
+  const showNat = leagueFeatureOn(lid, "playerNationality");
+  const showClub = isWorldCupLeague(lid) && leagueFeatureOn(lid, "playerClub");
+  const arrivalKind = squadArrivalKindForPlayer(p, squadArrivalsByPlayerName(lid, p.teamId));
+  const arrivalBadge = squadArrivalBadgeHtml(arrivalKind);
+
+  const detailCards = [
+    showNat && p.nationality
+      ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Nationality</span><span class="squad-profile-stat-value">${squadFlagHtml(p)} ${escapeHtml(p.nationality)}</span></div>`
+      : "",
+    ageLabel
+      ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Age</span><span class="squad-profile-stat-value">${escapeHtml(ageLabel)}</span></div>`
+      : "",
+    height
+      ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Height</span><span class="squad-profile-stat-value">${escapeHtml(height)}</span></div>`
+      : "",
+    foot
+      ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Foot</span><span class="squad-profile-stat-value">${escapeHtml(foot)}</span></div>`
+      : "",
+    showClub && p.club
+      ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Club</span><span class="squad-profile-stat-value">${escapeHtml(p.club)}</span></div>`
+      : "",
+    isCaptainPlayer(p)
+      ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Role</span><span class="squad-profile-stat-value">Club captain</span></div>`
+      : "",
+  ].filter(Boolean);
+
+  wrap.innerHTML = `
+    <article class="player-full" aria-label="${escapeHtml(displayName)} profile">
+      <button type="button" class="player-full__back" id="playerProfileBack">← Back to roster</button>
+      <div class="squad-profile-hero">
+        <span class="squad-profile-num" aria-hidden="true">${escapeHtml(p.number)}</span>
+        <div class="squad-profile-copy min-w-0">
+          <div class="squad-profile-name-row">
+            <h2 class="squad-profile-name mb-0">${escapeHtml(displayName)}${cap}${arrivalBadge}</h2>
+            ${playerSocialHtml(p)}
+          </div>
+          <p class="squad-profile-club mb-0">${escapeHtml(team?.name ?? "—")} · ${escapeHtml(role)}</p>
+        </div>
+      </div>
+      <p class="player-full__season">This season</p>
+      ${renderPlayerStatsRow(stats)}
+      ${detailCards.length ? `<div class="squad-profile-grid">${detailCards.join("")}</div>` : ""}
+      ${
+        transfers.length
+          ? `<div class="player-full__moves"><h3 class="player-full__sub">Transfer history</h3>${transfers.map((t) => renderPlayerTransferCard(t, { compact: false })).join("")}</div>`
+          : ""
+      }
+    </article>
+  `;
+  wrap.hidden = false;
+  if (panel) panel.hidden = true;
+  const toolbar = $("#squads .squads-toolbar");
+  const intro = $("#squads > .text-secondary");
+  if (toolbar) toolbar.hidden = true;
+  if (intro) intro.hidden = true;
+  $("#playerProfileBack")?.addEventListener("click", () => {
+    closePlayerFullProfile();
+    $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function normalizeInstagramUrl(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return "";
@@ -5619,16 +5820,11 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
   const lid = leagueId ?? team?.leagueId ?? "";
   const arrivalKind = squadArrivalKindForPlayer(p, squadArrivalsByPlayerName(lid, p.teamId));
   const arrivalBadge = squadArrivalBadgeHtml(arrivalKind);
-  const arrivalMeta = arrivalKind ? SQUAD_ARRIVAL_META[arrivalKind] : null;
   const showClub = isWorldCupLeague(lid) && leagueFeatureOn(lid, "playerClub");
   const showNat = leagueFeatureOn(lid, "playerNationality");
-  const clubRow =
-    showClub && p.club
-      ? `<div class="squad-profile-stat">
-            <span class="squad-profile-stat-label">Club</span>
-            <span class="squad-profile-stat-value">${escapeHtml(p.club)}</span>
-          </div>`
-      : "";
+  const stats = playerSeasonStats(p, lid, startsMap);
+  const recent = findPlayerTransfers(p, lid, p.teamId)[0] ?? null;
+  const ageLabel = formatPlayerAge(p);
   const natRow = showNat
     ? `<div class="squad-profile-stat">
             <span class="squad-profile-stat-label">Nationality</span>
@@ -5638,41 +5834,42 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
             </span>
           </div>`
     : "";
-  const ageRow = `<div class="squad-profile-stat">
-            <span class="squad-profile-stat-label">Age</span>
-            <span class="squad-profile-stat-value">${escapeHtml(formatPlayerAge(p))}</span>
-          </div>`;
-  const arrivalRow = arrivalMeta
+  const ageRow = ageLabel
     ? `<div class="squad-profile-stat">
-            <span class="squad-profile-stat-label">Arrival</span>
-            <span class="squad-profile-stat-value squad-profile-arrival">${arrivalBadge}<span>${escapeHtml(arrivalMeta.label)}</span></span>
+            <span class="squad-profile-stat-label">Age</span>
+            <span class="squad-profile-stat-value">${escapeHtml(ageLabel)}</span>
           </div>`
     : "";
-  const socialHtml = playerSocialHtml(p);
+  const clubRow =
+    showClub && p.club
+      ? `<div class="squad-profile-stat">
+            <span class="squad-profile-stat-label">Club</span>
+            <span class="squad-profile-stat-value">${escapeHtml(p.club)}</span>
+          </div>`
+      : "";
   openModal({
     title: displayName,
+    compact: true,
+    showDismiss: false,
+    primaryLabel: "View full profile →",
+    onPrimary: () => openPlayerFullProfile(p, startsMap, lid),
     bodyHtml: `
-      <div class="squad-profile">
+      <div class="squad-profile squad-profile--preview">
         <div class="squad-profile-hero">
           <span class="squad-profile-num" aria-hidden="true">${escapeHtml(p.number)}</span>
           <div class="squad-profile-copy min-w-0">
             <div class="squad-profile-name-row">
               <div class="squad-profile-name">${escapeHtml(displayName)}${cap}${arrivalBadge}</div>
-              ${socialHtml}
+              ${playerSocialHtml(p)}
             </div>
             <div class="squad-profile-club">${escapeHtml(team?.name ?? "—")} · ${escapeHtml(role)}${showClub && p.club ? ` · ${escapeHtml(p.club)}` : ""}</div>
           </div>
         </div>
-        <div class="squad-profile-grid">
-          ${natRow}
-          ${ageRow}
-          ${clubRow}
-          ${arrivalRow}
-          ${isCaptainPlayer(p) ? `<div class="squad-profile-stat"><span class="squad-profile-stat-label">Role</span><span class="squad-profile-stat-value">Club captain</span></div>` : ""}
-        </div>
+        ${renderPlayerStatsRow(stats)}
+        ${[natRow, ageRow, clubRow].some(Boolean) ? `<div class="squad-profile-grid">${natRow}${ageRow}${clubRow}</div>` : ""}
+        ${renderPlayerTransferCard(recent)}
       </div>
     `,
-    primaryLabel: "Close",
   });
 }
 
@@ -5920,7 +6117,7 @@ function renderNationalDutyBlock(team, leagueId) {
 function formatPlayerAge(p) {
   const age = Number(p?.age);
   if (Number.isFinite(age) && age > 0) return String(Math.round(age));
-  return "—";
+  return "";
 }
 
 function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
@@ -5935,12 +6132,13 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
   const arrivalBadge = squadArrivalBadgeHtml(arrivalKind);
   const displayName = stripCaptainSuffix(p.name);
   const age = formatPlayerAge(p);
+  const posKey = String(p.pos ?? "").toLowerCase();
   const arrivalLabel = arrivalKind ? SQUAD_ARRIVAL_META[arrivalKind]?.label : "";
   const ariaExtra = [onDuty ? "on national duty" : "", arrivalLabel].filter(Boolean).join(", ");
   const cells = {
     num: `<span class="squad-num">${escapeHtml(p.number)}</span>`,
     player: `<span class="squad-player">
-      ${playerInitialsAvatarHtml(displayName, "player-avatar squad-row__avatar")}
+      ${playerInitialsAvatarHtml(displayName, `player-avatar squad-row__avatar${posKey ? ` squad-row__avatar--${posKey}` : ""}`)}
       <span class="squad-player-text">
         <span class="squad-name">${escapeHtml(displayName)}${cap}${arrivalBadge}${dutyBadge}</span>
       </span>
@@ -5951,7 +6149,7 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
       ${squadFlagHtml(p)}
       <span class="squad-nat-copy">
         <span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span>
-        <span class="squad-age" title="Age">${escapeHtml(age)}</span>
+        ${age ? `<span class="squad-age" title="Age">${escapeHtml(age)}</span>` : ""}
       </span>
     </span>`,
   };
@@ -5990,28 +6188,22 @@ function setRosterFiltersOpen(open, focusField) {
   }
 }
 
-function syncRosterFilterChips(state, league, team) {
+function syncRosterFilterChips(state) {
   const chips = $("#rosterChips");
   if (!chips) return;
-  const parts = [
-    `<button type="button" class="chip chip--action" data-roster-filter="league">${escapeHtml(league?.name ?? state.leagueId)}</button>`,
-    `<button type="button" class="chip chip--action" data-roster-filter="team">${escapeHtml(team?.name ?? state.teamId)}</button>`,
-  ];
+  /* League/team live in the squad identity header — chips only show extra filters. */
+  const parts = [];
   if (state.pos !== "all") {
     const posLabel = SQUAD_POS_GROUPS.find((g) => g.key === state.pos)?.label ?? state.pos;
     parts.push(
       `<button type="button" class="chip chip--action" data-roster-filter="pos">${escapeHtml(posLabel)}</button>`,
     );
   }
-  if (state.q) {
-    parts.push(
-      `<button type="button" class="chip chip--action chip--search" data-roster-filter="search">“${escapeHtml(state.q)}”</button>`,
-    );
-  }
   if (rosterViewMode === "depth") {
     parts.push(`<span class="chip chip--muted">Depth chart</span>`);
   }
   chips.innerHTML = parts.join("");
+  chips.hidden = !parts.length;
 }
 
 function syncRosterViewCopy() {
@@ -6022,7 +6214,7 @@ function syncRosterViewCopy() {
     if (hint) hint.textContent = "Formation roles and backup options";
   } else {
     if (title) title.textContent = "Squad list";
-    if (hint) hint.textContent = "Players grouped by position";
+    if (hint) hint.textContent = "Tap a player for their full profile";
   }
 }
 
@@ -6030,10 +6222,13 @@ function updateRosterTeamHead(state, league, team, countLabel) {
   const teamHead = $("#rosterTeamHead");
   if (!teamHead) return;
   const crest = team ? clubLogoHtml(team.id, "club-crest squad-crest") : "";
+  const leagueName = escapeHtml(league?.name ?? state.leagueId);
+  const coach = String(team?.coach ?? "").trim();
+  const coachOk = coach && coach !== "—";
   const meta =
     rosterViewMode === "depth"
-      ? `Depth chart · ${escapeHtml(league?.name ?? state.leagueId)}`
-      : `${escapeHtml(league?.name ?? state.leagueId)}${team?.coach ? ` · ${escapeHtml(team.coach)}` : ""}`;
+      ? `Depth chart · ${leagueName}`
+      : `${leagueName}${coachOk ? ` · ${escapeHtml(coach)}` : ""}`;
   teamHead.innerHTML = `
     <div class="squad-team-head-inner">
       ${crest}
@@ -6065,6 +6260,7 @@ function bindSquadGroupToggles(grid) {
 }
 
 function renderRoster() {
+  closePlayerFullProfile();
   const grid = $("#rosterGrid");
   const chips = $("#rosterChips");
   const count = $("#rosterCount");
@@ -6087,7 +6283,7 @@ function renderRoster() {
       : `${squad.length} player${squad.length === 1 ? "" : "s"}`;
   count.textContent = countLabel;
 
-  syncRosterFilterChips(state, league, team);
+  syncRosterFilterChips(state);
   updateRosterTeamHead(state, league, team, countLabel);
 
   if (rosterViewMode === "depth") {
@@ -6117,9 +6313,7 @@ function renderRoster() {
     rosterPanel.style.setProperty("--squad-cols", cols.map((c) => c.width).join(" "));
   }
   if (colHead) {
-    colHead.innerHTML = cols
-      .map((c) => (c.key === "nat" ? `<span class="squad-col-nat">Nation / Age</span>` : c.head))
-      .join("");
+    colHead.innerHTML = cols.map((c) => c.head).join("");
   }
 
   if (!squad.length) {
@@ -7469,7 +7663,7 @@ function transfersForTeam(leagueId, teamId) {
 
 /** Arrival markers shown on live Squads (incoming market / academy / loan return only). */
 const SQUAD_ARRIVAL_META = {
-  promoted: { label: "Promoted", symbol: "↗", className: "promoted" },
+  promoted: { label: "Promoted", symbol: "★", className: "promoted" },
   in: { label: "Transfer in", symbol: "↓", className: "in" },
   loanReturn: { label: "Loan return", symbol: "↩", className: "loan-return" },
 };
@@ -7562,7 +7756,7 @@ function transferEmptyIconHtml(direction) {
   }
   if (direction === "promoted") {
     return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/><path d="M7 19h10"/>
+      <path d="M12 16V6"/><path d="M8 10l4-4 4 4"/><path d="M6 18h12"/><path d="M9 18v2h6v-2"/>
     </svg>`;
   }
   return `<svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -7592,8 +7786,8 @@ function transferEmptyHtml(direction, clubName) {
       hint: `Players returning from loan to ${club} will appear here once they are recorded.`,
     },
     loanRecall: {
-      title: "No recalls yet",
-      hint: `Players sent back to their parent club from ${club} will appear here once they are recorded.`,
+      title: "No recalls in this window",
+      hint: `No players have been recalled from ${club} in the current transfer window.`,
     },
   }[direction] ?? { title: "Nothing here yet", hint: "" };
   return `
@@ -7607,15 +7801,15 @@ function transferEmptyHtml(direction, clubName) {
 }
 
 function transferPanelMetaText(count, direction) {
-  if (!count) return "";
+  const n = Number(count) || 0;
   const labels = {
-    in: `${count} arrival${count === 1 ? "" : "s"}`,
-    promoted: `${count} promotion${count === 1 ? "" : "s"}`,
-    out: `${count} departure${count === 1 ? "" : "s"}`,
-    loanReturn: `${count} return${count === 1 ? "" : "s"}`,
-    loanRecall: `${count} recall${count === 1 ? "" : "s"}`,
+    in: `${n} arrival${n === 1 ? "" : "s"}`,
+    promoted: `${n} promotion${n === 1 ? "" : "s"}`,
+    out: `${n} departure${n === 1 ? "" : "s"}`,
+    loanReturn: `${n} return${n === 1 ? "" : "s"}`,
+    loanRecall: `${n} recall${n === 1 ? "" : "s"}`,
   };
-  return labels[direction] ?? `${count} move${count === 1 ? "" : "s"}`;
+  return labels[direction] ?? `${n} move${n === 1 ? "" : "s"}`;
 }
 
 function setTransferPanelMeta(block) {
@@ -7623,10 +7817,22 @@ function setTransferPanelMeta(block) {
     const el = document.querySelector(`.${panel.card} .transfer-panel-head__meta`);
     if (!el) continue;
     const count = block[panel.key]?.length ?? 0;
-    const text = transferPanelMetaText(count, panel.key);
-    el.textContent = text;
-    el.hidden = !text;
+    el.textContent = transferPanelMetaText(count, panel.key);
+    el.hidden = false;
   }
+}
+
+/** Parse fee strings like "€90m", "90M", "8.2M", "£18.5m" into millions. */
+function parseTransferFeeMillions(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const m = s.match(/([€£$])?\s*(\d+(?:[.,]\d+)?)\s*(m|million)?\b/i);
+  if (!m) return null;
+  // Require explicit millions marker OR a bare number that looks like a fee shorthand (e.g. "90M")
+  const hasMillion = Boolean(m[3]) || /m\b/i.test(s);
+  if (!hasMillion && !/^[€£$]/.test(s)) return null;
+  const num = parseFloat(String(m[2]).replace(",", "."));
+  return Number.isFinite(num) ? num : null;
 }
 
 function formatTransferFeeBadge(fee) {
@@ -7646,7 +7852,27 @@ function formatTransferFeeBadge(fee) {
   if (/loan/i.test(raw)) {
     return { label: /^loan$/i.test(raw) ? "Loan" : raw, kind: "loan" };
   }
+  const millions = parseTransferFeeMillions(raw);
+  if (millions != null) {
+    // One consistent decimal place for all fee badges (90.0M / 8.2M / 18.0M).
+    return { label: `${millions.toFixed(1)}M`, kind: "fee" };
+  }
   return { label: raw, kind: "fee" };
+}
+
+function transferDirChipHtml(direction, dirClass, dirSymbol) {
+  if (direction === "promoted") {
+    // Academy / youth promotion glyph — distinct from market transfer arrows.
+    return `<span class="transfer-dir-chip transfer-dir-chip--${dirClass}" aria-hidden="true">
+      <svg class="transfer-dir-chip__svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 16V6"/>
+        <path d="M8 10l4-4 4 4"/>
+        <path d="M6 18h12"/>
+        <path d="M9 18v2h6v-2"/>
+      </svg>
+    </span>`;
+  }
+  return `<span class="transfer-dir-chip transfer-dir-chip--${dirClass}" aria-hidden="true">${escapeHtml(dirSymbol)}</span>`;
 }
 
 function renderTransferRows(items, direction, clubName) {
@@ -7665,7 +7891,7 @@ function renderTransferRows(items, direction, clubName) {
       const date = String(t.date ?? "").trim();
       return `
         <article class="transfer-row transfer-row--${dirClass}" role="listitem">
-          <span class="transfer-dir-chip transfer-dir-chip--${dirClass}" aria-hidden="true">${dirSymbol}</span>
+          ${transferDirChipHtml(direction, dirClass, dirSymbol)}
           <div class="transfer-row__body">
             <div class="transfer-row__player">${escapeHtml(t.player)}</div>
             <div class="transfer-row__move">

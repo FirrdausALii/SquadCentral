@@ -6,6 +6,7 @@
   const STORAGE_KEY = "fc_data_v1";
   const AUTH_KEY = "fc_admin_session";
   const PIN_KEY = "fc_admin_pin";
+  // Fallback only — never surface this value in UI copy or error messages.
   const DEFAULT_PIN = "squadcentral";
   const DATA_JSON_PATH = "./data.json";
   const FETCH_TIMEOUT_MS = 30000;
@@ -999,6 +1000,5 @@
     login,
     logout,
     isAuthed,
-    DEFAULT_PIN,
   };
 })(typeof window !== "undefined" ? window : globalThis);
