@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataRevision": 1786365062325,
+  "dataRevision": 1786638582657,
   "leagues": [
     {
       "id": "epl",
@@ -5220,8 +5220,8 @@
       "role": "CF",
       "instagram": "https://www.instagram.com/viktorgyokeres/",
       "displayLastName": "Gyokeres",
-      "flag": "🇸🇪",
-      "id": "epl_arsenal_14_Viktor_Gyökeres"
+      "flag": "ðŸ‡¸ðŸ‡ª",
+      "id": "epl_arsenal_14_Viktor_GyÃ¶keres"
     },
     {
       "role": "CF",
@@ -6239,7 +6239,7 @@
       "instagram": "https://www.instagram.com/jack_hinsh/"
     },
     {
-      "name": "Matt O’Riley",
+      "name": "Matt Oâ€™Riley",
       "pos": "MF",
       "teamId": "epl_brighton",
       "sortOrder": 16,
@@ -6247,9 +6247,9 @@
       "number": 33,
       "nationality": "Denmark",
       "instagram": "https://www.instagram.com/mattoriley8/",
-      "id": "epl_brighton_33_Matt_O’Riley",
-      "flag": "🇩🇰",
-      "displayLastName": "O’Riley"
+      "id": "epl_brighton_33_Matt_Oâ€™Riley",
+      "flag": "ðŸ‡©ðŸ‡°",
+      "displayLastName": "Oâ€™Riley"
     },
     {
       "pos": "FW",
@@ -7022,14 +7022,14 @@
     {
       "teamId": "epl_everton",
       "pos": "DF",
-      "name": "Jake O’Brien",
+      "name": "Jake Oâ€™Brien",
       "role": "CB",
       "number": 15,
       "nationality": "Ireland",
-      "flag": "🇮🇪",
-      "id": "epl_everton_15_Jake_O’Brien",
+      "flag": "ðŸ‡®ðŸ‡ª",
+      "id": "epl_everton_15_Jake_Oâ€™Brien",
       "instagram": "https://www.instagram.com/obrienjake_/",
-      "displayLastName": "O’Brien",
+      "displayLastName": "Oâ€™Brien",
       "sortOrder": 5
     },
     {
@@ -8220,13 +8220,13 @@
       "number": 33,
       "nationality": "England",
       "instagram": "https://www.instagram.com/nico33/",
-      "flag": "🏴",
-      "id": "epl_city_33_Nico_O’Reilly",
-      "name": "Nico O’Reilly",
+      "flag": "ðŸ´",
+      "id": "epl_city_33_Nico_Oâ€™Reilly",
+      "name": "Nico Oâ€™Reilly",
       "teamId": "epl_city",
       "pos": "DF",
       "sortOrder": 12,
-      "displayLastName": "O’Reilly"
+      "displayLastName": "Oâ€™Reilly"
     },
     {
       "instagram": "https://www.instagram.com/nico14/",
@@ -9190,12 +9190,12 @@
       "number": 13,
       "role": "CB",
       "nationality": "England",
-      "flag": "🏴",
-      "id": "epl_sunderland_13_Luke_O’Nien",
+      "flag": "ðŸ´",
+      "id": "epl_sunderland_13_Luke_Oâ€™Nien",
       "instagram": "https://www.instagram.com/lukeonien/",
       "teamId": "epl_sunderland",
       "pos": "DF",
-      "name": "Luke O’Nien",
+      "name": "Luke Oâ€™Nien",
       "sortOrder": 5
     },
     {
@@ -15634,7 +15634,8 @@
       "teamId": "seriea_napoli",
       "role": "GK",
       "flag": "🇮🇹",
-      "id": "seriea_napoli_1_Alex_Meret"
+      "id": "seriea_napoli_1_Alex_Meret",
+      "sortOrder": 0
     },
     {
       "nationality": "Italy",
@@ -15644,17 +15645,8 @@
       "teamId": "seriea_napoli",
       "name": "Nikita Contini",
       "id": "seriea_napoli_14_Nikita_Contini",
-      "flag": "🇮🇹"
-    },
-    {
       "flag": "🇮🇹",
-      "id": "seriea_napoli_25_Mathias_Ferrante",
-      "nationality": "Italy",
-      "number": 25,
-      "role": "GK",
-      "pos": "GK",
-      "teamId": "seriea_napoli",
-      "name": "Mathias Ferrante"
+      "sortOrder": 1
     },
     {
       "flag": "🇷🇸",
@@ -15664,7 +15656,8 @@
       "teamId": "seriea_napoli",
       "number": 32,
       "pos": "GK",
-      "role": "GK"
+      "role": "GK",
+      "sortOrder": 2
     },
     {
       "flag": "🇮🇹",
@@ -15674,17 +15667,8 @@
       "role": "CB",
       "teamId": "seriea_napoli",
       "pos": "DF",
-      "name": "Alessandro Buongiorno"
-    },
-    {
-      "pos": "DF",
-      "teamId": "seriea_napoli",
-      "number": 5,
-      "role": "CB",
-      "nationality": "Brazil",
-      "name": "Juan Jesus",
-      "flag": "🇧🇷",
-      "id": "seriea_napoli_5_Juan_Jesus"
+      "name": "Alessandro Buongiorno",
+      "sortOrder": 3
     },
     {
       "id": "seriea_napoli_13_Amir_Rrahmani",
@@ -15694,7 +15678,8 @@
       "pos": "DF",
       "role": "CB",
       "number": 13,
-      "nationality": "Kosovo"
+      "nationality": "Kosovo",
+      "sortOrder": 5
     },
     {
       "name": "Sam Beukema",
@@ -15704,7 +15689,8 @@
       "pos": "DF",
       "teamId": "seriea_napoli",
       "flag": "🇳🇱",
-      "id": "seriea_napoli_31_Sam_Beukema"
+      "id": "seriea_napoli_31_Sam_Beukema",
+      "sortOrder": 6
     },
     {
       "name": "Matteo Politano",
@@ -15714,7 +15700,8 @@
       "role": "RM",
       "number": 21,
       "id": "seriea_napoli_21_Matteo_Politano",
-      "flag": "🇮🇹"
+      "flag": "🇮🇹",
+      "sortOrder": 7
     },
     {
       "id": "seriea_napoli_22_Giovanni_Di_Lorenzo_(C)",
@@ -15724,7 +15711,8 @@
       "role": "RM",
       "number": 22,
       "teamId": "seriea_napoli",
-      "pos": "DF"
+      "pos": "DF",
+      "sortOrder": 8
     },
     {
       "flag": "🇮🇹",
@@ -15734,17 +15722,8 @@
       "teamId": "seriea_napoli",
       "number": 30,
       "pos": "DF",
-      "nationality": "Italy"
-    },
-    {
-      "id": "seriea_napoli_3_Miguel_Gutierrez",
-      "flag": "🇪🇸",
-      "nationality": "Spain",
-      "role": "LM",
-      "pos": "DF",
-      "number": 3,
-      "teamId": "seriea_napoli",
-      "name": "Miguel Gutierrez"
+      "nationality": "Italy",
+      "sortOrder": 9
     },
     {
       "nationality": "Uruguay",
@@ -15754,7 +15733,8 @@
       "role": "LM",
       "name": "Mathias Olivera",
       "flag": "🇺🇾",
-      "id": "seriea_napoli_17_Mathias_Olivera"
+      "id": "seriea_napoli_17_Mathias_Olivera",
+      "sortOrder": 10
     },
     {
       "id": "seriea_napoli_37_Leonardo_Spinazzola",
@@ -15764,7 +15744,8 @@
       "pos": "DF",
       "role": "LM",
       "number": 37,
-      "nationality": "Italy"
+      "nationality": "Italy",
+      "sortOrder": 11
     },
     {
       "name": "Billy Gilmour",
@@ -15774,7 +15755,8 @@
       "teamId": "seriea_napoli",
       "role": "CM",
       "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-      "id": "seriea_napoli_6_Billy_Gilmour"
+      "id": "seriea_napoli_6_Billy_Gilmour",
+      "sortOrder": 12
     },
     {
       "name": "Scott McTominay",
@@ -15784,7 +15766,8 @@
       "number": 8,
       "role": "CM",
       "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-      "id": "seriea_napoli_8_Scott_McTominay"
+      "id": "seriea_napoli_8_Scott_McTominay",
+      "sortOrder": 13
     },
     {
       "name": "Stanislav Lobotka",
@@ -15794,7 +15777,8 @@
       "teamId": "seriea_napoli",
       "nationality": "Slovakia",
       "id": "seriea_napoli_68_Stanislav_Lobotka",
-      "flag": "🇸🇰"
+      "flag": "🇸🇰",
+      "sortOrder": 14
     },
     {
       "name": "Andre Anguissa",
@@ -15804,7 +15788,8 @@
       "number": 99,
       "role": "CM",
       "flag": "🇨🇲",
-      "id": "seriea_napoli_99_Andre_Anguissa"
+      "id": "seriea_napoli_99_Andre_Anguissa",
+      "sortOrder": 15
     },
     {
       "number": 7,
@@ -15814,7 +15799,8 @@
       "nationality": "Brazil",
       "name": "David Neres",
       "id": "seriea_napoli_7_David_Neres",
-      "flag": "🇧🇷"
+      "flag": "🇧🇷",
+      "sortOrder": 16
     },
     {
       "name": "Kevin De Bruyne",
@@ -15824,17 +15810,8 @@
       "role": "RAM",
       "number": 11,
       "id": "seriea_napoli_11_Kevin_De_Bruyne",
-      "flag": "🇧🇪"
-    },
-    {
-      "flag": "🇲🇰",
-      "id": "seriea_napoli_20_Eljif_Elmas",
-      "teamId": "seriea_napoli",
-      "pos": "FW",
-      "number": 20,
-      "role": "RAM",
-      "nationality": "North Macedonia",
-      "name": "Eljif Elmas"
+      "flag": "🇧🇪",
+      "sortOrder": 17
     },
     {
       "number": 26,
@@ -15844,7 +15821,8 @@
       "nationality": "Italy",
       "name": "Antonio Vergara",
       "id": "seriea_napoli_26_Antonio_Vergara",
-      "flag": "🇮🇹"
+      "flag": "🇮🇹",
+      "sortOrder": 18
     },
     {
       "id": "seriea_napoli_27_Alisson_Santos",
@@ -15854,7 +15832,8 @@
       "teamId": "seriea_napoli",
       "number": 27,
       "role": "LAM",
-      "pos": "FW"
+      "pos": "FW",
+      "sortOrder": 19
     },
     {
       "number": 9,
@@ -15864,7 +15843,8 @@
       "nationality": "Belgium",
       "name": "Romelu Lukaku",
       "id": "seriea_napoli_9_Romelu_Lukaku",
-      "flag": "🇧🇪"
+      "flag": "🇧🇪",
+      "sortOrder": 21
     },
     {
       "teamId": "seriea_napoli",
@@ -15874,7 +15854,8 @@
       "nationality": "Denmark",
       "name": "Rasmus Hojlund",
       "id": "seriea_napoli_19_Rasmus_Hojlund",
-      "flag": "🇩🇰"
+      "flag": "🇩🇰",
+      "sortOrder": 22
     },
     {
       "id": "seriea_napoli_23_Giovane",
@@ -15884,7 +15865,8 @@
       "teamId": "seriea_napoli",
       "pos": "FW",
       "number": 23,
-      "role": "CF"
+      "role": "CF",
+      "sortOrder": 24
     },
     {
       "nationality": "Japan",
@@ -21212,9 +21194,9 @@
       "teamId": "bundesliga_union_berlin",
       "pos": "DF",
       "nationality": "France",
-      "name": "Stanley N’Soki",
-      "flag": "🇫🇷",
-      "id": "bundesliga_union_berlin_34_Stanley_N’Soki"
+      "name": "Stanley Nâ€™Soki",
+      "flag": "ðŸ‡«ðŸ‡·",
+      "id": "bundesliga_union_berlin_34_Stanley_Nâ€™Soki"
     },
     {
       "id": "bundesliga_union_berlin_18_Josip_Juranovic",
@@ -23102,9 +23084,9 @@
       "role": "CM",
       "teamId": "ligue1_lille",
       "number": 17,
-      "name": "Ngal’ayel Mukau",
-      "id": "ligue1_lille_17_Ngal’ayel_Mukau",
-      "flag": "🇨🇩"
+      "name": "Ngalâ€™ayel Mukau",
+      "id": "ligue1_lille_17_Ngalâ€™ayel_Mukau",
+      "flag": "ðŸ‡¨ðŸ‡©"
     },
     {
       "name": "Benjamin Andre (C)",
@@ -31258,24 +31240,24 @@
     },
     {
       "sortOrder": 13,
-      "name": "Éderson Silva",
+      "name": "Ã‰derson Silva",
       "pos": "MF",
       "teamId": "worldcup_brazil",
       "club": "Atalanta",
-      "flag": "🇧🇷",
-      "id": "worldcup_brazil_2_Éderson",
+      "flag": "ðŸ‡§ðŸ‡·",
+      "id": "worldcup_brazil_2_Ã‰derson",
       "nationality": "Brazil",
       "role": "CM",
       "number": 2
     },
     {
       "sortOrder": 3,
-      "name": "Gabriel Magalhães",
+      "name": "Gabriel MagalhÃ£es",
       "pos": "DF",
       "teamId": "worldcup_brazil",
       "club": "Arsenal",
-      "id": "worldcup_brazil_3_Gabriel_Magalhães",
-      "flag": "🇧🇷",
+      "id": "worldcup_brazil_3_Gabriel_MagalhÃ£es",
+      "flag": "ðŸ‡§ðŸ‡·",
       "nationality": "Brazil",
       "number": 3,
       "role": "CB"
@@ -31330,15 +31312,15 @@
       "sortOrder": 20
     },
     {
-      "name": "Bruno Guimarães",
+      "name": "Bruno GuimarÃ£es",
       "pos": "MF",
       "teamId": "worldcup_brazil",
       "sortOrder": 14,
       "role": "CM",
       "number": 8,
       "nationality": "Brazil",
-      "flag": "🇧🇷",
-      "id": "worldcup_brazil_8_Bruno_Guimarães",
+      "flag": "ðŸ‡§ðŸ‡·",
+      "id": "worldcup_brazil_8_Bruno_GuimarÃ£es",
       "club": "Newcastle United"
     },
     {
@@ -31418,9 +31400,9 @@
       "role": "CB",
       "number": 15,
       "club": "Flamengo",
-      "id": "worldcup_brazil_15_Léo_Pereira",
-      "flag": "🇧🇷",
-      "name": "Léo Pereira",
+      "id": "worldcup_brazil_15_LÃ©o_Pereira",
+      "flag": "ðŸ‡§ðŸ‡·",
+      "name": "LÃ©o Pereira",
       "pos": "DF",
       "teamId": "worldcup_brazil",
       "sortOrder": 6
@@ -31474,7 +31456,7 @@
       "number": 19
     },
     {
-      "name": "Lucas Paquetá",
+      "name": "Lucas PaquetÃ¡",
       "pos": "MF",
       "teamId": "worldcup_brazil",
       "sortOrder": 17,
@@ -31482,8 +31464,8 @@
       "role": "AM",
       "number": 20,
       "club": "Flamengo",
-      "id": "worldcup_brazil_20_Lucas_Paquetá",
-      "flag": "🇧🇷"
+      "id": "worldcup_brazil_20_Lucas_PaquetÃ¡",
+      "flag": "ðŸ‡§ðŸ‡·"
     },
     {
       "name": "Luiz Henrique",
@@ -31522,7 +31504,7 @@
       "name": "Ederson Moraes"
     },
     {
-      "name": "Roger Ibañez",
+      "name": "Roger IbaÃ±ez",
       "pos": "DF",
       "teamId": "worldcup_brazil",
       "sortOrder": 8,
@@ -31530,8 +31512,8 @@
       "number": 24,
       "role": "RB",
       "club": "Al-Ahli",
-      "id": "worldcup_brazil_24_Roger_Ibañez",
-      "flag": "🇧🇷"
+      "id": "worldcup_brazil_24_Roger_IbaÃ±ez",
+      "flag": "ðŸ‡§ðŸ‡·"
     },
     {
       "id": "worldcup_brazil_25_Igor_Thiago",
@@ -31595,15 +31577,15 @@
       "teamId": "worldcup_haiti"
     },
     {
-      "name": "Ricardo Adé",
+      "name": "Ricardo AdÃ©",
       "teamId": "worldcup_haiti",
       "pos": "DF",
       "sortOrder": 4,
       "number": 4,
       "role": "CB",
       "nationality": "Haiti",
-      "flag": "🇭🇹",
-      "id": "worldcup_haiti_4_Ricardo_Adé",
+      "flag": "ðŸ‡­ðŸ‡¹",
+      "id": "worldcup_haiti_4_Ricardo_AdÃ©",
       "club": "LDU Quito"
     },
     {
@@ -31620,11 +31602,11 @@
     },
     {
       "sortOrder": 12,
-      "name": "Carl Sainté",
+      "name": "Carl SaintÃ©",
       "teamId": "worldcup_haiti",
       "pos": "MF",
-      "id": "worldcup_haiti_14_Carl_Sainté",
-      "flag": "🇭🇹",
+      "id": "worldcup_haiti_14_Carl_SaintÃ©",
+      "flag": "ðŸ‡­ðŸ‡¹",
       "club": "El Paso Locomotive FC",
       "number": 6,
       "role": "DM",
@@ -31646,10 +31628,10 @@
       "sortOrder": 10,
       "teamId": "worldcup_haiti",
       "pos": "DF",
-      "name": "Martin Expérience",
+      "name": "Martin ExpÃ©rience",
       "club": "Nancy",
-      "flag": "🇭🇹",
-      "id": "worldcup_haiti_8_Martin_Expérience",
+      "flag": "ðŸ‡­ðŸ‡¹",
+      "id": "worldcup_haiti_8_Martin_ExpÃ©rience",
       "nationality": "Haiti",
       "role": "LB",
       "number": 8
@@ -31778,12 +31760,12 @@
       "role": "CF",
       "number": 19,
       "nationality": "Haiti",
-      "flag": "🇭🇹",
-      "id": "worldcup_haiti_19_Yassin_Fortuné",
+      "flag": "ðŸ‡­ðŸ‡¹",
+      "id": "worldcup_haiti_19_Yassin_FortunÃ©",
       "club": "Vizela",
       "teamId": "worldcup_haiti",
       "pos": "FW",
-      "name": "Yassin Fortuné",
+      "name": "Yassin FortunÃ©",
       "sortOrder": 24
     },
     {
@@ -31800,18 +31782,18 @@
     },
     {
       "club": "Auxerre",
-      "flag": "🇭🇹",
-      "id": "worldcup_haiti_21_Josué_Casimir",
+      "flag": "ðŸ‡­ðŸ‡¹",
+      "id": "worldcup_haiti_21_JosuÃ©_Casimir",
       "nationality": "Haiti",
       "role": "RW",
       "number": 21,
       "sortOrder": 18,
-      "name": "Josué Casimir",
+      "name": "JosuÃ© Casimir",
       "teamId": "worldcup_haiti",
       "pos": "FW"
     },
     {
-      "name": "Jean-Kévin Duverne",
+      "name": "Jean-KÃ©vin Duverne",
       "pos": "DF",
       "teamId": "worldcup_haiti",
       "sortOrder": 7,
@@ -31819,17 +31801,17 @@
       "role": "CB",
       "number": 22,
       "club": "Gent",
-      "id": "worldcup_haiti_22_Jean-Kévin_Duverne",
-      "flag": "🇭🇹"
+      "id": "worldcup_haiti_22_Jean-KÃ©vin_Duverne",
+      "flag": "ðŸ‡­ðŸ‡¹"
     },
     {
       "sortOrder": 2,
       "pos": "GK",
       "teamId": "worldcup_haiti",
-      "name": "Josué Duverger",
+      "name": "JosuÃ© Duverger",
       "club": "Cosmos Koblenz",
-      "flag": "🇭🇹",
-      "id": "worldcup_haiti_23_Josué_Duverger",
+      "flag": "ðŸ‡­ðŸ‡¹",
+      "id": "worldcup_haiti_23_JosuÃ©_Duverger",
       "nationality": "Haiti",
       "number": 23,
       "role": "GK"
@@ -31983,9 +31965,9 @@
       "sortOrder": 19,
       "teamId": "worldcup_morocco",
       "pos": "FW",
-      "name": "Brahim Díaz",
-      "flag": "🇲🇦",
-      "id": "worldcup_morocco_10_Brahim_Díaz",
+      "name": "Brahim DÃ­az",
+      "flag": "ðŸ‡²ðŸ‡¦",
+      "id": "worldcup_morocco_10_Brahim_DÃ­az",
       "club": "Real Madrid",
       "number": 10,
       "role": "RW",
@@ -32065,11 +32047,11 @@
     },
     {
       "sortOrder": 21,
-      "name": "Amine Sbaï",
+      "name": "Amine SbaÃ¯",
       "teamId": "worldcup_morocco",
       "pos": "FW",
-      "flag": "🇲🇦",
-      "id": "worldcup_morocco_17_Amine_Sbaï",
+      "flag": "ðŸ‡²ðŸ‡¦",
+      "id": "worldcup_morocco_17_Amine_SbaÃ¯",
       "club": "Angers",
       "number": 17,
       "role": "LW",
@@ -32293,7 +32275,7 @@
       "teamId": "worldcup_scotland"
     },
     {
-      "name": "Ché Adams",
+      "name": "ChÃ© Adams",
       "pos": "FW",
       "teamId": "worldcup_scotland",
       "sortOrder": 22,
@@ -32301,8 +32283,8 @@
       "role": "CF",
       "number": 10,
       "club": "Torino",
-      "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-      "id": "worldcup_scotland_10_Ché_Adams"
+      "flag": "ðŸ´ó §ó ¢ó ³ó £ó ´ó ¿",
+      "id": "worldcup_scotland_10_ChÃ©_Adams"
     },
     {
       "sortOrder": 17,
@@ -33452,11 +33434,11 @@
       "role": "RB",
       "number": 2,
       "club": "PSV Eindhoven",
-      "id": "worldcup_usa_2_Sergiño_Dest",
-      "flag": "🇺🇸",
+      "id": "worldcup_usa_2_SergiÃ±o_Dest",
+      "flag": "ðŸ‡ºðŸ‡¸",
       "teamId": "worldcup_usa",
       "pos": "DF",
-      "name": "Sergiño Dest",
+      "name": "SergiÃ±o Dest",
       "sortOrder": 7
     },
     {
@@ -33609,8 +33591,8 @@
       "teamId": "worldcup_usa",
       "pos": "MF",
       "name": "Cristian Roldan",
-      "flag": "🇺🇸",
-      "id": "worldcup_usa_15_Cristian_Roldán",
+      "flag": "ðŸ‡ºðŸ‡¸",
+      "id": "worldcup_usa_15_Cristian_RoldÃ¡n",
       "club": "Seattle Sounders FC",
       "number": 15,
       "role": "CM",
@@ -33744,9 +33726,9 @@
       "nationality": "United States",
       "number": 26,
       "role": "RW",
-      "club": "América",
-      "id": "worldcup_usa_26_Álex_Zendejas",
-      "flag": "🇺🇸"
+      "club": "AmÃ©rica",
+      "id": "worldcup_usa_26_Ãlex_Zendejas",
+      "flag": "ðŸ‡ºðŸ‡¸"
     },
     {
       "number": 1,
@@ -48812,13 +48794,13 @@
       "sortOrder": 4
     },
     {
-      "id": "laliga_malaga_36_Ángel_Recio",
+      "id": "laliga_malaga_36_Ãngel_Recio",
       "teamId": "laliga_malaga",
       "number": 25,
       "name": "Angel Recio",
       "pos": "DF",
       "role": "CB",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 6
     },
@@ -48845,35 +48827,35 @@
       "sortOrder": 8
     },
     {
-      "id": "laliga_malaga_18_Dani_Sánchez",
+      "id": "laliga_malaga_18_Dani_SÃ¡nchez",
       "teamId": "laliga_malaga",
       "number": 18,
       "name": "Dani Sanchez",
       "pos": "DF",
       "role": "LB",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 9
     },
     {
-      "id": "laliga_malaga_6_Ramón_Enríquez",
+      "id": "laliga_malaga_6_RamÃ³n_EnrÃ­quez",
       "teamId": "laliga_malaga",
       "number": 6,
       "name": "Ramon Enriquez",
       "pos": "MF",
       "role": "CM",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 10
     },
     {
-      "id": "laliga_malaga_8_Juanpe_Jiménez",
+      "id": "laliga_malaga_8_Juanpe_JimÃ©nez",
       "teamId": "laliga_malaga",
       "number": 8,
       "name": "Juanpe Jimenez",
       "pos": "MF",
       "role": "CM",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 11
     },
@@ -48911,35 +48893,35 @@
       "sortOrder": 16
     },
     {
-      "id": "laliga_malaga_35_Aarón_Ochoa",
+      "id": "laliga_malaga_35_AarÃ³n_Ochoa",
       "teamId": "laliga_malaga",
       "number": 35,
       "name": "Aaron Ochoa",
       "pos": "MF",
       "role": "AM",
-      "flag": "🇮🇪",
+      "flag": "ðŸ‡®ðŸ‡ª",
       "nationality": "Ireland",
       "sortOrder": 17
     },
     {
-      "id": "laliga_malaga_37_Rafa_Rodríguez",
+      "id": "laliga_malaga_37_Rafa_RodrÃ­guez",
       "teamId": "laliga_malaga",
       "number": 14,
       "name": "Rafa Rodriguez",
       "pos": "MF",
       "role": "AM",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 15
     },
     {
-      "id": "laliga_malaga_11_Joaquín_Muñoz",
+      "id": "laliga_malaga_11_JoaquÃ­n_MuÃ±oz",
       "teamId": "laliga_malaga",
       "number": 11,
       "name": "Joaquin Munoz",
       "pos": "FW",
       "role": "LW",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 20
     },
@@ -48999,13 +48981,13 @@
       "sortOrder": 24
     },
     {
-      "id": "laliga_malaga_21_Adrián_Niño",
+      "id": "laliga_malaga_21_AdriÃ¡n_NiÃ±o",
       "teamId": "laliga_malaga",
       "number": 21,
       "name": "Adrian Nino",
       "pos": "FW",
       "role": "CF",
-      "flag": "🇪🇸",
+      "flag": "ðŸ‡ªðŸ‡¸",
       "nationality": "Spain",
       "sortOrder": 25
     },
@@ -50793,6 +50775,439 @@
       "nationality": "Portugal",
       "sortOrder": 24,
       "displayLastName": "Mota"
+    },
+    {
+      "name": "Viktor Gyokeres",
+      "teamId": "epl_arsenal",
+      "pos": "FW",
+      "sortOrder": 27,
+      "nationality": "Sweden",
+      "number": 14,
+      "role": "CF",
+      "instagram": "https://www.instagram.com/viktorgyokeres/",
+      "displayLastName": "Gyokeres",
+      "flag": "🇸🇪",
+      "id": "epl_arsenal_14_Viktor_Gyökeres"
+    },
+    {
+      "name": "Matt O’Riley",
+      "pos": "MF",
+      "teamId": "epl_brighton",
+      "sortOrder": 16,
+      "role": "CM",
+      "number": 33,
+      "nationality": "Denmark",
+      "instagram": "https://www.instagram.com/mattoriley8/",
+      "id": "epl_brighton_33_Matt_O’Riley",
+      "flag": "🇩🇰",
+      "displayLastName": "O’Riley"
+    },
+    {
+      "teamId": "epl_everton",
+      "pos": "DF",
+      "name": "Jake O’Brien",
+      "role": "CB",
+      "number": 15,
+      "nationality": "Ireland",
+      "flag": "🇮🇪",
+      "id": "epl_everton_15_Jake_O’Brien",
+      "instagram": "https://www.instagram.com/obrienjake_/",
+      "displayLastName": "O’Brien",
+      "sortOrder": 5
+    },
+    {
+      "role": "LB",
+      "number": 33,
+      "nationality": "England",
+      "instagram": "https://www.instagram.com/nico33/",
+      "flag": "🏴",
+      "id": "epl_city_33_Nico_O’Reilly",
+      "name": "Nico O’Reilly",
+      "teamId": "epl_city",
+      "pos": "DF",
+      "sortOrder": 12,
+      "displayLastName": "O’Reilly"
+    },
+    {
+      "number": 13,
+      "role": "CB",
+      "nationality": "England",
+      "flag": "🏴",
+      "id": "epl_sunderland_13_Luke_O’Nien",
+      "instagram": "https://www.instagram.com/lukeonien/",
+      "teamId": "epl_sunderland",
+      "pos": "DF",
+      "name": "Luke O’Nien",
+      "sortOrder": 5
+    },
+    {
+      "role": "CB",
+      "number": 34,
+      "teamId": "bundesliga_union_berlin",
+      "pos": "DF",
+      "nationality": "France",
+      "name": "Stanley N’Soki",
+      "flag": "🇫🇷",
+      "id": "bundesliga_union_berlin_34_Stanley_N’Soki"
+    },
+    {
+      "nationality": "DR Congo",
+      "pos": "MF",
+      "role": "CM",
+      "teamId": "ligue1_lille",
+      "number": 17,
+      "name": "Ngal’ayel Mukau",
+      "id": "ligue1_lille_17_Ngal’ayel_Mukau",
+      "flag": "🇨🇩"
+    },
+    {
+      "sortOrder": 13,
+      "name": "Éderson Silva",
+      "pos": "MF",
+      "teamId": "worldcup_brazil",
+      "club": "Atalanta",
+      "flag": "🇧🇷",
+      "id": "worldcup_brazil_2_Éderson",
+      "nationality": "Brazil",
+      "role": "CM",
+      "number": 2
+    },
+    {
+      "sortOrder": 3,
+      "name": "Gabriel Magalhães",
+      "pos": "DF",
+      "teamId": "worldcup_brazil",
+      "club": "Arsenal",
+      "id": "worldcup_brazil_3_Gabriel_Magalhães",
+      "flag": "🇧🇷",
+      "nationality": "Brazil",
+      "number": 3,
+      "role": "CB"
+    },
+    {
+      "name": "Bruno Guimarães",
+      "pos": "MF",
+      "teamId": "worldcup_brazil",
+      "sortOrder": 14,
+      "role": "CM",
+      "number": 8,
+      "nationality": "Brazil",
+      "flag": "🇧🇷",
+      "id": "worldcup_brazil_8_Bruno_Guimarães",
+      "club": "Newcastle United"
+    },
+    {
+      "nationality": "Brazil",
+      "role": "CB",
+      "number": 15,
+      "club": "Flamengo",
+      "id": "worldcup_brazil_15_Léo_Pereira",
+      "flag": "🇧🇷",
+      "name": "Léo Pereira",
+      "pos": "DF",
+      "teamId": "worldcup_brazil",
+      "sortOrder": 6
+    },
+    {
+      "name": "Lucas Paquetá",
+      "pos": "MF",
+      "teamId": "worldcup_brazil",
+      "sortOrder": 17,
+      "nationality": "Brazil",
+      "role": "AM",
+      "number": 20,
+      "club": "Flamengo",
+      "id": "worldcup_brazil_20_Lucas_Paquetá",
+      "flag": "🇧🇷"
+    },
+    {
+      "name": "Roger Ibañez",
+      "pos": "DF",
+      "teamId": "worldcup_brazil",
+      "sortOrder": 8,
+      "nationality": "Brazil",
+      "number": 24,
+      "role": "RB",
+      "club": "Al-Ahli",
+      "id": "worldcup_brazil_24_Roger_Ibañez",
+      "flag": "🇧🇷"
+    },
+    {
+      "name": "Ricardo Adé",
+      "teamId": "worldcup_haiti",
+      "pos": "DF",
+      "sortOrder": 4,
+      "number": 4,
+      "role": "CB",
+      "nationality": "Haiti",
+      "flag": "🇭🇹",
+      "id": "worldcup_haiti_4_Ricardo_Adé",
+      "club": "LDU Quito"
+    },
+    {
+      "sortOrder": 12,
+      "name": "Carl Sainté",
+      "teamId": "worldcup_haiti",
+      "pos": "MF",
+      "id": "worldcup_haiti_14_Carl_Sainté",
+      "flag": "🇭🇹",
+      "club": "El Paso Locomotive FC",
+      "number": 6,
+      "role": "DM",
+      "nationality": "Haiti"
+    },
+    {
+      "sortOrder": 10,
+      "teamId": "worldcup_haiti",
+      "pos": "DF",
+      "name": "Martin Expérience",
+      "club": "Nancy",
+      "flag": "🇭🇹",
+      "id": "worldcup_haiti_8_Martin_Expérience",
+      "nationality": "Haiti",
+      "role": "LB",
+      "number": 8
+    },
+    {
+      "role": "CF",
+      "number": 19,
+      "nationality": "Haiti",
+      "flag": "🇭🇹",
+      "id": "worldcup_haiti_19_Yassin_Fortuné",
+      "club": "Vizela",
+      "teamId": "worldcup_haiti",
+      "pos": "FW",
+      "name": "Yassin Fortuné",
+      "sortOrder": 24
+    },
+    {
+      "club": "Auxerre",
+      "flag": "🇭🇹",
+      "id": "worldcup_haiti_21_Josué_Casimir",
+      "nationality": "Haiti",
+      "role": "RW",
+      "number": 21,
+      "sortOrder": 18,
+      "name": "Josué Casimir",
+      "teamId": "worldcup_haiti",
+      "pos": "FW"
+    },
+    {
+      "name": "Jean-Kévin Duverne",
+      "pos": "DF",
+      "teamId": "worldcup_haiti",
+      "sortOrder": 7,
+      "nationality": "Haiti",
+      "role": "CB",
+      "number": 22,
+      "club": "Gent",
+      "id": "worldcup_haiti_22_Jean-Kévin_Duverne",
+      "flag": "🇭🇹"
+    },
+    {
+      "sortOrder": 2,
+      "pos": "GK",
+      "teamId": "worldcup_haiti",
+      "name": "Josué Duverger",
+      "club": "Cosmos Koblenz",
+      "flag": "🇭🇹",
+      "id": "worldcup_haiti_23_Josué_Duverger",
+      "nationality": "Haiti",
+      "number": 23,
+      "role": "GK"
+    },
+    {
+      "sortOrder": 19,
+      "teamId": "worldcup_morocco",
+      "pos": "FW",
+      "name": "Brahim Díaz",
+      "flag": "🇲🇦",
+      "id": "worldcup_morocco_10_Brahim_Díaz",
+      "club": "Real Madrid",
+      "number": 10,
+      "role": "RW",
+      "nationality": "Morocco"
+    },
+    {
+      "sortOrder": 21,
+      "name": "Amine Sbaï",
+      "teamId": "worldcup_morocco",
+      "pos": "FW",
+      "flag": "🇲🇦",
+      "id": "worldcup_morocco_17_Amine_Sbaï",
+      "club": "Angers",
+      "number": 17,
+      "role": "LW",
+      "nationality": "Morocco"
+    },
+    {
+      "name": "Ché Adams",
+      "pos": "FW",
+      "teamId": "worldcup_scotland",
+      "sortOrder": 22,
+      "nationality": "Scotland",
+      "role": "CF",
+      "number": 10,
+      "club": "Torino",
+      "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+      "id": "worldcup_scotland_10_Ché_Adams"
+    },
+    {
+      "nationality": "United States",
+      "role": "RB",
+      "number": 2,
+      "club": "PSV Eindhoven",
+      "id": "worldcup_usa_2_Sergiño_Dest",
+      "flag": "🇺🇸",
+      "teamId": "worldcup_usa",
+      "pos": "DF",
+      "name": "Sergiño Dest",
+      "sortOrder": 7
+    },
+    {
+      "sortOrder": 15,
+      "teamId": "worldcup_usa",
+      "pos": "MF",
+      "name": "Cristian Roldan",
+      "flag": "🇺🇸",
+      "id": "worldcup_usa_15_Cristian_Roldán",
+      "club": "Seattle Sounders FC",
+      "number": 15,
+      "role": "CM",
+      "nationality": "United States"
+    },
+    {
+      "pos": "FW",
+      "teamId": "worldcup_usa",
+      "name": "Alejandro Zendejas",
+      "sortOrder": 20,
+      "nationality": "United States",
+      "number": 26,
+      "role": "RW",
+      "club": "América",
+      "id": "worldcup_usa_26_Álex_Zendejas",
+      "flag": "🇺🇸"
+    },
+    {
+      "id": "laliga_malaga_36_Ángel_Recio",
+      "teamId": "laliga_malaga",
+      "number": 25,
+      "name": "Angel Recio",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 6
+    },
+    {
+      "id": "laliga_malaga_18_Dani_Sánchez",
+      "teamId": "laliga_malaga",
+      "number": 18,
+      "name": "Dani Sanchez",
+      "pos": "DF",
+      "role": "LB",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 9
+    },
+    {
+      "id": "laliga_malaga_6_Ramón_Enríquez",
+      "teamId": "laliga_malaga",
+      "number": 6,
+      "name": "Ramon Enriquez",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 10
+    },
+    {
+      "id": "laliga_malaga_8_Juanpe_Jiménez",
+      "teamId": "laliga_malaga",
+      "number": 8,
+      "name": "Juanpe Jimenez",
+      "pos": "MF",
+      "role": "CM",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 11
+    },
+    {
+      "id": "laliga_malaga_35_Aarón_Ochoa",
+      "teamId": "laliga_malaga",
+      "number": 35,
+      "name": "Aaron Ochoa",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇮🇪",
+      "nationality": "Ireland",
+      "sortOrder": 17
+    },
+    {
+      "id": "laliga_malaga_37_Rafa_Rodríguez",
+      "teamId": "laliga_malaga",
+      "number": 14,
+      "name": "Rafa Rodriguez",
+      "pos": "MF",
+      "role": "AM",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 15
+    },
+    {
+      "id": "laliga_malaga_11_Joaquín_Muñoz",
+      "teamId": "laliga_malaga",
+      "number": 11,
+      "name": "Joaquin Munoz",
+      "pos": "FW",
+      "role": "LW",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 20
+    },
+    {
+      "id": "laliga_malaga_21_Adrián_Niño",
+      "teamId": "laliga_malaga",
+      "number": 21,
+      "name": "Adrian Nino",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇪🇸",
+      "nationality": "Spain",
+      "sortOrder": 25
+    },
+    {
+      "id": "seriea_napoli_5_Luca_Marianucci",
+      "teamId": "seriea_napoli",
+      "number": 5,
+      "name": "Luca Marianucci",
+      "pos": "DF",
+      "role": "CB",
+      "flag": "🇮🇹",
+      "nationality": "Italy",
+      "sortOrder": 4
+    },
+    {
+      "id": "seriea_napoli_20_Lorenzo_Lucca",
+      "teamId": "seriea_napoli",
+      "number": 20,
+      "name": "Lorenzo Lucca",
+      "pos": "FW",
+      "role": "CF",
+      "flag": "🇮🇹",
+      "nationality": "Italy",
+      "sortOrder": 23
+    },
+    {
+      "id": "seriea_napoli_70_Noa_Lang",
+      "teamId": "seriea_napoli",
+      "number": 70,
+      "name": "Noa Lang",
+      "pos": "FW",
+      "role": "LAM",
+      "flag": "🇳🇱",
+      "nationality": "Netherlands",
+      "sortOrder": 20
     }
   ],
   "matches": [
@@ -62446,7 +62861,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "epl_mw1_hull_city_manchester_united",
@@ -62472,7 +62888,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "12:30"
     },
     {
       "id": "epl_mw1_everton_crystal_palace",
@@ -62498,7 +62915,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "epl_mw1_ipswich_town_sunderland",
@@ -62524,7 +62942,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "epl_mw1_nottingham_forest_leeds_united",
@@ -62550,7 +62969,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "epl_mw1_brentford_tottenham",
@@ -62576,7 +62996,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "17:30"
     },
     {
       "id": "epl_mw1_brighton_aston_villa",
@@ -62602,7 +63023,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "epl_mw1_manchester_city_bournemouth",
@@ -62628,7 +63050,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "epl_mw1_newcastle_united_liverpool",
@@ -62654,7 +63077,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "16:30"
     },
     {
       "id": "epl_mw1_fulham_chelsea",
@@ -62680,7 +63104,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "laliga_mw1_alaves_getafe",
@@ -62706,7 +63131,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "laliga_mw1_sevilla_rayo_vallecano",
@@ -62732,7 +63158,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "laliga_mw1_racing_santander_villarreal",
@@ -62758,7 +63185,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "laliga_mw1_espanyol_levante",
@@ -62784,7 +63212,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "laliga_mw1_celta_vigo_osasuna",
@@ -62810,7 +63239,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "laliga_mw1_deportivo_a_coruna_elche",
@@ -62836,7 +63266,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "laliga_mw1_atletico_madrid_malaga",
@@ -62862,7 +63293,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "seriea_mw1_inter_milan_monza",
@@ -62910,7 +63342,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "seriea_mw1_genoa_napoli",
@@ -62936,7 +63369,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "seriea_mw1_parma_cagliari",
@@ -62962,7 +63396,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "seriea_mw1_frosinone_juventus",
@@ -63032,7 +63467,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "seriea_mw1_torino_ac_milan",
@@ -63058,7 +63494,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "seriea_mw1_bologna_lazio",
@@ -63084,7 +63521,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "seriea_mw1_as_roma_fiorentina",
@@ -63110,7 +63548,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "bundesliga_mw1_bayern_munich_stuttgart",
@@ -63136,7 +63575,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "bundesliga_mw1_elversberg_bayer_leverkusen",
@@ -63162,7 +63602,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "bundesliga_mw1_koln_hoffenheim",
@@ -63188,7 +63629,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "bundesliga_mw1_mainz_paderborn",
@@ -63214,7 +63656,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "bundesliga_mw1_rb_leipzig_borussia_monchengladbach",
@@ -63240,7 +63683,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "bundesliga_mw1_union_berlin_eintracht_frankfurt",
@@ -63266,7 +63710,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "bundesliga_mw1_borussia_dortmund_hamburg",
@@ -63292,7 +63737,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "bundesliga_mw1_freiburg_werder_bremen",
@@ -63318,7 +63764,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "bundesliga_mw1_augsburg_schalke_04",
@@ -63366,7 +63813,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "ligue1_mw1_lens_auxerre",
@@ -63392,7 +63840,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "ligue1_mw1_le_mans_brest",
@@ -63440,7 +63889,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "ligue1_mw1_toulouse_lyon",
@@ -63466,7 +63916,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "ligue1_mw1_troyes_paris",
@@ -63492,7 +63943,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "ligue1_mw1_angers_lille",
@@ -63518,7 +63970,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "ligue1_mw1_le_havre_as_monaco",
@@ -63544,7 +63997,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "ligue1_mw1_psg_rennes",
@@ -63570,7 +64024,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "msl_mw1_johor_dt_kuching_city",
@@ -63596,7 +64051,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "20:00"
     },
     {
       "id": "msl_mw1_negeri_sembilan_kuala_lumpur",
@@ -63622,7 +64078,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "msl_mw1_kelantan_real_warrior_selangor",
@@ -63670,7 +64127,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "15:00"
     },
     {
       "id": "msl_mw1_penang_dpmm",
@@ -63696,7 +64154,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     },
     {
       "id": "msl_mw1_sabah_star_city",
@@ -63722,7 +64181,8 @@
       "lineups": {
         "home": [],
         "away": []
-      }
+      },
+      "kickoff": "14:00"
     }
   ],
   "miniStandings": [
@@ -69389,6 +69849,30 @@
           "club": "Monza",
           "otherClub": "Retired",
           "date": "1 July 2026"
+        },
+        {
+          "id": "seriea_out_miguel_gutierrez_0",
+          "player": "Miguel Gutierrez",
+          "club": "Napoli",
+          "otherClub": "Bayer Leverkusen",
+          "fee": "26M",
+          "date": "5 August 2026"
+        },
+        {
+          "id": "seriea_out_mathias_ferrante_1",
+          "player": "Mathias Ferrante",
+          "club": "Napoli",
+          "otherClub": "CPR Ospitaletto",
+          "fee": "Loan",
+          "date": "16 July 2026"
+        },
+        {
+          "id": "seriea_out_juan_jesus_2",
+          "player": "Juan Jesus",
+          "club": "Napoli",
+          "otherClub": "Without club",
+          "fee": "Released",
+          "date": "1 July 2026"
         }
       ],
       "loanRecall": [
@@ -69586,6 +70070,13 @@
           "player": "Agustin Alvarez",
           "club": "Monza",
           "otherClub": "Sassuolo",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanRecall_eljif_elmas_0",
+          "player": "Eljif Elmas",
+          "club": "Napoli",
+          "otherClub": "RB Leipzig",
           "date": "30 June 2026"
         }
       ],
@@ -70460,6 +70951,83 @@
           "club": "Monza",
           "otherClub": "Sochaux-Montbeliard",
           "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_rafa_marin_0",
+          "player": "Rafa Marin",
+          "club": "Napoli",
+          "otherClub": "Villarreal",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_luca_marianucci_1",
+          "player": "Luca Marianucci",
+          "club": "Napoli",
+          "otherClub": "Torino",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_nosa_edward_obaretin_2",
+          "player": "Nosa Edward Obaretin",
+          "club": "Napoli",
+          "otherClub": "Empoli",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_jens_cajuste_3",
+          "player": "Jens Cajuste",
+          "club": "Napoli",
+          "otherClub": "Ipswich Town",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_michael_folorunsho_4",
+          "player": "Michael Folorunsho",
+          "club": "Napoli",
+          "otherClub": "Cagliari",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_gennaro_iaccarino_5",
+          "player": "Gennaro Iaccarino",
+          "club": "Napoli",
+          "otherClub": "SS Arezzo",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_cyril_ngonge_6",
+          "player": "Cyril Ngonge",
+          "club": "Napoli",
+          "otherClub": "Espanyol",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_jesper_lindstrom_7",
+          "player": "Jesper Lindstrom",
+          "club": "Napoli",
+          "otherClub": "Wolfsburg",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_noa_lang_8",
+          "player": "Noa Lang",
+          "club": "Napoli",
+          "otherClub": "Galatasaray",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_lorenzo_lucca_9",
+          "player": "Lorenzo Lucca",
+          "club": "Napoli",
+          "otherClub": "Nottingham Forest",
+          "date": "30 June 2026"
+        },
+        {
+          "id": "seriea_loanReturn_walid_cheddira_10",
+          "player": "Walid Cheddira",
+          "club": "Napoli",
+          "otherClub": "Lecce",
+          "date": "30 June 2026"
         }
       ],
       "leagueId": "seriea",
@@ -70567,6 +71135,13 @@
           "player": "Paco Esteban",
           "club": "Lecce",
           "otherClub": "Lecce Primavera",
+          "date": "1 July 2026"
+        },
+        {
+          "id": "seriea_promoted_christian_garofalo_0",
+          "player": "Christian Garofalo",
+          "club": "Napoli",
+          "otherClub": "Napoli Primavera",
           "date": "1 July 2026"
         }
       ]
@@ -71478,7 +72053,11 @@
       "seriea_monza_14_Pedro_Obiang",
       "seriea_monza_30_Giuseppe_Caso",
       "seriea_monza_9_Mirko_Maric",
-      "seriea_monza_25_Agustin_Alvarez"
+      "seriea_monza_25_Agustin_Alvarez",
+      "seriea_napoli_25_Mathias_Ferrante",
+      "seriea_napoli_5_Juan_Jesus",
+      "seriea_napoli_3_Miguel_Gutierrez",
+      "seriea_napoli_20_Eljif_Elmas"
     ],
     "matches": [
       "epl_mw38_burnley_wolves",
