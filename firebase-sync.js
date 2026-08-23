@@ -1,8 +1,16 @@
 /**
- * Firebase Firestore sync — published site data at published/site.
+ * Firebase Firestore sync — published site data.
+ * Split across docs under `published/` so each stays under Firestore's 1 MiB limit:
+ *   site       — leagues, teams, standings, meta, …
+ *   players    — players[]
+ *   matches    — matches[]
+ *   transfers  — transfers[]
  */
 (function (global) {
-  const PUBLISHED_DOC = ["published", "site"];
+  const PUBLISHED_COL = "published";
+  const SITE_DOC = "site";
+  /** Large arrays live in their own docs (same collection). */
+  const CHUNK_DOCS = ["players", "matches", "transfers"];
 
   let app = null;
   let db = null;
@@ -18,9 +26,17 @@
     return Boolean(c.enabled && c.apiKey && c.projectId && c.appId);
   }
 
-  function docRef() {
+  function col() {
     if (!db) return null;
-    return db.collection(PUBLISHED_DOC[0]).doc(PUBLISHED_DOC[1]);
+    return db.collection(PUBLISHED_COL);
+  }
+
+  function siteRef() {
+    return col()?.doc(SITE_DOC) ?? null;
+  }
+
+  function chunkRef(name) {
+    return col()?.doc(name) ?? null;
   }
 
   /** Firestore rejects arrays that contain other arrays (standings/scorer rows). */
@@ -62,6 +78,31 @@
     return value;
   }
 
+  function utf8Size(value) {
+    try {
+      return new TextEncoder().encode(JSON.stringify(value)).length;
+    } catch {
+      return 0;
+    }
+  }
+
+  function sizeLimitError(docId, bytes) {
+    const kb = Math.round(bytes / 1024);
+    return new Error(
+      `Firebase publish blocked: document published/${docId} is ~${kb} KB (limit 1024 KB).\n\n` +
+        "Your squad data grew past Firestore’s single-document size limit.\n" +
+        "Try Publish again after a refresh — large lists are now split across documents.\n" +
+        "If it still fails, download data.json and use GitHub Pages until we can trim unused fields.",
+    );
+  }
+
+  function assertUnderLimit(docId, body) {
+    const bytes = utf8Size(body);
+    // Stay a little under 1 MiB for Firestore metadata overhead.
+    if (bytes > 1_000_000) throw sizeLimitError(docId, bytes);
+    return bytes;
+  }
+
   function init() {
     if (!isConfigured()) return Promise.resolve(false);
     if (initPromise) return initPromise;
@@ -89,12 +130,24 @@
   async function fetchPublished() {
     if (!isConfigured()) return null;
     const ok = await init();
-    if (!ok || !docRef()) return null;
-    const snap = await docRef().get();
-    if (!snap.exists) return null;
-    const data = snap.data();
+    if (!ok || !siteRef()) return null;
+    const siteSnap = await siteRef().get();
+    if (!siteSnap.exists) return null;
+    const data = restoreFromFirestore(siteSnap.data());
     if (!data || typeof data !== "object") return null;
-    return restoreFromFirestore(data);
+
+    // Merge chunk docs (new layout). Older single-doc publishes already include these keys.
+    const chunkSnaps = await Promise.all(CHUNK_DOCS.map((name) => chunkRef(name).get()));
+    for (let i = 0; i < CHUNK_DOCS.length; i += 1) {
+      const name = CHUNK_DOCS[i];
+      const snap = chunkSnaps[i];
+      if (!snap?.exists) continue;
+      const chunk = restoreFromFirestore(snap.data());
+      if (!chunk || typeof chunk !== "object") continue;
+      if (chunk[name] != null) data[name] = chunk[name];
+    }
+
+    return data;
   }
 
   function currentUser() {
@@ -122,14 +175,41 @@
     if (!isConfigured()) throw new Error("Firebase is not configured.");
     await init();
     if (!isSignedIn()) throw new Error("Sign in to Firebase before publishing.");
-    if (!docRef()) throw new Error("Firestore is not available.");
-    const body = sanitizeForFirestore({
+    if (!siteRef()) throw new Error("Firestore is not available.");
+
+    const revision = Date.now();
+    const sanitized = sanitizeForFirestore({
       ...payload,
-      dataRevision: Date.now(),
-      publishedAt: Date.now(),
+      dataRevision: revision,
+      publishedAt: revision,
     });
-    await docRef().set(body);
-    return restoreFromFirestore(body);
+
+    const siteBody = { ...sanitized };
+    const writes = [];
+
+    for (const name of CHUNK_DOCS) {
+      if (siteBody[name] == null) continue;
+      const chunkBody = {
+        dataRevision: revision,
+        publishedAt: revision,
+        [name]: siteBody[name],
+      };
+      assertUnderLimit(name, chunkBody);
+      writes.push(chunkRef(name).set(chunkBody));
+      // Keep site doc lean — chunks are the source of truth after publish.
+      delete siteBody[name];
+    }
+
+    assertUnderLimit(SITE_DOC, siteBody);
+    writes.push(siteRef().set(siteBody));
+    await Promise.all(writes);
+
+    // Reassemble for callers that expect a full payload.
+    const merged = { ...siteBody };
+    for (const name of CHUNK_DOCS) {
+      if (sanitized[name] != null) merged[name] = sanitized[name];
+    }
+    return restoreFromFirestore(merged);
   }
 
   function onAuthChange(callback) {
@@ -172,6 +252,15 @@
         `${host} is not an authorized domain.\n\n` +
         "Firebase Console → Authentication → Settings → Authorized domains → Add domain:\n" +
         `  ${host}`
+      );
+    }
+
+    if (/exceeds the maximum allowed size|cannot be written because its size/i.test(msg)) {
+      return (
+        "Firestore document is over the 1 MB limit.\n\n" +
+        "Hard-refresh admin and Publish again — large lists are split across published/site, " +
+        "published/players, published/matches, and published/transfers.\n\n" +
+        "Meanwhile you can still Download data.json and push to GitHub Pages."
       );
     }
 

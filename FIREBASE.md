@@ -42,18 +42,25 @@ Live data can be served from **Firestore** instead of waiting for a `data.json` 
 
 Visitors load the newest source by **`dataRevision`** (Firebase vs `data.json`).
 
+Publish writes several documents under collection **`published`** (Firestore’s limit is **1 MB per document**):
+
+| Document ID   | Contents                                      |
+|---------------|-----------------------------------------------|
+| `site`        | leagues, teams, standings, scorers, meta, …   |
+| `players`     | `players[]`                                   |
+| `matches`     | `matches[]`                                   |
+| `transfers`   | `transfers[]`                                 |
+
+If Publish fails with a size error, hard-refresh admin (so the latest `firebase-sync.js` loads) and try again. You can always **Download data.json** and use GitHub Pages as a backup.
+
 ## 5. First upload (optional)
 
-If Firestore is empty, either use **Publish live to Firebase** in admin, or import once in the console:
-
-- Collection: `published`
-- Document ID: `site`
-- Paste the contents of **`data.json`** (must include `teams`, `players`, `matches`, etc.)
+If Firestore is empty, use **Publish live to Firebase** in admin (preferred). Manual console import of a single huge `data.json` into `published/site` will hit the 1 MB limit — use admin Publish instead so data is split automatically.
 
 ## Load order
 
 1. Built-in seed (`app.js`)
-2. **Firestore** `published/site` (if configured)
+2. **Firestore** `published/site` + chunk docs (`players`, `matches`, `transfers`) if configured
 3. **`data.json`** (GitHub Pages)
 4. **localStorage** (admin browser only)
 

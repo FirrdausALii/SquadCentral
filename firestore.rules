@@ -3,9 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Public read for live site data; writes require Firebase Auth (admin account).
-    match /published/site {
+    // Split docs: site + players + matches + transfers (1 MiB limit per document).
+    match /published/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+        && docId in ['site', 'players', 'matches', 'transfers'];
     }
   }
 }

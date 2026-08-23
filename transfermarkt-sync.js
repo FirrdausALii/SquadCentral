@@ -24,8 +24,18 @@
     forward: { pos: "FW", role: "CF" },
   };
 
+  function foldLatinLetters(str, { keepCase = false } = {}) {
+    return String(str ?? "")
+      .replace(/ø/gi, (ch) => (keepCase && ch === "Ø" ? "O" : "o"))
+      .replace(/æ/gi, (ch) => (keepCase && ch === "Æ" ? "AE" : "ae"))
+      .replace(/œ/gi, (ch) => (keepCase && ch === "Œ" ? "OE" : "oe"))
+      .replace(/đ/gi, (ch) => (keepCase && ch === "Đ" ? "D" : "d"))
+      .replace(/ł/gi, (ch) => (keepCase && ch === "Ł" ? "L" : "l"))
+      .replace(/ß/g, "ss");
+  }
+
   function normalizeNameKey(name) {
-    return String(name ?? "")
+    return foldLatinLetters(String(name ?? ""))
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\s*\(C\)\s*$/i, "")
@@ -40,9 +50,9 @@
       .trim();
   }
 
-  /** Strip accents/diacritics for storage Ã¢â‚¬â€ JosÃƒÂ© ÃƒÂngel Ã¢â€ â€™ Jose Angel */
+  /** Strip accents/diacritics for storage — José Ángel → Jose Angel */
   function toAsciiName(name) {
-    return String(name ?? "")
+    return foldLatinLetters(String(name ?? ""), { keepCase: true })
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[ÃƒÂ¸ÃƒËœ]/g, (ch) => (ch === "ÃƒÂ¸" ? "o" : "O"))
@@ -61,21 +71,47 @@
       .filter(Boolean);
   }
 
+  function jerseyNumbersMatch(aNumber, bNumber) {
+    const a = Number(aNumber);
+    const b = Number(bNumber);
+    return Number.isFinite(a) && a > 0 && Number.isFinite(b) && b > 0 && a === b;
+  }
+
+  function jerseyNumbersMissing(aNumber, bNumber) {
+    const a = Number(aNumber);
+    const b = Number(bNumber);
+    return !Number.isFinite(a) || a <= 0 || !Number.isFinite(b) || b <= 0;
+  }
+
   /**
    * Close names match when first + last tokens agree and the shorter
-   * name's tokens are a subsequence of the longer (Jose Carmona Ã¢â€°Ë† Jose Angel Carmona).
+   * name's tokens are a subsequence of the longer (Jose Carmona ≈ Jose Angel Carmona).
+   * Mononym ⊂ full name (Gabriel ⊂ Gabriel Magalhaes) when shirt numbers match,
+   * or when numbers are missing and both nationalities match.
    */
-  function namesLooselyMatch(aName, bName) {
+  function namesLooselyMatch(aName, bName, opts = {}) {
     const aKey = normalizeNameKey(aName);
     const bKey = normalizeNameKey(bName);
     if (!aKey || !bKey) return false;
     if (aKey === bKey) return true;
     const a = nameTokens(aKey);
     const b = nameTokens(bKey);
-    if (a.length < 2 || b.length < 2) return false;
-    if (a[0] !== b[0] || a[a.length - 1] !== b[b.length - 1]) return false;
+    if (!a.length || !b.length) return false;
+
     const shorter = a.length <= b.length ? a : b;
     const longer = a.length <= b.length ? b : a;
+    const subset = shorter.every((token) => longer.includes(token));
+    if (subset && shorter.length < longer.length) {
+      if (jerseyNumbersMatch(opts.aNumber, opts.bNumber)) return true;
+      const aNat = nationalityKey(opts.aNationality);
+      const bNat = nationalityKey(opts.bNationality);
+      if (jerseyNumbersMissing(opts.aNumber, opts.bNumber) && aNat && bNat && aNat === bNat) {
+        return true;
+      }
+    }
+
+    if (a.length < 2 || b.length < 2) return false;
+    if (a[0] !== b[0] || a[a.length - 1] !== b[b.length - 1]) return false;
     let i = 0;
     for (const token of longer) {
       if (token === shorter[i]) i += 1;
@@ -217,7 +253,16 @@
       let bestScore = Infinity;
       for (let li = 0; li < locals.length; li++) {
         if (usedLocal.has(li)) continue;
-        if (!namesLooselyMatch(tm.name, locals[li].name)) continue;
+        if (
+          !namesLooselyMatch(tm.name, locals[li].name, {
+            aNumber: tm.number,
+            bNumber: locals[li].number,
+            aNationality: tm.nationality,
+            bNationality: locals[li].nationality,
+          })
+        ) {
+          continue;
+        }
         const tmTokens = nameTokens(normalizeNameKey(tm.name));
         const localTokens = nameTokens(normalizeNameKey(locals[li].name));
         let score = Math.abs(tmTokens.length - localTokens.length);

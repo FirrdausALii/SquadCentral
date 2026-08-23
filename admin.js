@@ -27,7 +27,7 @@ let leagueFormSnapshot = "";
 let playerTeamFilter = "";
 let playerTransferPickId = "";
 let playerSearchQuery = "";
-/** @type {{ tmPlayers: object[], diff: object, clubId: number } | null} */
+/** @type {{ tmPlayers: object[], diff: object, clubId: number, ignoredAdd?: Set<string>, ignoredRemove?: Set<string>, ignoredUpdate?: Set<string> } | null} */
 let tmSyncState = null;
 let squadDepthTeamFilter = "";
 let nationalDutyTeamFilter = "";
@@ -149,6 +149,26 @@ function esc(s) {
     .replaceAll('"', "&quot;");
 }
 
+function hasJerseyNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0;
+}
+
+function formatJerseyNumber(value, empty = "—") {
+  return hasJerseyNumber(value) ? String(Math.trunc(Number(value))) : empty;
+}
+
+/** Blank is allowed. Returns { ok, number|null, error? }. */
+function parseOptionalJerseyNumber(raw, { max = 99 } = {}) {
+  const s = String(raw ?? "").trim();
+  if (!s) return { ok: true, number: null };
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 1 || n > max) {
+    return { ok: false, number: null, error: `Jersey number must be 1–${max}, or leave blank` };
+  }
+  return { ok: true, number: Math.trunc(n) };
+}
+
 function adminPlayerInstagramBadge(p) {
   if (!playerInstagramUrl(p)) return "";
   return `<span class="admin-player-ig" title="Instagram linked" aria-label="Instagram linked">${instagramIconSvg()}</span>`;
@@ -248,7 +268,7 @@ function playerRosterCardHtml(p, isWorldCup) {
     </span>
     <div class="player-roster-body">
       <div class="player-roster-line">
-        <span class="player-roster-num">${esc(p.number)}</span>
+        <span class="player-roster-num${hasJerseyNumber(p.number) ? "" : " player-roster-num--empty"}">${esc(formatJerseyNumber(p.number))}</span>
         <div class="player-roster-copy">
           <div class="admin-player-name-inner">
             ${flag}<strong class="admin-player-name">${esc(stripCaptainSuffix(p.name))}</strong>${capBadge}${adminPlayerInstagramBadge(p)}
@@ -697,7 +717,11 @@ function comparePlayerOrder(a, b) {
   if (ao !== bo) return ao - bo;
   const roleCmp = playerRoleRank(a) - playerRoleRank(b);
   if (roleCmp !== 0) return roleCmp;
-  return Number(a.number) - Number(b.number) || String(a.name).localeCompare(b.name);
+  const an = Number(a.number);
+  const bn = Number(b.number);
+  const aNum = Number.isFinite(an) && an > 0 ? an : 999;
+  const bNum = Number.isFinite(bn) && bn > 0 ? bn : 999;
+  return aNum - bNum || String(a.name).localeCompare(b.name);
 }
 
 function playersForTeam(teamId) {
@@ -708,6 +732,181 @@ function clearTmSyncState() {
   tmSyncState = null;
 }
 
+const TM_SQUAD_IGNORE_KEY = "fc_tm_squad_ignore_v1";
+
+function readTmSquadIgnoreStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TM_SQUAD_IGNORE_KEY) || "{}");
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeTmSquadIgnoreStore(store) {
+  try {
+    localStorage.setItem(TM_SQUAD_IGNORE_KEY, JSON.stringify(store));
+  } catch {
+    /* quota */
+  }
+}
+
+function emptyTmSquadIgnoreLists() {
+  return { add: [], remove: [], update: [] };
+}
+
+function loadTmSquadIgnore(teamId) {
+  if (!teamId) return emptyTmSquadIgnoreLists();
+  const rec = readTmSquadIgnoreStore()[teamId];
+  return {
+    add: Array.isArray(rec?.add) ? rec.add.filter((x) => x?.key) : [],
+    remove: Array.isArray(rec?.remove) ? rec.remove.filter((x) => x?.id) : [],
+    update: Array.isArray(rec?.update) ? rec.update.filter((x) => x?.id) : [],
+  };
+}
+
+function saveTmSquadIgnore(teamId, lists) {
+  if (!teamId) return;
+  const store = readTmSquadIgnoreStore();
+  const next = {
+    add: (lists?.add ?? []).filter((x) => x?.key),
+    remove: (lists?.remove ?? []).filter((x) => x?.id),
+    update: (lists?.update ?? []).filter((x) => x?.id),
+  };
+  const prev = JSON.stringify(store[teamId] ?? emptyTmSquadIgnoreLists());
+  const nextStr = JSON.stringify(next);
+  if (prev === nextStr) return;
+  if (!next.add.length && !next.remove.length && !next.update.length) delete store[teamId];
+  else store[teamId] = next;
+  writeTmSquadIgnoreStore(store);
+}
+
+function tmSquadIgnoreSets(lists) {
+  return {
+    ignoredAdd: new Set((lists?.add ?? []).map((x) => x.key)),
+    ignoredRemove: new Set((lists?.remove ?? []).map((x) => String(x.id))),
+    ignoredUpdate: new Set((lists?.update ?? []).map((x) => String(x.id))),
+  };
+}
+
+function tmSquadIgnoreCount(listsOrState) {
+  if (!listsOrState) return 0;
+  if (listsOrState.ignoredAdd || listsOrState.ignoredRemove || listsOrState.ignoredUpdate) {
+    return (
+      (listsOrState.ignoredAdd?.size ?? 0) +
+      (listsOrState.ignoredRemove?.size ?? 0) +
+      (listsOrState.ignoredUpdate?.size ?? 0)
+    );
+  }
+  return (listsOrState.add?.length ?? 0) + (listsOrState.remove?.length ?? 0) + (listsOrState.update?.length ?? 0);
+}
+
+function tmSquadIgnoreSnap(player) {
+  const n = Number(player?.number);
+  return {
+    number: Number.isFinite(n) && n > 0 ? Math.trunc(n) : null,
+    pos: String(player?.pos ?? "").trim().toUpperCase() || "",
+  };
+}
+
+function tmSquadIgnoreSnapMatches(entry, live) {
+  // Legacy ignores (before jersey/pos tracking) expire only on leave.
+  if (!entry?.tracked) return true;
+  if (!live) return false;
+  const liveSnap = tmSquadIgnoreSnap(live);
+  const entryNum = entry.number == null || entry.number === "" ? null : Number(entry.number);
+  const storedNum = Number.isFinite(entryNum) && entryNum > 0 ? Math.trunc(entryNum) : null;
+  const storedPos = String(entry.pos ?? "").trim().toUpperCase();
+  return storedNum === liveSnap.number && storedPos === liveSnap.pos;
+}
+
+function pruneTmSquadIgnore(teamId, { tmPlayers = null, diff = null } = {}) {
+  const lists = loadTmSquadIgnore(teamId);
+  const roster = playersForTeam(teamId);
+  const rosterById = new Map(roster.map((p) => [String(p.id), p]));
+  const rosterIds = new Set(rosterById.keys());
+
+  let add = lists.add;
+  if (Array.isArray(tmPlayers)) {
+    const tmByKey = new Map();
+    for (const p of tmPlayers) {
+      const key = tmSyncNameKey(p.name);
+      if (key && !tmByKey.has(key)) tmByKey.set(key, p);
+    }
+    add = lists.add.filter((x) => {
+      const live = tmByKey.get(x.key);
+      if (!live) return false;
+      return tmSquadIgnoreSnapMatches(x, live);
+    });
+  }
+
+  const remove = lists.remove.filter((x) => {
+    const live = rosterById.get(String(x.id));
+    if (!live) return false;
+    return tmSquadIgnoreSnapMatches(x, live);
+  });
+
+  let update = lists.update.filter((x) => {
+    const live = rosterById.get(String(x.id));
+    if (!live) return false;
+    if (!tmSquadIgnoreSnapMatches(x, live)) return false;
+    return true;
+  });
+
+  if (diff?.toUpdate) {
+    const updateById = new Map(
+      diff.toUpdate
+        .filter((row) => row?.local?.id)
+        .map((row) => [String(row.local.id), row]),
+    );
+    update = update.filter((x) => {
+      const row = updateById.get(String(x.id));
+      if (!row) return false;
+      if (x.tracked && row.tm) {
+        const tmEntry = {
+          tracked: true,
+          number: x.tmNumber,
+          pos: x.tmPos,
+        };
+        if (!tmSquadIgnoreSnapMatches(tmEntry, row.tm)) return false;
+      }
+      return true;
+    });
+  }
+
+  const next = { add, remove, update };
+  saveTmSquadIgnore(teamId, next);
+  return next;
+}
+
+function applyTmSquadIgnoreToState(teamId, extra = {}) {
+  if (!tmSyncState) return emptyTmSquadIgnoreLists();
+  const lists = pruneTmSquadIgnore(teamId, extra);
+  Object.assign(tmSyncState, tmSquadIgnoreSets(lists));
+  return lists;
+}
+
+function tmSquadNameTokensContained(aName, bName) {
+  const a = String(tmSyncNameKey(aName) || "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const b = String(tmSyncNameKey(bName) || "")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!a.length || !b.length) return false;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  return shorter.every((token) => longer.includes(token));
+}
+
+function tmSquadLikelySamePlayer(tm, local) {
+  if (!tm || !local) return false;
+  const tmNum = Number(tm.number);
+  const localNum = Number(local.number);
+  if (!Number.isFinite(tmNum) || tmNum <= 0 || tmNum !== localNum) return false;
+  return tmSquadNameTokensContained(tm.name, local.name);
+}
+
 function tmSyncNameKey(name) {
   return typeof TransfermarktSync !== "undefined"
     ? TransfermarktSync.normalizeNameKey(name)
@@ -716,15 +915,16 @@ function tmSyncNameKey(name) {
         .trim();
 }
 
-function getTmSyncVisibleDiff() {
+function getTmSyncVisibleDiff(teamId = playerTeamFilter) {
   if (!tmSyncState?.diff) return null;
+  if (tmSyncState.teamId && teamId && tmSyncState.teamId !== teamId) return null;
   const ignoreAdd = tmSyncState.ignoredAdd ?? new Set();
   const ignoreRemove = tmSyncState.ignoredRemove ?? new Set();
   const ignoreUpdate = tmSyncState.ignoredUpdate ?? new Set();
   const toAdd = tmSyncState.diff.toAdd.filter((tm) => !ignoreAdd.has(tmSyncNameKey(tm.name)));
-  const toRemove = tmSyncState.diff.toRemove.filter((p) => !ignoreRemove.has(p.id));
+  const toRemove = tmSyncState.diff.toRemove.filter((p) => !ignoreRemove.has(String(p.id)));
   const toUpdate = (tmSyncState.diff.toUpdate ?? []).filter(
-    (row) => !ignoreUpdate.has(row.local?.id),
+    (row) => !ignoreUpdate.has(String(row.local?.id)),
   );
   return { ...tmSyncState.diff, toAdd, toRemove, toUpdate };
 }
@@ -801,10 +1001,10 @@ function tmSyncStatusHtml(team, teamId) {
   if (!tmSyncLocalProxyReady()) {
     return `<span class="players-tm-sync__hint admin-muted">Use <strong>serve.bat</strong> on your computer for Transfermarkt Refresh — it cannot run on phone / GitHub Pages.</span>`;
   }
-  if (!tmSyncState) {
+  if (!tmSyncState || (tmSyncState.teamId && tmSyncState.teamId !== teamId)) {
     return `<span class="players-tm-sync__hint admin-muted">Compare your squad with Transfermarkt and apply add/remove/sync suggestions.</span>`;
   }
-  const diff = getTmSyncVisibleDiff() ?? tmSyncState.diff;
+  const diff = getTmSyncVisibleDiff(teamId) ?? tmSyncState.diff;
   const parts = [
     `${diff.tmTotal} on Transfermarkt`,
     `${diff.localTotal} in Squad Central`,
@@ -813,27 +1013,29 @@ function tmSyncStatusHtml(team, teamId) {
   if (diff.toAdd.length) parts.push(`${diff.toAdd.length} to add`);
   if (diff.toRemove.length) parts.push(`${diff.toRemove.length} to remove`);
   if ((diff.toUpdate ?? []).length) parts.push(`${diff.toUpdate.length} details to sync`);
-  const ignored =
-    (tmSyncState.ignoredAdd?.size ?? 0) +
-    (tmSyncState.ignoredRemove?.size ?? 0) +
-    (tmSyncState.ignoredUpdate?.size ?? 0);
-  if (ignored) parts.push(`${ignored} ignored`);
+  const ignored = tmSquadIgnoreCount(tmSyncState);
+  if (ignored) parts.push(`${ignored} ignored for this club`);
   return `<span class="players-tm-sync__hint">${esc(parts.join(" · "))}</span>`;
 }
 
 function tmSyncPanelHtml(team, teamId) {
   if (!teamId || !team) return "";
 
-  const diff = getTmSyncVisibleDiff();
+  const syncForTeam = tmSyncState && (!tmSyncState.teamId || tmSyncState.teamId === teamId);
+  if (syncForTeam) {
+    applyTmSquadIgnoreToState(teamId, { tmPlayers: tmSyncState.tmPlayers, diff: tmSyncState.diff });
+  } else {
+    pruneTmSquadIgnore(teamId);
+  }
+
+  const diff = getTmSyncVisibleDiff(teamId);
   const hasDiff =
     diff && (diff.toAdd.length || diff.toRemove.length || (diff.toUpdate ?? []).length);
   const emptyMsg =
-    tmSyncState && !hasDiff
+    syncForTeam && tmSyncState && !hasDiff
       ? `<p class="players-tm-sync__empty admin-muted mb-0">${
-          (tmSyncState.ignoredAdd?.size ?? 0) +
-          (tmSyncState.ignoredRemove?.size ?? 0) +
-          (tmSyncState.ignoredUpdate?.size ?? 0)
-            ? "No open suggestions — ignored items are hidden until you refresh."
+          tmSquadIgnoreCount(tmSyncState)
+            ? "No open suggestions — ignored players stay hidden until they leave, or jersey / position changes."
             : "Squad matches Transfermarkt — no changes suggested."
         }</p>`
       : "";
@@ -850,7 +1052,7 @@ function tmSyncPanelHtml(team, teamId) {
         </div>
         <div class="players-tm-sync__actions">
           <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-add-key="${esc(key)}">Add</button>
-          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-add="${esc(key)}" title="Ignore" aria-label="Ignore add suggestion">×</button>
+          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-add="${esc(key)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore add suggestion">Ignore</button>
         </div>
       </li>`;
         },
@@ -867,7 +1069,7 @@ function tmSyncPanelHtml(team, teamId) {
         </div>
         <div class="players-tm-sync__actions">
           <button type="button" class="mw-btn-danger players-tm-sync__apply" data-tm-remove="${esc(p.id)}">Remove</button>
-          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-remove="${esc(p.id)}" title="Ignore" aria-label="Ignore remove suggestion">×</button>
+          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-remove="${esc(p.id)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore remove suggestion">Ignore</button>
         </div>
       </li>`,
       )
@@ -883,7 +1085,7 @@ function tmSyncPanelHtml(team, teamId) {
         </div>
         <div class="players-tm-sync__actions">
           <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-sync-id="${esc(row.local.id)}">Sync</button>
-          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-update="${esc(row.local.id)}" title="Ignore" aria-label="Ignore detail sync">×</button>
+          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-update="${esc(row.local.id)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore detail sync">Ignore</button>
         </div>
       </li>`,
       )
@@ -941,6 +1143,7 @@ function tmSyncPanelHtml(team, teamId) {
             : emptyMsg
         }
       </div>
+      <p class="mw-field-note admin-muted players-tm-sync__ignore-hint">Ignore hides a suggestion on future Refresh until that player leaves, or their jersey number / position changes.</p>
     </div>`;
 }
 
@@ -1053,6 +1256,7 @@ function recalculateTmSquadDiff(teamId) {
   if (!tmSyncState || typeof TransfermarktSync === "undefined") return;
   const local = playersForTeam(teamId);
   tmSyncState.diff = TransfermarktSync.compareSquads(local, tmSyncState.tmPlayers);
+  applyTmSquadIgnoreToState(teamId, { tmPlayers: tmSyncState.tmPlayers, diff: tmSyncState.diff });
 }
 
 async function refreshTransfermarktSquad(team) {
@@ -1082,14 +1286,17 @@ async function refreshTransfermarktSquad(team) {
   try {
     const local = playersForTeam(liveTeam.id);
     const result = await TransfermarktSync.fetchAndCompare(local, clubId);
+    const lists = pruneTmSquadIgnore(liveTeam.id, {
+      tmPlayers: result.tmPlayers,
+      diff: result.diff,
+    });
     tmSyncState = {
       ...result,
       clubId,
-      ignoredAdd: new Set(),
-      ignoredRemove: new Set(),
-      ignoredUpdate: new Set(),
+      teamId: liveTeam.id,
+      ...tmSquadIgnoreSets(lists),
     };
-    const visible = getTmSyncVisibleDiff();
+    const visible = getTmSyncVisibleDiff(liveTeam.id);
     const updateCount = visible.toUpdate?.length ?? 0;
     toast(
       visible.toAdd.length || visible.toRemove.length || updateCount
@@ -1214,13 +1421,107 @@ function ignoreTransfermarktSuggestion({
   updateId = null,
 } = {}) {
   if (!tmSyncState) return;
+  const teamId = tmSyncState.teamId || playerTeamFilter;
   if (!tmSyncState.ignoredAdd) tmSyncState.ignoredAdd = new Set();
   if (!tmSyncState.ignoredRemove) tmSyncState.ignoredRemove = new Set();
   if (!tmSyncState.ignoredUpdate) tmSyncState.ignoredUpdate = new Set();
-  if (addKey) tmSyncState.ignoredAdd.add(addKey);
-  if (removeId) tmSyncState.ignoredRemove.add(removeId);
-  if (updateId) tmSyncState.ignoredUpdate.add(updateId);
-  toast("Suggestion ignored");
+
+  const lists = loadTmSquadIgnore(teamId);
+  let toastName = "";
+
+  if (addKey) {
+    tmSyncState.ignoredAdd.add(addKey);
+    const tm =
+      (tmSyncState.diff?.toAdd ?? []).find((t) => tmSyncNameKey(t.name) === addKey) ||
+      (tmSyncState.tmPlayers ?? []).find((t) => tmSyncNameKey(t.name) === addKey);
+    toastName = tm?.name || addKey;
+    const tmSnap = tmSquadIgnoreSnap(tm);
+    if (!lists.add.some((x) => x.key === addKey)) {
+      lists.add.push({
+        key: addKey,
+        name: tm?.name || addKey,
+        number: tmSnap.number,
+        pos: tmSnap.pos,
+        tracked: true,
+      });
+    }
+    const matchRemove = (tmSyncState.diff?.toRemove ?? []).find((p) => tmSquadLikelySamePlayer(tm, p));
+    if (matchRemove?.id && !tmSyncState.ignoredRemove.has(String(matchRemove.id))) {
+      tmSyncState.ignoredRemove.add(String(matchRemove.id));
+      if (!lists.remove.some((x) => String(x.id) === String(matchRemove.id))) {
+        const localSnap = tmSquadIgnoreSnap(matchRemove);
+        lists.remove.push({
+          id: String(matchRemove.id),
+          name: matchRemove.name,
+          number: localSnap.number,
+          pos: localSnap.pos,
+          tracked: true,
+        });
+      }
+    }
+  }
+
+  if (removeId) {
+    tmSyncState.ignoredRemove.add(String(removeId));
+    const local =
+      (tmSyncState.diff?.toRemove ?? []).find((p) => String(p.id) === String(removeId)) ||
+      playersForTeam(teamId).find((p) => String(p.id) === String(removeId));
+    toastName = toastName || stripCaptainSuffix(local?.name || "");
+    const localSnap = tmSquadIgnoreSnap(local);
+    if (!lists.remove.some((x) => String(x.id) === String(removeId))) {
+      lists.remove.push({
+        id: String(removeId),
+        name: local?.name || "",
+        number: localSnap.number,
+        pos: localSnap.pos,
+        tracked: true,
+      });
+    }
+    const matchAdd = (tmSyncState.diff?.toAdd ?? []).find((t) => tmSquadLikelySamePlayer(t, local));
+    if (matchAdd) {
+      const key = tmSyncNameKey(matchAdd.name);
+      if (key && !tmSyncState.ignoredAdd.has(key)) {
+        tmSyncState.ignoredAdd.add(key);
+        if (!lists.add.some((x) => x.key === key)) {
+          const tmSnap = tmSquadIgnoreSnap(matchAdd);
+          lists.add.push({
+            key,
+            name: matchAdd.name,
+            number: tmSnap.number,
+            pos: tmSnap.pos,
+            tracked: true,
+          });
+        }
+      }
+    }
+  }
+
+  if (updateId) {
+    tmSyncState.ignoredUpdate.add(String(updateId));
+    const row = (tmSyncState.diff?.toUpdate ?? []).find((r) => String(r.local?.id) === String(updateId));
+    toastName = toastName || stripCaptainSuffix(row?.local?.name || "");
+    const localSnap = tmSquadIgnoreSnap(row?.local);
+    const tmSnap = tmSquadIgnoreSnap(row?.tm);
+    if (!lists.update.some((x) => String(x.id) === String(updateId))) {
+      lists.update.push({
+        id: String(updateId),
+        name: row?.local?.name || "",
+        number: localSnap.number,
+        pos: localSnap.pos,
+        tmNumber: tmSnap.number,
+        tmPos: tmSnap.pos,
+        tracked: true,
+      });
+    }
+  }
+
+  saveTmSquadIgnore(teamId, lists);
+  const teamName = state().teams.find((t) => t.id === teamId)?.name || "this club";
+  toast(
+    toastName
+      ? `Ignored ${toastName} for ${teamName} — hidden until leave, or jersey / position changes.`
+      : "Suggestion ignored",
+  );
   renderPanel();
 }
 
@@ -1618,6 +1919,41 @@ function listLineupSources(leagueId, teamId, currentMw, excludeMatchId) {
 
 function getLineupSourceByMatchId(sources, matchId) {
   return sources.find((s) => s.matchId === matchId) ?? sources[0];
+}
+
+function mwLineupPitchPreviewHtml(side, teamId, formation, lineup) {
+  const team = state().teams.find((t) => t.id === teamId);
+  const name = team?.name ?? (side === "home" ? "Home" : "Away");
+  const form = String(formation ?? "").trim() || (side === "home" ? "4-2-3-1" : "4-3-3");
+  const slots = Array.isArray(lineup) ? lineup.filter(Boolean) : [];
+  if (typeof renderPitchSideHtml !== "function") {
+    return `<div class="pitch pitch--empty"><span class="admin-muted">Pitch preview unavailable</span></div>`;
+  }
+  return `<div class="mw-lineup-pitch-wrap">${renderPitchSideHtml(name, form, slots, side, true, teamId || "")}</div>`;
+}
+
+function refreshMwLineupPitchPreviews() {
+  const homeHost = $("#mwPitchPreviewHome");
+  const awayHost = $("#mwPitchPreviewAway");
+  if (!homeHost && !awayHost) return;
+  const homeId = $("#matchHome")?.value ?? "";
+  const awayId = $("#matchAway")?.value ?? "";
+  if (homeHost) {
+    homeHost.innerHTML = mwLineupPitchPreviewHtml(
+      "home",
+      homeId,
+      $("#matchFormHome")?.value?.trim(),
+      readLineupFromDom("home"),
+    );
+  }
+  if (awayHost) {
+    awayHost.innerHTML = mwLineupPitchPreviewHtml(
+      "away",
+      awayId,
+      $("#matchFormAway")?.value?.trim(),
+      readLineupFromDom("away"),
+    );
+  }
 }
 
 function renderLineupEditor(side, teamId, lineup, editorOpts = {}) {
@@ -2737,7 +3073,11 @@ function panelLeague() {
 
         <div class="mw-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">③</span> Lineups</h4>
-          <p class="mw-section-hint">Use <strong>Copy lineup</strong> per team to reuse a previous matchweek XI, then adjust and save.</p>
+          <p class="mw-section-hint">Use <strong>Copy lineup</strong> per team to reuse a previous matchweek XI, then adjust and save. Glass pitch previews update as you pick players and tags — check formation spots before saving.</p>
+          <div class="mw-lineup-pitch-previews pitch-grid" aria-label="Lineup pitch previews">
+            <div id="mwPitchPreviewHome">${mwLineupPitchPreviewHtml("home", homeId, src?.formation?.[0], src?.lineups?.home)}</div>
+            <div id="mwPitchPreviewAway">${mwLineupPitchPreviewHtml("away", awayId, src?.formation?.[1], src?.lineups?.away)}</div>
+          </div>
           <div class="row g-3 mw-lineups-grid">
             <div class="col-12 col-xl-6">${renderLineupEditor("home", homeId, src?.lineups?.home, { currentMw: mw, excludeMatchId: matchEditId })}</div>
             <div class="col-12 col-xl-6">${renderLineupEditor("away", awayId, src?.lineups?.away, { currentMw: mw, excludeMatchId: matchEditId })}</div>
@@ -3137,6 +3477,7 @@ function teamCardHtml(t) {
         <span class="team-card__coach">${coach}</span>
       </div>
       ${stadium}
+      ${teamInstagramGapBadgeHtml(t.id)}
       <code class="team-card__id">${esc(t.id)}</code>
     </div>
     <div class="team-card__actions admin-row-actions">
@@ -4116,10 +4457,36 @@ function panelNationalDuty() {
   `;
 }
 
-function teamOptionTags(teams, selectedId) {
+function teamOptionTags(teams, selectedId, { igGaps = false } = {}) {
   return teams
-    .map((t) => `<option value="${esc(t.id)}"${t.id === selectedId ? " selected" : ""}>${esc(t.name)}</option>`)
+    .map((t) => {
+      const gap = igGaps ? teamMissingInstagramCount(t.id) : 0;
+      const suffix = igGaps && gap > 0 ? ` · ${gap} no IG` : "";
+      return `<option value="${esc(t.id)}"${t.id === selectedId ? " selected" : ""}>${esc(t.name)}${esc(suffix)}</option>`;
+    })
     .join("");
+}
+
+function teamMissingInstagramCount(teamId) {
+  if (!teamId) return 0;
+  const hasIg =
+    typeof playerInstagramUrl === "function"
+      ? (p) => Boolean(playerInstagramUrl(p))
+      : (p) => Boolean(String(p?.instagram ?? "").trim());
+  return playersForTeam(teamId).filter((p) => !hasIg(p)).length;
+}
+
+function teamInstagramGapBadgeHtml(teamId, { compact = false } = {}) {
+  const players = playersForTeam(teamId);
+  if (!players.length) return "";
+  const missing = teamMissingInstagramCount(teamId);
+  if (missing > 0) {
+    const label = compact
+      ? `${missing} no IG`
+      : `${missing} without Instagram`;
+    return `<span class="team-ig-gap team-ig-gap--warn" title="${esc(`${missing} player${missing === 1 ? "" : "s"} missing an Instagram link`)}">${esc(label)}</span>`;
+  }
+  return `<span class="team-ig-gap team-ig-gap--ok" title="Every player has an Instagram link">IG complete</span>`;
 }
 
 function playerTransferPickOptions(teamId, selectedId) {
@@ -4292,13 +4659,14 @@ function panelPlayers() {
     playerTransferPickId = "";
   }
   const teamId = playerTeamFilter;
-  const teamOpts = teamOptionTags(teams, teamId);
+  const teamOpts = teamOptionTags(teams, teamId, { igGaps: true });
   const addTeamId = $("#playerEditId")?.value ? $("#playerTeam")?.value || teamId : teamId;
-  const addTeamOpts = teamOptionTags(teams, addTeamId);
+  const addTeamOpts = teamOptionTags(teams, addTeamId, { igGaps: true });
   const players = teamId ? playersForTeam(teamId) : [];
   const team = teams.find((t) => t.id === teamId);
   const teamName = team?.name ?? "—";
   const playerCount = players.length;
+  const igMissing = teamId ? teamMissingInstagramCount(teamId) : 0;
   const posBreak = squadPositionBreakdown(players);
   const dragHint = isWorldCup
     ? " Drag the <strong>⠿</strong> handle on a row to reorder. For World Cup squads, set each player’s <strong>club</strong> (domestic team)."
@@ -4312,6 +4680,7 @@ function panelPlayers() {
                 `<span class="players-pos-chip players-pos-chip--${k.toLowerCase()}"><span class="players-pos-chip__key">${k}</span><span class="players-pos-chip__val">${posBreak[k]}</span></span>`,
             )
             .join("")}
+          <span class="players-pos-chip players-pos-chip--ig${igMissing ? " players-pos-chip--ig-warn" : ""}" title="${igMissing ? `${igMissing} players still need an Instagram link` : "Every player has an Instagram link"}"><span class="players-pos-chip__key">No IG</span><span class="players-pos-chip__val">${igMissing}</span></span>
         </div>`
       : "";
 
@@ -4348,6 +4717,7 @@ function panelPlayers() {
                 <span class="mw-hero-preview-label">${esc(teamName)}</span>
                 <strong class="mw-hero-preview-title">${playerCount} player${playerCount === 1 ? "" : "s"}</strong>
                 <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+                ${teamId && playerCount ? `<span class="mw-hero-preview-ig">${teamInstagramGapBadgeHtml(teamId)}</span>` : ""}
               </div>
             </div>
           </aside>
@@ -4484,7 +4854,11 @@ function panelPlayers() {
             </div>
           </div>
           <div class="col-6 col-md-6 col-lg-4">
-            <div class="mw-field"><label for="playerNumber">Number</label><input id="playerNumber" class="mw-input" type="number" /></div>
+            <div class="mw-field">
+              <label for="playerNumber">Number <span class="admin-muted">(optional)</span></label>
+              <input id="playerNumber" class="mw-input" type="number" min="1" max="99" inputmode="numeric" placeholder="—" />
+              <p class="mw-field-note admin-muted">Leave blank for now — you can set the shirt number later.</p>
+            </div>
           </div>
           <div class="col-12 col-md-6 col-lg-4">
             <div class="mw-field"><label for="playerName">Name</label><input id="playerName" class="mw-input" /></div>
@@ -4924,6 +5298,42 @@ function transferDateFromInputValue(iso) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function transferDateSortTs(dateStr) {
+  const s = String(dateStr ?? "").trim();
+  if (!s) return 0;
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : transferDateToInputValue(s);
+  if (!iso) {
+    const t = Date.parse(s);
+    return Number.isNaN(t) ? 0 : t;
+  }
+  const t = Date.parse(`${iso}T12:00:00`);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function sortTransfersNewestFirst(rows) {
+  return [...(rows ?? [])].sort((a, b) => transferDateSortTs(b?.date) - transferDateSortTs(a?.date));
+}
+
+function transferCardDateSortTs(card) {
+  const iso = transferCardInputValue(card, ".tr-date");
+  if (iso) return transferDateSortTs(iso);
+  const label = card?.querySelector(".transfers-card__fact--date")?.textContent?.trim() ?? "";
+  return transferDateSortTs(label);
+}
+
+function sortTransferSectionByDate(tableId) {
+  const list = $(`#${tableId}`);
+  if (!list) return 0;
+  const cards = [...list.querySelectorAll(":scope > .transfers-card")];
+  if (cards.length < 2) return cards.length;
+  cards.sort((a, b) => transferCardDateSortTs(b) - transferCardDateSortTs(a));
+  const empty = list.querySelector(":scope > .transfers-empty-row");
+  for (const card of cards) list.appendChild(card);
+  if (empty) list.appendChild(empty);
+  stashTransferEditsFromDom();
+  return cards.length;
+}
+
 /** Prefer the visible panel on new DB/manual cards so hidden sibling fields are not read. */
 function transferCardActiveRoot(card) {
   if (!card) return null;
@@ -5020,7 +5430,6 @@ function lookupTmTransferSquadPrefill(playerName) {
 
 function transferSquadDetailsHtml(teamId, playerName) {
   const name = String(playerName ?? "").trim();
-  const suggestedNum = teamId ? nextSquadShirtNumber(teamId) : "";
   const sample = teamId ? playersForTeam(teamId).find((p) => p.nationality?.trim()) : null;
   const prefill = lookupTmTransferSquadPrefill(name);
   const suggestedNat = prefill?.nationality || sample?.nationality?.trim() || "";
@@ -5031,8 +5440,8 @@ function transferSquadDetailsHtml(teamId, playerName) {
       <p class="tr-squad-details-lead">Complete roster details before adding to the squad.</p>
       <div class="tr-squad-details-grid">
         <label class="tr-squad-field">
-          <span class="tr-squad-label">#</span>
-          <input class="tr-squad-num transfers-input mw-input" type="number" min="1" max="99" value="${esc(suggestedNum)}" placeholder="#" />
+          <span class="tr-squad-label"># <span class="admin-muted">(opt.)</span></span>
+          <input class="tr-squad-num transfers-input mw-input" type="number" min="1" max="99" value="" placeholder="—" title="Optional — leave blank if unknown" />
         </label>
         <label class="tr-squad-field">
           <span class="tr-squad-label">Pos</span>
@@ -5171,9 +5580,6 @@ function openTransferSquadForm(row, teamId) {
   }
   if (!details) return;
 
-  const numInput = details.querySelector(".tr-squad-num");
-  if (numInput && !String(numInput.value ?? "").trim()) numInput.value = String(nextSquadShirtNumber(teamId));
-
   const prefill = lookupTmTransferSquadPrefill(name);
   if (prefill) {
     const posInput = details.querySelector(".tr-squad-pos");
@@ -5200,7 +5606,7 @@ function closeTransferSquadForm(row) {
 function readTransferSquadDetails(row) {
   const details = row?.querySelector(".tr-squad-details");
   return {
-    number: Number(details?.querySelector(".tr-squad-num")?.value),
+    number: details?.querySelector(".tr-squad-num")?.value ?? "",
     pos: details?.querySelector(".tr-squad-pos")?.value?.trim() ?? "",
     role: details?.querySelector(".tr-squad-role")?.value?.trim() ?? "",
     nationality: details?.querySelector(".tr-squad-nat")?.value?.trim() ?? "",
@@ -5213,13 +5619,14 @@ function addTransferPlayerToSquad(teamId, playerName, details = {}) {
   if (!name) return toast("Enter a player name first");
   if (rosterPlayerByName(teamId, name)) return toast("Player is already on the squad");
 
-  const number = Number(details.number);
+  const parsedNum = parseOptionalJerseyNumber(details.number);
+  if (!parsedNum.ok) return toast(parsedNum.error);
+  const number = parsedNum.number;
   const pos = String(details.pos ?? "").trim().toUpperCase();
   const role = String(details.role ?? "").trim().toUpperCase();
   const nationality = String(details.nationality ?? "").trim();
 
-  if (!Number.isFinite(number) || number < 1) return toast("Enter a valid jersey number");
-  if (playersForTeam(teamId).some((p) => Number(p.number) === number)) {
+  if (number != null && playersForTeam(teamId).some((p) => Number(p.number) === number)) {
     return toast(`Jersey #${number} is already used on this squad`);
   }
   if (!pos) return toast("Enter position (GK, DF, MF, or FW)");
@@ -5231,19 +5638,20 @@ function addTransferPlayerToSquad(teamId, playerName, details = {}) {
   if (typeof NationalityFlags !== "undefined") flag = NationalityFlags.getFlag(nationality) || "";
 
   const maxOrder = playersForTeam(teamId).reduce((m, p) => Math.max(m, p.sortOrder ?? -1), -1);
-  FCDataStore.upsertPlayer({
+  const player = {
     id: FCDataStore.makePlayerId(teamId, number, name),
     teamId,
-    number,
     name,
     pos,
     role,
     flag,
     nationality,
     sortOrder: maxOrder + 1,
-  });
+  };
+  if (number != null) player.number = number;
+  FCDataStore.upsertPlayer(player);
   syncToAppArrays();
-  toast(`${name} added to squad (#${number})`);
+  toast(number != null ? `${name} added to squad (#${number})` : `${name} added to squad`);
   saveTransfersFromDom({ silent: true });
   return true;
 }
@@ -5710,12 +6118,13 @@ function stashTransferEditsFromDom() {
 function transferListsForEditor(leagueId, teamId) {
   const fromStore = transfersForTeam(leagueId, teamId);
   const cached = transferEditsByTeam.get(transferTeamKey(leagueId, teamId));
-  if (!cached) return fromStore;
-
   const keys = FCDataStore?.TRANSFER_LIST_KEYS ?? ["in", "out", "promoted", "loanReturn", "loanRecall"];
   const merged = {};
   for (const key of keys) {
-    merged[key] = mergeTransferDirectionLists(fromStore[key], cached[key], leagueId, teamId);
+    const rows = cached
+      ? mergeTransferDirectionLists(fromStore[key], cached[key], leagueId, teamId)
+      : fromStore[key] ?? [];
+    merged[key] = sortTransfersNewestFirst(rows);
   }
   return merged;
 }
@@ -5762,7 +6171,9 @@ function saveTransfersFromDom(options = {}) {
   if (!teamName) return false;
   const teamLists = {};
   for (const section of ADMIN_TRANSFER_SECTIONS) {
-    teamLists[section.key] = readTransfersTable(`#${section.tableId}`, section.key, teamName);
+    teamLists[section.key] = sortTransfersNewestFirst(
+      readTransfersTable(`#${section.tableId}`, section.key, teamName),
+    );
   }
   const merged = mergeTeamTransfersIntoLeague(leagueFilter, transferTeamFilter, teamLists);
   FCDataStore.setTransfers(leagueFilter, merged);
@@ -6438,6 +6849,7 @@ function panelTransfers() {
             <div class="transfers-card-list" id="${esc(section.tableId)}" role="list">${rowHtml}${emptyRow}</div>
           </div>
           <div class="transfers-section-actions">
+            <button type="button" class="mw-btn-ghost transfers-sort-btn" data-sort-transfers="${esc(section.key)}" ${rows.length ? "" : " disabled"}>Sort by date</button>
             <button type="button" class="mw-btn-ghost transfers-add-btn transfers-add-btn--${esc(section.key)}" id="${esc(section.btnId)}">${esc(section.btnLabel)}</button>
           </div>
         </section>`;
@@ -6498,7 +6910,7 @@ function panelTransfers() {
 
         ${tmTransferSyncPanelHtml(team)}
 
-        <p class="transfers-order-hint admin-muted">Drag <strong>⠿</strong> to set display order on the public Transfers tab — top of each list appears first. Save to keep the order.</p>
+        <p class="transfers-order-hint admin-muted">Each list saves <strong>newest date first</strong> on the public Transfers tab. Use <strong>Sort by date</strong> after editing dates, then Save. Drag ⠿ is optional preview only.</p>
 
         <div class="transfers-sections">${transferSectionsHtml}</div>
 
@@ -6920,7 +7332,11 @@ function bindPanelHandlers() {
       renderPanel();
     } catch (err) {
       console.error(err);
-      alert(err?.message || "Firebase publish failed");
+      const msg =
+        typeof FCFirebase.formatAuthError === "function"
+          ? FCFirebase.formatAuthError(err)
+          : err?.message || "Firebase publish failed";
+      alert(msg);
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -7518,6 +7934,20 @@ function bindMatchweek() {
 
   bindLineupSlotHandlers();
 
+  $("#matchFormHome")?.addEventListener("input", refreshMwLineupPitchPreviews);
+  $("#matchFormAway")?.addEventListener("input", refreshMwLineupPitchPreviews);
+  const lineupGrid = document.querySelector(".mw-lineups-grid");
+  lineupGrid?.addEventListener("change", (e) => {
+    if (e.target instanceof Element && e.target.closest(".admin-lineup-slot")) {
+      refreshMwLineupPitchPreviews();
+    }
+  });
+  lineupGrid?.addEventListener("input", (e) => {
+    if (e.target instanceof Element && e.target.closest(".admin-lineup-slot")) {
+      refreshMwLineupPitchPreviews();
+    }
+  });
+
   const startNewFixture = () => {
     matchEditId = "";
     renderPanel();
@@ -7648,7 +8078,10 @@ function bindLineupSlotHandlers() {
       addWrap?.classList.toggle("admin-hidden", !manual);
     };
 
-    modeSel?.addEventListener("change", syncMode);
+    modeSel?.addEventListener("change", () => {
+      syncMode();
+      refreshMwLineupPitchPreviews();
+    });
     syncMode();
   });
 
@@ -7660,6 +8093,7 @@ function bindLineupSlotHandlers() {
       if (p && tag && !tag.value.trim()) tag.value = p.role || p.pos;
       const capBox = slot?.querySelector(".lineup-cap");
       if (capBox && p) capBox.checked = playerNameMarksCaptain(p.name) || capBox.checked;
+      refreshMwLineupPitchPreviews();
     });
   });
 
@@ -8995,9 +9429,17 @@ function bindPlayers() {
 
   $("#btnSavePlayer")?.addEventListener("click", () => {
     const teamId = $("#playerTeam").value;
-    const number = Number($("#playerNumber").value);
+    const parsedNum = parseOptionalJerseyNumber($("#playerNumber")?.value);
+    if (!parsedNum.ok) return alert(parsedNum.error);
+    const number = parsedNum.number;
     const name = stripCaptainSuffix($("#playerName").value.trim());
     if (!teamId || !name) return alert("Team and name required");
+    if (
+      number != null &&
+      playersForTeam(teamId).some((p) => Number(p.number) === number && p.id !== $("#playerEditId").value)
+    ) {
+      return alert(`Jersey #${number} is already used on this squad`);
+    }
     const editId = $("#playerEditId").value;
     const id = editId || FCDataStore.makePlayerId(teamId, number, name);
     const existing = state().players.find((x) => x.id === id);
@@ -9010,7 +9452,6 @@ function bindPlayers() {
     const playerPayload = {
       id,
       teamId,
-      number,
       name,
       displayLastName: $("#playerDisplayLastName")?.value?.trim().slice(0, 20) ?? "",
       pos: $("#playerPos").value.trim() || "MF",
@@ -9020,6 +9461,8 @@ function bindPlayers() {
       sortOrder,
       captain: isCaptain,
     };
+    if (number != null) playerPayload.number = number;
+    else playerPayload.number = null;
     if (teamId.startsWith("worldcup_")) {
       playerPayload.club = $("#playerClub")?.value.trim() || undefined;
     }
@@ -9040,7 +9483,7 @@ function bindPlayers() {
       $("#playerEditId").value = p.id;
       $("#playerFormTitle").textContent = "Edit player";
       $("#playerTeam").value = p.teamId;
-      $("#playerNumber").value = p.number;
+      $("#playerNumber").value = hasJerseyNumber(p.number) ? p.number : "";
       $("#playerName").value = stripCaptainSuffix(p.name);
       if ($("#playerDisplayLastName")) {
         $("#playerDisplayLastName").value = p.displayLastName ?? "";
@@ -10127,6 +10570,21 @@ function bindTransfers() {
       renderPanel();
     });
   }
+
+  document.querySelectorAll("[data-sort-transfers]").forEach((btn) => {
+    if (btn.dataset.trDateSortBound === "1") return;
+    btn.dataset.trDateSortBound = "1";
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-sort-transfers");
+      const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === key);
+      if (!section || !transferTeamFilter) return toast("Choose a club first");
+      const n = sortTransferSectionByDate(section.tableId);
+      if (!n) return toast(`No ${section.title.toLowerCase()} to sort`);
+      if (!saveTransfersFromDom({ silent: true })) return;
+      toast(`${section.title} sorted newest first and saved`);
+      renderPanel();
+    });
+  });
 
   for (const section of ADMIN_TRANSFER_SECTIONS) {
     const btn = $(`#${section.btnId}`);

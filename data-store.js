@@ -657,7 +657,9 @@
   }
 
   function makePlayerId(teamId, number, name) {
-    return `${teamId}_${number}_${String(name).replaceAll(" ", "_")}`;
+    const n = Number(number);
+    const numPart = Number.isFinite(n) && n > 0 ? String(Math.trunc(n)) : "n";
+    return `${teamId}_${numPart}_${String(name).replaceAll(" ", "_")}`;
   }
 
   function upsertTeam(team) {
@@ -723,6 +725,11 @@
         if (label) merged.displayLastName = label;
         else delete merged.displayLastName;
       }
+      if (Object.prototype.hasOwnProperty.call(normalized, "number")) {
+        const n = Number(normalized.number);
+        if (Number.isFinite(n) && n > 0) merged.number = Math.trunc(n);
+        else delete merged.number;
+      }
       if (merged.captain) clearOtherCaptains(merged.teamId, merged.id);
       else if (merged.captain === false) delete merged.captain;
       state.players[i] = merged;
@@ -730,6 +737,9 @@
       const next = { ...normalized };
       if (!next.instagram) delete next.instagram;
       if (!next.displayLastName) delete next.displayLastName;
+      const n = Number(next.number);
+      if (!Number.isFinite(n) || n <= 0) delete next.number;
+      else next.number = Math.trunc(n);
       if (next.captain) clearOtherCaptains(next.teamId, next.id);
       state.players.push(next);
     }

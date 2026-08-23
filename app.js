@@ -4877,6 +4877,11 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+function formatPlayerJerseyNumber(value, empty = "—") {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? String(Math.trunc(n)) : empty;
+}
+
 /** Roster names may include " (C)" manually; lineup UI uses a separate captain flag. */
 function stripCaptainSuffix(name) {
   return String(name ?? "").replace(/\s*\(C\)\s*$/i, "").trim();
@@ -5742,7 +5747,7 @@ function openPlayerFullProfile(p, startsMap = new Map(), leagueId) {
     <article class="player-full" aria-label="${escapeHtml(displayName)} profile">
       <button type="button" class="player-full__back" id="playerProfileBack">← Back to roster</button>
       <div class="squad-profile-hero">
-        <span class="squad-profile-num" aria-hidden="true">${escapeHtml(p.number)}</span>
+        <span class="squad-profile-num" aria-hidden="true">${escapeHtml(formatPlayerJerseyNumber(p.number))}</span>
         <div class="squad-profile-copy min-w-0">
           <div class="squad-profile-name-row">
             <h2 class="squad-profile-name mb-0">${escapeHtml(displayName)}${cap}${arrivalBadge}</h2>
@@ -5856,7 +5861,7 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
     bodyHtml: `
       <div class="squad-profile squad-profile--preview">
         <div class="squad-profile-hero">
-          <span class="squad-profile-num" aria-hidden="true">${escapeHtml(p.number)}</span>
+          <span class="squad-profile-num" aria-hidden="true">${escapeHtml(formatPlayerJerseyNumber(p.number))}</span>
           <div class="squad-profile-copy min-w-0">
             <div class="squad-profile-name-row">
               <div class="squad-profile-name">${escapeHtml(displayName)}${cap}${arrivalBadge}</div>
@@ -6136,7 +6141,7 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
   const arrivalLabel = arrivalKind ? SQUAD_ARRIVAL_META[arrivalKind]?.label : "";
   const ariaExtra = [onDuty ? "on national duty" : "", arrivalLabel].filter(Boolean).join(", ");
   const cells = {
-    num: `<span class="squad-num">${escapeHtml(p.number)}</span>`,
+    num: `<span class="squad-num">${escapeHtml(formatPlayerJerseyNumber(p.number))}</span>`,
     player: `<span class="squad-player">
       ${playerInitialsAvatarHtml(displayName, `player-avatar squad-row__avatar${posKey ? ` squad-row__avatar--${posKey}` : ""}`)}
       <span class="squad-player-text">
@@ -7646,6 +7651,21 @@ function transfersForLeague(leagueId) {
     : { leagueId, in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
 }
 
+function transferDateSortTs(dateStr) {
+  const s = String(dateStr ?? "").trim();
+  if (!s) return 0;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const t = Date.parse(`${s}T12:00:00`);
+    return Number.isNaN(t) ? 0 : t;
+  }
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function sortTransfersNewestFirst(rows) {
+  return [...(rows ?? [])].sort((a, b) => transferDateSortTs(b?.date) - transferDateSortTs(a?.date));
+}
+
 function transfersForTeam(leagueId, teamId) {
   const team = teamById.get(teamId);
   const club = (team?.name ?? "").trim();
@@ -7653,11 +7673,11 @@ function transfersForTeam(leagueId, teamId) {
   if (!club) return { in: [], out: [], promoted: [], loanReturn: [], loanRecall: [] };
   const match = (t) => (t.club ?? "").trim() === club;
   return {
-    in: (block.in ?? []).filter(match),
-    out: (block.out ?? []).filter(match),
-    promoted: (block.promoted ?? []).filter(match),
-    loanReturn: (block.loanReturn ?? []).filter(match),
-    loanRecall: (block.loanRecall ?? []).filter(match),
+    in: sortTransfersNewestFirst((block.in ?? []).filter(match)),
+    out: sortTransfersNewestFirst((block.out ?? []).filter(match)),
+    promoted: sortTransfersNewestFirst((block.promoted ?? []).filter(match)),
+    loanReturn: sortTransfersNewestFirst((block.loanReturn ?? []).filter(match)),
+    loanRecall: sortTransfersNewestFirst((block.loanRecall ?? []).filter(match)),
   };
 }
 

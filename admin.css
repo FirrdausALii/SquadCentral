@@ -3009,6 +3009,35 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   /* Bootstrap row handles layout */
 }
 
+.mw-lineup-pitch-previews {
+  margin: 4px 0 18px;
+}
+
+.mw-lineup-pitch-wrap {
+  min-width: 0;
+}
+
+.mw-lineup-pitch-wrap .pitch {
+  min-height: 260px;
+  max-height: 420px;
+  aspect-ratio: 100 / 155;
+}
+
+.mw-lineup-pitch-wrap .pitch-team {
+  color: var(--admin-text, #e8eefc);
+}
+
+.mw-lineup-pitch-wrap .muted,
+.mw-lineup-pitch-wrap .admin-muted {
+  color: var(--admin-muted, #94a3b8);
+}
+
+@media (max-width: 900px) {
+  .mw-lineup-pitch-previews.pitch-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .mw-lineup-block {
   padding: 14px;
   border-radius: 14px;
@@ -3373,6 +3402,56 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 
 .team-card__coach {
   font-weight: 600;
+}
+
+.team-ig-gap {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.team-ig-gap--warn {
+  color: #f9a8d4;
+  background: rgba(236, 72, 153, 0.14);
+  border: 0.5px solid rgba(236, 72, 153, 0.4);
+}
+
+.team-ig-gap--ok {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.1);
+  border: 0.5px solid rgba(34, 197, 94, 0.28);
+}
+
+.mw-hero-preview-ig {
+  display: block;
+  margin-top: 6px;
+}
+
+.players-pos-chip--ig {
+  border-color: rgba(236, 72, 153, 0.28);
+  background: rgba(236, 72, 153, 0.08);
+}
+
+.players-pos-chip--ig .players-pos-chip__key,
+.players-pos-chip--ig .players-pos-chip__val {
+  color: #f9a8d4;
+}
+
+.players-pos-chip--ig:not(.players-pos-chip--ig-warn) {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.players-pos-chip--ig:not(.players-pos-chip--ig-warn) .players-pos-chip__key,
+.players-pos-chip--ig:not(.players-pos-chip--ig-warn) .players-pos-chip__val {
+  color: #4ade80;
 }
 
 .team-card__stadium {
@@ -3806,6 +3885,13 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   font-size: 1rem;
   color: #fff;
   line-height: 1;
+}
+
+.player-roster-num--empty {
+  color: var(--admin-muted);
+  font-weight: 600;
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .player-roster-card--gk .player-roster-num {
@@ -4834,23 +4920,33 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 
 .players-tm-sync__dismiss {
   appearance: none;
+  -webkit-appearance: none;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  padding: 0;
+  min-width: 44px;
+  min-height: 40px;
+  padding: 8px 10px;
   border-radius: 10px;
   border: 0.5px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
   color: var(--admin-muted);
-  font-size: 20px;
-  line-height: 1;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
   cursor: pointer;
 }
 
-.players-tm-sync__dismiss:hover {
+.players-tm-sync__dismiss:hover,
+.players-tm-sync__dismiss:focus-visible {
   color: var(--admin-text);
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+
+.players-tm-sync__ignore-hint {
+  margin: 10px 0 0;
 }
 
 .players-tm-sync__empty {
@@ -7327,7 +7423,8 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   margin-top: 12px;
 }
 
-.transfers-add-btn {
+.transfers-add-btn,
+.transfers-sort-btn {
   min-width: 120px;
 }
 
@@ -7543,7 +7640,8 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
     padding-top: 2px;
   }
 
-  .transfers-add-btn {
+  .transfers-add-btn,
+  .transfers-sort-btn {
     width: 100%;
     text-align: center;
     min-height: 48px;
