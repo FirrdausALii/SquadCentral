@@ -5606,6 +5606,69 @@ function formatLineupStarts(n) {
   return n > 0 ? String(n) : "—";
 }
 
+/**
+ * Last N matchweek XI tags for a player (oldest → newest), capped at the
+ * published/current gameweek. Weeks with no fixture or where the player was
+ * not in the starting XI use tag "".
+ */
+function playerRecentLineupPositions(p, leagueId, { count = 3 } = {}) {
+  if (!p?.teamId || !leagueId || isWorldCupLeague(leagueId)) return [];
+  const published = publishedMatchweekForLeague(leagueId);
+  if (!(published > 0)) return [];
+
+  const weeks = [];
+  for (let w = Math.max(1, published - count + 1); w <= published; w++) {
+    weeks.push(w);
+  }
+
+  const playerKey = `${p.number}|${normLineupName(p.name)}`;
+  const playerNameKey = transferPlayerNameKey(p.name);
+  const out = [];
+
+  for (const week of weeks) {
+    const mwLabel = `MW ${week}`;
+    const matches = (MATCHES ?? []).filter(
+      (m) =>
+        m.leagueId === leagueId &&
+        (m.homeTeamId === p.teamId || m.awayTeamId === p.teamId) &&
+        (m.matchday === mwLabel || parseMatchweekNumber(m.matchday) === week),
+    );
+    let tag = "";
+    for (const m of matches) {
+      const side = m.homeTeamId === p.teamId ? m.lineups?.home : m.lineups?.away;
+      if (!side?.length) continue;
+      const slot =
+        side.find((s) => `${s.number}|${normLineupName(s.name)}` === playerKey) ||
+        side.find((s) => transferPlayerNameKey(s.name) === playerNameKey) ||
+        null;
+      if (slot) {
+        tag = String(slot.tag ?? "").trim().toUpperCase();
+        break;
+      }
+    }
+    out.push({ week, tag });
+  }
+  return out;
+}
+
+function renderPlayerPositionTrail(entries) {
+  if (!entries?.length) return "";
+  const cell = (entry) => {
+    const val = entry.tag || "—";
+    const label = `GW${entry.week}`;
+    return `<div class="squad-profile-stat-chip squad-profile-pos-chip${entry.tag ? "" : " is-empty"}" title="${escapeHtml(label)}${entry.tag ? `: ${escapeHtml(entry.tag)}` : " · not in XI"}">
+      <span class="squad-profile-stat-chip__val">${escapeHtml(val)}</span>
+      <span class="squad-profile-stat-chip__label">${escapeHtml(label)}</span>
+    </div>`;
+  };
+  return `<div class="squad-profile-pos-trail">
+    <p class="squad-profile-pos-trail__label">Recent positions</p>
+    <div class="squad-profile-stats squad-profile-stats--pos" aria-label="Recent lineup positions">
+      ${entries.map(cell).join("")}
+    </div>
+  </div>`;
+}
+
 function playerSeasonStats(p, leagueId, startsMap) {
   const key = transferPlayerNameKey(p?.name);
   const published = publishedMatchweekForLeague(leagueId);
@@ -5758,6 +5821,7 @@ function openPlayerFullProfile(p, startsMap = new Map(), leagueId) {
       </div>
       <p class="player-full__season">This season</p>
       ${renderPlayerStatsRow(stats)}
+      ${renderPlayerPositionTrail(playerRecentLineupPositions(p, lid))}
       ${detailCards.length ? `<div class="squad-profile-grid">${detailCards.join("")}</div>` : ""}
       ${
         transfers.length
@@ -5871,6 +5935,7 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
           </div>
         </div>
         ${renderPlayerStatsRow(stats)}
+        ${renderPlayerPositionTrail(playerRecentLineupPositions(p, lid))}
         ${[natRow, ageRow, clubRow].some(Boolean) ? `<div class="squad-profile-grid">${natRow}${ageRow}${clubRow}</div>` : ""}
         ${renderPlayerTransferCard(recent)}
       </div>
@@ -8029,6 +8094,7 @@ function shareFilenameSlug(text, suffix) {
 }
 
 let matchLineupSharePayload = null;
+let matchLineupShareSide = "home";
 
 function buildLineupSharePayload(m, ht, at, leagueId) {
   const league = LEAGUES.find((l) => l.id === leagueId);
@@ -8039,6 +8105,8 @@ function buildLineupSharePayload(m, ht, at, leagueId) {
   return {
     homeTeam: { name: ht?.name ?? "Home", logo: ht?.logo ?? "" },
     awayTeam: { name: at?.name ?? "Away", logo: at?.logo ?? "" },
+    homeCoach: String(ht?.coach ?? "").trim(),
+    awayCoach: String(at?.coach ?? "").trim(),
     score: m.score ?? [0, 0],
     matchday: m.matchday ?? "",
     time: m.time ?? "",
@@ -8058,6 +8126,11 @@ function buildLineupSharePayload(m, ht, at, leagueId) {
 }
 
 function lineupShareToolbarHtml({ showPitchToggle = false } = {}) {
+  const payload = matchLineupSharePayload;
+  const homeLabel = truncateUiLabel(payload?.homeTeam?.name ?? "Home", 12);
+  const awayLabel = truncateUiLabel(payload?.awayTeam?.name ?? "Away", 12);
+  const homeActive = matchLineupShareSide !== "away" ? " is-active active" : "";
+  const awayActive = matchLineupShareSide === "away" ? " is-active active" : "";
   const toggle = showPitchToggle
     ? `<div class="lineup-toggle lineup-view-toggle" role="tablist" aria-label="Lineup view">
           <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-view="pitch" role="tab">Pitch</button>
@@ -8065,8 +8138,12 @@ function lineupShareToolbarHtml({ showPitchToggle = false } = {}) {
         </div>`
     : "";
   return `
-    <div class="lineup-toolbar">
+    <div class="lineup-toolbar lineup-toolbar--share">
       ${toggle}
+      <div class="lineup-share-side" role="tablist" aria-label="Share team">
+        <button type="button" class="lineup-toggle-btn lineup-share-side-btn${homeActive}" data-share-side="home" role="tab" aria-selected="${matchLineupShareSide !== "away"}">${escapeHtml(homeLabel)}</button>
+        <button type="button" class="lineup-toggle-btn lineup-share-side-btn${awayActive}" data-share-side="away" role="tab" aria-selected="${matchLineupShareSide === "away"}">${escapeHtml(awayLabel)}</button>
+      </div>
       <button
         type="button"
         class="btn btn-ghost btn-sm share-btn"
@@ -8078,6 +8155,12 @@ function lineupShareToolbarHtml({ showPitchToggle = false } = {}) {
     </div>`;
 }
 
+function truncateUiLabel(text, max) {
+  const s = String(text ?? "").trim();
+  if (s.length <= max) return s;
+  return `${s.slice(0, Math.max(1, max - 1))}…`;
+}
+
 async function handleShareLineup() {
   if (typeof ShareImage === "undefined") {
     alert("Share image module did not load. Refresh the page.");
@@ -8086,16 +8169,22 @@ async function handleShareLineup() {
   const btn = $("#shareLineupBtn");
   const payload = matchLineupSharePayload;
   if (!payload) return;
-  if (!payload.homeRows.length && !payload.awayRows.length) {
-    alert("No lineup data to share for this match.");
+  const side = matchLineupShareSide === "away" ? "away" : "home";
+  const rows = side === "away" ? payload.awayRows : payload.homeRows;
+  if (!rows?.length) {
+    alert(`No ${side} lineup to share for this match.`);
     return;
   }
 
   setShareBusy(btn, true);
   try {
-    const canvas = await ShareImage.renderLineupShareImage(payload);
-    const slug = `${payload.homeTeam.name}-vs-${payload.awayTeam.name}`;
-    await ShareImage.exportShareImage(canvas, shareFilenameSlug(slug, "lineup"));
+    const canvas = await ShareImage.renderLineupShareImage({
+      ...payload,
+      focusSide: side,
+    });
+    const teamName = side === "away" ? payload.awayTeam.name : payload.homeTeam.name;
+    const slug = `${teamName}-lineup-${payload.matchday || "match"}`;
+    await ShareImage.exportShareImage(canvas, shareFilenameSlug(slug, "share"));
   } catch (err) {
     console.error(err);
     alert("Could not generate lineup image. Use a local server (http://) and try again.");
@@ -8105,6 +8194,21 @@ async function handleShareLineup() {
 }
 
 function bindLineupShareButton() {
+  document.querySelectorAll("[data-share-side]").forEach((btn) => {
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const side = btn.getAttribute("data-share-side") === "away" ? "away" : "home";
+      matchLineupShareSide = side;
+      document.querySelectorAll("[data-share-side]").forEach((el) => {
+        const on = el.getAttribute("data-share-side") === side;
+        el.classList.toggle("is-active", on);
+        el.classList.toggle("active", on);
+        el.setAttribute("aria-selected", on ? "true" : "false");
+      });
+    });
+  });
+
   const btn = $("#shareLineupBtn");
   if (!btn || btn.dataset.bound === "1") return;
   btn.dataset.bound = "1";
@@ -8135,24 +8239,52 @@ async function handleShareSquad() {
     return;
   }
 
+  const shareDepth = rosterViewMode === "depth";
+  if (shareDepth) {
+    if (typeof SquadDepth === "undefined") {
+      alert("Squad depth module did not load. Refresh the page.");
+      return;
+    }
+    const depth = SquadDepth.normalizeSquadDepth(team.squadDepth, formationForTeam(state.teamId));
+    if (!SquadDepth.hasSquadDepthContent(depth)) {
+      alert("Set up this team’s depth chart before sharing (Admin → Squad depth).");
+      return;
+    }
+  }
+
   setShareBusy(btn, true);
   try {
-    const canvas = await ShareImage.renderSquadShareImage({
-      team,
-      leagueName: league?.name ?? state.leagueId,
-      formation: formationForTeam(state.teamId),
-      players,
-      dutyIds: nationalDutyPlayerIdsForTeam(team, state.leagueId),
-      showNumber: leagueFeatureOn(state.leagueId, "playerNumber"),
-      showPos: leagueFeatureOn(state.leagueId, "playerPosition"),
-      showNat: leagueFeatureOn(state.leagueId, "playerNationality"),
-      showClub: isWorldCupLeague(state.leagueId) && leagueFeatureOn(state.leagueId, "playerClub"),
-      helpers: { playerFlagEmoji },
-    });
-    await ShareImage.exportShareImage(canvas, shareFilenameSlug(team.name, "squad"));
+    const canvas = shareDepth
+      ? await ShareImage.renderSquadDepthShareImage({
+          team,
+          leagueName: league?.name ?? state.leagueId,
+          formation: formationForTeam(state.teamId),
+          depth: team.squadDepth,
+          players,
+        })
+      : await ShareImage.renderSquadShareImage({
+          team,
+          leagueName: league?.name ?? state.leagueId,
+          formation: formationForTeam(state.teamId),
+          players,
+          dutyIds: nationalDutyPlayerIdsForTeam(team, state.leagueId),
+          showNumber: leagueFeatureOn(state.leagueId, "playerNumber"),
+          showPos: leagueFeatureOn(state.leagueId, "playerPosition"),
+          showNat: leagueFeatureOn(state.leagueId, "playerNationality"),
+          showClub: isWorldCupLeague(state.leagueId) && leagueFeatureOn(state.leagueId, "playerClub"),
+          helpers: { playerFlagEmoji },
+        });
+    await ShareImage.exportShareImage(
+      canvas,
+      shareFilenameSlug(team.name, shareDepth ? "depth" : "squad"),
+    );
   } catch (err) {
     console.error(err);
-    alert("Could not generate squad image. Use a local server (http://) and try again.");
+    alert(
+      shareDepth
+        ? "Could not generate depth image. Use a local server (http://) and try again."
+        : "Could not generate squad image. Use a local server (http://) and try again.",
+    );
   } finally {
     setShareBusy(btn, false);
   }
@@ -8740,6 +8872,13 @@ function renderMatchCenter(leagueId) {
       : `<span class="chip">${escapeHtml(m.time)}</span>`;
 
     if (m.lineups && showLineups) {
+      matchLineupSharePayload = buildLineupSharePayload(m, ht, at, leagueId);
+      if (!matchLineupSharePayload.homeRows?.length && matchLineupSharePayload.awayRows?.length) {
+        matchLineupShareSide = "away";
+      } else if (matchLineupShareSide === "away" && !matchLineupSharePayload.awayRows?.length) {
+        matchLineupShareSide = "home";
+      }
+
       const legacyScorers =
         showGoals && !goalsHtml && (m.scorers ?? []).length > 0
           ? `<p class="muted" style="margin:0 0 14px;font-weight:800;line-height:1.5">${escapeHtml((m.scorers ?? []).join(" • "))}</p>`
@@ -8773,8 +8912,6 @@ function renderMatchCenter(leagueId) {
             ${listGrid}
           </div>
         `;
-
-      matchLineupSharePayload = buildLineupSharePayload(m, ht, at, leagueId);
 
       openModal({
         title: `${ht?.name ?? "Home"} ${m.score?.[0] ?? "—"}–${m.score?.[1] ?? "—"} ${at?.name ?? "Away"}`,

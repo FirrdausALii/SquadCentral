@@ -333,10 +333,41 @@
     return direction;
   }
 
+  function parseTransferDateText(text) {
+    const s = String(text ?? "").trim();
+    if (!s) return "";
+    const key = normalizeTransferDateKey(s);
+    return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : "";
+  }
+
   function transferDateFromFee(fee) {
-    const match = String(fee ?? "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
-    if (!match) return "";
-    return `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
+    return parseTransferDateText(fee);
+  }
+
+  /** Split Transfermarkt fee cell into amount label + ISO transfer date. */
+  function parseTransferFeeCell(feeCell) {
+    if (!feeCell) return { rawFee: "", date: "" };
+    const link = feeCell.querySelector("a");
+    const date =
+      parseTransferDateText(link?.querySelector("i")?.textContent) ||
+      parseTransferDateText(link?.getAttribute("title")) ||
+      parseTransferDateText(feeCell.textContent);
+
+    let rawFee = "";
+    if (link) {
+      const clone = link.cloneNode(true);
+      clone.querySelectorAll("i").forEach((el) => el.remove());
+      rawFee = clone.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    } else {
+      rawFee = feeCell.textContent?.replace(/\s+/g, " ").trim() ?? "";
+      if (date) {
+        rawFee = rawFee
+          .replace(/\d{1,2}[/.]\d{1,2}[/.]\d{4}/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+    }
+    return { rawFee, date };
   }
 
   function normalizeTransferFee(fee, category) {
@@ -360,6 +391,10 @@
     const slash = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (slash) {
       return `${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`;
+    }
+    const dot = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (dot) {
+      return `${dot[3]}-${dot[2].padStart(2, "0")}-${dot[1].padStart(2, "0")}`;
     }
     const parsed = Date.parse(s);
     if (!Number.isNaN(parsed)) {
@@ -416,7 +451,8 @@
       const otherClub = toAsciiName(
         (clubLink?.getAttribute("title") || clubLink?.textContent || "").trim(),
       );
-      const rawFee = cells[5].textContent?.replace(/\s+/g, " ").trim() ?? "";
+      const feeCell = row.querySelector("td.rechts.hauptlink") || cells[5];
+      const { rawFee, date } = parseTransferFeeCell(feeCell);
       const category = transferCategoryForRow(direction, rawFee, otherClub, teamName);
       const mapped = mapTmPosition(position);
 
@@ -425,7 +461,7 @@
         player,
         otherClub,
         fee: normalizeTransferFee(rawFee, category),
-        date: transferDateFromFee(rawFee),
+        date,
         category,
         nationality,
         pos: mapped.pos,

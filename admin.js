@@ -6093,8 +6093,11 @@ function transferRowKey(row) {
 }
 
 function mergeTransferDirectionLists(storeRows, cachedRows, leagueId, teamId) {
+  const teamName = state().teams.find((t) => t.id === teamId)?.name ?? "";
   const store = storeRows ?? [];
-  const cached = (cachedRows ?? []).filter((row) => transferRowBelongsToTeam(leagueId, teamId, row));
+  const cached = (cachedRows ?? [])
+    .map((row) => (row?.club ? row : teamName ? { ...row, club: teamName } : row))
+    .filter((row) => transferRowBelongsToTeam(leagueId, teamId, row));
   if (!cached.length) return store;
 
   const seen = new Set(cached.map(transferRowKey));
@@ -10224,7 +10227,7 @@ function mergeTmFieldsOntoLocal(local, tm, category) {
     delete next.fee;
   }
   const date = String(tm?.date ?? "").trim();
-  if (date) next.date = date;
+  if (date) next.date = tmTransferIsoToStoredDate(date) || date;
   return next;
 }
 
@@ -10244,13 +10247,21 @@ function removeLocalTransferRow(list, local) {
   return list.filter((_, i) => i !== idx);
 }
 
+function tmTransferIsoToStoredDate(iso) {
+  const s = String(iso ?? "").trim();
+  if (!s) return undefined;
+  return transferDateFromInputValue(s) || s;
+}
+
 function applyTmTransferAddRow(next, category, row) {
+  const teamName = state().teams.find((t) => t.id === transferTeamFilter)?.name ?? "";
   next[category].push({
     id: `${leagueFilter}_${transferTeamFilter}_${category}_${FCDataStore.slugify(row.player)}_${tmTransferSeason}_${next[category].length}`,
     player: row.player,
+    club: teamName,
     otherClub: row.otherClub || "",
     fee: row.fee || undefined,
-    date: row.date || undefined,
+    date: tmTransferIsoToStoredDate(row.date),
   });
   stashTmTransferSquadPrefill(row);
 }
@@ -10368,6 +10379,7 @@ function applyTmTransferSuggestion(kind, suggestionKey) {
           entry.local?.id ||
           `${leagueFilter}_${transferTeamFilter}_${to}_${FCDataStore.slugify(entry.local.player)}_${tmTransferSeason}`,
         player: entry.local.player,
+        club: entry.local.club || state().teams.find((t) => t.id === transferTeamFilter)?.name || "",
         otherClub: entry.local.otherClub || "",
         fee: entry.local.fee,
         date: entry.local.date,
@@ -10445,6 +10457,7 @@ function applyAllTmTransferMoves() {
           entry.local?.id ||
           `${leagueFilter}_${transferTeamFilter}_${to}_${FCDataStore.slugify(entry.local.player)}_${tmTransferSeason}`,
         player: entry.local.player,
+        club: entry.local.club || state().teams.find((t) => t.id === transferTeamFilter)?.name || "",
         otherClub: entry.local.otherClub || "",
         fee: entry.local.fee,
         date: entry.local.date,

@@ -1688,6 +1688,30 @@ html.reveal-init .reveal.is-visible {
   text-transform: uppercase;
   color: var(--text-faint);
 }
+.squad-profile-pos-trail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.squad-profile-pos-trail__label {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.squad-profile-stats--pos {
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+}
+.squad-profile-pos-chip .squad-profile-stat-chip__val {
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.squad-profile-pos-chip.is-empty .squad-profile-stat-chip__val {
+  color: var(--text-faint);
+  font-weight: 600;
+}
 .squad-profile-transfer {
   padding: var(--sp-3);
   background: var(--bg-surface-1);
