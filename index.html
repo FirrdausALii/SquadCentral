@@ -24,11 +24,11 @@
       crossorigin="anonymous"
     />
     <link rel="stylesheet" href="./squad-central-dark-stadium.css" />
-    <link rel="stylesheet" href="./styles.css?v=pos-trail-1" />
+    <link rel="stylesheet" href="./styles.css?v=roster-board-2" />
     <link rel="stylesheet" href="./styles-home.css" />
     <link rel="stylesheet" href="./standings.css" />
     <link rel="stylesheet" href="./lineups-pitch.css?v=share-side-1" />
-    <link rel="stylesheet" href="./styles-mobile.css" />
+    <link rel="stylesheet" href="./styles-mobile.css?v=roster-board-2" />
     <link rel="stylesheet" href="./dropdowns.css" />
     <style>
       /* Critical fallback if CSS files fail to load on GitHub Pages */
@@ -107,7 +107,7 @@
           <p class="sidebar-context-lead">Filter rosters by league, club, and position.</p>
           <a class="sidebar-item" href="#squads" data-sidebar-focus="leagueSelect">League &amp; team</a>
           <a class="sidebar-item" href="#squads" data-sidebar-focus="playerSearch">Search players</a>
-          <a class="sidebar-item" href="#squads" data-sidebar-focus="rosterPanel">Roster table</a>
+          <a class="sidebar-item" href="#squads" data-sidebar-focus="rosterPanel">Squad board</a>
         </div>
         <div class="sidebar-panel" data-sidebar-panel="match-center" hidden>
           <span class="sidebar-section-label">Match Center</span>
@@ -496,27 +496,22 @@
             </div>
           </div>
 
-          <div class="card squad-panel player-table-wrap" id="rosterPanel">
+          <div class="card squad-panel squad-panel--board player-table-wrap" id="rosterPanel">
             <div class="squad-team-head squad-team-head--sticky" id="rosterTeamHead" aria-live="polite"></div>
 
             <div class="squad-view-toolbar">
               <div class="squad-view-toolbar__copy min-w-0">
-                <p class="squad-view-toolbar__title mb-0" id="rosterViewTitle">Squad list</p>
-                <p class="squad-view-toolbar__hint mb-0" id="rosterViewHint">Players grouped by position</p>
+                <p class="squad-view-toolbar__title mb-0" id="rosterViewTitle">Jersey board</p>
+                <p class="squad-view-toolbar__hint mb-0" id="rosterViewHint">Jersey board by position — tap a player for their profile</p>
               </div>
               <div class="lineup-toggle lineup-view-toggle roster-view-toggle" id="rosterViewBar" role="tablist" aria-label="Squad view">
-                <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">List</button>
+                <button type="button" class="lineup-toggle-btn lineup-view-btn is-active active" data-roster-view="list" role="tab" aria-selected="true">Board</button>
                 <button type="button" class="lineup-toggle-btn lineup-view-btn" data-roster-view="depth" role="tab" aria-selected="false" aria-label="Depth chart">Depth chart</button>
               </div>
             </div>
 
             <div id="rosterListWrap">
-              <div class="squad-col-head" aria-hidden="true">
-                <span class="squad-col-num">#</span>
-                <span class="squad-col-player">Player</span>
-                <span class="squad-col-role">Pos</span>
-                <span class="squad-col-nat">Nation</span>
-              </div>
+              <div class="squad-col-head" hidden aria-hidden="true"></div>
               <div class="squad-body" id="rosterGrid" aria-live="polite"></div>
             </div>
             <div id="rosterDepthWrap" class="squad-depth-wrap is-hidden" aria-live="polite"></div>
@@ -574,7 +569,7 @@
     <script src="./squad-depth.js"></script>
     <script src="./national-duty.js"></script>
     <script src="./share-image.js?v=squad-depth-share-1"></script>
-    <script src="./app.js?v=squad-depth-share-1" defer></script>
+    <script src="./app.js?v=roster-board-2" defer></script>
     <script>
       document.addEventListener("fc-data-missing", () => {
         const msg =

@@ -629,3 +629,10 @@ body.fc-app {
   }
 }
 
+/* Squad jersey board */
+@media (max-width: 420px) {
+  .squad-board {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -6190,7 +6190,7 @@ function formatPlayerAge(p) {
   return "";
 }
 
-function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
+function renderSquadCard(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
   const keys = colKeys ?? new Set(ROSTER_COL_ORDER);
   const role = p.role ?? p.pos;
   const cap = isCaptainPlayer(p) ? `<span class="squad-cap" title="Captain" aria-label="Captain">C</span>` : "";
@@ -6205,28 +6205,31 @@ function renderSquadRow(p, startsMap, leagueId, colKeys, dutyIds, arrivalsMap) {
   const posKey = String(p.pos ?? "").toLowerCase();
   const arrivalLabel = arrivalKind ? SQUAD_ARRIVAL_META[arrivalKind]?.label : "";
   const ariaExtra = [onDuty ? "on national duty" : "", arrivalLabel].filter(Boolean).join(", ");
-  const cells = {
-    num: `<span class="squad-num">${escapeHtml(formatPlayerJerseyNumber(p.number))}</span>`,
-    player: `<span class="squad-player">
-      ${playerInitialsAvatarHtml(displayName, `player-avatar squad-row__avatar${posKey ? ` squad-row__avatar--${posKey}` : ""}`)}
-      <span class="squad-player-text">
-        <span class="squad-name">${escapeHtml(displayName)}${cap}${arrivalBadge}${dutyBadge}</span>
-      </span>
-    </span>`,
-    pos: `<span class="squad-pos-tag" data-pos="${escapeHtml(p.pos)}">${escapeHtml(role)}</span>`,
-    club: `<span class="squad-club">${escapeHtml(p.club ?? "—")}</span>`,
-    nat: `<span class="squad-nat">
-      ${squadFlagHtml(p)}
-      <span class="squad-nat-copy">
-        <span class="squad-nat-name">${escapeHtml(p.nationality ?? "")}</span>
-        ${age ? `<span class="squad-age" title="Age">${escapeHtml(age)}</span>` : ""}
-      </span>
-    </span>`,
-  };
-  const inner = ROSTER_COL_ORDER.filter((k) => keys.has(k)).map((k) => cells[k]).join("");
+  const showNum = keys.has("num");
+  const showPos = keys.has("pos");
+  const showNat = keys.has("nat");
+  const showClub = keys.has("club");
+
+  const metaBits = [
+    showPos ? `<span class="squad-pos-tag" data-pos="${escapeHtml(p.pos)}">${escapeHtml(role)}</span>` : "",
+    showNat
+      ? `<span class="squad-card__nat">${squadFlagHtml(p)}<span class="squad-card__nat-name">${escapeHtml(p.nationality ?? "")}</span></span>`
+      : "",
+    showClub && p.club ? `<span class="squad-card__club">${escapeHtml(p.club)}</span>` : "",
+    age ? `<span class="squad-card__age">${escapeHtml(age)}</span>` : "",
+  ].filter(Boolean);
+
   return `
-    <button type="button" class="squad-row" data-player="${escapeHtml(p.id)}" aria-label="View ${escapeHtml(displayName)}${ariaExtra ? ` (${escapeHtml(ariaExtra)})` : ""}">
-      ${inner}
+    <button type="button" class="squad-card squad-card--${escapeHtml(posKey || "unk")}" data-player="${escapeHtml(p.id)}" aria-label="View ${escapeHtml(displayName)}${ariaExtra ? ` (${escapeHtml(ariaExtra)})` : ""}">
+      <span class="squad-card__rail" aria-hidden="true"></span>
+      ${showNum ? `<span class="squad-card__num">${escapeHtml(formatPlayerJerseyNumber(p.number))}</span>` : ""}
+      <span class="squad-card__body">
+        <span class="squad-card__name-row">
+          ${playerInitialsAvatarHtml(displayName, `player-avatar squad-card__avatar${posKey ? ` squad-row__avatar--${posKey}` : ""}`)}
+          <span class="squad-card__name">${escapeHtml(displayName)}${cap}${arrivalBadge}${dutyBadge}</span>
+        </span>
+        ${metaBits.length ? `<span class="squad-card__meta">${metaBits.join("")}</span>` : ""}
+      </span>
     </button>
   `;
 }
@@ -6283,8 +6286,8 @@ function syncRosterViewCopy() {
     if (title) title.textContent = "Depth chart";
     if (hint) hint.textContent = "Formation roles and backup options";
   } else {
-    if (title) title.textContent = "Squad list";
-    if (hint) hint.textContent = "Tap a player for their full profile";
+    if (title) title.textContent = "Jersey board";
+    if (hint) hint.textContent = "Jersey board by position — tap a player for their profile";
   }
 }
 
@@ -6320,7 +6323,7 @@ function bindSquadGroupToggles(grid) {
     if (!btn) return;
     e.preventDefault();
     const key = btn.getAttribute("data-squad-group");
-    const section = btn.closest(".squad-group");
+    const section = btn.closest(".squad-band, .squad-group");
     if (!section || !key) return;
     const collapsed = section.classList.toggle("is-collapsed");
     btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
@@ -6380,10 +6383,11 @@ function renderRoster() {
   const colKeys = new Set(cols.map((c) => c.key));
   if (rosterPanel) {
     rosterPanel.classList.toggle("squad-panel--worldcup", showClub);
-    rosterPanel.style.setProperty("--squad-cols", cols.map((c) => c.width).join(" "));
+    rosterPanel.classList.add("squad-panel--board");
   }
   if (colHead) {
-    colHead.innerHTML = cols.map((c) => c.head).join("");
+    colHead.hidden = true;
+    colHead.setAttribute("aria-hidden", "true");
   }
 
   if (!squad.length) {
@@ -6406,22 +6410,23 @@ function renderRoster() {
     .map((g) => {
       const collapsed = collapsedSquadGroups.has(g.key);
       return `
-      <section class="squad-group${collapsed ? " is-collapsed" : ""}" aria-labelledby="squad-group-${escapeHtml(g.key)}">
+      <section class="squad-band squad-band--${escapeHtml(g.key.toLowerCase())}${collapsed ? " is-collapsed" : ""}" aria-labelledby="squad-group-${escapeHtml(g.key)}">
         <button
           type="button"
-          class="squad-group-title"
+          class="squad-band__head"
           id="squad-group-${escapeHtml(g.key)}"
           data-squad-group="${escapeHtml(g.key)}"
           aria-expanded="${collapsed ? "false" : "true"}"
         >
-          <span class="squad-group-title__label">
+          <span class="squad-band__label">
+            <span class="squad-band__mark" aria-hidden="true"></span>
             <span class="squad-group-chevron" aria-hidden="true"></span>
             <span>${escapeHtml(g.label)}</span>
           </span>
-          <span class="squad-group-count">${escapeHtml(g.players.length)}</span>
+          <span class="squad-band__count">${escapeHtml(g.players.length)}</span>
         </button>
-        <div class="squad-list">
-          ${g.players.map((p) => renderSquadRow(p, startsMap, state.leagueId, colKeys, dutyIds, arrivalsMap)).join("")}
+        <div class="squad-board">
+          ${g.players.map((p) => renderSquadCard(p, startsMap, state.leagueId, colKeys, dutyIds, arrivalsMap)).join("")}
         </div>
       </section>
     `;
