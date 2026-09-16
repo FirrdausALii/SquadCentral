@@ -8003,7 +8003,6 @@ function setupGlobalSearch() {
     const tag = (e.target instanceof HTMLElement ? e.target.tagName : "").toLowerCase();
     if (tag === "input" || tag === "textarea" || tag === "select" || e.target?.isContentEditable) return;
     e.preventDefault();
-    $("#main")?.scrollIntoView({ behavior: "smooth", block: "start" });
     input.focus();
     input.select();
   });

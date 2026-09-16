@@ -1972,9 +1972,15 @@ html.home-enter-init .home-enter.is-entered {
 
 .home-global-search {
   position: relative;
-  z-index: 40;
-  width: 100%;
-  max-width: 560px;
+  z-index: 110;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 420px;
+  margin-left: auto;
+}
+
+.topbar-search {
+  order: 0;
 }
 
 .home-global-search__field {
@@ -1984,16 +1990,16 @@ html.home-enter-init .home-enter.is-entered {
   width: 100%;
   margin: 0;
   padding: 0 12px;
-  min-height: 42px;
+  min-height: 36px;
   border: 0.5px solid var(--border-default);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--bg-surface-1) 92%, transparent);
-  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  background: var(--bg-surface-2);
 }
 
 .home-global-search__field:focus-within {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+  background: var(--bg-surface-1);
 }
 
 .home-global-search__icon {
@@ -2010,9 +2016,9 @@ html.home-enter-init .home-enter.is-entered {
   background: transparent;
   color: var(--text-primary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 8px 0;
+  padding: 6px 0;
   outline: none;
 }
 
@@ -2027,7 +2033,7 @@ html.home-enter-init .home-enter.is-entered {
   padding: 2px 6px;
   border-radius: 6px;
   border: 0.5px solid var(--border-subtle);
-  background: var(--bg-surface-2);
+  background: var(--bg-surface-3);
   color: var(--text-faint);
   font-family: inherit;
   font-size: 11px;
@@ -2036,6 +2042,13 @@ html.home-enter-init .home-enter.is-entered {
 }
 
 @media (min-width: 992px) {
+  .home-global-search {
+    flex: 1 1 280px;
+    max-width: 360px;
+    margin-left: var(--sp-3);
+    margin-right: 0;
+  }
+
   .home-global-search__hint {
     display: inline-flex;
   }
@@ -2045,14 +2058,15 @@ html.home-enter-init .home-enter.is-entered {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   max-height: min(70vh, 420px);
   overflow: auto;
   padding: 8px;
   border-radius: 14px;
   border: 0.5px solid var(--border-default);
-  background: color-mix(in srgb, var(--bg-surface-1) 96%, #070b14);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  background: color-mix(in srgb, var(--bg-surface-1) 98%, #070b14);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  z-index: 120;
 }
 
 .home-global-search__panel[hidden] {

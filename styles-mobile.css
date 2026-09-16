@@ -60,12 +60,57 @@ body.fc-app {
 
 /* Topbar */
 @media (max-width: 991.98px) {
+  .topbar {
+    gap: 8px;
+  }
+
   .topbar-logo {
     min-width: 0;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex: 0 0 auto;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .topbar-logo__text {
+    display: none;
+  }
+
+  .topbar-search,
+  .home-global-search.topbar-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    order: 0;
+  }
+
+  .topbar-toggler {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+
+  .home-global-search__field {
+    min-height: 38px;
+    padding: 0 10px;
+    border-radius: 999px;
+  }
+
+  .home-global-search__field input {
+    font-size: 14px;
+  }
+
+  .home-global-search__field input::placeholder {
+    content: "Search…";
+  }
+
+  .home-global-search__panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 56px;
+    width: auto;
+    max-height: min(70vh, 440px);
+    z-index: 120;
   }
 }
 
@@ -73,6 +118,10 @@ body.fc-app {
   .topbar {
     padding: 0 var(--sp-3);
     gap: var(--sp-2);
+  }
+
+  .home-global-search__field input {
+    font-size: 13px;
   }
 }
 
@@ -636,18 +685,10 @@ body.fc-app {
   }
 }
 
-/* Home global search */
+/* Home global search — topbar layout handled in styles-home + topbar block above */
 @media (max-width: 767.98px) {
-  .home-global-search {
-    max-width: none;
-  }
-
-  .home-global-search__field {
-    min-height: 44px;
-  }
-
   .home-global-search__panel {
-    max-height: min(60vh, 360px);
+    max-height: min(65vh, 380px);
   }
 }
 

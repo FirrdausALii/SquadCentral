@@ -55,6 +55,7 @@ html.reveal-init .reveal.is-visible {
   align-items: center;
   justify-content: center;
   padding: 0;
+  flex-shrink: 0;
 }
 .topbar-toggler .navbar-toggler-icon {
   filter: invert(0.85);
