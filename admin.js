@@ -47,6 +47,8 @@ let tmTransferSearchQuery = "";
 /** Prefill for + Squad after Transfermarkt Add — key: normalizeNameKey(player). */
 const tmTransferSquadPrefillByName = new Map();
 let matchEditId = "";
+/** Matches tab: null = gameweek list, number = browse that week (view-only). */
+let matchesBrowseWeek = null;
 let stadiumEditName = "";
 /** @type {{ leagueId: string, diff: object, tmByTeamId: object, ignoredAdd: Set<string>, ignoredLink: Set<string>, ignoredRename: Set<string>, ignoredRemove: Set<string> } | null} */
 let tmStadiumSyncState = null;
@@ -3264,6 +3266,27 @@ function panelLeague() {
               label: "Select matchweek",
             })}
           </div>`;
+  const trailEndRaw = Number(meta.positionTrailEndWeek);
+  const trailEndSelected = Number.isInteger(trailEndRaw) && trailEndRaw > 0 ? trailEndRaw : 0;
+  const trailCeiling = Math.max(leagueMatchweekCeiling(leagueFilter), meta.matchweek ?? 1, trailEndSelected || 1);
+  const trailEndOptions = [
+    `<option value="0"${trailEndSelected === 0 ? " selected" : ""}>Default (follow live matchweek)</option>`,
+    ...Array.from({ length: trailCeiling }, (_, i) => {
+      const n = i + 1;
+      return `<option value="${n}"${trailEndSelected === n ? " selected" : ""}>Matchweek ${n}</option>`;
+    }),
+  ].join("");
+  const positionTrailField = isWc
+    ? ""
+    : `<div class="col-12 col-md-6">
+            <div class="mw-field mb-0">
+              <label for="mwPosTrailEnd">Player recent positions through</label>
+              <div class="mw-select-wrap">
+                <select id="mwPosTrailEnd" class="mw-select">${trailEndOptions}</select>
+              </div>
+              <p class="mw-field-note admin-muted">Profiles show the last 3 lineup tags ending at this week. Leave <strong>Default</strong> unless fixtures are out of order.</p>
+            </div>
+          </div>`;
   const settingsHint = isWc
     ? "Tournament title and dates shown above the full fixture list on the site."
     : "Pick a matchweek to filter fixtures. Title and date range are shown on the public site.";
@@ -3329,6 +3352,7 @@ function panelLeague() {
                 <input id="mwRange" class="mw-input" type="text" value="${esc(meta.dateRange ?? "")}" placeholder="12 May – 15 May" />
               </div>
             </div>
+            ${positionTrailField}
           </div>
         </div>
         <div class="matchweek-settings-footer">
@@ -5299,17 +5323,49 @@ function matchesStatChipsHtml(stats) {
   </div>`;
 }
 
-function matchCardHtml(m) {
+function matchesWeekHasResult(m) {
+  if (typeof effectiveMatchStatus === "function") {
+    const s = effectiveMatchStatus(m);
+    return s === "FT" || s === "AET" || s === "PEN" || s === "AWD" || s === "LIVE";
+  }
+  const s = String(m?.status ?? "").trim().toUpperCase();
+  if (s === "FT" || s === "AET" || s === "PEN" || s === "AWD" || s === "LIVE") return true;
+  const hs = Number(m?.score?.[0]) || 0;
+  const as = Number(m?.score?.[1]) || 0;
+  return hs + as > 0 || (m?.goalEvents?.length ?? 0) > 0;
+}
+
+function matchesResultCardHtml(m) {
   const homeTeam = state().teams.find((t) => t.id === m.homeTeamId);
   const awayTeam = state().teams.find((t) => t.id === m.awayTeamId);
   const homeName = homeTeam?.name ?? m.homeTeamId;
   const awayName = awayTeam?.name ?? m.awayTeamId;
   const hScore = m.score?.[0] ?? 0;
   const aScore = m.score?.[1] ?? 0;
-  const homeWin = hScore > aScore;
-  const awayWin = aScore > hScore;
-  const status = String(m.status ?? "FT").trim() || "FT";
-  return `<article class="match-card" data-match-id="${esc(m.id)}">
+  const hasResult = matchesWeekHasResult(m);
+  const homeWin = hasResult && hScore > aScore;
+  const awayWin = hasResult && aScore > hScore;
+  const status =
+    typeof effectiveMatchStatus === "function"
+      ? effectiveMatchStatus(m)
+      : String(m.status ?? "NS").trim() || "NS";
+  const scoreHtml = hasResult
+    ? `<div class="match-card__scoreboard" aria-label="Score ${hScore} to ${aScore}">
+        <span class="match-card__score-num${homeWin ? " match-card__score-num--win" : ""}">${esc(hScore)}</span>
+        <span class="match-card__score-sep">–</span>
+        <span class="match-card__score-num${awayWin ? " match-card__score-num--win" : ""}">${esc(aScore)}</span>
+      </div>`
+    : `<div class="match-card__scoreboard match-card__scoreboard--pending" aria-label="Result pending">
+        <span class="match-card__pending">No result yet</span>
+      </div>`;
+  const goalsCount = (m.goalEvents ?? []).length;
+  const lineupCount = (m.lineups?.home?.length ?? 0) + (m.lineups?.away?.length ?? 0);
+  const detailBits = [
+    goalsCount ? `${goalsCount} goal event${goalsCount === 1 ? "" : "s"}` : "",
+    lineupCount ? "Lineups set" : "",
+  ].filter(Boolean);
+
+  return `<article class="match-card match-card--browse" data-match-id="${esc(m.id)}">
     <div class="match-card__stripe" aria-hidden="true"></div>
     <div class="match-card__meta">
       <span class="match-card__day">${esc(m.time ?? "—")}</span>
@@ -5320,11 +5376,7 @@ function matchCardHtml(m) {
         <span class="match-card__crest">${adminTeamCrestHtml(homeTeam)}</span>
         <span class="match-card__name">${esc(homeName)}</span>
       </div>
-      <div class="match-card__scoreboard" aria-label="Score ${hScore} to ${aScore}">
-        <span class="match-card__score-num${homeWin ? " match-card__score-num--win" : ""}">${esc(hScore)}</span>
-        <span class="match-card__score-sep">–</span>
-        <span class="match-card__score-num${awayWin ? " match-card__score-num--win" : ""}">${esc(aScore)}</span>
-      </div>
+      ${scoreHtml}
       <div class="match-card__team match-card__team--away${awayWin ? " match-card__team--win" : ""}">
         <span class="match-card__crest">${adminTeamCrestHtml(awayTeam)}</span>
         <span class="match-card__name">${esc(awayName)}</span>
@@ -5335,39 +5387,234 @@ function matchCardHtml(m) {
         ? `<p class="match-card__venue">${esc(m.stadium)}</p>`
         : ""
     }
+    ${detailBits.length ? `<p class="match-card__detail-meta">${esc(detailBits.join(" · "))}</p>` : ""}
     <div class="match-card__actions">
-      <button type="button" class="mw-btn-ghost matches-row-btn match-card__edit" data-edit-match="${esc(m.id)}">Edit</button>
-      <button type="button" class="mw-btn-danger matches-row-btn match-card__del" data-del-match="${esc(m.id)}">Remove</button>
+      <button type="button" class="mw-btn-ghost matches-row-btn" data-open-mw-match="${esc(m.id)}">Open in Matchweek</button>
     </div>
   </article>`;
+}
+
+function matchesWeekTileHtml(weekNum, { count, results, published }) {
+  const isPub = weekNum === published;
+  const empty = count === 0;
+  return `<div class="matches-week-tile${isPub ? " is-published" : ""}${empty ? " is-empty" : ""}">
+    <button type="button" class="matches-week-tile__main" data-matches-week="${weekNum}">
+      <span class="matches-week-tile__mw">Matchweek ${weekNum}</span>
+      <span class="matches-week-tile__count">${count} fixture${count === 1 ? "" : "s"}</span>
+      <span class="matches-week-tile__meta">${
+        empty ? "No fixtures yet" : results ? `${results} with result${results === 1 ? "" : "s"}` : "Results pending"
+      }</span>
+      ${isPub ? `<span class="matches-week-tile__badge">Live site</span>` : ""}
+    </button>
+    ${
+      count
+        ? `<button type="button" class="matches-week-tile__delete" data-delete-mw="${weekNum}" title="Delete all fixtures in Matchweek ${weekNum}" aria-label="Delete Matchweek ${weekNum}">Delete</button>`
+        : ""
+    }
+  </div>`;
+}
+
+function openMatchesInMatchweek(weekNum, matchId = "") {
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
+  const nextMw = Number(weekNum) > 0 ? Number(weekNum) : meta.matchweek ?? 1;
+  FCDataStore.setLeagueMeta(leagueFilter, {
+    ...meta,
+    matchweek: nextMw,
+    matchweekTitle: isWc ? meta.matchweekTitle || "Group Stage" : `Matchweek ${nextMw}`,
+  });
+  if (matchId) matchEditId = matchId;
+  activeTab = "league";
+  renderNav();
+  renderPanel();
+  toast(matchId ? "Opened in Matchweek editor" : `Matchweek ${nextMw} — set up fixtures here`);
+}
+
+function matchesForBrowseWeek(leagueId, weekNum) {
+  return typeof filterMatchesForLeagueWeek === "function"
+    ? filterMatchesForLeagueWeek(state().matches, leagueId, weekNum)
+    : state().matches.filter(
+        (m) => m.leagueId === leagueId && (m.matchday === `MW ${weekNum}` || !m.matchday),
+      );
+}
+
+/** Remove every fixture tagged for this club-league matchweek. */
+function deleteEntireMatchweek(leagueId, weekNum) {
+  const week = Number(weekNum);
+  if (!leagueId || !Number.isInteger(week) || week < 1) return { ok: false, removed: 0 };
+  const mwLabel = `MW ${week}`;
+  const toRemove = (state().matches ?? []).filter(
+    (m) => m.leagueId === leagueId && m.matchday === mwLabel,
+  );
+  if (!toRemove.length) return { ok: true, removed: 0 };
+  for (const m of toRemove) {
+    FCDataStore.removeMatch(m.id);
+  }
+  syncToAppArrays();
+  if (matchEditId && toRemove.some((m) => m.id === matchEditId)) matchEditId = "";
+  return { ok: true, removed: toRemove.length };
 }
 
 function panelMatches() {
   const meta = FCDataStore.getLeagueMeta(leagueFilter);
   const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
-  const mw = meta.matchweek ?? 36;
-  const mwTitle = meta.matchweekTitle ?? (isWc ? "Group Stage" : `Matchweek ${mw}`);
+  const published = meta.matchweek ?? 36;
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
+  const ceiling = leagueMatchweekCeiling(leagueFilter);
+
+  if (isWc) {
+    const list =
+      typeof filterMatchesForLeagueWeek === "function"
+        ? filterMatchesForLeagueWeek(state().matches, leagueFilter, published)
+        : state().matches.filter((m) => m.leagueId === leagueFilter);
+    const stats = matchesStats(list.filter(matchesWeekHasResult));
+    const body =
+      list.length === 0
+        ? `<div class="matches-empty">
+            <div class="matches-empty__icon" aria-hidden="true"></div>
+            <p class="matches-empty__title">No fixtures yet</p>
+            <p class="matches-empty__text">Set up World Cup fixtures in the <strong>Matchweek</strong> tab.</p>
+            <button type="button" class="mw-btn-primary mw-btn-primary--sm" data-open-mw-week="1">Open Matchweek</button>
+          </div>`
+        : `<div class="matches-list-wrap"><div class="matches-list" id="matchesList">${list
+            .map((m) => matchesResultCardHtml(m))
+            .join("")}</div></div>`;
+    return `
+      <div class="mw-page matches-page">
+        <header class="mw-hero mw-hero--stadium">
+          <div class="mw-hero__atmosphere" aria-hidden="true">
+            <div class="mw-hero__glow"></div>
+            <div class="mw-hero__pitch"></div>
+            <div class="mw-hero__markings"></div>
+          </div>
+          <div class="mw-hero__grid">
+            <div class="mw-hero__copy">
+              <p class="mw-eyebrow mw-eyebrow--live">Results browser</p>
+              <h2 class="mw-heading">Matches</h2>
+              <p class="mw-lead">Browse World Cup fixtures and results. Use <strong>Matchweek</strong> to add or edit goals, assists, and lineups.</p>
+              ${list.length ? matchesStatChipsHtml(stats) : ""}
+            </div>
+            <aside class="mw-hero__aside">
+              <div class="mw-hero-preview matches-hero-preview__box">
+                <span class="mw-hero-preview-label">World Cup</span>
+                <strong class="mw-hero-preview-title">${list.length} fixture${list.length === 1 ? "" : "s"}</strong>
+                <span class="mw-hero-preview-range">${esc(leagueName)}</span>
+              </div>
+            </aside>
+          </div>
+        </header>
+        <section class="mw-card mw-card--striped">
+          <div class="mw-card__stripe mw-card__stripe--matches" aria-hidden="true"></div>
+          <div class="mw-card-head mw-card-head--icon">
+            <div class="mw-card-head__icon mw-card-head__icon--matches-fixtures" aria-hidden="true"></div>
+            <div>
+              <h3>All fixtures</h3>
+              <p>Results view · setup stays in Matchweek.</p>
+            </div>
+          </div>
+          <div class="matches-filter-bar">
+            <div class="row g-2">
+              <div class="col-12 col-md-6 col-lg-4">
+                ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+              </div>
+            </div>
+          </div>
+          ${body}
+        </section>
+      </div>`;
+  }
+
+  const browseWeek =
+    Number.isInteger(Number(matchesBrowseWeek)) && Number(matchesBrowseWeek) > 0
+      ? Number(matchesBrowseWeek)
+      : null;
+
+  if (browseWeek == null) {
+    const weeks = [];
+    for (let n = 1; n <= ceiling; n++) {
+      const list =
+        typeof filterMatchesForLeagueWeek === "function"
+          ? filterMatchesForLeagueWeek(state().matches, leagueFilter, n)
+          : state().matches.filter(
+              (m) => m.leagueId === leagueFilter && (m.matchday === `MW ${n}` || !m.matchday),
+            );
+      const results = list.filter(matchesWeekHasResult).length;
+      weeks.push({ n, count: list.length, results });
+    }
+    const withFixtures = weeks.filter((w) => w.count > 0).length;
+    return `
+      <div class="mw-page matches-page">
+        <header class="mw-hero mw-hero--stadium">
+          <div class="mw-hero__atmosphere" aria-hidden="true">
+            <div class="mw-hero__glow"></div>
+            <div class="mw-hero__pitch"></div>
+            <div class="mw-hero__markings"></div>
+          </div>
+          <div class="mw-hero__grid">
+            <div class="mw-hero__copy">
+              <p class="mw-eyebrow mw-eyebrow--live">Results browser</p>
+              <h2 class="mw-heading">Matches</h2>
+              <p class="mw-lead">Pick a gameweek to see results. To add fixtures, goals, or lineups, use the <strong>Matchweek</strong> tab.</p>
+            </div>
+            <aside class="mw-hero__aside">
+              <div class="mw-hero-preview matches-hero-preview__box">
+                <span class="mw-hero-preview-label">Season</span>
+                <strong class="mw-hero-preview-title">${withFixtures} / ${ceiling} weeks</strong>
+                <span class="mw-hero-preview-range">${esc(leagueName)} · live MW ${published}</span>
+              </div>
+            </aside>
+          </div>
+        </header>
+
+        <section class="mw-card mw-card--striped">
+          <div class="mw-card__stripe mw-card__stripe--matches" aria-hidden="true"></div>
+          <div class="mw-card-head mw-card-head--icon">
+            <div class="mw-card-head__icon mw-card-head__icon--matches-fixtures" aria-hidden="true"></div>
+            <div>
+              <h3>Gameweeks</h3>
+              <p>Tap a matchweek to browse results.</p>
+            </div>
+          </div>
+          <div class="matches-filter-bar">
+            <div class="row g-2">
+              <div class="col-12 col-md-6 col-lg-4">
+                ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+              </div>
+            </div>
+          </div>
+          <div class="matches-week-grid" id="matchesWeekGrid">
+            ${weeks
+              .map((w) =>
+                matchesWeekTileHtml(w.n, {
+                  count: w.count,
+                  results: w.results,
+                  published,
+                }),
+              )
+              .join("")}
+          </div>
+        </section>
+      </div>`;
+  }
+
   const list =
     typeof filterMatchesForLeagueWeek === "function"
-      ? filterMatchesForLeagueWeek(state().matches, leagueFilter, mw)
-      : state().matches.filter((m) => m.leagueId === leagueFilter && (m.matchday === `MW ${mw}` || !m.matchday));
-  const teams = teamsForLeague(leagueFilter);
-  const teamOpts = (sel) => teamOptionTags(teams, sel);
-  const defaultHome = teams[0]?.id ?? "";
-  const defaultAway = teams[1]?.id ?? teams[0]?.id ?? "";
-  const stats = matchesStats(list);
-
-  const rosterBody =
+      ? filterMatchesForLeagueWeek(state().matches, leagueFilter, browseWeek)
+      : state().matches.filter(
+          (m) => m.leagueId === leagueFilter && (m.matchday === `MW ${browseWeek}` || !m.matchday),
+        );
+  const stats = matchesStats(list.filter(matchesWeekHasResult));
+  const body =
     list.length === 0
       ? `<div class="matches-empty">
           <div class="matches-empty__icon" aria-hidden="true"></div>
-          <p class="matches-empty__title">No matches yet</p>
-          <p class="matches-empty__text">Add one below or use the <strong>Matchweek</strong> tab for full fixture editing with goals, assists, and lineups.</p>
+          <p class="matches-empty__title">No fixtures in MW ${browseWeek}</p>
+          <p class="matches-empty__text">Set this week up in the <strong>Matchweek</strong> tab.</p>
+          <button type="button" class="mw-btn-primary mw-btn-primary--sm" data-open-mw-week="${browseWeek}">Open Matchweek ${browseWeek}</button>
         </div>`
-      : `<div class="matches-list-wrap">
-          <div class="matches-list" id="matchesList">${list.map((m) => matchCardHtml(m)).join("")}</div>
-        </div>`;
+      : `<div class="matches-list-wrap"><div class="matches-list" id="matchesList">${list
+          .map((m) => matchesResultCardHtml(m))
+          .join("")}</div></div>`;
 
   return `
     <div class="mw-page matches-page">
@@ -5379,14 +5626,14 @@ function panelMatches() {
         </div>
         <div class="mw-hero__grid">
           <div class="mw-hero__copy">
-            <p class="mw-eyebrow mw-eyebrow--live">Quick fixtures</p>
-            <h2 class="mw-heading">Matches</h2>
-            <p class="mw-lead">${isWc ? "Add or edit basic scores for any World Cup fixture. For goals, assists, and lineups use the <strong>Matchweek</strong> tab." : "Add or edit basic scores for the current gameweek. For goals, assists, and lineups use the <strong>Matchweek</strong> tab."}</p>
+            <p class="mw-eyebrow mw-eyebrow--live">Results browser</p>
+            <h2 class="mw-heading">Matchweek ${browseWeek}</h2>
+            <p class="mw-lead">Results for this gameweek. Setup and deep edits stay in <strong>Matchweek</strong>.</p>
             ${list.length ? matchesStatChipsHtml(stats) : ""}
           </div>
           <aside class="mw-hero__aside">
             <div class="mw-hero-preview matches-hero-preview__box">
-              <span class="mw-hero-preview-label">${esc(mwTitle)}</span>
+              <span class="mw-hero-preview-label">MW ${browseWeek}</span>
               <strong class="mw-hero-preview-title">${list.length} match${list.length === 1 ? "" : "es"}</strong>
               <span class="mw-hero-preview-range">${esc(leagueName)}</span>
             </div>
@@ -5396,85 +5643,36 @@ function panelMatches() {
 
       <section class="mw-card mw-card--striped">
         <div class="mw-card__stripe mw-card__stripe--matches" aria-hidden="true"></div>
-        <div class="mw-card-head mw-card-head--icon">
+        <div class="mw-card-head mw-card-head--icon matches-week-detail-head">
           <div class="mw-card-head__icon mw-card-head__icon--matches-fixtures" aria-hidden="true"></div>
-          <div>
-            <h3>${isWc ? "All fixtures" : `MW ${mw} fixtures`}</h3>
-            <p>${list.length} match${list.length === 1 ? "" : "es"}${isWc ? " · every round is kept" : " in this gameweek"} · quick edit only.</p>
+          <div class="min-w-0">
+            <h3>MW ${browseWeek} results</h3>
+            <p>${list.length} fixture${list.length === 1 ? "" : "s"} · browse only.</p>
           </div>
-        </div>
-        <div class="matches-filter-bar">
-          <div class="row g-2 g-md-3">
-            <div class="col-12 col-md-6 col-lg-4">
-              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
-            </div>
+          <div class="matches-week-detail-actions">
+            <button type="button" class="mw-btn-ghost" id="btnMatchesBackWeeks">← All gameweeks</button>
+            <button type="button" class="mw-btn-primary mw-btn-primary--sm" data-open-mw-week="${browseWeek}">Edit in Matchweek</button>
             ${
-              isWc
-                ? ""
-                : `<div class="col-12 col-md-6 col-lg-4">
-              ${matchweekSelectField(leagueFilter, mw, {
-                id: "mwNum",
-                label: "Filter by matchweek",
-              })}
-            </div>`
+              list.length
+                ? `<button type="button" class="mw-btn-danger mw-btn-primary--sm" id="btnDeleteMatchweek" data-delete-mw="${browseWeek}">Delete matchweek</button>`
+                : ""
             }
           </div>
         </div>
-        ${rosterBody}
+        <div class="matches-filter-bar">
+          <div class="row g-2">
+            <div class="col-12 col-md-6 col-lg-4">
+              ${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}
+            </div>
+          </div>
+        </div>
+        ${body}
       </section>
+    </div>`;
+}
 
-      <section class="mw-card mw-card--striped" id="matchFormCard">
-        <div class="mw-card__stripe mw-card__stripe--matches" aria-hidden="true"></div>
-        <div class="mw-card-head mw-card-head--icon">
-          <div class="mw-card-head__icon mw-card-head__icon--matches-add" aria-hidden="true"></div>
-          <div>
-            <h3 id="matchFormTitle">Add match</h3>
-            <p>${isWc ? "Creates a World Cup fixture. Set the round/stage label below." : `Creates a fixture for MW ${mw}.`} Stadiums are chosen from the <strong>Stadiums</strong> tab list.</p>
-          </div>
-        </div>
-        <input type="hidden" id="matchEditId" value="" />
-        <div class="row g-2 g-md-3">
-          <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="matchTime">Match day label</label><input id="matchTime" class="mw-input" placeholder="Sunday 10 May" /></div>
-          </div>
-          ${
-            isWc
-              ? `<div class="col-12 col-md-6"><div class="mw-field"><label for="matchStage">Round / stage</label><input id="matchStage" class="mw-input" value="${esc(meta.matchweekTitle ?? "Group Stage")}" placeholder="Group A · MD 1" /></div></div>`
-              : ""
-          }
-          <div class="col-12 col-md-6">
-            ${stadiumSelectField(leagueFilter, "", { note: "Manage venues in the Stadiums tab." })}
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="matchHome">Home team</label><div class="mw-select-wrap"><select id="matchHome" class="mw-select">${teamOpts(defaultHome)}</select></div></div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="mw-field"><label for="matchAway">Away team</label><div class="mw-select-wrap"><select id="matchAway" class="mw-select">${teamOpts(defaultAway)}</select></div></div>
-          </div>
-        </div>
-        <div class="matches-scoreboard-form">
-          <div class="matches-scoreboard-form__pitch" aria-hidden="true">
-            <div class="matches-scoreboard-form__stripes"></div>
-            <div class="matches-scoreboard-form__circle"></div>
-          </div>
-          <div class="matches-scoreboard-form__grid">
-            <div class="matches-scoreboard-form__side">
-              <span class="matches-scoreboard-form__label">Home</span>
-              <input id="matchHomeScore" class="mw-input mw-input--score matches-scoreboard-form__input" type="number" min="0" value="0" aria-label="Home goals" />
-            </div>
-            <span class="matches-scoreboard-form__vs" aria-hidden="true">VS</span>
-            <div class="matches-scoreboard-form__side matches-scoreboard-form__side--away">
-              <span class="matches-scoreboard-form__label">Away</span>
-              <input id="matchAwayScore" class="mw-input mw-input--score matches-scoreboard-form__input" type="number" min="0" value="0" aria-label="Away goals" />
-            </div>
-          </div>
-        </div>
-        <div class="matches-form-footer">
-          <button type="button" class="mw-btn-primary matches-save-btn" id="btnSaveMatch">Save match</button>
-        </div>
-      </section>
-    </div>
-  `;
+function matchCardHtml(m) {
+  return matchesResultCardHtml(m);
 }
 
 function standingsRows(leagueId) {
@@ -7540,6 +7738,7 @@ function bindLeagueSelect() {
     if (activeTab === "transfers") stashTransferEditsFromDom();
     transferTeamFilter = "";
     matchEditId = "";
+    matchesBrowseWeek = null;
     stadiumEditName = "";
     tmStadiumSyncState = null;
     tmMatchdaySyncState = null;
@@ -7678,11 +7877,18 @@ function bindPanelHandlers() {
     const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
     const num = Number($("#mwNum")?.value) || 36;
     const title = $("#mwTitle")?.value.trim() || (isWc ? "Group Stage" : `Matchweek ${num}`);
-    FCDataStore.setLeagueMeta(leagueFilter, {
+    const trailRaw = $("#mwPosTrailEnd")?.value;
+    const trailEnd = Number(trailRaw);
+    const patch = {
       matchweek: isWc ? 1 : num,
       matchweekTitle: title,
       dateRange: $("#mwRange")?.value.trim() ?? "",
-    });
+    };
+    if (!isWc) {
+      patch.positionTrailEndWeek =
+        Number.isInteger(trailEnd) && trailEnd > 0 ? trailEnd : 0;
+    }
+    FCDataStore.setLeagueMeta(leagueFilter, patch);
     syncToAppArrays();
     toast(isWc ? "Tournament header saved" : "Matchweek saved");
     renderPanel();
@@ -9862,71 +10068,70 @@ function bindPlayers() {
 }
 
 function bindMatches() {
-  $("#btnSaveMatch")?.addEventListener("click", () => {
-    const meta = FCDataStore.getLeagueMeta(leagueFilter);
-    const mw = meta.matchweek ?? 36;
-    const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
-    const home = $("#matchHome").value;
-    const away = $("#matchAway").value;
-    if (home === away) return alert("Home and away must differ");
-    const editId = $("#matchEditId").value;
-    const stageSlug = isWc ? FCDataStore.slugify($("#matchStage")?.value || meta.matchweekTitle || "stage") : `mw${mw}`;
-    const id =
-      editId ||
-      `${leagueFilter}_${stageSlug}_${FCDataStore.slugify(state().teams.find((t) => t.id === home)?.name ?? "h")}_${FCDataStore.slugify(state().teams.find((t) => t.id === away)?.name ?? "a")}`;
-    const matchday =
-      typeof matchdayForSavedFixture === "function"
-        ? matchdayForSavedFixture(leagueFilter, meta, isWc ? $("#matchStage")?.value : null)
-        : isWc
-          ? $("#matchStage")?.value.trim() || meta.matchweekTitle || "Group Stage"
-          : `MW ${mw}`;
-    FCDataStore.upsertMatch({
-      id,
-      leagueId: leagueFilter,
-      matchday,
-      status: "FT",
-      time: $("#matchTime").value.trim() || "—",
-      stadium: $("#matchStadium").value.trim() || "—",
-      homeTeamId: home,
-      awayTeamId: away,
-      score: [Number($("#matchHomeScore").value) || 0, Number($("#matchAwayScore").value) || 0],
-      scorers: [],
-      goalEvents: [],
-      possession: [],
-      momentum: 0.5,
-      formation: ["—", "—"],
-    });
-    syncToAppArrays();
-    toast("Match saved");
+  if (activeTab !== "matches") return;
+
+  $("#btnMatchesBackWeeks")?.addEventListener("click", () => {
+    matchesBrowseWeek = null;
     renderPanel();
   });
 
-  document.querySelectorAll("[data-edit-match]").forEach((btn) => {
+  document.querySelectorAll("[data-matches-week]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const m = state().matches.find((x) => x.id === btn.getAttribute("data-edit-match"));
-      if (!m) return;
-      const meta = FCDataStore.getLeagueMeta(leagueFilter);
-      const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
-      $("#matchEditId").value = m.id;
-      $("#matchFormTitle").textContent = "Edit match";
-      $("#matchTime").value = m.time ?? "";
-      ensureStadiumSelectOption($("#matchStadium"), m.stadium);
-      $("#matchHome").value = m.homeTeamId;
-      $("#matchAway").value = m.awayTeamId;
-      $("#matchHomeScore").value = m.score?.[0] ?? 0;
-      $("#matchAwayScore").value = m.score?.[1] ?? 0;
-      if (isWc && $("#matchStage")) $("#matchStage").value = m.matchday ?? meta.matchweekTitle ?? "";
-      $("#matchFormCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const week = Number(btn.getAttribute("data-matches-week"));
+      if (!Number.isInteger(week) || week < 1) return;
+      matchesBrowseWeek = week;
+      renderPanel();
     });
   });
 
-  document.querySelectorAll("[data-del-match]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (!confirm("Remove match?")) return;
-      FCDataStore.removeMatch(btn.getAttribute("data-del-match"));
-      syncToAppArrays();
-      toast("Match removed");
+  document.querySelectorAll("[data-delete-mw]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const week = Number(btn.getAttribute("data-delete-mw"));
+      if (!Number.isInteger(week) || week < 1) return;
+      const list = matchesForBrowseWeek(leagueFilter, week).filter((m) => m.matchday === `MW ${week}`);
+      const n = list.length;
+      if (!n) {
+        toast(`Matchweek ${week} has no fixtures to delete`);
+        return;
+      }
+      if (
+        !confirm(
+          `Delete entire Matchweek ${week}?\n\nThis removes ${n} fixture${n === 1 ? "" : "s"} (scores, goals, and lineups) for ${leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter}.\n\nThis cannot be undone.`,
+        )
+      ) {
+        return;
+      }
+      const result = deleteEntireMatchweek(leagueFilter, week);
+      if (!result.ok) return toast("Could not delete matchweek");
+      toast(
+        result.removed
+          ? `Deleted Matchweek ${week} · ${result.removed} fixture${result.removed === 1 ? "" : "s"} removed`
+          : `Matchweek ${week} had nothing to delete`,
+      );
+      matchesBrowseWeek = null;
       renderPanel();
+    });
+  });
+
+  document.querySelectorAll("[data-open-mw-week]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const week = Number(btn.getAttribute("data-open-mw-week"));
+      openMatchesInMatchweek(week > 0 ? week : matchesBrowseWeek || 1);
+    });
+  });
+
+  document.querySelectorAll("[data-open-mw-match]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const matchId = btn.getAttribute("data-open-mw-match");
+      const m = state().matches.find((x) => x.id === matchId);
+      if (!m) return;
+      const week =
+        typeof parseMatchweekNumber === "function"
+          ? parseMatchweekNumber(m.matchday)
+          : Number(String(m.matchday ?? "").match(/MW\s*(\d+)/i)?.[1]);
+      openMatchesInMatchweek(week > 0 ? week : matchesBrowseWeek || 1, matchId);
     });
   });
 }

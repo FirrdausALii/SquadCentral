@@ -157,6 +157,18 @@ function publishedMatchweekForLeague(leagueId) {
   return 36;
 }
 
+/**
+ * End week for player “recent positions” chips.
+ * Admin may override when fixtures are out of order; otherwise follows published MW.
+ */
+function positionTrailEndWeekForLeague(leagueId) {
+  if (typeof FCDataStore !== "undefined") {
+    const n = Number(FCDataStore.getLeagueMeta(leagueId)?.positionTrailEndWeek);
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  return publishedMatchweekForLeague(leagueId);
+}
+
 /** World Cup lists every fixture; club leagues filter by gameweek tag. */
 function leagueShowsAllFixtures(leagueId) {
   return isWorldCupLeague(leagueId);
@@ -5608,16 +5620,16 @@ function formatLineupStarts(n) {
 
 /**
  * Last N matchweek XI tags for a player (oldest → newest), capped at the
- * published/current gameweek. Weeks with no fixture or where the player was
- * not in the starting XI use tag "".
+ * trail end week (admin override or published/current gameweek). Weeks with
+ * no fixture or where the player was not in the starting XI use tag "".
  */
 function playerRecentLineupPositions(p, leagueId, { count = 3 } = {}) {
   if (!p?.teamId || !leagueId || isWorldCupLeague(leagueId)) return [];
-  const published = publishedMatchweekForLeague(leagueId);
-  if (!(published > 0)) return [];
+  const endWeek = positionTrailEndWeekForLeague(leagueId);
+  if (!(endWeek > 0)) return [];
 
   const weeks = [];
-  for (let w = Math.max(1, published - count + 1); w <= published; w++) {
+  for (let w = Math.max(1, endWeek - count + 1); w <= endWeek; w++) {
     weeks.push(w);
   }
 
