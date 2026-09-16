@@ -1237,13 +1237,59 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
 
 .admin-lineup-slot select,
 .admin-lineup-slot input[type="text"],
-.admin-lineup-slot input[type="number"] {
+.admin-lineup-slot input[type="number"],
+.admin-lineup-slot input[type="search"] {
   width: 100%;
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--admin-border);
   background: var(--admin-bg);
   color: var(--admin-text);
+}
+
+.mw-player-combo {
+  position: relative;
+}
+
+.mw-player-combo__input {
+  width: 100%;
+}
+
+.mw-player-combo__list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  max-height: 220px;
+  overflow: auto;
+  list-style: none;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-panel, #0f1628);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.mw-player-combo__opt {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.mw-player-combo__opt:hover,
+.mw-player-combo__opt.is-active {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.mw-player-combo__empty {
+  padding: 10px;
+  font-size: 0.82rem;
+  color: var(--admin-muted);
 }
 
 .lineup-cap-label {

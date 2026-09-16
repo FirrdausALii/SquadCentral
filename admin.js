@@ -2141,18 +2141,38 @@ function findRosterPlayerForLineupSlot(teamId, slot) {
   );
 }
 
+function lineupPlayerComboLabel(p) {
+  if (!p) return "";
+  return `${p.number} · ${p.name}`;
+}
+
+function renderLineupPlayerCombo(teamId, pickId) {
+  const selected = pickId ? playersForTeam(teamId).find((p) => p.id === pickId) : null;
+  const display = lineupPlayerComboLabel(selected);
+  return `
+    <div class="mw-player-combo" data-team-id="${esc(teamId || "")}">
+      <input type="hidden" class="lineup-pick" value="${esc(pickId || "")}" />
+      <input
+        type="search"
+        class="mw-player-combo__input"
+        value="${esc(display)}"
+        placeholder="Search player…"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search and pick player"
+        aria-autocomplete="list"
+        aria-expanded="false"
+      />
+      <ul class="mw-player-combo__list" role="listbox" hidden></ul>
+    </div>`;
+}
+
 function renderLineupSlot(side, teamId, index, slot) {
   const data = slot ?? {};
   const matched = findRosterPlayerForLineupSlot(teamId, data);
   const useManual = Boolean(data.name && !matched);
   const pickId = matched?.id ?? "";
   const isCap = lineupSlotIsCaptain(data, matched);
-  const playerPick = playersForTeam(teamId)
-    .map((p) => {
-      const sel = p.id === pickId ? " selected" : "";
-      return `<option value="${esc(p.id)}"${sel}>${esc(p.number)} · ${esc(p.name)}</option>`;
-    })
-    .join("");
   const flagVal = data.flag ?? (typeof NationalityFlags !== "undefined" ? NationalityFlags.getFlag(data.nationality) : "") ?? "";
 
   return `
@@ -2167,9 +2187,7 @@ function renderLineupSlot(side, teamId, index, slot) {
         </div>
       </div>
       <div class="lineup-roster-fields${useManual ? " admin-hidden" : ""}">
-        <div class="mw-select-wrap mw-select-wrap--compact">
-          <select class="lineup-pick mw-select"><option value="">— Pick player —</option>${playerPick}</select>
-        </div>
+        ${renderLineupPlayerCombo(teamId, pickId)}
       </div>
       <div class="lineup-manual-fields${useManual ? "" : " admin-hidden"}">
         <input class="lineup-man-num" type="number" min="0" max="99" value="${esc(data.number ?? "")}" placeholder="#" title="Shirt number" />
@@ -8602,6 +8620,151 @@ function bindCopyLineupHandlers() {
   });
 }
 
+function bindLineupPlayerCombos() {
+  document.querySelectorAll(".mw-player-combo").forEach((combo) => {
+    if (combo.dataset.bound === "1") return;
+    combo.dataset.bound = "1";
+
+    const input = combo.querySelector(".mw-player-combo__input");
+    const hidden = combo.querySelector(".lineup-pick");
+    const list = combo.querySelector(".mw-player-combo__list");
+    if (!input || !hidden || !list) return;
+
+    const teamId = combo.getAttribute("data-team-id") || "";
+    const roster = () => playersForTeam(teamId);
+
+    const closeList = () => {
+      list.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+      list.querySelectorAll(".mw-player-combo__opt.is-active").forEach((el) => el.classList.remove("is-active"));
+    };
+
+    const openFiltered = (query) => {
+      const q = String(query ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      const players = roster();
+      const matches = !q
+        ? players
+        : players.filter((p) => {
+            const label = lineupPlayerComboLabel(p).toLowerCase();
+            const name = String(p.name ?? "").toLowerCase();
+            const num = String(p.number ?? "");
+            return label.includes(q) || name.includes(q) || num.includes(q);
+          });
+
+      if (!matches.length) {
+        list.innerHTML = `<li class="mw-player-combo__empty">No match</li>`;
+      } else {
+        list.innerHTML = matches
+          .map((p) => {
+            const active = p.id === hidden.value ? " is-active" : "";
+            return `<li role="option" class="mw-player-combo__opt${active}" data-id="${esc(p.id)}" tabindex="-1">${esc(lineupPlayerComboLabel(p))}</li>`;
+          })
+          .join("");
+      }
+      list.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    };
+
+    const pickPlayer = (id) => {
+      const p = roster().find((x) => x.id === id) ?? null;
+      hidden.value = p?.id ?? "";
+      input.value = lineupPlayerComboLabel(p);
+      closeList();
+      hidden.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    const restoreOrResolve = () => {
+      if (hidden.value) {
+        const p = roster().find((x) => x.id === hidden.value);
+        input.value = lineupPlayerComboLabel(p);
+        return;
+      }
+      const typed = input.value.trim().toLowerCase();
+      if (!typed) {
+        input.value = "";
+        return;
+      }
+      const hit = roster().find((p) => {
+        const label = lineupPlayerComboLabel(p).toLowerCase();
+        const name = String(p.name ?? "").toLowerCase();
+        return label === typed || name === typed;
+      });
+      if (hit) pickPlayer(hit.id);
+      else input.value = "";
+    };
+
+    input.addEventListener("focus", () => {
+      input.select();
+      openFiltered("");
+    });
+
+    input.addEventListener("input", () => {
+      if (hidden.value) {
+        const p = roster().find((x) => x.id === hidden.value);
+        if (input.value !== lineupPlayerComboLabel(p)) hidden.value = "";
+      }
+      openFiltered(input.value);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      const opts = Array.from(list.querySelectorAll(".mw-player-combo__opt"));
+      const active = list.querySelector(".mw-player-combo__opt.is-active");
+      let idx = opts.indexOf(active);
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (list.hidden) openFiltered(input.value);
+        const nextOpts = Array.from(list.querySelectorAll(".mw-player-combo__opt"));
+        idx = nextOpts.indexOf(list.querySelector(".mw-player-combo__opt.is-active"));
+        const next = nextOpts.length
+          ? nextOpts[Math.min(nextOpts.length - 1, Math.max(0, idx) + (idx < 0 ? 0 : 1))]
+          : null;
+        nextOpts.forEach((el) => el.classList.remove("is-active"));
+        next?.classList.add("is-active");
+        next?.scrollIntoView({ block: "nearest" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (list.hidden) openFiltered(input.value);
+        const nextOpts = Array.from(list.querySelectorAll(".mw-player-combo__opt"));
+        idx = nextOpts.indexOf(list.querySelector(".mw-player-combo__opt.is-active"));
+        const prev = nextOpts.length ? nextOpts[Math.max(0, (idx < 0 ? 0 : idx) - 1)] : null;
+        nextOpts.forEach((el) => el.classList.remove("is-active"));
+        prev?.classList.add("is-active");
+        prev?.scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter") {
+        const chosen = list.querySelector(".mw-player-combo__opt.is-active") || opts[0];
+        if (!list.hidden && chosen) {
+          e.preventDefault();
+          pickPlayer(chosen.getAttribute("data-id"));
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        restoreOrResolve();
+        closeList();
+        input.blur();
+      }
+    });
+
+    list.addEventListener("mousedown", (e) => {
+      const opt = e.target.closest(".mw-player-combo__opt");
+      if (!opt) return;
+      e.preventDefault();
+      pickPlayer(opt.getAttribute("data-id"));
+    });
+
+    input.addEventListener("blur", () => {
+      window.setTimeout(() => {
+        if (combo.contains(document.activeElement)) return;
+        restoreOrResolve();
+        closeList();
+      }, 120);
+    });
+  });
+}
+
 function bindLineupSlotHandlers() {
   document.querySelectorAll(".admin-lineup-slot").forEach((slot) => {
     const modeSel = slot.querySelector(".lineup-mode");
@@ -8622,6 +8785,8 @@ function bindLineupSlotHandlers() {
     });
     syncMode();
   });
+
+  bindLineupPlayerCombos();
 
   document.querySelectorAll(".lineup-pick").forEach((sel) => {
     sel.addEventListener("change", () => {
