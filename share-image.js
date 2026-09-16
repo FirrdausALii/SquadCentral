@@ -1264,7 +1264,7 @@
     ctx.fillText(truncateText(ctx, resultText, 420), pitchX + pitchW - 28, pitchY + 42);
     ctx.shadowBlur = 0;
 
-    // Players — GK toward top (LiveScore orientation)
+    // Players — same layout helper as live pitch (GK bottom, LB/LW left, RB/RW right)
     if (!focusRows?.length) {
       ctx.textAlign = "center";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
@@ -1277,13 +1277,18 @@
       const padBottom = focusCoach ? 110 : 70;
       const innerY = pitchY + padTop;
       const innerH = pitchH - padTop - padBottom;
+      const layout =
+        typeof pitchTokenPercents === "function"
+          ? pitchTokenPercents
+          : (r, rows, c, cols) => ({
+              top: rows > 1 ? 90 - (r / (rows - 1)) * 78 : 50,
+              left: ((c + 1) / (cols + 1)) * 100,
+            });
 
       focusRows.forEach((row, r) => {
-        // GK at top (small %), attackers toward bottom
-        const topPct = rowCount > 1 ? 8 + (r / (rowCount - 1)) * 78 : 45;
         const isGkRow = r === 0;
         row.forEach((p, c) => {
-          const leftPct = ((c + 1) / (row.length + 1)) * 100;
+          const { left: leftPct, top: topPct } = layout(r, rowCount, c, row.length);
           const px = pitchX + (leftPct / 100) * pitchW;
           const py = innerY + (topPct / 100) * innerH;
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";

@@ -8722,6 +8722,18 @@ function pitchMarkingsSvg() {
   </svg>`;
 }
 
+/** Pitch token % positions — shared by live pitch HTML and share/export canvas. */
+function pitchTokenPercents(rowIndex, rowCount, colIndex, colCount) {
+  const rows = Math.max(1, Number(rowCount) || 1);
+  const cols = Math.max(1, Number(colCount) || 1);
+  const r = Math.max(0, Number(rowIndex) || 0);
+  const c = Math.max(0, Number(colIndex) || 0);
+  // GK row (r=0) at bottom; attackers toward top. L→R matches tag flanks (LB/LW left).
+  const top = rows > 1 ? 90 - (r / (rows - 1)) * 78 : 50;
+  const left = ((c + 1) / (cols + 1)) * 100;
+  return { left, top };
+}
+
 /** One team's interactive XI rendered on a glassmorphic pitch. */
 function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true, teamId = "") {
   const formationBadge =
@@ -8744,11 +8756,10 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
   const rowCount = rows.length;
   const tokens = rows
     .map((row, r) => {
-      const top = rowCount > 1 ? 90 - (r / (rowCount - 1)) * 78 : 50;
       const isGkRow = r === 0;
       return row
         .map((p, c) => {
-          const left = ((c + 1) / (row.length + 1)) * 100;
+          const { left, top } = pitchTokenPercents(r, rowCount, c, row.length);
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
           const fullName = formatLineupDisplayName(p.name, p.captain);
           const short = playerDisplayLastName({ teamId, lineupSlot: p });

@@ -1,6 +1,7 @@
 /* eslint-disable no-alert */
 (() => {
 const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -1040,19 +1041,49 @@ function tmSyncPanelHtml(team, teamId) {
         }</p>`
       : "";
 
+  const todayIso = new Date().toISOString().slice(0, 10);
   const addRows =
     diff?.toAdd
       .map(
         (tm) => {
           const key = tmSyncNameKey(tm.name);
-          return `<li class="players-tm-sync__item players-tm-sync__item--add">
-        <div class="players-tm-sync__copy">
-          <strong>${esc(tm.name)}</strong>
-          <span class="players-tm-sync__meta">${tm.number != null ? `#${esc(tm.number)}` : "No #"} · ${esc(tm.role)} · ${esc(tm.nationality || "—")}</span>
+          return `<li class="players-tm-sync__item players-tm-sync__item--add" data-tm-item="add">
+        <div class="players-tm-sync__main">
+          <div class="players-tm-sync__copy">
+            <strong>${esc(tm.name)}</strong>
+            <span class="players-tm-sync__meta">${tm.number != null ? `#${esc(tm.number)}` : "No #"} · ${esc(tm.role)} · ${esc(tm.nationality || "—")}</span>
+          </div>
+          <div class="players-tm-sync__actions">
+            <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-add-open="${esc(key)}">Add…</button>
+            <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-add="${esc(key)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore add suggestion">Ignore</button>
+          </div>
         </div>
-        <div class="players-tm-sync__actions">
-          <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-add-key="${esc(key)}">Add</button>
-          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-add="${esc(key)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore add suggestion">Ignore</button>
+        <div class="players-tm-sync__transfer admin-hidden" data-tm-add-panel="${esc(key)}" hidden>
+          <p class="players-tm-sync__transfer-lead mb-0">Add to squad and log a transfer</p>
+          <div class="players-tm-sync__cats" role="radiogroup" aria-label="Transfer type">
+            <button type="button" class="players-tm-sync__cat is-active" data-tm-cat="in" aria-pressed="true">Transfer In</button>
+            <button type="button" class="players-tm-sync__cat" data-tm-cat="promoted" aria-pressed="false">Promoted</button>
+            <button type="button" class="players-tm-sync__cat" data-tm-cat="loanReturn" aria-pressed="false">Loan Return</button>
+          </div>
+          <div class="players-tm-sync__fields">
+            <label class="players-tm-sync__field">
+              <span data-tm-club-label>From</span>
+              <input class="mw-input" data-tm-other-club type="text" placeholder="Previous club" autocomplete="off" />
+            </label>
+            <label class="players-tm-sync__field" data-tm-fee-wrap>
+              <span>Fee</span>
+              <input class="mw-input" data-tm-fee type="text" placeholder="€5m / Free" autocomplete="off" />
+            </label>
+            <label class="players-tm-sync__field">
+              <span>Date</span>
+              <input class="mw-input" data-tm-date type="date" value="${esc(todayIso)}" />
+            </label>
+          </div>
+          <div class="players-tm-sync__transfer-actions">
+            <button type="button" class="mw-btn-primary players-tm-sync__apply" data-tm-add-confirm="${esc(key)}">Add + transfer</button>
+            <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-add-squad-only="${esc(key)}">Squad only</button>
+            <button type="button" class="players-tm-sync__dismiss" data-tm-add-cancel="${esc(key)}">Cancel</button>
+          </div>
         </div>
       </li>`;
         },
@@ -1062,14 +1093,42 @@ function tmSyncPanelHtml(team, teamId) {
   const removeRows =
     diff?.toRemove
       .map(
-        (p) => `<li class="players-tm-sync__item players-tm-sync__item--remove">
-        <div class="players-tm-sync__copy">
-          <strong>${esc(stripCaptainSuffix(p.name))}</strong>
-          <span class="players-tm-sync__meta">#${esc(p.number)} · ${esc(p.role ?? p.pos)}</span>
+        (p) => `<li class="players-tm-sync__item players-tm-sync__item--remove" data-tm-item="remove">
+        <div class="players-tm-sync__main">
+          <div class="players-tm-sync__copy">
+            <strong>${esc(stripCaptainSuffix(p.name))}</strong>
+            <span class="players-tm-sync__meta">#${esc(p.number)} · ${esc(p.role ?? p.pos)}</span>
+          </div>
+          <div class="players-tm-sync__actions">
+            <button type="button" class="mw-btn-danger players-tm-sync__apply" data-tm-remove-open="${esc(p.id)}">Remove…</button>
+            <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-remove="${esc(p.id)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore remove suggestion">Ignore</button>
+          </div>
         </div>
-        <div class="players-tm-sync__actions">
-          <button type="button" class="mw-btn-danger players-tm-sync__apply" data-tm-remove="${esc(p.id)}">Remove</button>
-          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-remove="${esc(p.id)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore remove suggestion">Ignore</button>
+        <div class="players-tm-sync__transfer admin-hidden" data-tm-remove-panel="${esc(p.id)}" hidden>
+          <p class="players-tm-sync__transfer-lead mb-0">Remove from squad and log a departure</p>
+          <div class="players-tm-sync__cats" role="radiogroup" aria-label="Departure type">
+            <button type="button" class="players-tm-sync__cat is-active" data-tm-cat="out" aria-pressed="true">Transfer Out</button>
+            <button type="button" class="players-tm-sync__cat" data-tm-cat="loanRecall" aria-pressed="false">Recall</button>
+          </div>
+          <div class="players-tm-sync__fields">
+            <label class="players-tm-sync__field">
+              <span data-tm-club-label>To</span>
+              <input class="mw-input" data-tm-other-club type="text" placeholder="Destination club" autocomplete="off" />
+            </label>
+            <label class="players-tm-sync__field" data-tm-fee-wrap>
+              <span>Fee</span>
+              <input class="mw-input" data-tm-fee type="text" placeholder="€5m / Loan / Released" autocomplete="off" />
+            </label>
+            <label class="players-tm-sync__field">
+              <span>Date</span>
+              <input class="mw-input" data-tm-date type="date" value="${esc(todayIso)}" />
+            </label>
+          </div>
+          <div class="players-tm-sync__transfer-actions">
+            <button type="button" class="mw-btn-danger players-tm-sync__apply" data-tm-remove-confirm="${esc(p.id)}">Remove + transfer</button>
+            <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-remove-squad-only="${esc(p.id)}">Squad only</button>
+            <button type="button" class="players-tm-sync__dismiss" data-tm-remove-cancel="${esc(p.id)}">Cancel</button>
+          </div>
         </div>
       </li>`,
       )
@@ -1079,13 +1138,15 @@ function tmSyncPanelHtml(team, teamId) {
     (diff?.toUpdate ?? [])
       .map(
         (row) => `<li class="players-tm-sync__item players-tm-sync__item--update">
-        <div class="players-tm-sync__copy">
-          <strong>${esc(stripCaptainSuffix(row.local.name))}</strong>
-          <span class="players-tm-sync__meta">${esc(tmSyncUpdateMeta(row))}</span>
-        </div>
-        <div class="players-tm-sync__actions">
-          <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-sync-id="${esc(row.local.id)}">Sync</button>
-          <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-update="${esc(row.local.id)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore detail sync">Ignore</button>
+        <div class="players-tm-sync__main">
+          <div class="players-tm-sync__copy">
+            <strong>${esc(stripCaptainSuffix(row.local.name))}</strong>
+            <span class="players-tm-sync__meta">${esc(tmSyncUpdateMeta(row))}</span>
+          </div>
+          <div class="players-tm-sync__actions">
+            <button type="button" class="mw-btn-ghost players-tm-sync__apply" data-tm-sync-id="${esc(row.local.id)}">Sync</button>
+            <button type="button" class="players-tm-sync__dismiss" data-tm-ignore-update="${esc(row.local.id)}" title="Hide on future Refresh until leave, or jersey / position changes" aria-label="Ignore detail sync">Ignore</button>
+          </div>
         </div>
       </li>`,
       )
@@ -1143,7 +1204,7 @@ function tmSyncPanelHtml(team, teamId) {
             : emptyMsg
         }
       </div>
-      <p class="mw-field-note admin-muted players-tm-sync__ignore-hint">Ignore hides a suggestion on future Refresh until that player leaves, or their jersey number / position changes.</p>
+      <p class="mw-field-note admin-muted players-tm-sync__ignore-hint">Add… logs Transfer In / Promoted / Loan Return with the squad add. Remove… logs Transfer Out / Recall with the squad remove. Ignore only hides a suggestion until leave, or jersey / position changes.</p>
     </div>`;
 }
 
@@ -1325,23 +1386,161 @@ async function refreshTransfermarktSquad(team) {
   }
 }
 
-function applyTransfermarktSuggestion(teamId, { addKey = null, removeId = null, syncId = null } = {}) {
+function tmSquadTransferSectionMeta(category) {
+  const section = ADMIN_TRANSFER_SECTIONS.find((s) => s.key === category);
+  return {
+    key: category,
+    clubHeader: section?.clubHeader ?? (category === "out" || category === "loanRecall" ? "To" : "From"),
+    clubPlaceholder:
+      section?.clubPlaceholder ??
+      (category === "out" || category === "loanRecall" ? "Destination club" : "Previous club"),
+    feePlaceholder: section?.feePlaceholder ?? "€5m / Free",
+    showFee: section?.showFee !== false,
+    defaultFee: category === "promoted" ? "Internal" : "",
+  };
+}
+
+function syncTmSquadTransferPanel(panel, category) {
+  if (!panel || !category) return;
+  const meta = tmSquadTransferSectionMeta(category);
+  for (const btn of $$("[data-tm-cat]", panel)) {
+    const on = btn.getAttribute("data-tm-cat") === category;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+  const clubLabel = panel.querySelector("[data-tm-club-label]");
+  if (clubLabel) clubLabel.textContent = meta.clubHeader;
+  const clubInput = panel.querySelector("[data-tm-other-club]");
+  if (clubInput) clubInput.placeholder = meta.clubPlaceholder;
+  const feeWrap = panel.querySelector("[data-tm-fee-wrap]");
+  const feeInput = panel.querySelector("[data-tm-fee]");
+  if (feeWrap) feeWrap.classList.toggle("admin-hidden", !meta.showFee);
+  if (feeInput && meta.showFee) {
+    feeInput.placeholder = meta.feePlaceholder;
+    if (meta.defaultFee && !String(feeInput.value ?? "").trim()) {
+      feeInput.value = meta.defaultFee;
+    }
+    if (!meta.defaultFee && feeInput.value === "Internal") feeInput.value = "";
+  }
+}
+
+function openTmSquadTransferPanel(root, panelAttr, key, defaultCat) {
+  if (!root) return;
+  for (const panel of $$(".players-tm-sync__transfer", root)) {
+    panel.hidden = true;
+    panel.classList.add("admin-hidden");
+  }
+  const panel = root.querySelector(`[${panelAttr}="${CSS.escape(key)}"]`);
+  if (!panel) return;
+  panel.hidden = false;
+  panel.classList.remove("admin-hidden");
+  syncTmSquadTransferPanel(panel, defaultCat);
+  panel.querySelector("[data-tm-other-club]")?.focus?.();
+}
+
+function closeTmSquadTransferPanel(panel) {
+  if (!panel) return;
+  panel.hidden = true;
+  panel.classList.add("admin-hidden");
+}
+
+function readTmSquadTransferPanel(panel) {
+  const catBtn = panel?.querySelector(".players-tm-sync__cat.is-active");
+  const category = catBtn?.getAttribute("data-tm-cat") || "in";
+  const meta = tmSquadTransferSectionMeta(category);
+  const otherClub = panel?.querySelector("[data-tm-other-club]")?.value?.trim() ?? "";
+  const feeRaw = panel?.querySelector("[data-tm-fee]")?.value?.trim() ?? "";
+  const dateRaw = panel?.querySelector("[data-tm-date]")?.value?.trim() ?? "";
+  const date =
+    transferDateFromInputValue(dateRaw) ||
+    transferDateFromInputValue(new Date().toISOString().slice(0, 10));
+  const fee = meta.showFee ? feeRaw || meta.defaultFee || undefined : undefined;
+  return { category, otherClub, fee, date };
+}
+
+function logTmSquadTransferRow(teamId, category, { player, playerId, otherClub, fee, date }) {
+  if (!leagueFilter) return { ok: false, error: "Choose a league first" };
+  if (!teamId) return { ok: false, error: "Choose a team first" };
+  if (!player) return { ok: false, error: "Missing player name" };
+  return appendClubTransferRow(leagueFilter, teamId, category, {
+    player,
+    otherClub: otherClub || "",
+    fee,
+    date,
+    playerId,
+  });
+}
+
+function applyTransfermarktSuggestion(
+  teamId,
+  {
+    addKey = null,
+    removeId = null,
+    syncId = null,
+    transfer = null,
+    squadOnly = false,
+  } = {},
+) {
   if (!teamId || !tmSyncState?.diff) return;
   if (addKey) {
     const tm = tmSyncState.diff.toAdd.find((t) => tmSyncNameKey(t.name) === addKey);
     if (!tm) return;
     const added = addPlayerFromTransfermarkt(teamId, tm);
     if (!added) return;
+    const live = rosterPlayerByLooseName(teamId, added.name);
+    let transferNote = "";
+    if (!squadOnly && transfer?.category) {
+      const logged = logTmSquadTransferRow(teamId, transfer.category, {
+        player: added.name,
+        playerId: live?.id,
+        otherClub: transfer.otherClub,
+        fee: transfer.fee,
+        date: transfer.date,
+      });
+      if (!logged.ok) {
+        toast(`${added.name} added to squad, but transfer failed: ${logged.error || "unknown error"}`);
+        recalculateTmSquadDiff(teamId);
+        renderPanel();
+        return;
+      }
+      transferNote = ` · ${transferCategoryLabel(transfer.category)}`;
+    }
     toast(
       added.reassigned
-        ? `${added.name} added as #${added.number}`
-        : `${added.name} added`,
+        ? `${added.name} added as #${added.number}${transferNote}`
+        : `${added.name} added${transferNote}`,
     );
   } else if (removeId) {
-    if (!confirm("Remove this player from the squad?")) return;
+    const local = state().players.find((p) => p.id === removeId);
+    const name = stripCaptainSuffix(local?.name ?? "Player");
+    if (squadOnly) {
+      if (!confirm(`Remove ${name} from the squad?`)) return;
+    } else if (transfer?.category) {
+      if (
+        !confirm(
+          `Remove ${name} from the squad and log ${transferCategoryLabel(transfer.category)}?`,
+        )
+      ) {
+        return;
+      }
+      const logged = logTmSquadTransferRow(teamId, transfer.category, {
+        player: name,
+        playerId: removeId,
+        otherClub: transfer.otherClub,
+        fee: transfer.fee,
+        date: transfer.date,
+      });
+      if (!logged.ok) return toast(logged.error || "Could not save transfer");
+    } else if (!confirm(`Remove ${name} from the squad?`)) {
+      return;
+    }
     FCDataStore.removePlayer(removeId);
     syncToAppArrays();
-    toast("Player removed");
+    toast(
+      !squadOnly && transfer?.category
+        ? `${name} removed · ${transferCategoryLabel(transfer.category)}`
+        : `${name} removed`,
+    );
   } else if (syncId) {
     const row = (tmSyncState.diff.toUpdate ?? []).find((u) => u.local?.id === syncId);
     if (!row) return;
@@ -1358,9 +1557,21 @@ function applyTransfermarktSuggestion(teamId, { addKey = null, removeId = null, 
 function applyAllTransfermarktAdds(teamId) {
   const diff = getTmSyncVisibleDiff();
   if (!teamId || !diff?.toAdd?.length) return;
+  if (
+    !confirm(
+      `Add ${diff.toAdd.length} player${diff.toAdd.length === 1 ? "" : "s"} to this squad?`,
+    )
+  ) {
+    return;
+  }
+  const withTransfer = confirm(
+    "Also create a Transfer In row for each player?\n\nOK = squad + Transfer In\nCancel = squad only",
+  );
+  const date = transferDateFromInputValue(new Date().toISOString().slice(0, 10));
   let added = 0;
   let reassigned = 0;
   let failed = 0;
+  let transfers = 0;
   for (const tm of [...diff.toAdd]) {
     const result = addPlayerFromTransfermarkt(teamId, tm, { quiet: true });
     if (!result) {
@@ -1369,9 +1580,21 @@ function applyAllTransfermarktAdds(teamId) {
     }
     added += 1;
     if (result.reassigned) reassigned += 1;
+    if (withTransfer) {
+      const live = rosterPlayerByLooseName(teamId, result.name);
+      const logged = logTmSquadTransferRow(teamId, "in", {
+        player: result.name,
+        playerId: live?.id,
+        otherClub: "",
+        fee: undefined,
+        date,
+      });
+      if (logged.ok) transfers += 1;
+    }
   }
   recalculateTmSquadDiff(teamId);
   const bits = [`Added ${added}`];
+  if (transfers) bits.push(`${transfers} Transfer In`);
   if (reassigned) bits.push(`${reassigned} got a free jersey #`);
   if (failed) bits.push(`${failed} skipped`);
   toast(bits.join(" · "));
@@ -1388,12 +1611,31 @@ function applyAllTransfermarktRemoves(teamId) {
   ) {
     return;
   }
+  const withTransfer = confirm(
+    "Also create a Transfer Out row for each player?\n\nOK = remove + Transfer Out\nCancel = remove only",
+  );
+  const date = transferDateFromInputValue(new Date().toISOString().slice(0, 10));
+  let transfers = 0;
   for (const p of [...diff.toRemove]) {
+    if (withTransfer) {
+      const logged = logTmSquadTransferRow(teamId, "out", {
+        player: stripCaptainSuffix(p.name),
+        playerId: p.id,
+        otherClub: "",
+        fee: undefined,
+        date,
+      });
+      if (logged.ok) transfers += 1;
+    }
     FCDataStore.removePlayer(p.id);
   }
   syncToAppArrays();
   recalculateTmSquadDiff(teamId);
-  toast(`Removed ${diff.toRemove.length} player${diff.toRemove.length === 1 ? "" : "s"}`);
+  toast(
+    transfers
+      ? `Removed ${diff.toRemove.length} · ${transfers} Transfer Out`
+      : `Removed ${diff.toRemove.length} player${diff.toRemove.length === 1 ? "" : "s"}`,
+  );
   renderPanel();
 }
 
@@ -1544,32 +1786,102 @@ function bindTransfermarktSync(team) {
   $("#btnTmRemoveAll")?.addEventListener("click", () => applyAllTransfermarktRemoves(team?.id));
   $("#btnTmSyncAll")?.addEventListener("click", () => applyAllTransfermarktUpdates(team?.id));
   $("#playersTmSync")?.addEventListener("click", (e) => {
-    const addBtn = e.target instanceof Element ? e.target.closest("[data-tm-add-key]") : null;
-    if (addBtn) {
-      applyTransfermarktSuggestion(team?.id, { addKey: addBtn.getAttribute("data-tm-add-key") });
+    const root = $("#playersTmSync");
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+
+    const catBtn = t.closest("[data-tm-cat]");
+    if (catBtn) {
+      const panel = catBtn.closest(".players-tm-sync__transfer");
+      syncTmSquadTransferPanel(panel, catBtn.getAttribute("data-tm-cat"));
       return;
     }
-    const removeBtn = e.target instanceof Element ? e.target.closest("[data-tm-remove]") : null;
-    if (removeBtn && !removeBtn.hasAttribute("data-tm-ignore-remove")) {
-      applyTransfermarktSuggestion(team?.id, { removeId: removeBtn.getAttribute("data-tm-remove") });
+
+    const addOpen = t.closest("[data-tm-add-open]");
+    if (addOpen) {
+      openTmSquadTransferPanel(root, "data-tm-add-panel", addOpen.getAttribute("data-tm-add-open"), "in");
       return;
     }
-    const syncBtn = e.target instanceof Element ? e.target.closest("[data-tm-sync-id]") : null;
+    const addCancel = t.closest("[data-tm-add-cancel]");
+    if (addCancel) {
+      closeTmSquadTransferPanel(
+        root?.querySelector(`[data-tm-add-panel="${CSS.escape(addCancel.getAttribute("data-tm-add-cancel"))}"]`),
+      );
+      return;
+    }
+    const addConfirm = t.closest("[data-tm-add-confirm]");
+    if (addConfirm) {
+      const key = addConfirm.getAttribute("data-tm-add-confirm");
+      const panel = root?.querySelector(`[data-tm-add-panel="${CSS.escape(key)}"]`);
+      applyTransfermarktSuggestion(team?.id, {
+        addKey: key,
+        transfer: readTmSquadTransferPanel(panel),
+      });
+      return;
+    }
+    const addSquadOnly = t.closest("[data-tm-add-squad-only]");
+    if (addSquadOnly) {
+      applyTransfermarktSuggestion(team?.id, {
+        addKey: addSquadOnly.getAttribute("data-tm-add-squad-only"),
+        squadOnly: true,
+      });
+      return;
+    }
+
+    const removeOpen = t.closest("[data-tm-remove-open]");
+    if (removeOpen) {
+      openTmSquadTransferPanel(
+        root,
+        "data-tm-remove-panel",
+        removeOpen.getAttribute("data-tm-remove-open"),
+        "out",
+      );
+      return;
+    }
+    const removeCancel = t.closest("[data-tm-remove-cancel]");
+    if (removeCancel) {
+      closeTmSquadTransferPanel(
+        root?.querySelector(
+          `[data-tm-remove-panel="${CSS.escape(removeCancel.getAttribute("data-tm-remove-cancel"))}"]`,
+        ),
+      );
+      return;
+    }
+    const removeConfirm = t.closest("[data-tm-remove-confirm]");
+    if (removeConfirm) {
+      const id = removeConfirm.getAttribute("data-tm-remove-confirm");
+      const panel = root?.querySelector(`[data-tm-remove-panel="${CSS.escape(id)}"]`);
+      applyTransfermarktSuggestion(team?.id, {
+        removeId: id,
+        transfer: readTmSquadTransferPanel(panel),
+      });
+      return;
+    }
+    const removeSquadOnly = t.closest("[data-tm-remove-squad-only]");
+    if (removeSquadOnly) {
+      applyTransfermarktSuggestion(team?.id, {
+        removeId: removeSquadOnly.getAttribute("data-tm-remove-squad-only"),
+        squadOnly: true,
+      });
+      return;
+    }
+
+    const syncBtn = t.closest("[data-tm-sync-id]");
     if (syncBtn) {
       applyTransfermarktSuggestion(team?.id, { syncId: syncBtn.getAttribute("data-tm-sync-id") });
       return;
     }
-    const ignoreAddBtn = e.target instanceof Element ? e.target.closest("[data-tm-ignore-add]") : null;
+    const ignoreAddBtn = t.closest("[data-tm-ignore-add]");
     if (ignoreAddBtn) {
       ignoreTransfermarktSuggestion({ addKey: ignoreAddBtn.getAttribute("data-tm-ignore-add") });
       return;
     }
-    const ignoreRemoveBtn = e.target instanceof Element ? e.target.closest("[data-tm-ignore-remove]") : null;
+    const ignoreRemoveBtn = t.closest("[data-tm-ignore-remove]");
     if (ignoreRemoveBtn) {
       ignoreTransfermarktSuggestion({ removeId: ignoreRemoveBtn.getAttribute("data-tm-ignore-remove") });
       return;
     }
-    const ignoreUpdateBtn = e.target instanceof Element ? e.target.closest("[data-tm-ignore-update]") : null;
+    const ignoreUpdateBtn = t.closest("[data-tm-ignore-update]");
     if (ignoreUpdateBtn) {
       ignoreTransfermarktSuggestion({
         updateId: ignoreUpdateBtn.getAttribute("data-tm-ignore-update"),
@@ -6695,10 +7007,6 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
   const foldedClass = folded ? " is-folded" : "";
   const hasPlayer = Boolean(String(t.player ?? "").trim());
   const showDbChooser = transferSupportsDbPick(mode) && !hasPlayer;
-  const linkedBadge =
-    t.eventId || t.playerId
-      ? `<span class="transfers-card__linked" title="Linked database transfer">Linked</span>`
-      : "";
   const summary = transferCardSummaryHtml(
     {
       player: t.player,
@@ -6734,7 +7042,6 @@ function transferTableRowHtml(mode, teamId, t, i, { folded = true } = {}) {
           <span class="transfers-card__chevron" aria-hidden="true"></span>
           <span class="transfers-card__summary">${summary}</span>
         </button>
-        ${linkedBadge}
         <div class="transfers-card__actions">
           ${transferSquadStatusHtml(teamId, t.player, mode)}
           <button type="button" class="mw-btn-danger transfers-del-btn tr-del" title="Remove this transfer entry" aria-label="Remove entry">
