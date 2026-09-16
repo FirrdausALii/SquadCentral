@@ -1787,7 +1787,7 @@ function computeStandingsFromMatches(leagueId) {
 
   for (const m of MATCHES ?? []) {
     if (m.leagueId !== leagueId) continue;
-    const status = String(m.status ?? "").trim().toUpperCase();
+    const status = effectiveMatchStatus(m);
     if (!decided.has(status)) continue;
     const week = parseMatchweekNumber(m.matchday);
     if (published > 0 && week > 0 && week > published) continue;
@@ -5678,7 +5678,7 @@ function playerSeasonStats(p, leagueId, startsMap) {
   for (const m of MATCHES ?? []) {
     if (m.leagueId !== leagueId) continue;
     if (m.homeTeamId !== p.teamId && m.awayTeamId !== p.teamId) continue;
-    const status = String(m.status ?? "").trim().toUpperCase();
+    const status = effectiveMatchStatus(m);
     if (!decided.has(status)) continue;
     const week = parseMatchweekNumber(m.matchday);
     if (published > 0 && week > 0 && week > published) continue;
@@ -6445,8 +6445,26 @@ function matchStatusKind(status) {
   return "ns";
 }
 
+/**
+ * Display/filter status. Matchweek edits sometimes saved a score while leaving
+ * status as NS — treat those as FT so cards show the result.
+ */
+function effectiveMatchStatus(m) {
+  const raw = String(m?.status ?? "").trim().toUpperCase();
+  if (raw === "LIVE") return "LIVE";
+  if (raw === "FT" || raw === "AET" || raw === "PEN" || raw === "AWD") return raw;
+  const hs = Number(m?.score?.[0]);
+  const as = Number(m?.score?.[1]);
+  const hasScore = Number.isFinite(hs) && Number.isFinite(as);
+  const hasGoals =
+    (Array.isArray(m?.goalEvents) && m.goalEvents.length > 0) ||
+    (Array.isArray(m?.scorers) && m.scorers.length > 0);
+  if (hasGoals || (hasScore && (hs > 0 || as > 0))) return "FT";
+  return raw || "NS";
+}
+
 function matchIsUpcoming(m) {
-  return matchStatusKind(m?.status) === "ns";
+  return matchStatusKind(effectiveMatchStatus(m)) === "ns";
 }
 
 function matchCardStatusClass(status) {
@@ -6591,7 +6609,7 @@ function matchLiveMinute(m) {
 
 function matchCardStatusHtml(m, { showStatus = true } = {}) {
   if (!showStatus) return "";
-  const status = String(m?.status ?? "").trim();
+  const status = effectiveMatchStatus(m);
   if (!status) return "";
   const upper = status.toUpperCase();
   if (upper === "LIVE") {
@@ -6709,7 +6727,7 @@ function matchCenterFixtureHtml(m, { showStatus = true, matchId = m.id } = {}) {
   const at = teamById.get(m.awayTeamId);
   const crestClass = "team-crest team-crest--sm";
   const headerKicker = m.matchday || "";
-  const status = String(m.status ?? "").trim();
+  const status = effectiveMatchStatus(m);
   const homeName = ht?.name ?? "Home";
   const awayName = at?.name ?? "Away";
   const hs = Number(m.score?.[0]);
@@ -6784,7 +6802,7 @@ function matchCardHtml(m, options = {}) {
   const crestClass = "team-crest team-crest--sm";
   const headerKicker = kicker || m.matchday || "";
   const datetime = m.time || "";
-  const status = String(m.status ?? "").trim();
+  const status = effectiveMatchStatus(m);
   const statusKind = matchStatusKind(status);
   const upcoming = statusKind === "ns";
   const venueHtml = showVenue ? matchCardVenueHtml(m, ht, at, { list: variant === "list", hero: variant === "hero" }) : "";
@@ -6957,9 +6975,12 @@ function bindHeroMatchCards(root, leagueId) {
 
 function pickHeroFeaturedMatch(matches) {
   if (!matches?.length) return null;
-  const live = matches.find((m) => String(m.status).toLowerCase() === "live");
+  const live = matches.find((m) => effectiveMatchStatus(m) === "LIVE");
   if (live) return live;
-  const finished = matches.filter((m) => String(m.status).toUpperCase() === "FT");
+  const finished = matches.filter((m) => {
+    const s = effectiveMatchStatus(m);
+    return s === "FT" || s === "AET" || s === "PEN" || s === "AWD";
+  });
   if (finished.length) return finished[finished.length - 1];
   return matches[0];
 }
@@ -7508,7 +7529,7 @@ let heroStripState = null;
 function categorizeHeroMatches(matches) {
   const buckets = { live: [], upcoming: [], results: [] };
   for (const m of matches ?? []) {
-    const s = String(m.status ?? "").trim().toUpperCase();
+    const s = effectiveMatchStatus(m);
     if (s === "LIVE") buckets.live.push(m);
     else if (HERO_RESULT_STATUSES.has(s)) buckets.results.push(m);
     else buckets.upcoming.push(m);
@@ -8884,7 +8905,7 @@ function renderMatchCenter(leagueId) {
     };
 
     const statusChip = leagueFeatureOn(leagueId, "matchStatus")
-      ? `<span class="chip">${escapeHtml(m.status)} • ${escapeHtml(m.time)}</span>`
+      ? `<span class="chip">${escapeHtml(effectiveMatchStatus(m))} • ${escapeHtml(m.time)}</span>`
       : `<span class="chip">${escapeHtml(m.time)}</span>`;
 
     if (m.lineups && showLineups) {

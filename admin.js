@@ -3372,6 +3372,21 @@ function panelLeague() {
             <div class="col-12 col-md-6"><div class="mw-field"><label>Away team</label><div class="mw-select-wrap"><select id="matchAway" class="mw-select">${teamOpts(awayId)}</select></div></div></div>
             <div class="col-6 col-md-6"><div class="mw-field"><label>Home goals</label><input id="matchHomeScore" class="mw-input mw-input--score" type="number" min="0" value="${esc(src?.score?.[0] ?? 0)}" /></div></div>
             <div class="col-6 col-md-6"><div class="mw-field"><label>Away goals</label><input id="matchAwayScore" class="mw-input mw-input--score" type="number" min="0" value="${esc(src?.score?.[1] ?? 0)}" /></div></div>
+            <div class="col-12 col-md-6"><div class="mw-field"><label>Status</label><div class="mw-select-wrap"><select id="matchStatus" class="mw-select">
+              ${["NS", "LIVE", "FT", "AET", "PEN"].map((s) => {
+                const raw = String(src?.status ?? "NS").trim().toUpperCase() || "NS";
+                const hs = Number(src?.score?.[0]) || 0;
+                const as = Number(src?.score?.[1]) || 0;
+                const hasGoals = (src?.goalEvents?.length ?? 0) > 0;
+                const cur =
+                  raw === "LIVE" || raw === "FT" || raw === "AET" || raw === "PEN" || raw === "AWD"
+                    ? raw
+                    : hs + as > 0 || hasGoals
+                      ? "FT"
+                      : raw;
+                return `<option value="${s}"${cur === s ? " selected" : ""}>${s === "NS" ? "NS (upcoming)" : s}</option>`;
+              }).join("")}
+            </select></div></div></div>
             <div class="col-12 col-md-6"><div class="mw-field"><label>Home formation</label><input id="matchFormHome" class="mw-input" value="${esc(src?.formation?.[0] ?? "4-2-3-1")}" placeholder="4-2-3-1" /></div></div>
             <div class="col-12 col-md-6"><div class="mw-field"><label>Away formation</label><input id="matchFormAway" class="mw-input" value="${esc(src?.formation?.[1] ?? "4-3-3")}" placeholder="4-3-3" /></div></div>
           </div>
@@ -8317,6 +8332,13 @@ function bindMatchweek() {
     };
     const hasLineup = lineups.home.length > 0 || lineups.away.length > 0;
     const goalEvents = normalizeGoalEventsForSave(readGoalEventsFromDom(), home, away, hasLineup ? lineups : prev?.lineups);
+    const statusPick = String($("#matchStatus")?.value ?? "").trim().toUpperCase();
+    const score = [Number($("#matchHomeScore")?.value) || 0, Number($("#matchAwayScore")?.value) || 0];
+    let status = statusPick || "NS";
+    // Goals/score under NS → FT so Match Center shows the result (not kickoff)
+    if (status === "NS" && (score[0] + score[1] > 0 || goalEvents.length > 0)) {
+      status = "FT";
+    }
     const matchday =
       typeof matchdayForSavedFixture === "function"
         ? matchdayForSavedFixture(leagueFilter, meta, isWc ? $("#matchStage")?.value : null)
@@ -8328,12 +8350,12 @@ function bindMatchweek() {
       id,
       leagueId: leagueFilter,
       matchday,
-      status: prev?.status ?? "FT",
+      status,
       time: $("#matchTime")?.value.trim() || "—",
       stadium: $("#matchStadium")?.value.trim() || "—",
       homeTeamId: home,
       awayTeamId: away,
-      score: [Number($("#matchHomeScore")?.value) || 0, Number($("#matchAwayScore")?.value) || 0],
+      score,
       scorers: prev?.scorers ?? [],
       goalEvents,
       possession: prev?.possession ?? [],
