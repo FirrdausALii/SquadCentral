@@ -636,3 +636,18 @@ body.fc-app {
   }
 }
 
+/* Home global search */
+@media (max-width: 767.98px) {
+  .home-global-search {
+    max-width: none;
+  }
+
+  .home-global-search__field {
+    min-height: 44px;
+  }
+
+  .home-global-search__panel {
+    max-height: min(60vh, 360px);
+  }
+}
+

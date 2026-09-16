@@ -25,10 +25,10 @@
     />
     <link rel="stylesheet" href="./squad-central-dark-stadium.css" />
     <link rel="stylesheet" href="./styles.css?v=roster-board-2" />
-    <link rel="stylesheet" href="./styles-home.css" />
+    <link rel="stylesheet" href="./styles-home.css?v=global-search-1" />
     <link rel="stylesheet" href="./standings.css" />
     <link rel="stylesheet" href="./lineups-pitch.css?v=share-side-1" />
-    <link rel="stylesheet" href="./styles-mobile.css?v=roster-board-2" />
+    <link rel="stylesheet" href="./styles-mobile.css?v=global-search-1" />
     <link rel="stylesheet" href="./dropdowns.css" />
     <style>
       /* Critical fallback if CSS files fail to load on GitHub Pages */
@@ -161,6 +161,30 @@
             </div>
 
             <div class="home-filters home-enter" aria-label="Competition and match filters">
+              <div class="home-global-search" id="homeGlobalSearch">
+                <label class="home-global-search__field" for="homeSearchInput">
+                  <span class="home-global-search__icon" aria-hidden="true">⌕</span>
+                  <input
+                    id="homeSearchInput"
+                    type="search"
+                    placeholder="Search players, clubs, matches…"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-label="Search players, clubs, and matches"
+                    aria-autocomplete="list"
+                    aria-controls="homeSearchResults"
+                    aria-expanded="false"
+                  />
+                  <kbd class="home-global-search__hint" aria-hidden="true">/</kbd>
+                </label>
+                <div
+                  class="home-global-search__panel"
+                  id="homeSearchResults"
+                  role="listbox"
+                  aria-label="Search results"
+                  hidden
+                ></div>
+              </div>
               <div class="home-rail" aria-label="Select competition">
                 <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
                   <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
@@ -569,7 +593,7 @@
     <script src="./squad-depth.js"></script>
     <script src="./national-duty.js"></script>
     <script src="./share-image.js?v=lineup-orient-2"></script>
-    <script src="./app.js?v=match-status-ft-1" defer></script>
+    <script src="./app.js?v=global-search-1" defer></script>
     <script>
       document.addEventListener("fc-data-missing", () => {
         const msg =

@@ -7680,6 +7680,335 @@ function openTeamRoster(leagueId, teamId) {
   $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function normalizeGlobalSearchText(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s#-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function globalSearchScore(haystack, query) {
+  const h = normalizeGlobalSearchText(haystack);
+  const q = normalizeGlobalSearchText(query);
+  if (!h || !q) return 0;
+  if (h === q) return 100;
+  if (h.startsWith(q)) return 80;
+  const words = h.split(" ");
+  if (words.some((w) => w.startsWith(q))) return 60;
+  if (h.includes(q)) return 40;
+  return 0;
+}
+
+function searchGlobalClubs(query, limit = 4) {
+  const out = [];
+  for (const team of TEAMS ?? []) {
+    const league = LEAGUES.find((l) => l.id === team.leagueId);
+    const score = Math.max(
+      globalSearchScore(team.name, query),
+      globalSearchScore(team.city, query),
+      globalSearchScore(league?.name, query),
+    );
+    if (score <= 0) continue;
+    out.push({
+      kind: "club",
+      id: team.id,
+      score,
+      title: team.name,
+      meta: [league?.name, team.city].filter(Boolean).join(" · "),
+      logo: team.logo,
+      leagueId: team.leagueId,
+      teamId: team.id,
+    });
+  }
+  return out.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)).slice(0, limit);
+}
+
+function searchGlobalPlayers(query, limit = 6) {
+  const out = [];
+  for (const p of PLAYERS ?? []) {
+    const team = teamById.get(p.teamId);
+    if (!team) continue;
+    const league = LEAGUES.find((l) => l.id === team.leagueId);
+    const display = stripCaptainSuffix(p.name);
+    const score = Math.max(
+      globalSearchScore(display, query),
+      globalSearchScore(p.name, query),
+      globalSearchScore(String(p.number ?? ""), query),
+      globalSearchScore(p.nationality, query),
+      globalSearchScore(`${p.number} ${display}`, query),
+    );
+    if (score <= 0) continue;
+    out.push({
+      kind: "player",
+      id: p.id,
+      score,
+      title: display,
+      meta: [`#${formatPlayerJerseyNumber(p.number)}`, team.name, league?.name, p.role ?? p.pos]
+        .filter(Boolean)
+        .join(" · "),
+      player: p,
+      leagueId: team.leagueId,
+      teamId: team.id,
+      initials: playerInitialsFromName(display),
+    });
+  }
+  return out.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)).slice(0, limit);
+}
+
+function searchGlobalMatches(query, limit = 4) {
+  const out = [];
+  for (const m of MATCHES ?? []) {
+    const ht = teamById.get(m.homeTeamId);
+    const at = teamById.get(m.awayTeamId);
+    const league = LEAGUES.find((l) => l.id === m.leagueId);
+    const pair = `${ht?.name ?? "Home"} vs ${at?.name ?? "Away"}`;
+    const score = Math.max(
+      globalSearchScore(pair, query),
+      globalSearchScore(ht?.name, query),
+      globalSearchScore(at?.name, query),
+      globalSearchScore(m.stadium, query),
+      globalSearchScore(m.matchday, query),
+      globalSearchScore(league?.name, query),
+    );
+    if (score <= 0) continue;
+    const status = effectiveMatchStatus(m);
+    const upcoming = matchIsUpcoming(m);
+    const hs = Number(m.score?.[0]);
+    const as = Number(m.score?.[1]);
+    const result =
+      !upcoming && Number.isFinite(hs) && Number.isFinite(as) ? `${hs}–${as}` : status;
+    out.push({
+      kind: "match",
+      id: m.id,
+      score,
+      title: pair,
+      meta: [league?.name, m.matchday, m.time, m.stadium].filter(Boolean).join(" · "),
+      badge: result,
+      leagueId: m.leagueId,
+      matchId: m.id,
+      logo: ht?.logo || at?.logo,
+    });
+  }
+  return out.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)).slice(0, limit);
+}
+
+function runGlobalSearch(query) {
+  const q = String(query ?? "").trim();
+  if (q.length < 2) return { clubs: [], players: [], matches: [], empty: false };
+  return {
+    clubs: searchGlobalClubs(q),
+    players: searchGlobalPlayers(q),
+    matches: searchGlobalMatches(q),
+    empty: false,
+  };
+}
+
+function playerInitialsFromName(name) {
+  const parts = String(name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
+function globalSearchItemHtml(item) {
+  const crest =
+    item.kind === "player"
+      ? `<span class="home-global-search__avatar" aria-hidden="true">${escapeHtml(item.initials || "?")}</span>`
+      : item.logo
+        ? `<img class="home-global-search__crest" src="${escapeHtml(item.logo)}" alt="" width="32" height="32" loading="lazy" decoding="async" />`
+        : `<span class="home-global-search__avatar" aria-hidden="true">${escapeHtml((item.title || "?").slice(0, 1))}</span>`;
+  const badge =
+    item.kind === "match" && item.badge
+      ? `<span class="home-global-search__badge">${escapeHtml(item.badge)}</span>`
+      : item.kind === "club"
+        ? `<span class="home-global-search__badge">Club</span>`
+        : item.kind === "player"
+          ? `<span class="home-global-search__badge">Player</span>`
+          : "";
+  return `
+    <button
+      type="button"
+      class="home-global-search__item"
+      role="option"
+      data-search-kind="${escapeHtml(item.kind)}"
+      data-search-id="${escapeHtml(item.id)}"
+      id="home-search-opt-${escapeHtml(item.kind)}-${escapeHtml(item.id)}"
+    >
+      ${crest}
+      <span class="home-global-search__copy">
+        <span class="home-global-search__title">${escapeHtml(item.title)}</span>
+        <span class="home-global-search__meta">${escapeHtml(item.meta || "")}</span>
+      </span>
+      ${badge}
+    </button>
+  `;
+}
+
+function renderGlobalSearchResults(query) {
+  const panel = $("#homeSearchResults");
+  const input = $("#homeSearchInput");
+  if (!panel || !input) return [];
+  const q = String(query ?? "").trim();
+  if (q.length < 2) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    input.setAttribute("aria-expanded", "false");
+    return [];
+  }
+  const { clubs, players, matches } = runGlobalSearch(q);
+  const flat = [...clubs, ...players, ...matches];
+  if (!flat.length) {
+    panel.hidden = false;
+    panel.innerHTML = `<p class="home-global-search__empty">No matches for “${escapeHtml(q)}”</p>`;
+    input.setAttribute("aria-expanded", "true");
+    return [];
+  }
+  const sections = [
+    clubs.length ? { label: "Clubs", items: clubs } : null,
+    players.length ? { label: "Players", items: players } : null,
+    matches.length ? { label: "Matches", items: matches } : null,
+  ].filter(Boolean);
+  panel.hidden = false;
+  panel.innerHTML = sections
+    .map(
+      (section) => `
+      <div class="home-global-search__group">
+        <p class="home-global-search__group-label">${escapeHtml(section.label)}</p>
+        ${section.items.map(globalSearchItemHtml).join("")}
+      </div>`,
+    )
+    .join("");
+  input.setAttribute("aria-expanded", "true");
+  return $$(".home-global-search__item", panel);
+}
+
+function closeGlobalSearchPanel() {
+  const panel = $("#homeSearchResults");
+  const input = $("#homeSearchInput");
+  if (panel) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+  }
+  if (input) input.setAttribute("aria-expanded", "false");
+}
+
+function activateGlobalSearchItem(kind, id) {
+  closeGlobalSearchPanel();
+  if (kind === "club") {
+    const team = teamById.get(id);
+    if (!team) return;
+    openTeamRoster(team.leagueId, team.id);
+    return;
+  }
+  if (kind === "player") {
+    const player = PLAYERS.find((p) => p.id === id);
+    if (!player) return;
+    const team = teamById.get(player.teamId);
+    if (!team) return;
+    openTeamRoster(team.leagueId, team.id);
+    const startsMap = buildLineupStartsMap(team.leagueId);
+    queueMicrotask(() => openPlayerModal(player, startsMap, team.leagueId));
+    return;
+  }
+  if (kind === "match") {
+    const match = MATCHES.find((m) => m.id === id);
+    if (!match) return;
+    openHeroMatch(match.leagueId, match.id);
+  }
+}
+
+function setupGlobalSearch() {
+  const root = $("#homeGlobalSearch");
+  const input = $("#homeSearchInput");
+  const panel = $("#homeSearchResults");
+  if (!root || !input || !panel) return;
+
+  let timer = 0;
+  let activeIndex = -1;
+  let options = [];
+
+  const setActive = (idx) => {
+    activeIndex = idx;
+    options.forEach((el, i) => el.classList.toggle("is-active", i === activeIndex));
+    const active = options[activeIndex];
+    if (active) {
+      input.setAttribute("aria-activedescendant", active.id);
+      active.scrollIntoView({ block: "nearest" });
+    } else {
+      input.removeAttribute("aria-activedescendant");
+    }
+  };
+
+  const refresh = () => {
+    options = renderGlobalSearchResults(input.value);
+    setActive(options.length ? 0 : -1);
+  };
+
+  input.addEventListener("input", () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(refresh, 120);
+  });
+
+  input.addEventListener("focus", () => {
+    if (String(input.value).trim().length >= 2) refresh();
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeGlobalSearchPanel();
+      input.blur();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      if (!options.length) refresh();
+      if (!options.length) return;
+      e.preventDefault();
+      setActive(Math.min(activeIndex + 1, options.length - 1));
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      if (!options.length) return;
+      e.preventDefault();
+      setActive(Math.max(activeIndex - 1, 0));
+      return;
+    }
+    if (e.key === "Enter") {
+      const el = options[activeIndex] || options[0];
+      if (!el) return;
+      e.preventDefault();
+      activateGlobalSearchItem(el.getAttribute("data-search-kind"), el.getAttribute("data-search-id"));
+    }
+  });
+
+  panel.addEventListener("click", (e) => {
+    const btn = e.target instanceof Element ? e.target.closest("[data-search-kind]") : null;
+    if (!btn || !panel.contains(btn)) return;
+    activateGlobalSearchItem(btn.getAttribute("data-search-kind"), btn.getAttribute("data-search-id"));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!(e.target instanceof Element)) return;
+    if (root.contains(e.target)) return;
+    closeGlobalSearchPanel();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.target instanceof HTMLElement ? e.target.tagName : "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || e.target?.isContentEditable) return;
+    e.preventDefault();
+    $("#main")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    input.focus();
+    input.select();
+  });
+}
+
 /** Keep hero, squads, and Match Center on the same league. */
 function setActiveLeague(leagueId, preferredTeamId) {
   renderMatchCenter._viewWeek = null;
@@ -9421,6 +9750,7 @@ function main() {
 
   renderLeagueOptions();
   setupRosterControls();
+  setupGlobalSearch();
   setupShareButtons();
   setupTransferControls();
   setupTopScorerControls();
