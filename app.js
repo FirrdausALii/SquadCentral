@@ -6296,15 +6296,7 @@ function syncRosterFilterChips(state) {
 }
 
 function syncRosterViewCopy() {
-  const title = $("#rosterViewTitle");
-  const hint = $("#rosterViewHint");
-  if (rosterViewMode === "depth") {
-    if (title) title.textContent = "Depth chart";
-    if (hint) hint.textContent = "Formation roles and backup options";
-  } else {
-    if (title) title.textContent = "Jersey board";
-    if (hint) hint.textContent = "Jersey board by position — tap a player for their profile";
-  }
+  /* Title/hint live in the team meta line now — kept for call-site compatibility. */
 }
 
 function updateRosterTeamHead(state, league, team, countLabel) {

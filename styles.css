@@ -235,6 +235,18 @@ html.reveal-init .reveal.is-visible {
   margin-top: 2px;
 }
 
+.squad-panel-chrome {
+  background: var(--bg-surface-1);
+  border-bottom: 0.5px solid var(--border-subtle);
+}
+.squad-view-toggle-row {
+  padding: 0 var(--sp-4) var(--sp-3);
+}
+.squad-view-toggle-row .roster-view-toggle {
+  width: 100%;
+  max-width: 320px;
+}
+
 /* Form dots (recent form) */
 .form-dots { display: flex; gap: 5px; align-items: center; }
 .form-dot {
@@ -1299,21 +1311,8 @@ html.reveal-init .reveal.is-visible {
   padding: 0;
   overflow: hidden;
 }
-.squad-sticky-chrome {
-  position: sticky;
-  top: 108px;
-  z-index: 6;
-  background: var(--bg-surface-1);
-  box-shadow: 0 1px 0 var(--border-subtle);
-}
-@media (min-width: 992px) {
-  .squad-sticky-chrome {
-    top: 64px;
-  }
-}
 .squad-team-head {
-  padding: var(--sp-4) var(--sp-5);
-  border-bottom: 0.5px solid var(--border-subtle);
+  padding: var(--sp-4) var(--sp-5) var(--sp-2);
   background: var(--bg-surface-1);
 }
 .squad-team-head-inner {
@@ -2363,17 +2362,11 @@ html.reveal-init .reveal.is-visible {
     width: 30px;
     height: 30px;
   }
-  .squad-view-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--sp-2);
-    padding: var(--sp-3);
+  .squad-view-toggle-row {
+    padding: 0 var(--sp-3) var(--sp-3);
   }
-  .squad-view-toolbar__copy {
-    display: none;
-  }
-  .roster-view-toggle {
-    width: 100%;
+  .squad-view-toggle-row .roster-view-toggle {
+    max-width: none;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
@@ -2381,8 +2374,8 @@ html.reveal-init .reveal.is-visible {
   .roster-view-toggle .lineup-toggle-btn,
   .roster-view-toggle .lineup-view-btn {
     width: 100%;
-    min-height: 40px;
-    padding: 8px 12px;
+    min-height: 36px;
+    padding: 6px 10px;
     font-size: 13px;
     font-weight: 650;
     text-align: center;
