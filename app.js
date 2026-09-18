@@ -5975,53 +5975,22 @@ function bindSquadRowClicks(root, startsMap, leagueId) {
 }
 
 const ROSTER_VIEW_STORAGE = "fc_roster_view";
-const ROSTER_MOBILE_MQ = "(max-width: 768px)";
 let rosterViewMode = "list";
-let rosterMobileMqBound = false;
-
-function isRosterMobileViewport() {
-  return Boolean(window.matchMedia?.(ROSTER_MOBILE_MQ)?.matches);
-}
-
-/** Depth chart is desktop-only — mobile always uses the jersey board. */
-function effectiveRosterViewMode() {
-  if (isRosterMobileViewport()) return "list";
-  return rosterViewMode === "depth" ? "depth" : "list";
-}
 
 function initRosterViewMode() {
   const saved = localStorage.getItem(ROSTER_VIEW_STORAGE);
   if (saved === "depth" || saved === "list") rosterViewMode = saved;
-  bindRosterMobileViewportWatcher();
-}
-
-function bindRosterMobileViewportWatcher() {
-  if (rosterMobileMqBound || !window.matchMedia) return;
-  rosterMobileMqBound = true;
-  const mq = window.matchMedia(ROSTER_MOBILE_MQ);
-  const onChange = () => {
-    syncRosterViewToggle();
-    syncRosterViewCopy();
-    renderRoster();
-  };
-  if (typeof mq.addEventListener === "function") mq.addEventListener("change", onChange);
-  else if (typeof mq.addListener === "function") mq.addListener(onChange);
 }
 
 function syncRosterViewToggle() {
   const bar = $("#rosterViewBar");
   if (!bar) return;
-  const mobile = isRosterMobileViewport();
-  const view = effectiveRosterViewMode();
-  bar.hidden = mobile;
-  bar.setAttribute("aria-hidden", mobile ? "true" : "false");
-  const depthBtn = bar.querySelector('[data-roster-view="depth"]');
-  if (depthBtn) {
-    depthBtn.hidden = mobile;
-    depthBtn.disabled = mobile;
-  }
+  bar.hidden = false;
+  bar.removeAttribute("aria-hidden");
   for (const btn of $$("[data-roster-view]", bar)) {
-    const active = btn.dataset.rosterView === view;
+    btn.hidden = false;
+    btn.disabled = false;
+    const active = btn.dataset.rosterView === rosterViewMode;
     btn.classList.toggle("is-active", active);
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-selected", active ? "true" : "false");
@@ -6029,7 +5998,6 @@ function syncRosterViewToggle() {
 }
 
 function setRosterViewMode(mode) {
-  if (isRosterMobileViewport() && mode === "depth") mode = "list";
   rosterViewMode = mode === "depth" ? "depth" : "list";
   localStorage.setItem(ROSTER_VIEW_STORAGE, rosterViewMode);
   syncRosterViewToggle();
@@ -6320,7 +6288,7 @@ function syncRosterFilterChips(state) {
       `<button type="button" class="chip chip--action" data-roster-filter="pos">${escapeHtml(posLabel)}</button>`,
     );
   }
-  if (effectiveRosterViewMode() === "depth") {
+  if (rosterViewMode === "depth") {
     parts.push(`<span class="chip chip--muted">Depth chart</span>`);
   }
   chips.innerHTML = parts.join("");
@@ -6330,7 +6298,7 @@ function syncRosterFilterChips(state) {
 function syncRosterViewCopy() {
   const title = $("#rosterViewTitle");
   const hint = $("#rosterViewHint");
-  if (effectiveRosterViewMode() === "depth") {
+  if (rosterViewMode === "depth") {
     if (title) title.textContent = "Depth chart";
     if (hint) hint.textContent = "Formation roles and backup options";
   } else {
@@ -6347,7 +6315,7 @@ function updateRosterTeamHead(state, league, team, countLabel) {
   const coach = String(team?.coach ?? "").trim();
   const coachOk = coach && coach !== "—";
   const meta =
-    effectiveRosterViewMode() === "depth"
+    rosterViewMode === "depth"
       ? `Depth chart · ${leagueName}`
       : `${leagueName}${coachOk ? ` · ${escapeHtml(coach)}` : ""}`;
   teamHead.innerHTML = `
@@ -6398,9 +6366,8 @@ function renderRoster() {
   const squad = playersForTeam(state.teamId).filter((p) => playerMatches(p, state));
   const startsMap = buildLineupStartsMap(state.leagueId);
   const fullSquad = playersForTeam(state.teamId);
-  const viewMode = effectiveRosterViewMode();
   const countLabel =
-    viewMode === "depth"
+    rosterViewMode === "depth"
       ? `${fullSquad.length} player${fullSquad.length === 1 ? "" : "s"}`
       : `${squad.length} player${squad.length === 1 ? "" : "s"}`;
   count.textContent = countLabel;
@@ -6408,7 +6375,7 @@ function renderRoster() {
   syncRosterFilterChips(state);
   updateRosterTeamHead(state, league, team, countLabel);
 
-  if (viewMode === "depth") {
+  if (rosterViewMode === "depth") {
     renderSquadDepthView(state, team, startsMap);
     return;
   }
@@ -8650,7 +8617,7 @@ async function handleShareSquad() {
     return;
   }
 
-  const shareDepth = effectiveRosterViewMode() === "depth";
+  const shareDepth = rosterViewMode === "depth";
   if (shareDepth) {
     if (typeof SquadDepth === "undefined") {
       alert("Squad depth module did not load. Refresh the page.");

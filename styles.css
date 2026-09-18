@@ -2363,7 +2363,32 @@ html.reveal-init .reveal.is-visible {
     height: 30px;
   }
   .squad-view-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-2);
     padding: var(--sp-3);
+  }
+  .squad-view-toolbar__copy {
+    order: 1;
+  }
+  .squad-view-toolbar__hint {
+    display: none;
+  }
+  .roster-view-toggle {
+    order: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .roster-view-toggle .lineup-toggle-btn,
+  .roster-view-toggle .lineup-view-btn {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 650;
+    text-align: center;
   }
   .squad-team-head--sticky {
     top: 108px;
