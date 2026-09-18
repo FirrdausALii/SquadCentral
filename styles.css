@@ -1299,21 +1299,22 @@ html.reveal-init .reveal.is-visible {
   padding: 0;
   overflow: hidden;
 }
+.squad-sticky-chrome {
+  position: sticky;
+  top: 108px;
+  z-index: 6;
+  background: var(--bg-surface-1);
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+@media (min-width: 992px) {
+  .squad-sticky-chrome {
+    top: 64px;
+  }
+}
 .squad-team-head {
   padding: var(--sp-4) var(--sp-5);
   border-bottom: 0.5px solid var(--border-subtle);
   background: var(--bg-surface-1);
-}
-.squad-team-head--sticky {
-  position: sticky;
-  top: 108px;
-  z-index: 6;
-  box-shadow: 0 1px 0 var(--border-subtle);
-}
-@media (min-width: 992px) {
-  .squad-team-head--sticky {
-    top: 64px;
-  }
 }
 .squad-team-head-inner {
   display: flex;
@@ -2369,13 +2370,9 @@ html.reveal-init .reveal.is-visible {
     padding: var(--sp-3);
   }
   .squad-view-toolbar__copy {
-    order: 1;
-  }
-  .squad-view-toolbar__hint {
     display: none;
   }
   .roster-view-toggle {
-    order: 0;
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2390,8 +2387,9 @@ html.reveal-init .reveal.is-visible {
     font-weight: 650;
     text-align: center;
   }
-  .squad-team-head--sticky {
-    top: 108px;
+  .squad-count-badge {
+    margin-left: auto;
+    margin-top: 0;
   }
   .lineups-grid { grid-template-columns: 1fr; }
   .squad-profile-grid { grid-template-columns: 1fr; }

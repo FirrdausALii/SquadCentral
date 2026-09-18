@@ -613,12 +613,13 @@ body.fc-app {
   }
 
   .squad-team-head-inner {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .squad-count-badge {
-    margin-left: 0;
-    margin-top: var(--sp-2);
+    margin-left: auto;
+    margin-top: 0;
+    flex-shrink: 0;
   }
 
   .squad-depth-body {
