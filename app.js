@@ -9059,6 +9059,34 @@ function lineupShortName(name) {
   return deriveLastNameFromFullName(name);
 }
 
+/**
+ * Full player name as up to two pitch rows: given name(s) / surname.
+ * Single-token names stay on one row. Captain marker goes on the last row.
+ */
+function pitchNameLines(name, captain = false) {
+  const base = stripCaptainSuffix(name);
+  const cap = Boolean(captain) || playerNameMarksCaptain(name);
+  const parts = String(base ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+  let lines;
+  if (parts.length <= 1) {
+    lines = [base || "—"];
+  } else if (parts.length === 2) {
+    lines = [parts[0], parts[1]];
+  } else {
+    lines = [parts.slice(0, -1).join(" "), parts[parts.length - 1]];
+  }
+  if (cap) lines[lines.length - 1] = `${lines[lines.length - 1]} (C)`;
+  return lines;
+}
+
+function pitchNameTagHtml(name, captain = false) {
+  return pitchNameLines(name, captain)
+    .map((line) => `<span class="pitch-name__line">${escapeHtml(line)}</span>`)
+    .join("");
+}
+
 /** SVG pitch markings overlay (portrait, viewBox 0 0 100 155). */
 function pitchMarkingsSvg() {
   return `<svg class="pitch-markings" viewBox="0 0 100 155" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -9123,17 +9151,17 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
           const { left, top } = pitchTokenPercents(r, rowCount, c, row.length);
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
           const fullName = formatLineupDisplayName(p.name, p.captain);
-          const short = playerDisplayLastName({ teamId, lineupSlot: p });
           const num = escapeHtml(p.number ?? "");
           const tag = escapeHtml(String(p.tag ?? "").toUpperCase() || (isGk ? "GK" : "—"));
           const nat = escapeHtml(String(p.nationality ?? "").trim());
           const meta = [tag, nat || teamName].filter(Boolean).join(" · ");
-          const capClass = isCaptainPlayer(p) ? " captain" : "";
+          const isCap = isCaptainPlayer(p);
+          const capClass = isCap ? " captain" : "";
           const nodeClass = isGk ? "player-node gk pitch-player is-gk" : "player-node pitch-player";
           return `
             <div class="${nodeClass}" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%">
               <div class="player-circle pitch-token${capClass}">${num}</div>
-              <div class="player-name-tag pitch-name">${escapeHtml(short)}</div>
+              <div class="player-name-tag pitch-name">${pitchNameTagHtml(p.name, isCap || p.captain)}</div>
               <div class="player-tooltip">
                 <div class="player-tooltip-name">${escapeHtml(fullName)}</div>
                 <div class="player-tooltip-meta">${meta}</div>

@@ -962,6 +962,21 @@
     return parts.length > 1 ? parts[parts.length - 1] : clean;
   }
 
+  /** Full name as up to two rows — given name(s) / surname. */
+  function pitchNameLines(name, captain = false) {
+    const base = String(name ?? "")
+      .replace(/\s*\(C\)\s*$/i, "")
+      .trim();
+    const cap = Boolean(captain) || /\s*\(C\)\s*$/i.test(String(name ?? "").trim());
+    const parts = base.split(/\s+/).filter(Boolean);
+    let lines;
+    if (parts.length <= 1) lines = [base || "—"];
+    else if (parts.length === 2) lines = [parts[0], parts[1]];
+    else lines = [parts.slice(0, -1).join(" "), parts[parts.length - 1]];
+    if (cap) lines[lines.length - 1] = `${lines[lines.length - 1]} (C)`;
+    return lines;
+  }
+
   function isCaptainPlayer(p) {
     if (!p) return false;
     if (p.captain) return true;
@@ -1009,8 +1024,6 @@
   /** LiveScore-style token: white disc + dark number, name under. */
   function drawSharePlayerToken(ctx, cx, cy, player, { tokenR = 28, isGk = false } = {}) {
     const num = String(player?.number ?? "").trim();
-    const short =
-      String(player?.displayLastName ?? "").trim() || lineupShortName(player?.name);
     const captain = isCaptainPlayer(player);
 
     ctx.beginPath();
@@ -1050,29 +1063,13 @@
       ctx.fillText("C", capX, capY + 1);
     }
 
-    // Name under token — allow wrap for long surnames
-    const maxW = tokenR * 3.6;
-    ctx.font = `700 ${Math.round(tokenR * 0.42)}px ${FONT}`;
-    const lines = [];
-    const words = String(short).split(/[\s-]+/).filter(Boolean);
-    if (words.length <= 1) {
-      lines.push(truncateText(ctx, short, maxW));
-    } else {
-      let line = words[0];
-      for (let i = 1; i < words.length; i++) {
-        const trial = `${line} ${words[i]}`;
-        if (ctx.measureText(trial).width <= maxW) line = trial;
-        else {
-          lines.push(truncateText(ctx, line, maxW));
-          line = words[i];
-          if (lines.length >= 1) break;
-        }
-      }
-      lines.push(truncateText(ctx, line, maxW));
-    }
+    // Full name under token — two rows (given / surname)
+    const maxW = tokenR * 3.8;
+    ctx.font = `700 ${Math.round(tokenR * 0.38)}px ${FONT}`;
+    const lines = pitchNameLines(player?.name, captain).map((line) => truncateText(ctx, line, maxW));
 
-    const lineH = Math.round(tokenR * 0.48);
-    let textY = cy + tokenR + 14;
+    const lineH = Math.round(tokenR * 0.44);
+    let textY = cy + tokenR + 12;
     ctx.fillStyle = "#ffffff";
     ctx.textBaseline = "top";
     ctx.shadowColor = "rgba(0,0,0,0.55)";

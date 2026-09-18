@@ -240,27 +240,34 @@
 
 .player-name-tag,
 .pitch-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   background: rgba(11, 17, 32, 0.85);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border: 0.5px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
-  padding: 2px 6px;
-  font-size: 9.5px;
-  font-weight: 500;
+  padding: 2px 5px;
+  font-size: 9px;
+  font-weight: 600;
   color: var(--text-primary);
-  /* Prefer wrapping long nicknames (e.g. Dewsbury-Hall) over ellipsis. */
   white-space: normal;
-  max-width: 88px;
+  max-width: 92px;
   overflow: visible;
-  text-overflow: unset;
-  overflow-wrap: break-word;
-  word-break: normal;
-  hyphens: manual;
   line-height: 1.15;
   text-align: center;
   letter-spacing: 0.01em;
   pointer-events: none;
+}
+
+.pitch-name__line {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .pitch-flag {
@@ -330,8 +337,9 @@
 
   .player-name-tag,
   .pitch-name {
-    font-size: 8px;
-    max-width: 72px;
+    font-size: 7.5px;
+    max-width: 78px;
+    padding: 2px 4px;
   }
 }
 
