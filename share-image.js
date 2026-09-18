@@ -992,6 +992,196 @@
     }
   }
 
+  /** Lineup11-style pitch: concentric mow rings + soft boards at the far end. */
+  function drawLineup11Pitch(ctx, x, y, w, h) {
+    ctx.fillStyle = "#2a7d3a";
+    ctx.fillRect(x, y, w, h);
+
+    const boardH = Math.max(28, Math.round(h * 0.055));
+    const boardColors = ["#1e3a5f", "#c8102e", "#f5f5f5", "#0b5cab", "#111111", "#ffd100", "#1e3a5f"];
+    const boardW = w / boardColors.length;
+    for (let i = 0; i < boardColors.length; i++) {
+      ctx.fillStyle = boardColors[i];
+      ctx.fillRect(x + i * boardW, y, boardW + 1, boardH);
+    }
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(x, y + boardH - 4, w, 4);
+
+    const cx = x + w / 2;
+    const cy = y + boardH + (h - boardH) * 0.52;
+    const maxRx = w * 0.72;
+    const maxRy = (h - boardH) * 0.62;
+    const rings = 18;
+    for (let i = rings; i >= 0; i--) {
+      const t = i / rings;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, maxRx * t, maxRy * t, 0, 0, Math.PI * 2);
+      ctx.fillStyle = i % 2 === 0 ? "#318f44" : "#277a38";
+      ctx.fill();
+    }
+
+    const fade = ctx.createLinearGradient(x, y + boardH, x, y + boardH + 50);
+    fade.addColorStop(0, "rgba(0,0,0,0.22)");
+    fade.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = fade;
+    ctx.fillRect(x, y + boardH, w, 50);
+  }
+
+  function teamKitColors(team, { isGk = false } = {}) {
+    if (isGk) return { c1: "#1a1a1a", c2: "#6b7280", sleeve: "#111111" };
+    const colors = Array.isArray(team?.colors) ? team.colors.filter(Boolean) : [];
+    const c1 = String(colors[0] ?? "#ffffff").trim() || "#ffffff";
+    const c2 = String(colors[1] ?? c1).trim() || c1;
+    return { c1, c2, sleeve: c2 };
+  }
+
+  /** Flat kit icon: striped body, sleeves, crest, number badge — Lineup11 style. */
+  function drawJerseyToken(ctx, cx, cy, player, { kit, crest, scale = 1 } = {}) {
+    const w = 58 * scale;
+    const h = 62 * scale;
+    const x = cx - w / 2;
+    const y = cy - h / 2 - 6 * scale;
+    const c1 = kit?.c1 ?? "#ffffff";
+    const c2 = kit?.c2 ?? c1;
+    const sleeve = kit?.sleeve ?? c2;
+    const striped = c1.toLowerCase() !== c2.toLowerCase();
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + h * 0.42, w * 0.42, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.fill();
+
+    const jerseyOutline = () => {
+      ctx.beginPath();
+      ctx.moveTo(x + w * 0.22, y + h * 0.12);
+      ctx.lineTo(x + w * 0.08, y + h * 0.22);
+      ctx.lineTo(x + w * 0.02, y + h * 0.38);
+      ctx.lineTo(x + w * 0.18, y + h * 0.42);
+      ctx.lineTo(x + w * 0.18, y + h * 0.92);
+      ctx.quadraticCurveTo(cx, y + h * 0.98, x + w * 0.82, y + h * 0.92);
+      ctx.lineTo(x + w * 0.82, y + h * 0.42);
+      ctx.lineTo(x + w * 0.98, y + h * 0.38);
+      ctx.lineTo(x + w * 0.92, y + h * 0.22);
+      ctx.lineTo(x + w * 0.78, y + h * 0.12);
+      ctx.quadraticCurveTo(cx, y + h * 0.02, x + w * 0.22, y + h * 0.12);
+      ctx.closePath();
+    };
+
+    jerseyOutline();
+    ctx.save();
+    ctx.clip();
+
+    if (striped) {
+      const stripeW = Math.max(5, w / 7);
+      for (let i = -1; i < 9; i++) {
+        ctx.fillStyle = i % 2 === 0 ? c1 : c2;
+        ctx.fillRect(x + i * stripeW, y, stripeW + 1, h);
+      }
+      ctx.fillStyle = sleeve;
+      ctx.fillRect(x, y + h * 0.12, w * 0.2, h * 0.32);
+      ctx.fillRect(x + w * 0.8, y + h * 0.12, w * 0.2, h * 0.32);
+    } else {
+      const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+      grad.addColorStop(0, c1);
+      grad.addColorStop(1, c2);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(cx - w * 0.12, y + h * 0.1);
+    ctx.lineTo(cx, y + h * 0.2);
+    ctx.lineTo(cx + w * 0.12, y + h * 0.1);
+    ctx.closePath();
+    ctx.fill();
+
+    if (crest) {
+      const cw = 14 * scale;
+      const ch = 14 * scale;
+      try {
+        ctx.drawImage(crest, cx - w * 0.18 - cw / 2, y + h * 0.32, cw, ch);
+      } catch (_) {
+        /* ignore crest draw failures */
+      }
+    }
+
+    ctx.restore();
+
+    jerseyOutline();
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 1.5 * scale;
+    ctx.stroke();
+
+    const num = String(player?.number ?? "").trim() || "—";
+    const badgeR = 11 * scale;
+    const bx = cx + w * 0.28;
+    const by = cy + h * 0.22;
+    ctx.beginPath();
+    ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.2)";
+    ctx.lineWidth = 1.2 * scale;
+    ctx.stroke();
+    ctx.fillStyle = "#0b1120";
+    ctx.font = `800 ${Math.round(12 * scale)}px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(num, bx, by + 0.5);
+
+    if (isCaptainPlayer(player)) {
+      const capR = 8 * scale;
+      const capX = cx + w * 0.3;
+      const capY = y + h * 0.14;
+      ctx.beginPath();
+      ctx.arc(capX, capY, capR, 0, Math.PI * 2);
+      ctx.fillStyle = "#facc15";
+      ctx.fill();
+      ctx.strokeStyle = "#0b1120";
+      ctx.lineWidth = 1.2 * scale;
+      ctx.stroke();
+      ctx.fillStyle = "#422006";
+      ctx.font = `800 ${Math.round(9 * scale)}px ${FONT}`;
+      ctx.fillText("C", capX, capY + 0.5);
+    }
+
+    ctx.restore();
+  }
+
+  function drawLineup11PlayerName(ctx, cx, cy, player, { maxW = 120 } = {}) {
+    const captain = isCaptainPlayer(player);
+    const lines = pitchNameLines(player?.name, false);
+    const first = truncateText(ctx, lines[0] || "—", maxW);
+    const last = lines[1] ? truncateText(ctx, lines[1], maxW) : "";
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(0,0,0,0.65)";
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetY = 1;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `800 17px ${FONT}`;
+    ctx.fillText(first, cx, cy);
+
+    if (last) {
+      ctx.font = `600 15px ${FONT}`;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText(last + (captain ? " (C)" : ""), cx, cy + 20);
+    } else if (captain) {
+      ctx.font = `600 14px ${FONT}`;
+      ctx.fillText("(C)", cx, cy + 20);
+    }
+
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.textBaseline = "alphabetic";
+  }
+
   function drawPitchMarkings(ctx, x, y, w, h) {
     const sx = w / 100;
     const sy = h / 155;
@@ -1102,8 +1292,8 @@
   }
 
   /**
-   * LiveScore-style single-team share card (1122 × 1402).
-   * Focus side = "home" | "away". Includes XI, coach, result, gameweek.
+   * Lineup11-style single-team share card (1122 × 1402).
+   * Jersey tokens on a concentric-mow pitch, full names in two rows.
    */
   async function renderLineupShareImage(options) {
     const {
@@ -1142,136 +1332,74 @@
 
     const brandLogo = await loadImage(logoSrc);
     const focusLogo = await loadImage(focusTeam.logo);
-    const homeLogo = await loadImage(homeTeam.logo);
-    const awayLogo = await loadImage(awayTeam.logo);
 
-    // Page
-    ctx.fillStyle = "#070b14";
+    ctx.fillStyle = "#d8d4cc";
     ctx.fillRect(0, 0, W, H);
 
-    const margin = 36;
-    const headerH = 168;
-    const footerH = 88;
+    const margin = 28;
+    const headerH = 150;
+    const footerH = 64;
     const headerY = margin;
     const footerY = H - margin - footerH;
-    const pitchY = headerY + headerH + 16;
-    const pitchH = footerY - pitchY - 16;
+    const pitchY = headerY + headerH + 8;
+    const pitchH = footerY - pitchY - 10;
     const pitchX = margin;
     const pitchW = W - margin * 2;
-
-    // ── Header: result + GW + teams ──
-    roundRect(ctx, margin, headerY, pitchW, headerH, 20);
-    ctx.fillStyle = "#0d1625";
-    ctx.fill();
-    ctx.strokeStyle = "#1e2d45";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    const crestSz = 64;
-    const crestY = headerY + (headerH - crestSz) / 2;
-    drawCrestInCircle(ctx, homeLogo, margin + 28 + crestSz / 2, crestY + crestSz / 2, crestSz);
-    drawCrestInCircle(ctx, awayLogo, W - margin - 28 - crestSz / 2, crestY + crestSz / 2, crestSz);
-
     const centerX = W / 2;
+
     ctx.textAlign = "center";
-    ctx.fillStyle = THEME.muted;
-    ctx.font = `700 18px ${FONT}`;
-    const gwLabel = String(matchday ?? "").trim() || "Matchweek";
-    const topMeta = [String(leagueName ?? "").trim(), gwLabel].filter(Boolean).join("  ·  ");
-    ctx.fillText(truncateText(ctx, topMeta.toUpperCase(), pitchW - 200), centerX, headerY + 38);
+    ctx.fillStyle = "#0b1f3a";
+    ctx.font = `900 56px ${FONT}`;
+    ctx.fillText(truncateText(ctx, focusTeam.name ?? "Team", pitchW - 40), centerX, headerY + 62);
 
-    ctx.fillStyle = THEME.text;
-    ctx.font = `800 48px ${FONT}`;
-    ctx.fillText(`${hs} – ${as}`, centerX, headerY + 92);
-
+    const metaBits = [];
+    if (focusFormation) metaBits.push(String(focusFormation));
+    metaBits.push(`${focusScore}–${oppScore} vs ${oppTeam.name ?? "Opponent"}`);
+    const gw = String(matchday ?? "").trim();
+    if (gw) metaBits.push(gw);
+    ctx.fillStyle = "#3d4f66";
     ctx.font = `700 22px ${FONT}`;
-    ctx.fillStyle = THEME.muted;
-    const homeShort = truncateText(ctx, homeTeam.name ?? "Home", 260);
-    const awayShort = truncateText(ctx, awayTeam.name ?? "Away", 260);
-    ctx.textAlign = "right";
-    ctx.fillText(homeShort, centerX - 70, headerY + 92);
-    ctx.textAlign = "left";
-    ctx.fillText(awayShort, centerX + 70, headerY + 92);
+    ctx.fillText(truncateText(ctx, metaBits.join("  ·  "), pitchW - 60), centerX, headerY + 102);
 
-    const subBits = [time, venue].map((s) => String(s ?? "").trim()).filter(Boolean);
+    const subBits = [String(leagueName ?? "").trim(), time, venue]
+      .map((s) => String(s ?? "").trim())
+      .filter(Boolean);
     if (subBits.length) {
-      ctx.textAlign = "center";
-      ctx.fillStyle = THEME.faint;
-      ctx.font = `500 18px ${FONT}`;
-      ctx.fillText(truncateText(ctx, subBits.join("  ·  "), pitchW - 120), centerX, headerY + 132);
+      ctx.fillStyle = "#6a7a8c";
+      ctx.font = `600 18px ${FONT}`;
+      ctx.fillText(truncateText(ctx, subBits.join("  ·  "), pitchW - 80), centerX, headerY + 132);
     }
 
-    // ── Pitch card ──
-    roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 24);
+    roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 18);
     ctx.save();
     ctx.clip();
-    drawPitchStripes(ctx, pitchX, pitchY, pitchW, pitchH);
-    drawPitchMarkings(ctx, pitchX, pitchY, pitchW, pitchH);
+    drawLineup11Pitch(ctx, pitchX, pitchY, pitchW, pitchH);
+    const boardH = Math.max(28, Math.round(pitchH * 0.055));
+    drawPitchMarkings(ctx, pitchX + 18, pitchY + boardH + 8, pitchW - 36, pitchH - boardH - 28);
 
-    // Soft vignette
-    const vig = ctx.createLinearGradient(pitchX, pitchY, pitchX, pitchY + pitchH);
-    vig.addColorStop(0, "rgba(0,0,0,0.18)");
-    vig.addColorStop(0.15, "rgba(0,0,0,0)");
-    vig.addColorStop(0.85, "rgba(0,0,0,0)");
-    vig.addColorStop(1, "rgba(0,0,0,0.28)");
+    const vig = ctx.createRadialGradient(
+      pitchX + pitchW / 2,
+      pitchY + pitchH * 0.55,
+      pitchW * 0.15,
+      pitchX + pitchW / 2,
+      pitchY + pitchH * 0.55,
+      pitchW * 0.75,
+    );
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.18)");
     ctx.fillStyle = vig;
     ctx.fillRect(pitchX, pitchY, pitchW, pitchH);
 
-    // Crest + formation (top-left on pitch)
-    const badgeCrest = 78;
-    const badgeX = pitchX + 28;
-    const badgeY = pitchY + 24;
-    drawCrestInCircle(ctx, focusLogo, badgeX + badgeCrest / 2, badgeY + badgeCrest / 2, badgeCrest);
-
-    ctx.textAlign = "left";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `800 28px ${FONT}`;
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
-    ctx.shadowBlur = 8;
-    ctx.fillText(truncateText(ctx, focusTeam.name ?? (side === "home" ? "Home" : "Away"), 420), badgeX + badgeCrest + 16, badgeY + 34);
-    ctx.shadowBlur = 0;
-
-    if (focusFormation) {
-      const form = String(focusFormation);
-      ctx.font = `800 22px ${FONT}`;
-      const fw = ctx.measureText(form).width + 28;
-      const fh = 34;
-      const fx = badgeX + badgeCrest + 16;
-      const fy = badgeY + 46;
-      roundRect(ctx, fx, fy, fw, fh, 10);
-      ctx.fillStyle = "rgba(11,17,32,0.72)";
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.2)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(form, fx + fw / 2, fy + fh / 2);
-      ctx.textBaseline = "alphabetic";
-    }
-
-    // Result chip for focus team (W/D/L feel)
-    const resultText = `${focusScore}–${oppScore} vs ${oppTeam.name ?? "Opponent"}`;
-    ctx.font = `700 18px ${FONT}`;
-    ctx.textAlign = "right";
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.shadowColor = "rgba(0,0,0,0.4)";
-    ctx.shadowBlur = 6;
-    ctx.fillText(truncateText(ctx, resultText, 420), pitchX + pitchW - 28, pitchY + 42);
-    ctx.shadowBlur = 0;
-
-    // Players — same layout helper as live pitch (GK bottom, LB/LW left, RB/RW right)
     if (!focusRows?.length) {
       ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.font = `700 28px ${FONT}`;
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = `800 30px ${FONT}`;
       ctx.fillText("Lineup not available", pitchX + pitchW / 2, pitchY + pitchH / 2);
     } else {
       const rowCount = focusRows.length;
-      const tokenR = Math.max(26, Math.min(34, Math.floor(pitchW / 22)));
-      const padTop = 130;
-      const padBottom = focusCoach ? 110 : 70;
+      const scale = Math.max(0.85, Math.min(1.15, pitchW / 980));
+      const padTop = 56 + boardH;
+      const padBottom = focusCoach ? 96 : 56;
       const innerY = pitchY + padTop;
       const innerH = pitchH - padTop - padBottom;
       const layout =
@@ -1282,6 +1410,9 @@
               left: ((c + 1) / (cols + 1)) * 100,
             });
 
+      const outfieldKit = teamKitColors(focusTeam, { isGk: false });
+      const gkKit = teamKitColors(focusTeam, { isGk: true });
+
       focusRows.forEach((row, r) => {
         const isGkRow = r === 0;
         row.forEach((p, c) => {
@@ -1289,69 +1420,50 @@
           const px = pitchX + (leftPct / 100) * pitchW;
           const py = innerY + (topPct / 100) * innerH;
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
-          drawSharePlayerToken(ctx, px, py, p, { tokenR, isGk });
+          drawJerseyToken(ctx, px, py - 8, p, {
+            kit: isGk ? gkKit : outfieldKit,
+            crest: focusLogo,
+            scale,
+          });
+          drawLineup11PlayerName(ctx, px, py + 42 * scale, p, { maxW: 130 * scale });
         });
       });
     }
 
-    // Manager strip at pitch bottom
     if (focusCoach) {
-      const stripH = 56;
-      const stripY = pitchY + pitchH - stripH - 18;
-      const stripW = Math.min(560, pitchW - 48);
-      const stripX = pitchX + (pitchW - stripW) / 2;
-      roundRect(ctx, stripX, stripY, stripW, stripH, 14);
-      ctx.fillStyle = "rgba(7, 11, 20, 0.78)";
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.14)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
       ctx.textAlign = "center";
-      ctx.fillStyle = THEME.muted;
-      ctx.font = `600 14px ${FONT}`;
-      ctx.fillText("MANAGER", stripX + stripW / 2, stripY + 18);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.font = `700 14px ${FONT}`;
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = 4;
+      ctx.fillText("MANAGER", pitchX + pitchW / 2, pitchY + pitchH - 48);
       ctx.fillStyle = "#ffffff";
       ctx.font = `800 22px ${FONT}`;
-      ctx.fillText(truncateText(ctx, focusCoach, stripW - 40), stripX + stripW / 2, stripY + 42);
+      ctx.fillText(truncateText(ctx, focusCoach, pitchW - 80), pitchX + pitchW / 2, pitchY + pitchH - 24);
+      ctx.shadowBlur = 0;
     }
 
     ctx.restore();
 
-    // Pitch border
-    roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 24);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 18);
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // ── Footer bar ──
-    roundRect(ctx, margin, footerY, pitchW, footerH, 18);
-    ctx.fillStyle = "#05080f";
-    ctx.fill();
-
-    const footCrest = 48;
-    const footCy = footerY + footerH / 2;
-    drawCrestInCircle(ctx, homeLogo, margin + 36 + footCrest / 2, footCy, footCrest);
-    drawCrestInCircle(ctx, awayLogo, W - margin - 36 - footCrest / 2, footCy, footCrest);
-
-    ctx.textAlign = "center";
+    ctx.textAlign = "right";
     ctx.textBaseline = "middle";
+    const footCy = footerY + footerH / 2;
     if (brandLogo) {
-      const bw = 36;
-      ctx.drawImage(brandLogo, centerX - bw / 2 - 90, footCy - bw / 2, bw, bw);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `800 22px ${FONT}`;
-      ctx.textAlign = "left";
-      ctx.fillText("Squad Central", centerX - 46, footCy);
-    } else {
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `800 22px ${FONT}`;
-      ctx.fillText("Squad Central", centerX, footCy);
+      const bw = 28;
+      ctx.drawImage(brandLogo, W - margin - 210, footCy - bw / 2, bw, bw);
     }
+    ctx.fillStyle = "#0b1f3a";
+    ctx.font = `900 26px ${FONT}`;
+    ctx.fillText("SQUAD CENTRAL", W - margin - 8, footCy);
     ctx.textBaseline = "alphabetic";
 
     return canvas;
   }
-
   async function exportShareImage(canvas, filename) {
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Export failed"))), "image/png");

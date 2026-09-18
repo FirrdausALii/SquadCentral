@@ -8469,8 +8469,16 @@ function buildLineupSharePayload(m, ht, at, leagueId) {
   const venue =
     leagueFeatureOn(leagueId, "matchStadium") && stadium && stadium !== "—" ? stadium : "";
   return {
-    homeTeam: { name: ht?.name ?? "Home", logo: ht?.logo ?? "" },
-    awayTeam: { name: at?.name ?? "Away", logo: at?.logo ?? "" },
+    homeTeam: {
+      name: ht?.name ?? "Home",
+      logo: ht?.logo ?? "",
+      colors: Array.isArray(ht?.colors) ? ht.colors.slice(0, 2) : [],
+    },
+    awayTeam: {
+      name: at?.name ?? "Away",
+      logo: at?.logo ?? "",
+      colors: Array.isArray(at?.colors) ? at.colors.slice(0, 2) : [],
+    },
     homeCoach: String(ht?.coach ?? "").trim(),
     awayCoach: String(at?.coach ?? "").trim(),
     score: m.score ?? [0, 0],
