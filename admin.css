@@ -1221,6 +1221,262 @@ body[data-page="admin"] #appView:not(.admin-hidden) {
   align-items: center;
 }
 
+.lineup-slot-extras {
+  display: grid;
+  grid-template-columns: 64px auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.lineup-card-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--admin-muted);
+  cursor: pointer;
+}
+
+.lineup-card-label input {
+  accent-color: var(--accent);
+}
+
+.matchlog-filters {
+  padding: 12px 16px 4px;
+}
+
+.matchlog-fixture-meta {
+  padding: 0 16px 10px;
+  font-size: 0.85rem;
+}
+
+.matchlog-table-wrap {
+  overflow-x: auto;
+  padding: 0 12px 12px;
+}
+
+.matchlog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.matchlog-table th,
+.matchlog-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--admin-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.matchlog-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--admin-muted);
+}
+
+.matchlog-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.matchlog-num {
+  font-weight: 800;
+  color: var(--admin-muted);
+  min-width: 1.5rem;
+}
+
+.matchlog-ga {
+  font-weight: 700;
+  text-align: center;
+}
+
+.matchlog-table .mw-input {
+  min-width: 0;
+  width: 100%;
+  max-width: 72px;
+}
+
+.matchlog-table .ml-pos {
+  max-width: 64px;
+}
+
+.matchlog-footer,
+.scorers-form-footer--sync {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px 16px;
+}
+
+.matchlog-tally-block {
+  padding: 8px 16px 16px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.matchlog-tally-title {
+  margin: 0 0 4px;
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.matchlog-tally-hint {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+}
+
+.matchlog-tally-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.matchlog-tally-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(7, 11, 22, 0.35);
+  border: 1px solid var(--admin-border);
+  font-size: 0.84rem;
+  cursor: grab;
+}
+
+.matchlog-tally-row--off {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.matchlog-tally-row.is-dragging {
+  opacity: 0.55;
+}
+
+.matchlog-tally-row.is-drag-over {
+  border-color: var(--admin-accent, #5b8cff);
+}
+
+.matchlog-tally-check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  margin: 0;
+}
+
+.matchlog-tally-check input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--admin-accent, #5b8cff);
+  cursor: pointer;
+}
+
+.matchlog-tally-handle {
+  flex: 0 0 auto;
+  color: var(--admin-muted);
+  display: inline-flex;
+  align-items: center;
+  margin-right: 2px;
+}
+
+.matchlog-tally-handle--off {
+  width: 12px;
+}
+
+.matchlog-tally-name {
+  font-weight: 700;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.matchlog-tally-manual {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--admin-border);
+  color: var(--admin-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.matchlog-tally-bits {
+  font-weight: 650;
+  color: var(--admin-muted);
+  letter-spacing: 0.01em;
+  margin-left: auto;
+}
+
+.matchlog-tally-sub {
+  margin: 14px 0 8px;
+  font-weight: 750;
+  font-size: 0.82rem;
+  color: var(--admin-muted);
+}
+
+.matchlog-tally-list--off .matchlog-tally-row {
+  background: transparent;
+}
+
+.matchlog-tally-empty {
+  list-style: none;
+  padding: 6px 2px;
+  font-size: 0.84rem;
+}
+
+.matchlog-empty {
+  padding: 24px 16px;
+}
+
+.scorers-live-preview {
+  padding: 8px 16px 16px;
+}
+
+.scorers-live-preview__title {
+  font-weight: 800;
+  margin: 0 0 10px;
+}
+
+.scorers-live-preview__list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.scorers-live-preview__list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.scorers-live-rank {
+  display: inline-flex;
+  width: 1.5rem;
+  font-weight: 800;
+  color: var(--admin-muted);
+}
+
+.scorers-live-empty {
+  padding: 8px 16px 16px;
+}
+
 .lineup-add-roster-wrap {
   display: flex;
   align-items: center;

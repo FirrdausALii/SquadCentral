@@ -1934,6 +1934,163 @@ html.reveal-init .reveal.is-visible {
   text-transform: uppercase;
   color: var(--text-faint);
 }
+.squad-profile-pos-trail__sub {
+  margin: var(--sp-1) 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.squad-pos-fotmob {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  align-items: stretch;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-1);
+}
+.squad-pos-fotmob__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  justify-content: center;
+}
+.squad-pos-fotmob__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.squad-pos-fotmob__role {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.squad-pos-fotmob__role--primary {
+  color: var(--accent);
+}
+.squad-pos-fotmob__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.squad-pos-fotmob__list li {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+.squad-pos-map {
+  width: 92px;
+  flex: 0 0 auto;
+}
+.squad-pos-map__pitch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 68 / 105;
+  border-radius: 8px;
+  border: 1.5px solid color-mix(in srgb, var(--text-muted) 45%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-surface-3) 88%, #1a2333) 0%,
+      color-mix(in srgb, var(--bg-surface-2) 92%, #121820) 100%
+    );
+  overflow: hidden;
+}
+.squad-pos-map__halfway {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  transform: translateY(-50%);
+}
+.squad-pos-map__circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28%;
+  aspect-ratio: 1;
+  border: 1.5px solid color-mix(in srgb, var(--text-muted) 40%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.squad-pos-map__box {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  height: 14%;
+  border: 1.5px solid color-mix(in srgb, var(--text-muted) 40%, transparent);
+  pointer-events: none;
+}
+.squad-pos-map__box--top {
+  top: 0;
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+}
+.squad-pos-map__box--bottom {
+  bottom: 0;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+.squad-pos-map__badge {
+  position: absolute;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: color-mix(in srgb, var(--text-muted) 75%, #2a3344);
+  border: 1.5px solid color-mix(in srgb, #fff 18%, transparent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.squad-pos-map__badge.is-primary {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, #fff);
+  z-index: 2;
+}
+.squad-profile-pos-tallies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.squad-profile-pos-tally {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-2);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.squad-profile-pos-tally__tag {
+  letter-spacing: 0.02em;
+}
+.squad-profile-pos-tally__n {
+  color: var(--text-muted);
+  font-weight: 650;
+  font-size: 11px;
+}
 .squad-profile-stats--pos {
   grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
 }
@@ -1941,9 +2098,25 @@ html.reveal-init .reveal.is-visible {
   font-size: 15px;
   letter-spacing: 0.02em;
 }
+.squad-profile-pos-chip.is-primary-pos {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-default));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface-2));
+}
+.squad-profile-pos-chip.is-primary-pos .squad-profile-stat-chip__val {
+  color: var(--accent);
+}
 .squad-profile-pos-chip.is-empty .squad-profile-stat-chip__val {
   color: var(--text-faint);
   font-weight: 600;
+}
+@media (max-width: 380px) {
+  .squad-pos-fotmob {
+    grid-template-columns: 1fr;
+  }
+  .squad-pos-map {
+    width: 110px;
+    margin: 0 auto;
+  }
 }
 .squad-profile-transfer {
   padding: var(--sp-3);

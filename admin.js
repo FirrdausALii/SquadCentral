@@ -8,6 +8,7 @@ const TABS = [
   { id: "leagues", label: "Leagues" },
   { id: "stadiums", label: "Stadiums" },
   { id: "league", label: "Matchweek" },
+  { id: "matchlog", label: "Match log" },
   { id: "teams", label: "Teams" },
   { id: "squaddepth", label: "Squad depth" },
   { id: "nationalduty", label: "National duty" },
@@ -21,6 +22,8 @@ const TABS = [
 
 let activeTab = "overview";
 let leagueFilter = "epl";
+let matchLogTeamFilter = "";
+let matchLogWeek = 0;
 let leagueEditId = "";
 let leagueDeleteId = "";
 let leagueFormDirty = false;
@@ -2199,6 +2202,11 @@ function renderLineupSlot(side, teamId, index, slot) {
         <input class="lineup-tag" value="${esc(data.tag ?? "")}" placeholder="GK" title="Position tag" />
         <label class="lineup-cap-label" title="Captain (or mark captain in roster name)"><input type="checkbox" class="lineup-cap"${isCap ? " checked" : ""} /> C</label>
       </div>
+      <div class="lineup-slot-extras">
+        <input class="lineup-mins" type="number" min="0" max="120" value="${esc(data.minutes != null && data.minutes !== "" ? data.minutes : "")}" placeholder="Min" title="Minutes played" />
+        <label class="lineup-card-label" title="Yellow card"><input type="checkbox" class="lineup-yc"${data.yellow ? " checked" : ""} /> YC</label>
+        <label class="lineup-card-label" title="Red card"><input type="checkbox" class="lineup-rc"${data.red ? " checked" : ""} /> RC</label>
+      </div>
       <label class="lineup-add-roster-wrap${useManual ? "" : " admin-hidden"}" title="Save this player to the team squad">
         <input type="checkbox" class="lineup-add-roster" />
         <span>Add to squad roster</span>
@@ -3302,7 +3310,7 @@ function panelLeague() {
               <div class="mw-select-wrap">
                 <select id="mwPosTrailEnd" class="mw-select">${trailEndOptions}</select>
               </div>
-              <p class="mw-field-note admin-muted">Profiles show the last 3 lineup tags ending at this week. Leave <strong>Default</strong> unless fixtures are out of order.</p>
+              <p class="mw-field-note admin-muted">Profiles show the last 5 lineup tags ending at this week. Leave <strong>Default</strong> unless fixtures are out of order.</p>
             </div>
           </div>`;
   const settingsHint = isWc
@@ -7619,15 +7627,439 @@ function panelStandings() {
   `;
 }
 
+function findTeamMatchForWeek(leagueId, teamId, week) {
+  if (!leagueId || !teamId || !(week > 0)) return null;
+  const mwLabel = `MW ${week}`;
+  return (
+    state().matches.find(
+      (m) =>
+        m.leagueId === leagueId &&
+        (m.homeTeamId === teamId || m.awayTeamId === teamId) &&
+        (m.matchday === mwLabel || parseMwNumber(m.matchday) === week),
+    ) ?? null
+  );
+}
+
+function matchLogSideForTeam(match, teamId) {
+  if (!match || !teamId) return null;
+  if (match.homeTeamId === teamId) return "home";
+  if (match.awayTeamId === teamId) return "away";
+  return null;
+}
+
+function matchLogGaForPlayer(match, teamId, playerName) {
+  const key =
+    typeof transferPlayerNameKey === "function"
+      ? transferPlayerNameKey(playerName)
+      : String(playerName ?? "")
+          .toLowerCase()
+          .trim();
+  let goals = 0;
+  let assists = 0;
+  if (!key || !match) return { goals, assists };
+  const side = matchLogSideForTeam(match, teamId);
+  for (const ev of match.goalEvents ?? []) {
+    if (side && ev.side && ev.side !== side) continue;
+    const own = typeof isOwnGoalType === "function" && isOwnGoalType(ev.type);
+    if (!own && transferPlayerNameKey(ev.scorer) === key) goals += 1;
+    if (transferPlayerNameKey(ev.assist) === key) assists += 1;
+  }
+  return { goals, assists };
+}
+
+function matchLogRowHtml(player, slot, ga) {
+  const inXi = Boolean(slot);
+  const tag = slot?.tag ?? "";
+  const mins = slot?.minutes != null && slot?.minutes !== "" ? slot.minutes : "";
+  const yc = !!slot?.yellow;
+  const rc = !!slot?.red;
+  return `<tr class="matchlog-row" data-player-id="${esc(player.id)}">
+    <td class="matchlog-player">
+      <span class="matchlog-num">${esc(player.number ?? "—")}</span>
+      <span class="matchlog-name">${esc(stripCaptainSuffix(player.name))}</span>
+    </td>
+    <td>
+      <label class="matchlog-inxi">
+        <input type="checkbox" class="ml-inxi"${inXi ? " checked" : ""} aria-label="In starting XI" />
+      </label>
+    </td>
+    <td>
+      <input class="ml-pos mw-input" type="text" value="${esc(tag)}" placeholder="CB" maxlength="6" aria-label="Position" ${inXi ? "" : "disabled"} />
+    </td>
+    <td class="matchlog-ga" title="From Matchweek goal events">${ga.goals}</td>
+    <td class="matchlog-ga" title="From Matchweek goal events">${ga.assists}</td>
+    <td>
+      <input class="ml-mins mw-input" type="number" min="0" max="120" value="${esc(mins)}" placeholder="—" aria-label="Minutes" ${inXi ? "" : "disabled"} />
+    </td>
+    <td>
+      <input type="checkbox" class="ml-yc" aria-label="Yellow card"${yc ? " checked" : ""}${inXi ? "" : " disabled"} />
+    </td>
+    <td>
+      <input type="checkbox" class="ml-rc" aria-label="Red card"${rc ? " checked" : ""}${inXi ? "" : " disabled"} />
+    </td>
+  </tr>`;
+}
+
+function lineupTagRoleRank(tag) {
+  const t = String(tag ?? "").trim().toUpperCase();
+  const idx = PLAYER_ROLE_ORDER.indexOf(t);
+  return idx !== -1 ? idx : PLAYER_ROLE_ORDER.length;
+}
+
+function primaryPlayedTallyTag(tallies) {
+  return tallies?.[0]?.tag ?? "";
+}
+
+function getPositionTallyOrder(leagueId, teamId) {
+  const meta = FCDataStore.getLeagueMeta(leagueId);
+  const map = meta?.positionTallyOrder;
+  if (!map || typeof map !== "object" || Array.isArray(map)) return null;
+  const ids = map[teamId];
+  return Array.isArray(ids) && ids.length ? ids.map(String) : null;
+}
+
+function savePositionTallyOrder(leagueId, teamId, orderedIds) {
+  if (!leagueId || !teamId || !orderedIds?.length) return;
+  const meta = FCDataStore.getLeagueMeta(leagueId);
+  const prev =
+    meta?.positionTallyOrder && typeof meta.positionTallyOrder === "object" && !Array.isArray(meta.positionTallyOrder)
+      ? { ...meta.positionTallyOrder }
+      : {};
+  prev[teamId] = orderedIds.map(String);
+  FCDataStore.setLeagueMeta(leagueId, { positionTallyOrder: prev });
+  syncToAppArrays();
+}
+
+function getPositionTallyCountedMap(leagueId, teamId) {
+  const meta = FCDataStore.getLeagueMeta(leagueId);
+  const map = meta?.positionTallyCounted;
+  if (!map || typeof map !== "object" || Array.isArray(map)) return {};
+  const teamMap = map[teamId];
+  return teamMap && typeof teamMap === "object" && !Array.isArray(teamMap) ? { ...teamMap } : {};
+}
+
+function isPositionTallyCounted(leagueId, teamId, key, isManual) {
+  const map = getPositionTallyCountedMap(leagueId, teamId);
+  if (Object.prototype.hasOwnProperty.call(map, key)) return !!map[key];
+  return !isManual;
+}
+
+function savePositionTallyCounted(leagueId, teamId, key, counted) {
+  if (!leagueId || !teamId || !key) return;
+  const meta = FCDataStore.getLeagueMeta(leagueId);
+  const all =
+    meta?.positionTallyCounted && typeof meta.positionTallyCounted === "object" && !Array.isArray(meta.positionTallyCounted)
+      ? { ...meta.positionTallyCounted }
+      : {};
+  const teamMap = { ...(all[teamId] && typeof all[teamId] === "object" ? all[teamId] : {}) };
+  teamMap[key] = !!counted;
+  all[teamId] = teamMap;
+  FCDataStore.setLeagueMeta(leagueId, { positionTallyCounted: all });
+  syncToAppArrays();
+}
+
+function talliesFromTagCounts(counts) {
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/** Non-roster names from Matchweek lineups, aggregated like roster tallies. */
+function collectManualSeasonTallyEntries(teamId, leagueId) {
+  if (!teamId || !leagueId || typeof positionTrailEndWeekForLeague !== "function") return [];
+  if (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueId)) return [];
+  const endWeek = positionTrailEndWeekForLeague(leagueId);
+  if (!(endWeek > 0)) return [];
+
+  const byKey = new Map();
+  const matchesAll = state().matches.filter((m) => m.leagueId === leagueId);
+
+  for (let week = 1; week <= endWeek; week++) {
+    const mwLabel = `MW ${week}`;
+    const matches = matchesAll.filter(
+      (m) =>
+        (m.homeTeamId === teamId || m.awayTeamId === teamId) &&
+        (m.matchday === mwLabel ||
+          (typeof parseMatchweekNumber === "function" && parseMatchweekNumber(m.matchday) === week)),
+    );
+    const weekKeys = new Set();
+    for (const m of matches) {
+      const side = m.homeTeamId === teamId ? m.lineups?.home : m.lineups?.away;
+      if (!side?.length) continue;
+      for (const slot of side) {
+        if (!slot?.name) continue;
+        const tag = String(slot.tag ?? "").trim().toUpperCase();
+        if (!tag) continue;
+        if (findRosterPlayerForLineupSlot(teamId, slot)) continue;
+        const name = stripCaptainSuffix(slot.name);
+        const norm = typeof normLineupName === "function" ? normLineupName(name) : String(name).trim().toLowerCase();
+        const number = slot.number ?? "—";
+        const key = `m:${number}|${norm}`;
+        if (weekKeys.has(key)) continue;
+        weekKeys.add(key);
+        let row = byKey.get(key);
+        if (!row) {
+          row = { key, number, name, counts: new Map() };
+          byKey.set(key, row);
+        }
+        row.counts.set(tag, (row.counts.get(tag) || 0) + 1);
+      }
+    }
+  }
+
+  return [...byKey.values()].map((row) => ({
+    key: row.key,
+    isManual: true,
+    number: row.number,
+    name: row.name,
+    tallies: talliesFromTagCounts(row.counts),
+    p: null,
+  }));
+}
+
+function compareSeasonTallyEntries(a, b) {
+  const rankA = lineupTagRoleRank(primaryPlayedTallyTag(a.tallies));
+  const rankB = lineupTagRoleRank(primaryPlayedTallyTag(b.tallies));
+  if (rankA !== rankB) return rankA - rankB;
+  const an = Number(a.number);
+  const bn = Number(b.number);
+  const aNum = Number.isFinite(an) && an > 0 ? an : 999;
+  const bNum = Number.isFinite(bn) && bn > 0 ? bn : 999;
+  return aNum - bNum || String(a.name).localeCompare(String(b.name));
+}
+
+function seasonTallyEntriesForTeam(team, leagueId) {
+  if (!team || typeof playerPositionTallies !== "function") return [];
+  const roster = playersForTeam(team.id)
+    .map((p) => ({
+      key: String(p.id),
+      isManual: false,
+      number: p.number,
+      name: stripCaptainSuffix(p.name),
+      tallies: playerPositionTallies(p, leagueId),
+      p,
+    }))
+    .filter((e) => e.tallies.length);
+  const manuals = collectManualSeasonTallyEntries(team.id, leagueId);
+  const entries = [...roster, ...manuals].map((e) => ({
+    ...e,
+    counted: isPositionTallyCounted(leagueId, team.id, e.key, e.isManual),
+  }));
+
+  const custom = getPositionTallyOrder(leagueId, team.id);
+  const sortGroup = (list) => {
+    if (custom?.length) {
+      const rank = new Map(custom.map((id, i) => [id, i]));
+      list.sort((a, b) => {
+        const ra = rank.has(a.key) ? rank.get(a.key) : 1e9;
+        const rb = rank.has(b.key) ? rank.get(b.key) : 1e9;
+        if (ra !== rb) return ra - rb;
+        return compareSeasonTallyEntries(a, b);
+      });
+    } else {
+      list.sort(compareSeasonTallyEntries);
+    }
+  };
+
+  const counted = entries.filter((e) => e.counted);
+  const ignored = entries.filter((e) => !e.counted);
+  sortGroup(counted);
+  sortGroup(ignored);
+  return { counted, ignored };
+}
+
+function matchLogTallyRowHtml(entry, { draggable }) {
+  const bits = entry.tallies.map((t) => `${esc(t.tag)}×${t.count}`).join(" · ");
+  const manualBadge = entry.isManual
+    ? `<span class="matchlog-tally-manual" title="Entered manually in Matchweek (not on roster)">Manual</span>`
+    : "";
+  const handle = draggable
+    ? `<span class="player-drag-handle matchlog-tally-handle" title="Drag to reorder" aria-hidden="true">
+        <svg width="12" height="16" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg>
+      </span>`
+    : `<span class="matchlog-tally-handle matchlog-tally-handle--off" aria-hidden="true"></span>`;
+  return `<li class="matchlog-tally-row${draggable ? " player-sort-row" : " matchlog-tally-row--off"}${entry.isManual ? " matchlog-tally-row--manual" : ""}"${draggable ? ' draggable="true"' : ""} data-tally-key="${esc(entry.key)}">
+    <label class="matchlog-tally-check" title="${entry.counted ? "Counted in position totals" : "Not counted — tick to include"}">
+      <input type="checkbox" class="ml-tally-count"${entry.counted ? " checked" : ""} aria-label="Count in position totals" />
+    </label>
+    ${handle}
+    <span class="matchlog-tally-name">${esc(entry.number ?? "—")} · ${esc(entry.name)}${manualBadge}</span>
+    <span class="matchlog-tally-bits">${bits}</span>
+  </li>`;
+}
+
+function matchLogSeasonTallyHtml(team, leagueId) {
+  if (!team || typeof playerPositionTallies !== "function") return "";
+  const { counted, ignored } = seasonTallyEntriesForTeam(team, leagueId);
+  if (!counted.length && !ignored.length) {
+    return `<div class="matchlog-tally-block"><p class="matchlog-tally-title">Season position counts</p><p class="admin-muted mb-0">No starts logged yet for this squad.</p></div>`;
+  }
+  const countedHtml = counted.map((e) => matchLogTallyRowHtml(e, { draggable: true })).join("");
+  const ignoredHtml = ignored.map((e) => matchLogTallyRowHtml(e, { draggable: false })).join("");
+  return `<div class="matchlog-tally-block">
+    <p class="matchlog-tally-title">Season position counts</p>
+    <p class="admin-muted matchlog-tally-hint">Tick to include in counts. Manual Matchweek names (not on roster) start unticked. Drag counted rows to reorder.</p>
+    <ul class="matchlog-tally-list" id="matchLogTallyList">${countedHtml || `<li class="matchlog-tally-empty admin-muted">No players counted yet.</li>`}</ul>
+    ${
+      ignored.length
+        ? `<p class="matchlog-tally-sub">Not counted</p>
+           <ul class="matchlog-tally-list matchlog-tally-list--off" id="matchLogTallyIgnored">${ignoredHtml}</ul>`
+        : ""
+    }
+  </div>`;
+}
+
+function panelMatchLog() {
+  const teams = teamsForLeague(leagueFilter);
+  const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
+  const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
+  if (!matchLogTeamFilter || !teams.some((t) => t.id === matchLogTeamFilter)) {
+    matchLogTeamFilter = teams[0]?.id ?? "";
+  }
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const published = Number(meta.matchweek) || 1;
+  if (!(matchLogWeek > 0)) matchLogWeek = published;
+  const ceiling = Math.max(leagueMatchweekCeiling(leagueFilter), matchLogWeek, published);
+
+  const teamOpts = teams
+    .map((t) => `<option value="${esc(t.id)}"${t.id === matchLogTeamFilter ? " selected" : ""}>${esc(t.name)}</option>`)
+    .join("");
+  const weekOpts = Array.from({ length: ceiling }, (_, i) => {
+    const n = i + 1;
+    return `<option value="${n}"${matchLogWeek === n ? " selected" : ""}>Matchweek ${n}</option>`;
+  }).join("");
+
+  const team = teams.find((t) => t.id === matchLogTeamFilter);
+  const match = !isWc && team ? findTeamMatchForWeek(leagueFilter, team.id, matchLogWeek) : null;
+  const side = match ? matchLogSideForTeam(match, team.id) : null;
+  const lineup = side ? match.lineups?.[side] ?? [] : [];
+  const squad = team ? playersForTeam(team.id) : [];
+  const oppId = match ? (side === "home" ? match.awayTeamId : match.homeTeamId) : "";
+  const opp = oppId ? state().teams.find((t) => t.id === oppId) : null;
+
+  let body = "";
+  if (isWc) {
+    body = `<div class="matchlog-empty"><p>Match log is for club leagues. Use Matchweek for World Cup fixtures.</p></div>`;
+  } else if (!teams.length) {
+    body = `<div class="matchlog-empty"><p>Add teams first, then return here.</p></div>`;
+  } else if (!match) {
+    body = `<div class="matchlog-empty"><p>No fixture for <strong>${esc(team?.name ?? "this team")}</strong> in Matchweek ${matchLogWeek}.</p><p class="admin-muted">Add the fixture in Matchweek / Matches first.</p></div>`;
+  } else if (!squad.length) {
+    body = `<div class="matchlog-empty"><p>No players on this squad yet.</p></div>`;
+  } else {
+    const rows = squad
+      .map((p) => {
+        const slot =
+          lineup.find((s) => findRosterPlayerForLineupSlot(team.id, s)?.id === p.id) || null;
+        const ga = matchLogGaForPlayer(match, team.id, p.name);
+        return matchLogRowHtml(p, slot, ga);
+      })
+      .join("");
+    body = `
+      <div class="matchlog-fixture-meta admin-muted">
+        ${esc(side === "home" ? "Home" : "Away")} vs ${esc(opp?.name ?? "—")} · ${esc(match.matchday ?? `MW ${matchLogWeek}`)} · ${esc(match.status ?? "NS")}
+        · Goals/assists edit in <strong>Matchweek</strong>
+      </div>
+      <div class="matchlog-table-wrap">
+        <table class="matchlog-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>XI</th>
+              <th>Pos</th>
+              <th>G</th>
+              <th>A</th>
+              <th>Min</th>
+              <th>YC</th>
+              <th>RC</th>
+            </tr>
+          </thead>
+          <tbody id="matchLogBody">${rows}</tbody>
+        </table>
+      </div>
+      ${matchLogSeasonTallyHtml(team, leagueFilter)}
+      <div class="matchlog-footer">
+        <button type="button" class="mw-btn-primary" id="btnSaveMatchLog">Save match log</button>
+      </div>`;
+  }
+
+  return `
+    <div class="mw-page matchlog-page">
+      <header class="mw-hero mw-hero--stadium">
+        <div class="mw-hero__atmosphere" aria-hidden="true">
+          <div class="mw-hero__glow"></div>
+          <div class="mw-hero__pitch"></div>
+        </div>
+        <div class="mw-hero__grid">
+          <div class="mw-hero__copy">
+            <p class="mw-eyebrow mw-eyebrow--live">Player logs</p>
+            <h2 class="mw-heading">Match log</h2>
+            <p class="mw-lead">Per-player positions for a club matchweek. Prefills from Matchweek lineups — edit and save without re-keying.</p>
+          </div>
+          <aside class="mw-hero__aside">
+            <div class="matchweek-broadcast">
+              <span class="matchweek-broadcast__eyebrow">${esc(leagueName)}</span>
+              <strong class="matchweek-broadcast__title">${esc(team?.name ?? "Pick a team")}</strong>
+              <span class="matchweek-broadcast__range">MW ${matchLogWeek}</span>
+            </div>
+          </aside>
+        </div>
+      </header>
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe" aria-hidden="true"></div>
+        <div class="matchlog-filters row g-2 g-md-3">
+          <div class="col-12 col-md-4">${leagueSelect("leagueFilter", leagueFilter, "mw-field mw-field--league mb-0")}</div>
+          <div class="col-12 col-md-4">
+            <div class="mw-field mb-0">
+              <label for="matchLogTeam">Team</label>
+              <div class="mw-select-wrap">
+                <select id="matchLogTeam" class="mw-select"${teams.length ? "" : " disabled"}>${teamOpts || "<option value=\"\">—</option>"}</select>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="mw-field mb-0">
+              <label for="matchLogWeek">Matchweek</label>
+              <div class="mw-select-wrap">
+                <select id="matchLogWeek" class="mw-select"${isWc ? " disabled" : ""}>${weekOpts}</select>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${body}
+      </section>
+    </div>`;
+}
+
 function panelScorers() {
   const teams = teamsForLeague(leagueFilter);
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
-  const rows = scorersRows(leagueFilter);
+  const liveRows =
+    typeof topScorerRowsFromMatches === "function"
+      ? topScorerRowsFromMatches(leagueFilter, 50).map((r) => [r.name, r.club, r.value])
+      : [];
+  const storedRows = scorersRows(leagueFilter);
+  const rows = liveRows.length ? liveRows : storedRows;
   const stats = scorersStats(rows, teams);
   const leaderTeam = standingsTeamForClub(stats.leaderClub, teams);
-  const listBody = rows.length
-    ? rows.map(([name, club, goals], i) => renderScorerRowHtml(name, club, goals, i, teams, stats.maxGoals)).join("")
+  const listBody = storedRows.length
+    ? storedRows.map(([name, club, goals], i) => renderScorerRowHtml(name, club, goals, i, teams, stats.maxGoals)).join("")
     : scorersEmptyListHtml();
+
+  const livePreview = liveRows.length
+    ? `<div class="scorers-live-preview">
+        <p class="scorers-live-preview__title">Live from match goal events</p>
+        <ol class="scorers-live-preview__list">
+          ${liveRows
+            .slice(0, 10)
+            .map(
+              ([name, club, goals], i) =>
+                `<li><span class="scorers-live-rank">${i + 1}</span> ${esc(name)} <span class="admin-muted">(${esc(club)})</span> — <strong>${goals}</strong></li>`,
+            )
+            .join("")}
+        </ol>
+      </div>`
+    : `<p class="admin-muted scorers-live-empty">No goal events yet — enter scorers in Matchweek fixtures. Public Top Scorers will use live events when available.</p>`;
 
   const emptyTeams = !teams.length
     ? `<div class="scorers-empty">
@@ -7653,7 +8085,7 @@ function panelScorers() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">Goal charts</p>
             <h2 class="mw-heading">Top scorers</h2>
-            <p class="mw-lead">Pick a <strong>club</strong> first — the <strong>player</strong> list fills from that team’s squad. Row order is the public chart order.</p>
+            <p class="mw-lead">The public site ranks scorers from <strong>Matchweek goal events</strong>. Sync below to refresh the published list for export.</p>
             ${rows.length ? scorersStatChipsHtml(stats) : ""}
           </div>
           <aside class="mw-hero__aside">
@@ -7674,8 +8106,8 @@ function panelScorers() {
         <div class="mw-card-head mw-card-head--icon">
           <div class="mw-card-head__icon mw-card-head__icon--scorers" aria-hidden="true"></div>
           <div>
-            <h3>Scorer list</h3>
-            <p>${rows.length} row${rows.length === 1 ? "" : "s"} · shown on the public top scorers widget. Top three rows get gold, silver, and bronze styling.</p>
+            <h3>Live preview</h3>
+            <p>Aggregated from decided matches (week ≤ live matchweek). Own goals excluded.</p>
           </div>
         </div>
         <div class="scorers-filter-bar">
@@ -7685,9 +8117,28 @@ function panelScorers() {
             </div>
           </div>
         </div>
+        ${emptyTeams || livePreview}
         ${
           emptyTeams
-            ? emptyTeams
+            ? ""
+            : `<div class="scorers-form-footer scorers-form-footer--sync">
+          <button type="button" class="mw-btn-primary scorers-save-btn" id="btnSyncScorersFromMatches">Sync published list from matches</button>
+        </div>`
+        }
+      </section>
+
+      <section class="mw-card mw-card--striped">
+        <div class="mw-card__stripe mw-card__stripe--scorers" aria-hidden="true"></div>
+        <div class="mw-card-head mw-card-head--icon">
+          <div class="mw-card-head__icon mw-card-head__icon--scorers" aria-hidden="true"></div>
+          <div>
+            <h3>Published list (fallback / export)</h3>
+            <p>${storedRows.length} stored row${storedRows.length === 1 ? "" : "s"}. Manual edits still work after sync if you need an override.</p>
+          </div>
+        </div>
+        ${
+          emptyTeams
+            ? ""
             : `<div class="scorers-list-wrap">
           <div class="scorers-list" id="scorersList">${listBody}</div>
         </div>
@@ -7727,6 +8178,7 @@ function renderPanel() {
     players: panelPlayers,
     matches: panelMatches,
     standings: panelStandings,
+    matchlog: panelMatchLog,
     scorers: panelScorers,
     transfers: panelTransfers,
     settings: panelSettings,
@@ -7750,6 +8202,8 @@ function bindLeagueSelect() {
     playerTeamFilter = "";
     playerTransferPickId = "";
     playerSearchQuery = "";
+    matchLogTeamFilter = "";
+    matchLogWeek = 0;
     clearTmSyncState();
     squadDepthTeamFilter = "";
     nationalDutyTeamFilter = "";
@@ -7923,6 +8377,7 @@ function bindPanelHandlers() {
   bindPlayers();
   bindMatches();
   bindStandings();
+  bindMatchLog();
   bindScorers();
   bindTransfers();
 
@@ -7984,10 +8439,25 @@ function readGoalEventsFromDom() {
     .filter((g) => g.scorer);
 }
 
+function readLineupSlotExtras(slotEl) {
+  const minsRaw = slotEl.querySelector(".lineup-mins")?.value;
+  const minutesNum = Number(minsRaw);
+  const yellow = !!slotEl.querySelector(".lineup-yc")?.checked;
+  const red = !!slotEl.querySelector(".lineup-rc")?.checked;
+  const extras = {};
+  if (minsRaw !== "" && minsRaw != null && Number.isFinite(minutesNum)) {
+    extras.minutes = Math.max(0, Math.min(120, Math.trunc(minutesNum)));
+  }
+  if (yellow) extras.yellow = true;
+  if (red) extras.red = true;
+  return extras;
+}
+
 function readLineupSlotFromDom(slot) {
   const tag = slot.querySelector(".lineup-tag")?.value.trim() ?? "";
   const captain = !!slot.querySelector(".lineup-cap")?.checked;
   const mode = slot.querySelector(".lineup-mode")?.value === "manual" ? "manual" : "roster";
+  const extras = readLineupSlotExtras(slot);
 
   if (mode === "roster") {
     const pid = slot.querySelector(".lineup-pick")?.value;
@@ -8002,6 +8472,7 @@ function readLineupSlotFromDom(slot) {
       flag: p.flag ?? "",
       nationality: p.nationality ?? "",
       captain: isCap,
+      ...extras,
     };
   }
 
@@ -8026,6 +8497,7 @@ function readLineupSlotFromDom(slot) {
     flag,
     nationality,
     captain: isCap,
+    ...extras,
   };
 }
 
@@ -10581,6 +11053,198 @@ function updateScorerGoalsMeter(input) {
   });
 }
 
+function bindMatchLogTallyDrag() {
+  const list = $("#matchLogTallyList");
+  if (!list) return;
+
+  let draggedId = null;
+
+  for (const row of list.querySelectorAll(".matchlog-tally-row.player-sort-row")) {
+    row.addEventListener("dragstart", (e) => {
+      draggedId = row.getAttribute("data-tally-key");
+      row.classList.add("is-dragging");
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", draggedId ?? "");
+      }
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("is-dragging");
+      draggedId = null;
+      list.querySelectorAll(".matchlog-tally-row").forEach((r) => r.classList.remove("is-drag-over"));
+    });
+  }
+
+  list.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const target = e.target.closest(".matchlog-tally-row.player-sort-row");
+    if (!target || !draggedId || target.getAttribute("data-tally-key") === draggedId) return;
+
+    const dragged = list.querySelector(`[data-tally-key="${CSS.escape(draggedId)}"]`);
+    if (!dragged) return;
+
+    list.querySelectorAll(".matchlog-tally-row").forEach((r) => r.classList.remove("is-drag-over"));
+    target.classList.add("is-drag-over");
+
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    if (before) list.insertBefore(dragged, target);
+    else list.insertBefore(dragged, target.nextSibling);
+  });
+
+  list.addEventListener("dragleave", (e) => {
+    const row = e.target.closest(".matchlog-tally-row");
+    if (row) row.classList.remove("is-drag-over");
+  });
+
+  const persistOrder = () => {
+    const teamId = matchLogTeamFilter;
+    if (!teamId) return;
+    const ids = [...list.querySelectorAll(".matchlog-tally-row.player-sort-row")]
+      .map((r) => r.getAttribute("data-tally-key"))
+      .filter(Boolean);
+    if (!ids.length) return;
+    savePositionTallyOrder(leagueFilter, teamId, ids);
+    toast("Position count order saved");
+    list.querySelectorAll(".matchlog-tally-row").forEach((r) => r.classList.remove("is-drag-over"));
+  };
+
+  list.addEventListener("drop", (e) => {
+    e.preventDefault();
+    persistOrder();
+  });
+
+  bindPlayerRowTouchSort(list, persistOrder);
+}
+
+function bindMatchLogTallyCounts() {
+  const block = $(".matchlog-tally-block");
+  if (!block) return;
+  block.addEventListener("change", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement) || !t.classList.contains("ml-tally-count")) return;
+    const row = t.closest(".matchlog-tally-row");
+    const key = row?.getAttribute("data-tally-key");
+    const teamId = matchLogTeamFilter;
+    if (!key || !teamId) return;
+    savePositionTallyCounted(leagueFilter, teamId, key, t.checked);
+    toast(t.checked ? "Included in position counts" : "Removed from position counts");
+    renderPanel();
+  });
+}
+
+function bindMatchLog() {
+  if (activeTab !== "matchlog") return;
+
+  $("#matchLogTeam")?.addEventListener("change", () => {
+    matchLogTeamFilter = $("#matchLogTeam")?.value ?? "";
+    renderPanel();
+  });
+
+  $("#matchLogWeek")?.addEventListener("change", () => {
+    matchLogWeek = Number($("#matchLogWeek")?.value) || 1;
+    renderPanel();
+  });
+
+  bindMatchLogTallyDrag();
+  bindMatchLogTallyCounts();
+
+  const body = $("#matchLogBody");
+  body?.addEventListener("change", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement) || !t.classList.contains("ml-inxi")) return;
+    const row = t.closest(".matchlog-row");
+    if (!row) return;
+    const on = t.checked;
+    row.querySelectorAll(".ml-pos, .ml-mins, .ml-yc, .ml-rc").forEach((el) => {
+      el.disabled = !on;
+    });
+    if (!on) {
+      const pos = row.querySelector(".ml-pos");
+      if (pos) pos.value = "";
+    }
+  });
+
+  $("#btnSaveMatchLog")?.addEventListener("click", () => {
+    const teamId = matchLogTeamFilter;
+    const week = matchLogWeek;
+    const match = findTeamMatchForWeek(leagueFilter, teamId, week);
+    const side = matchLogSideForTeam(match, teamId);
+    if (!match || !side) {
+      alert("No fixture to save for this team and matchweek.");
+      return;
+    }
+
+    const prevLineup = cloneLineupSlots(match.lineups?.[side] ?? []);
+    const next = [];
+    const seen = new Set();
+
+    // Keep previous XI order for still-checked players
+    for (const slot of prevLineup) {
+      const p = findRosterPlayerForLineupSlot(teamId, slot);
+      if (!p?.id) continue;
+      const row = body?.querySelector(`.matchlog-row[data-player-id="${CSS.escape(p.id)}"]`);
+      if (!row?.querySelector(".ml-inxi")?.checked) continue;
+      const tag = row.querySelector(".ml-pos")?.value.trim() || slot.tag || p.role || p.pos || "";
+      const minsRaw = row.querySelector(".ml-mins")?.value;
+      const minutesNum = Number(minsRaw);
+      const entry = {
+        tag,
+        number: p.number,
+        name: stripCaptainSuffix(p.name),
+        flag: p.flag ?? "",
+        nationality: p.nationality ?? "",
+        captain: !!slot.captain || playerNameMarksCaptain(p.name),
+      };
+      if (minsRaw !== "" && minsRaw != null && Number.isFinite(minutesNum)) {
+        entry.minutes = Math.max(0, Math.min(120, Math.trunc(minutesNum)));
+      }
+      if (row.querySelector(".ml-yc")?.checked) entry.yellow = true;
+      if (row.querySelector(".ml-rc")?.checked) entry.red = true;
+      next.push(entry);
+      seen.add(p.id);
+    }
+
+    // Newly checked players (not in previous XI)
+    for (const row of body?.querySelectorAll(".matchlog-row") ?? []) {
+      const pid = row.getAttribute("data-player-id");
+      if (!pid || seen.has(pid)) continue;
+      if (!row.querySelector(".ml-inxi")?.checked) continue;
+      const p = state().players.find((x) => x.id === pid);
+      if (!p) continue;
+      const tag = row.querySelector(".ml-pos")?.value.trim() || p.role || p.pos || "";
+      const minsRaw = row.querySelector(".ml-mins")?.value;
+      const minutesNum = Number(minsRaw);
+      const entry = {
+        tag,
+        number: p.number,
+        name: stripCaptainSuffix(p.name),
+        flag: p.flag ?? "",
+        nationality: p.nationality ?? "",
+        captain: playerNameMarksCaptain(p.name),
+      };
+      if (minsRaw !== "" && minsRaw != null && Number.isFinite(minutesNum)) {
+        entry.minutes = Math.max(0, Math.min(120, Math.trunc(minutesNum)));
+      }
+      if (row.querySelector(".ml-yc")?.checked) entry.yellow = true;
+      if (row.querySelector(".ml-rc")?.checked) entry.red = true;
+      next.push(entry);
+      seen.add(pid);
+    }
+
+    const lineups = {
+      home: match.lineups?.home ?? [],
+      away: match.lineups?.away ?? [],
+      [side]: next,
+    };
+    FCDataStore.upsertMatch({ ...match, lineups });
+    syncToAppArrays();
+    toast(`Match log saved · MW ${week}`);
+    renderPanel();
+  });
+}
+
 function bindScorers() {
   const list = $("#scorersList");
 
@@ -10607,6 +11271,19 @@ function bindScorers() {
     const t = e.target;
     if (!(t instanceof HTMLElement) || !t.classList.contains("sc-goals")) return;
     updateScorerGoalsMeter(t);
+  });
+
+  $("#btnSyncScorersFromMatches")?.addEventListener("click", () => {
+    if (typeof topScorerRowsFromMatches !== "function") {
+      alert("Live scorer aggregation is not available. Refresh the page.");
+      return;
+    }
+    const live = topScorerRowsFromMatches(leagueFilter, 50);
+    const rows = live.map((r) => [r.name, r.club, r.value]);
+    FCDataStore.setTopScorers(leagueFilter, rows);
+    syncToAppArrays();
+    toast(`Synced ${rows.length} scorer${rows.length === 1 ? "" : "s"} from matches`);
+    renderPanel();
   });
 
   $("#btnSaveScorers")?.addEventListener("click", () => {

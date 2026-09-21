@@ -5619,25 +5619,19 @@ function formatLineupStarts(n) {
 }
 
 /**
- * Last N matchweek XI tags for a player (oldest → newest), capped at the
- * trail end week (admin override or published/current gameweek). Weeks with
- * no fixture or where the player was not in the starting XI use tag "".
+ * All starting-XI tags for a player from GW1 through trail end week
+ * (oldest → newest). Skips weeks with no start / no tag.
  */
-function playerRecentLineupPositions(p, leagueId, { count = 3 } = {}) {
+function playerLineupPositionStarts(p, leagueId) {
   if (!p?.teamId || !leagueId || isWorldCupLeague(leagueId)) return [];
   const endWeek = positionTrailEndWeekForLeague(leagueId);
   if (!(endWeek > 0)) return [];
 
-  const weeks = [];
-  for (let w = Math.max(1, endWeek - count + 1); w <= endWeek; w++) {
-    weeks.push(w);
-  }
-
   const playerKey = `${p.number}|${normLineupName(p.name)}`;
   const playerNameKey = transferPlayerNameKey(p.name);
-  const out = [];
+  const starts = [];
 
-  for (const week of weeks) {
+  for (let week = 1; week <= endWeek; week++) {
     const mwLabel = `MW ${week}`;
     const matches = (MATCHES ?? []).filter(
       (m) =>
@@ -5658,17 +5652,190 @@ function playerRecentLineupPositions(p, leagueId, { count = 3 } = {}) {
         break;
       }
     }
-    out.push({ week, tag });
+    if (tag) starts.push({ week, tag });
   }
-  return out;
+  return starts;
 }
 
+/** Last N starts only (oldest → newest among those). */
+function playerRecentLineupPositions(p, leagueId, { count = 5 } = {}) {
+  const starts = playerLineupPositionStarts(p, leagueId);
+  if (starts.length <= count) return starts;
+  return starts.slice(-count);
+}
+
+/** How many times each position tag was started this season (through trail end). */
+function playerPositionTallies(p, leagueId) {
+  const counts = new Map();
+  for (const { tag } of playerLineupPositionStarts(p, leagueId)) {
+    counts.set(tag, (counts.get(tag) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/** Full label for lineup tags (FotMob-style copy). */
+function lineupTagDisplayName(tag) {
+  const t = String(tag ?? "").trim().toUpperCase();
+  const names = {
+    GK: "Goalkeeper",
+    CB: "Centre Back",
+    RB: "Right Back",
+    LB: "Left Back",
+    RWB: "Right Wing-Back",
+    LWB: "Left Wing-Back",
+    DM: "Defensive Midfielder",
+    CM: "Central Midfielder",
+    RM: "Right Midfielder",
+    LM: "Left Midfielder",
+    AM: "Attacking Midfielder",
+    RAM: "Right Att. Midfielder",
+    LAM: "Left Att. Midfielder",
+    RW: "Right Winger",
+    LW: "Left Winger",
+    CF: "Striker",
+    ST: "Striker",
+    SS: "Second Striker",
+  };
+  return names[t] || t;
+}
+
+/** Pitch badge short label. */
+function lineupTagPitchLabel(tag) {
+  const t = String(tag ?? "").trim().toUpperCase();
+  if (t === "CF") return "ST";
+  return t || "?";
+}
+
+/**
+ * Approximate pitch spots (attacking end at top), percent left/top.
+ * Used for the FotMob-style position map on player details.
+ */
+function lineupTagPitchSpot(tag) {
+  const t = String(tag ?? "").trim().toUpperCase();
+  const spots = {
+    GK: [50, 90],
+    CB: [50, 76],
+    RB: [82, 74],
+    LB: [18, 74],
+    RWB: [86, 66],
+    LWB: [14, 66],
+    DM: [50, 60],
+    CM: [50, 50],
+    RM: [80, 48],
+    LM: [20, 48],
+    AM: [50, 36],
+    RAM: [70, 34],
+    LAM: [30, 34],
+    RW: [80, 20],
+    LW: [20, 20],
+    CF: [50, 12],
+    ST: [50, 12],
+    SS: [50, 22],
+  };
+  return spots[t] || [50, 50];
+}
+
+/**
+ * Primary = most recent GW start tag.
+ * Others = remaining season tags, most-played first.
+ */
+function playerPrimarySecondaryPositions(p, leagueId) {
+  const tallies = playerPositionTallies(p, leagueId);
+  const recent = playerRecentLineupPositions(p, leagueId, { count: 5 });
+  if (!tallies.length && !recent.length) return null;
+  const lastTag = recent.length
+    ? String(recent[recent.length - 1].tag ?? "").trim().toUpperCase()
+    : "";
+  const primaryTag = lastTag || tallies[0]?.tag || "";
+  if (!primaryTag) return null;
+  const others = tallies
+    .filter((t) => t.tag !== primaryTag)
+    .map((t) => t.tag);
+  // Include primary even if somehow missing from tallies
+  const allTags = [primaryTag, ...others.filter((t) => t !== primaryTag)];
+  return { primaryTag, otherTags: others, allTags, recent, tallies };
+}
+
+function renderPlayerPositionPitch(tags, primaryTag) {
+  const badges = (tags ?? [])
+    .filter(Boolean)
+    .map((tag) => {
+      const [left, top] = lineupTagPitchSpot(tag);
+      const isPrimary = tag === primaryTag;
+      return `<span class="squad-pos-map__badge${isPrimary ? " is-primary" : ""}" style="left:${left}%;top:${top}%" title="${escapeHtml(lineupTagDisplayName(tag))}">${escapeHtml(lineupTagPitchLabel(tag))}</span>`;
+    })
+    .join("");
+  return `<div class="squad-pos-map" aria-hidden="true">
+    <div class="squad-pos-map__pitch">
+      <span class="squad-pos-map__box squad-pos-map__box--top"></span>
+      <span class="squad-pos-map__box squad-pos-map__box--bottom"></span>
+      <span class="squad-pos-map__circle"></span>
+      <span class="squad-pos-map__halfway"></span>
+      ${badges}
+    </div>
+  </div>`;
+}
+
+function renderPlayerPositionLog(p, leagueId) {
+  const breakdown = playerPrimarySecondaryPositions(p, leagueId);
+  if (!breakdown) return "";
+  const { primaryTag, otherTags, allTags, recent } = breakdown;
+
+  const othersHtml = otherTags.length
+    ? `<div class="squad-pos-fotmob__group">
+        <p class="squad-pos-fotmob__role">Others</p>
+        <ul class="squad-pos-fotmob__list">
+          ${otherTags.map((tag) => `<li>${escapeHtml(lineupTagDisplayName(tag))}</li>`).join("")}
+        </ul>
+      </div>`
+    : "";
+
+  const fotmobHtml = `<div class="squad-pos-fotmob" aria-label="Primary and other positions">
+    <div class="squad-pos-fotmob__copy">
+      <p class="squad-profile-pos-trail__label">Position</p>
+      <div class="squad-pos-fotmob__group">
+        <p class="squad-pos-fotmob__role squad-pos-fotmob__role--primary">Primary</p>
+        <ul class="squad-pos-fotmob__list">
+          <li>${escapeHtml(lineupTagDisplayName(primaryTag))}</li>
+        </ul>
+      </div>
+      ${othersHtml}
+    </div>
+    ${renderPlayerPositionPitch(allTags, primaryTag)}
+  </div>`;
+
+  const recentHtml = recent.length
+    ? `<p class="squad-profile-pos-trail__sub">Last ${recent.length} start${recent.length === 1 ? "" : "s"}</p>
+      <div class="squad-profile-stats squad-profile-stats--pos" aria-label="Recent lineup positions">
+        ${recent
+          .map((entry) => {
+            const label = `GW${entry.week}`;
+            const isPrimary = entry.tag === primaryTag;
+            return `<div class="squad-profile-stat-chip squad-profile-pos-chip${isPrimary ? " is-primary-pos" : ""}" title="${escapeHtml(label)}: ${escapeHtml(entry.tag)}">
+              <span class="squad-profile-stat-chip__val">${escapeHtml(entry.tag)}</span>
+              <span class="squad-profile-stat-chip__label">${escapeHtml(label)}</span>
+            </div>`;
+          })
+          .join("")}
+      </div>`
+    : "";
+
+  return `<div class="squad-profile-pos-trail">
+    ${fotmobHtml}
+    ${recentHtml}
+  </div>`;
+}
+
+/** @deprecated use renderPlayerPositionLog */
 function renderPlayerPositionTrail(entries) {
-  if (!entries?.length) return "";
+  const shown = (entries ?? []).filter((e) => String(e?.tag ?? "").trim());
+  if (!shown.length) return "";
   const cell = (entry) => {
-    const val = entry.tag || "—";
+    const val = entry.tag;
     const label = `GW${entry.week}`;
-    return `<div class="squad-profile-stat-chip squad-profile-pos-chip${entry.tag ? "" : " is-empty"}" title="${escapeHtml(label)}${entry.tag ? `: ${escapeHtml(entry.tag)}` : " · not in XI"}">
+    return `<div class="squad-profile-stat-chip squad-profile-pos-chip" title="${escapeHtml(label)}: ${escapeHtml(val)}">
       <span class="squad-profile-stat-chip__val">${escapeHtml(val)}</span>
       <span class="squad-profile-stat-chip__label">${escapeHtml(label)}</span>
     </div>`;
@@ -5676,7 +5843,7 @@ function renderPlayerPositionTrail(entries) {
   return `<div class="squad-profile-pos-trail">
     <p class="squad-profile-pos-trail__label">Recent positions</p>
     <div class="squad-profile-stats squad-profile-stats--pos" aria-label="Recent lineup positions">
-      ${entries.map(cell).join("")}
+      ${shown.map(cell).join("")}
     </div>
   </div>`;
 }
@@ -5695,6 +5862,7 @@ function playerSeasonStats(p, leagueId, startsMap) {
     const week = parseMatchweekNumber(m.matchday);
     if (published > 0 && week > 0 && week > published) continue;
     for (const ev of m.goalEvents ?? []) {
+      if (isOwnGoalType(ev.type)) continue;
       if (transferPlayerNameKey(ev.scorer) === key) goals += 1;
       if (transferPlayerNameKey(ev.assist) === key) assists += 1;
     }
@@ -5833,7 +6001,7 @@ function openPlayerFullProfile(p, startsMap = new Map(), leagueId) {
       </div>
       <p class="player-full__season">This season</p>
       ${renderPlayerStatsRow(stats)}
-      ${renderPlayerPositionTrail(playerRecentLineupPositions(p, lid))}
+      ${renderPlayerPositionLog(p, lid)}
       ${detailCards.length ? `<div class="squad-profile-grid">${detailCards.join("")}</div>` : ""}
       ${
         transfers.length
@@ -5947,7 +6115,7 @@ function openPlayerModal(p, startsMap = new Map(), leagueId) {
           </div>
         </div>
         ${renderPlayerStatsRow(stats)}
-        ${renderPlayerPositionTrail(playerRecentLineupPositions(p, lid))}
+        ${renderPlayerPositionLog(p, lid)}
         ${[natRow, ageRow, clubRow].some(Boolean) ? `<div class="squad-profile-grid">${natRow}${ageRow}${clubRow}</div>` : ""}
         ${renderPlayerTransferCard(recent)}
       </div>
@@ -9609,6 +9777,45 @@ let topScorerExpanded = false;
 const TOP_SCORER_PREVIEW_LIMIT = 5;
 const TOP_SCORER_FULL_LIMIT = 20;
 
+function topScorerRowsFromMatches(leagueId, limit = TOP_SCORER_FULL_LIMIT) {
+  const published = publishedMatchweekForLeague(leagueId);
+  const decided = new Set(["FT", "AET", "PEN", "AWD", "LIVE"]);
+  const counts = new Map();
+  for (const m of MATCHES ?? []) {
+    if (m.leagueId !== leagueId) continue;
+    const status = effectiveMatchStatus(m);
+    if (!decided.has(status)) continue;
+    const week = parseMatchweekNumber(m.matchday);
+    if (published > 0 && week > 0 && week > published) continue;
+    for (const ev of m.goalEvents ?? []) {
+      if (isOwnGoalType(ev.type)) continue;
+      const scorer = stripCaptainSuffix(String(ev.scorer ?? "").trim());
+      if (!scorer) continue;
+      const teamId = ev.side === "away" ? m.awayTeamId : m.homeTeamId;
+      const team = teamById.get(teamId);
+      const club = team?.name ?? "";
+      const key = transferPlayerNameKey(scorer);
+      const prev = counts.get(key) ?? {
+        name: scorer,
+        club,
+        value: 0,
+        apps: 0,
+        _matches: new Set(),
+      };
+      if (club) prev.club = club;
+      prev.name = scorer;
+      prev.value += 1;
+      prev._matches.add(m.id);
+      prev.apps = prev._matches.size;
+      counts.set(key, prev);
+    }
+  }
+  return [...counts.values()]
+    .map(({ name, club, value, apps }) => ({ name, club, value, apps }))
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
 function topScorerRowsFromTable(leagueId, limit = TOP_SCORER_FULL_LIMIT) {
   return (TOP_SCORERS.find((x) => x.leagueId === leagueId)?.rows ?? [])
     .map((row) => {
@@ -9626,10 +9833,17 @@ function topScorerRowsFromTable(leagueId, limit = TOP_SCORER_FULL_LIMIT) {
 }
 
 function topAssistRowsFromMatches(leagueId, limit = TOP_SCORER_FULL_LIMIT) {
+  const published = publishedMatchweekForLeague(leagueId);
+  const decided = new Set(["FT", "AET", "PEN", "AWD", "LIVE"]);
   const counts = new Map();
   for (const m of MATCHES) {
     if (m.leagueId !== leagueId) continue;
+    const status = effectiveMatchStatus(m);
+    if (!decided.has(status)) continue;
+    const week = parseMatchweekNumber(m.matchday);
+    if (published > 0 && week > 0 && week > published) continue;
     for (const ev of m.goalEvents ?? []) {
+      if (isOwnGoalType(ev.type)) continue;
       const assist = stripCaptainSuffix(String(ev.assist ?? "").trim());
       if (!assist) continue;
       const teamId = ev.side === "away" ? m.awayTeamId : m.homeTeamId;
@@ -9677,10 +9891,13 @@ function scorerSecondaryMeta(row, mode) {
 }
 
 function renderTopScorersHtml(leagueId, mode = "goals") {
+  const liveGoals = topScorerRowsFromMatches(leagueId, TOP_SCORER_FULL_LIMIT);
   const allRows =
     mode === "assists"
       ? topAssistRowsFromMatches(leagueId, TOP_SCORER_FULL_LIMIT)
-      : topScorerRowsFromTable(leagueId, TOP_SCORER_FULL_LIMIT);
+      : liveGoals.length
+        ? liveGoals
+        : topScorerRowsFromTable(leagueId, TOP_SCORER_FULL_LIMIT);
   if (!allRows.length) {
     const empty =
       mode === "assists" ? "No assists recorded for this league yet." : "No scorers for this league.";
