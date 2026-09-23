@@ -230,14 +230,14 @@
   to { transform: scaleX(1); }
 }
 
-/* Pitch players fade-in by position */
+/* Pitch players fade-in by position (keep -50%/-50% centering) */
 .pitch-players .pitch-player {
   opacity: 0;
-  transform: translateY(8px) scale(0.96);
+  transform: translate(-50%, calc(-50% + 8px)) scale(0.96);
 }
 .pitch.is-revealed .pitch-players .pitch-player {
   opacity: 1;
-  transform: none;
+  transform: translate(-50%, -50%);
   transition:
     opacity var(--duration-enter) cubic-bezier(0.22, 1, 0.36, 1),
     transform var(--duration-enter) cubic-bezier(0.22, 1, 0.36, 1);
@@ -491,7 +491,7 @@
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
-    transform: none !important;
+    transform: translate(-50%, -50%) !important;
   }
   .mc-stat-compare__bar {
     transition: none !important;
