@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Squad Central">
+  <rect width="180" height="180" rx="40" fill="#080e1a"/>
+  <path d="M90 18c22 10 48 15 60 18v58c0 38-28 60-60 72C58 154 30 132 30 94V36c12-3 38-8 60-18z" fill="#101b2e" stroke="#3b8fff" stroke-width="6"/>
+  <circle cx="90" cy="84" r="30" fill="none" stroke="#3b8fff" stroke-width="5"/>
+  <path d="M60 84h60M90 54v60" stroke="#3b8fff" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M68 64c6 6.5 13.5 10 22 10s16-3.5 22-10M68 104c6-6.5 13.5-10 22-10s16 3.5 22 10" fill="none" stroke="#9eb2c9" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+</svg>

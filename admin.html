@@ -4,9 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#0b1120" />
+    <meta name="theme-color" content="#080e1a" />
+    <meta name="msapplication-TileColor" content="#080e1a" />
+    <meta name="apple-mobile-web-app-title" content="Squad Central Admin" />
     <title>Squad Central — Admin</title>
-    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="icon" type="image/svg+xml" href="./brand-mark.svg" />
+    <link rel="icon" type="image/png" href="./logo.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" href="./logo.png" sizes="180x180" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -16,10 +21,10 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="./squad-central-dark-stadium.css" />
+    <link rel="stylesheet" href="./squad-central-dark-stadium.css?v=rebrand-3" />
     <link rel="stylesheet" href="./lineups-pitch.css?v=pitch-fullname-2row-1" />
-    <link rel="stylesheet" href="./dropdowns.css" />
-    <link rel="stylesheet" href="./admin.css?v=pos-tallies-4" />
+    <link rel="stylesheet" href="./dropdowns.css?v=rebrand-2" />
+    <link rel="stylesheet" href="./admin.css?v=rebrand-2" />
   </head>
   <body data-page="admin">
     <script>
@@ -44,7 +49,14 @@
         <span class="login-orb login-orb--3"></span>
         <span class="login-grid"></span>
         <span class="login-pitch"></span>
-        <img class="login-watermark" src="./logo.png" width="160" height="160" alt="" />
+        <span class="login-watermark brand-mark brand-mark--xl" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+            <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+            <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+            <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+            <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+          </svg>
+        </span>
       </div>
 
       <header class="login-topbar container-fluid px-3 px-sm-4">
@@ -54,8 +66,15 @@
             <span class="login-back-text d-none d-sm-inline">Back to Squad Central</span>
             <span class="login-back-text d-sm-none">Back</span>
           </a>
-          <div class="login-topbar-mark d-lg-none flex-shrink-0" aria-hidden="true">
-            <img class="login-topbar-logo" src="./logo.png" width="28" height="28" alt="" />
+          <div class="login-topbar-mark d-lg-none flex-shrink-0 brand-lockup" aria-hidden="true">
+            <span class="brand-mark login-topbar-logo" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+                <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+                <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+                <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+                <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+              </svg>
+            </span>
             <span class="login-topbar-copy">
               <span class="login-topbar-kicker">Private console</span>
               <span class="login-topbar-name">Squad Central Admin</span>
@@ -109,7 +128,14 @@
           <aside class="col-12 col-lg-7 d-none d-lg-block login-brand">
             <div class="login-brand-inner mx-auto mx-lg-0">
               <div class="login-logo-wrap">
-                <img class="login-logo" src="./logo.png" width="56" height="56" alt="" />
+                <span class="brand-mark brand-mark--lg login-logo" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+                    <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+                    <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+                    <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+                    <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+                  </svg>
+                </span>
                 <span class="login-logo-ring" aria-hidden="true"></span>
               </div>
               <p class="login-eyebrow">Private console</p>
@@ -128,9 +154,16 @@
 
     <div id="appView" class="admin-hidden">
       <header class="topbar admin-topbar">
-        <a class="topbar-logo" href="./index.html">
-          <img src="./logo.png" width="28" height="28" alt="" decoding="async" />
-          Squad Central
+        <a class="topbar-logo brand-lockup" href="./index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+              <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+              <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+              <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+              <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+            </svg>
+          </span>
+          <span class="brand-wordmark">Squad Central</span>
         </a>
         <span class="admin-topbar-badge">Admin</span>
         <div class="topbar-actions ms-auto d-flex flex-wrap gap-2">
@@ -175,7 +208,7 @@
     <script src="./transfermarkt-teams.js"></script>
     <script src="./transfermarkt-sync.js?v=tm-transfer-date-1"></script>
     <script src="./app.js?v=own-goal-stats-1"></script>
-    <script src="./admin.js?v=pos-tallies-4"></script>
+    <script src="./admin.js?v=stadium-linked-1"></script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"

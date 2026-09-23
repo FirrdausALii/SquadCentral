@@ -1,13 +1,25 @@
 {
   "name": "Squad Central",
   "short_name": "Squad Central",
-  "description": "Explore squads in the Top 5 leagues.",
+  "description": "Explore squads across Europe, the Malaysia Super League, and the World Cup — Squad Central.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0b1120",
-  "theme_color": "#0b1120",
+  "background_color": "#080e1a",
+  "theme_color": "#080e1a",
   "icons": [
+    {
+      "src": "./apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./brand-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "./logo.png",
       "sizes": "512x512",

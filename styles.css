@@ -30,7 +30,7 @@ html, body { height: 100%; }
 .reveal {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.45s ease, transform 0.45s ease;
+  transition: opacity var(--duration-enter) ease, transform var(--duration-enter) ease;
 }
 
 html.reveal-init .reveal:not(.is-visible) {
@@ -46,8 +46,10 @@ html.reveal-init .reveal.is-visible {
 /* Mobile nav toggler */
 .topbar-toggler {
   margin-left: auto;
-  width: 36px;
-  height: 36px;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border-radius: var(--radius-md);
   border: 0.5px solid var(--border-default);
   background: var(--bg-surface-2);
@@ -56,6 +58,10 @@ html.reveal-init .reveal.is-visible {
   justify-content: center;
   padding: 0;
   flex-shrink: 0;
+  transition: border-color var(--transition), background-color var(--transition), transform var(--transition);
+}
+.topbar-toggler:active {
+  transform: scale(0.96);
 }
 .topbar-toggler .navbar-toggler-icon {
   filter: invert(0.85);
@@ -71,10 +77,17 @@ html.reveal-init .reveal.is-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
+  padding: 10px 18px;
   line-height: 1;
   height: auto;
-  min-height: 36px;
+  min-height: var(--tap-min);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: transform var(--transition), background-color var(--transition), border-color var(--transition);
+}
+.topbar-cta:active {
+  transform: scale(0.98);
 }
 
 .fc-offcanvas {
@@ -164,11 +177,12 @@ html.reveal-init .reveal.is-visible {
   min-width: 140px;
   max-width: 280px;
   margin: 0;
-  padding: 0 10px;
-  min-height: 32px;
+  padding: 0 12px;
+  min-height: var(--tap-min);
   border: 0.5px solid var(--border-default);
   border-radius: var(--radius-pill);
   background: var(--bg-surface-1);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 .squads-toolbar__search .search-icon {
   color: var(--text-faint);
@@ -201,8 +215,10 @@ html.reveal-init .reveal.is-visible {
   flex-shrink: 0;
 }
 .squads-toolbar__btn {
-  min-height: 32px;
-  font-weight: 600;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: 10px 14px;
+  font-weight: 700;
 }
 .squads-toolbar__filters {
   margin-top: var(--sp-3);
@@ -297,8 +313,10 @@ html.reveal-init .reveal.is-visible {
 }
 
 .mw-nav {
-  width: 32px;
-  height: 32px;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
   border-radius: var(--radius-full);
   border: 0.5px solid var(--border-default);
   background: var(--bg-surface-1);
@@ -309,8 +327,10 @@ html.reveal-init .reveal.is-visible {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: border-color var(--transition), color var(--transition), transform var(--transition), background-color var(--transition);
 }
-.mw-nav:hover { border-color: var(--accent); color: var(--accent); }
+.mw-nav:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface-1)); }
+.mw-nav:active { transform: scale(0.96); }
 .mw-nav--sub {
   width: 24px;
   height: 24px;
@@ -588,19 +608,20 @@ html.reveal-init .reveal.is-visible {
   appearance: none;
   flex: 1 1 0;
   min-width: 0;
+  min-height: var(--tap-min);
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 7px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px 8px;
   border-radius: var(--radius-pill);
   cursor: pointer;
   white-space: nowrap;
   line-height: 1;
   text-align: center;
   box-shadow: inset 0 0 0 0.5px var(--border-default);
-  transition: color var(--transition), background-color var(--transition), box-shadow var(--transition);
+  transition: color var(--transition-ui), background-color var(--transition-ui), box-shadow var(--transition-ui), transform var(--transition);
 }
 .mc-match-tabs__tab:hover {
   color: var(--text-primary);
@@ -608,8 +629,11 @@ html.reveal-init .reveal.is-visible {
 }
 .mc-match-tabs__tab.is-active {
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-surface-3));
-  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 48%, transparent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-surface-3));
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.mc-match-tabs__tab:active {
+  transform: scale(0.98);
 }
 .mc-match-tabs__panel { display: none; padding-top: var(--sp-3); }
 .mc-match-tabs__panel.is-active { display: block; }
@@ -1001,10 +1025,16 @@ html.reveal-init .reveal.is-visible {
 .transfer-panel {
   padding: 0;
   overflow: hidden;
-  border: 0.5px solid var(--border-subtle);
+  border: 0.5px solid var(--border-default);
   border-left-width: 3px;
+  border-radius: var(--radius-lg);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-surface-1) 88%, transparent) 0%, var(--bg-surface-0) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-surface-1) 88%, transparent) 0%, var(--bg-surface-1) 100%);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-ui), border-color var(--transition);
+}
+.transfer-panel:hover {
+  border-color: var(--border-strong);
 }
 .transfer-card--in { border-left-color: color-mix(in srgb, var(--color-win) 75%, transparent); }
 .transfer-card--promoted { border-left-color: color-mix(in srgb, #2dd4bf 75%, transparent); }
@@ -1310,10 +1340,14 @@ html.reveal-init .reveal.is-visible {
 .squad-panel {
   padding: 0;
   overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-1);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
 }
 .squad-team-head {
   padding: var(--sp-4) var(--sp-5) var(--sp-2);
-  background: var(--bg-surface-1);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--bg-surface-1)), var(--bg-surface-1));
 }
 .squad-team-head-inner {
   display: flex;
@@ -1529,7 +1563,8 @@ html.reveal-init .reveal.is-visible {
 }
 
 .squad-band.is-collapsed .squad-board {
-  display: none;
+  /* height collapse handled in styles-inner.css via grid-template-rows */
+  pointer-events: none;
 }
 
 .squad-band.is-collapsed .squad-group-chevron {
@@ -1539,20 +1574,20 @@ html.reveal-init .reveal.is-visible {
 .squad-board {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-  gap: 10px;
-  padding: 12px;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
 }
 
 .squad-card {
   position: relative;
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: var(--sp-3);
   min-width: 0;
   min-height: 84px;
-  padding: 12px 12px 12px 10px;
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) 10px;
   border: 0.5px solid var(--border-subtle);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background:
     radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%),
     var(--bg-surface-2);
@@ -1560,7 +1595,8 @@ html.reveal-init .reveal.is-visible {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform var(--transition), border-color var(--transition), background var(--transition);
+  transition: transform var(--transition), border-color var(--transition), background var(--transition), box-shadow var(--transition);
+  box-shadow: var(--shadow-sm);
 }
 
 .squad-card__rail {
@@ -2267,13 +2303,23 @@ html.reveal-init .reveal.is-visible {
 /* Modal */
 .fc-modal {
   width: min(720px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom));
   border: 0.5px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 0;
   background: var(--bg-surface-2);
   color: var(--text-secondary);
+  box-shadow: var(--shadow-lg);
+  overflow: auto;
+  z-index: var(--z-modal);
 }
-.fc-modal::backdrop { background: rgba(0, 0, 0, 0.6); }
+.fc-modal::backdrop {
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(4px);
+}
+.modal-sheet-handle {
+  display: none;
+}
 .modal-inner { padding: var(--sp-4); }
 .modal-head {
   display: flex;
@@ -2283,7 +2329,46 @@ html.reveal-init .reveal.is-visible {
   padding-bottom: var(--sp-3);
   border-bottom: 0.5px solid var(--border-subtle);
 }
-.modal-title { margin: 0; font-size: 16px; color: var(--text-primary); }
+.modal-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-title-sm);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.text-truncate,
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mc-score-name,
+.mc-score-club,
+.player-profile-name,
+.squad-card__name,
+.match-card__team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.mc-score-name,
+.mc-score-club {
+  white-space: nowrap;
+}
+.mc-score-main {
+  min-width: 0;
+}
 .modal-body { padding: var(--sp-4) 0; }
 .fc-modal--compact .modal-body { padding: var(--sp-3) 0; }
 .modal-actions {
@@ -2292,6 +2377,10 @@ html.reveal-init .reveal.is-visible {
   gap: var(--sp-2);
   padding-top: var(--sp-3);
   border-top: 0.5px solid var(--border-subtle);
+}
+.modal-actions .btn,
+.modal-actions button {
+  min-height: var(--tap-min);
 }
 .modal-actions[hidden],
 .modal-actions #modalDismiss[hidden],
@@ -2414,8 +2503,9 @@ html.reveal-init .reveal.is-visible {
 /* Footer & back to top */
 .site-footer {
   margin-top: var(--sp-10);
-  padding-top: var(--sp-6);
+  padding: var(--sp-6) 0 calc(var(--sp-8) + var(--safe-bottom));
   border-top: 0.5px solid var(--border-default);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg-surface-1) 55%, transparent));
 }
 .site-footer-inner {
   display: flex;
@@ -2423,31 +2513,57 @@ html.reveal-init .reveal.is-visible {
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 max(var(--sp-4), var(--safe-left)) 0 max(var(--sp-4), var(--safe-right));
 }
 .site-footer-brand {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  min-height: var(--tap-min);
+  font-family: var(--font-display);
+  font-size: var(--text-title-sm);
   font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
   color: var(--text-primary);
 }
+.site-footer-brand .brand-mark {
+  width: 28px;
+  height: 28px;
+  color: var(--accent);
+}
 .site-footer-brand img { width: 28px; height: 28px; border-radius: var(--radius-md); }
-.site-footer-nav { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
-.site-footer-nav a { font-size: 13px; color: var(--text-muted); }
-.site-footer-nav a:hover { color: var(--text-primary); }
+.site-footer-nav { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.site-footer-nav a {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-muted);
+  min-height: var(--tap-min);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--transition), background-color var(--transition);
+}
+.site-footer-nav a:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
 
 .fc-back-top {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 44px;
-  height: 44px;
+  right: max(16px, var(--safe-right));
+  bottom: max(16px, var(--safe-bottom));
+  width: var(--tap-min);
+  height: var(--tap-min);
   padding: 0;
   border-radius: var(--radius-full);
   opacity: 0;
   visibility: hidden;
   transform: translateY(8px);
-  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+  transition: opacity var(--transition-ui), transform var(--transition-ui), visibility var(--transition-ui);
   z-index: 90;
 }
 .fc-back-top.is-visible {
@@ -2466,7 +2582,7 @@ html.reveal-init .reveal.is-visible {
 }
 .form-control.fc-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(55, 138, 221, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 @media (max-width: 767.98px) {

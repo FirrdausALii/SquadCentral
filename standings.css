@@ -5,6 +5,7 @@
   border: 0.5px solid var(--border-default);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
 
 .standings-header {
@@ -420,6 +421,62 @@
   display: block;
 }
 
+/* Sticky identity columns while stat columns scroll */
+.standings-table th.col-pos,
+.standings-table td.col-pos,
+.standings-table th.col-club,
+.standings-table td.col-club {
+  position: sticky;
+  z-index: 3;
+  background-color: var(--bg-surface-2);
+}
+.standings-table thead th.col-pos,
+.standings-table thead th.col-club {
+  z-index: 5;
+  background-color: var(--bg-surface-1);
+}
+.standings-table th.col-pos,
+.standings-table td.col-pos {
+  left: 0;
+  min-width: 32px;
+  width: 32px;
+}
+.standings-table th.col-club,
+.standings-table td.col-club {
+  left: 32px;
+  min-width: 118px;
+  max-width: 160px;
+  box-shadow: 6px 0 10px -8px rgba(0, 0, 0, 0.55);
+}
+.standings-table tbody tr:hover td.col-pos,
+.standings-table tbody tr:hover td.col-club {
+  background-color: var(--bg-surface-3);
+}
+.standings-table tr.highlight-team td.col-pos,
+.standings-table tr.highlight-team td.col-club {
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-surface-2));
+}
+.standings-table tr.highlight-team:hover td.col-pos,
+.standings-table tr.highlight-team:hover td.col-club {
+  background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-surface-3));
+}
+
+.standings-table-wrap,
+.standings-scroll .standings-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
+}
+
+.club-cell-name,
+.standings-table td.col-club .club-cell-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 /* Sticky identity columns while stat columns scroll (legacy wide Form tables only) */
 .standings-table--expanded:not(.standings-table--core) th.col-pos,
 .standings-table--expanded:not(.standings-table--core) td.col-pos,
@@ -517,16 +574,16 @@
 
   .standings-table--core th.col-club,
   .standings-table--core td.col-club {
-    position: static;
-    left: auto;
-    max-width: none;
-    box-shadow: none;
+    left: 28px;
+    min-width: 108px;
+    max-width: 132px;
   }
 
   .standings-table--core th.col-pos,
   .standings-table--core td.col-pos {
-    position: static;
-    left: auto;
+    left: 0;
+    min-width: 28px;
+    width: 28px;
   }
 
   .standings-header {

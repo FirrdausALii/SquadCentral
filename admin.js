@@ -112,9 +112,56 @@ function stadiumsForLeague(leagueId) {
   return FCDataStore.getLeagueStadiums(leagueId);
 }
 
+/** Unique home stadiums linked on Teams for this league. */
+function linkedStadiumsForLeague(leagueId) {
+  const seen = new Set();
+  const out = [];
+  for (const t of teamsForLeague(leagueId)) {
+    const s = String(t.stadium ?? "").trim();
+    if (!s || s === "—" || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out.sort((a, b) => a.localeCompare(b));
+}
+
+/** League stadium list entries with no club link. */
+function unlinkedStadiumsForLeague(leagueId) {
+  const linked = new Set(linkedStadiumsForLeague(leagueId));
+  return stadiumsForLeague(leagueId).filter((s) => !linked.has(s));
+}
+
+/** Keep every team home stadium in the league list; drop venues no club uses. */
+function syncLeagueStadiumsToTeamLinks(leagueId) {
+  if (!leagueId) return 0;
+  const linked = linkedStadiumsForLeague(leagueId);
+  const prev = stadiumsForLeague(leagueId);
+  const prevSet = new Set(prev);
+  const nextSet = new Set(linked);
+  let changed = linked.length !== prev.length || linked.some((s) => !prevSet.has(s));
+  if (!changed) {
+    for (const s of prev) {
+      if (!nextSet.has(s)) {
+        changed = true;
+        break;
+      }
+    }
+  }
+  if (!changed) return 0;
+  const removed = prev.filter((s) => !nextSet.has(s)).length;
+  FCDataStore.setLeagueStadiums(leagueId, linked);
+  syncToAppArrays();
+  return removed;
+}
+
 function stadiumSelectField(leagueId, selected, opts = {}) {
-  const { id = "matchStadium", label = "Stadium", note = "" } = opts;
-  const list = stadiumsForLeague(leagueId);
+  const {
+    id = "matchStadium",
+    label = "Stadium",
+    note = "",
+    linkedOnly = false,
+  } = opts;
+  const list = linkedOnly ? linkedStadiumsForLeague(leagueId) : stadiumsForLeague(leagueId);
   const val = String(selected ?? "").trim();
   const normalized = val && val !== "—" ? val : "";
   const options = ['<option value="">— Select stadium —</option>'];
@@ -126,7 +173,8 @@ function stadiumSelectField(leagueId, selected, opts = {}) {
     options.push(`<option value="${esc(s)}"${sel}>${esc(s)}</option>`);
   }
   if (normalized && !seen.has(normalized)) {
-    options.push(`<option value="${esc(normalized)}" selected>${esc(normalized)} (not in list)</option>`);
+    const suffix = linkedOnly ? " (not linked)" : " (not in list)";
+    options.push(`<option value="${esc(normalized)}" selected>${esc(normalized)}${suffix}</option>`);
   }
   const noteHtml = note ? `<p class="mw-field-note admin-muted">${note}</p>` : "";
   return `<div class="mw-field"><label for="${id}">${label}</label><div class="mw-select-wrap"><select id="${id}" class="mw-select">${options.join("")}</select></div>${noteHtml}</div>`;
@@ -1953,18 +2001,53 @@ function goalEventEmptyLabel(kind) {
   return kind === "assist" ? "— No assist —" : "— Player —";
 }
 
+function findRosterPlayerByName(teamId, name) {
+  const selected = String(name ?? "").trim();
+  if (!selected || !teamId) return null;
+  const clean = stripCaptainSuffix(selected);
+  const key =
+    typeof transferPlayerNameKey === "function"
+      ? transferPlayerNameKey(clean)
+      : clean.toLowerCase();
+  const roster = playersForTeam(teamId);
+  return (
+    roster.find((p) => p.name === selected) ??
+    roster.find((p) => stripCaptainSuffix(p.name) === clean) ??
+    roster.find((p) =>
+      typeof transferPlayerNameKey === "function"
+        ? transferPlayerNameKey(p.name) === key
+        : stripCaptainSuffix(p.name).toLowerCase() === key,
+    ) ??
+    null
+  );
+}
+
 function renderGoalEventPlayerPickHtml(kind, teamId, selectedName, emptyLabel) {
   const selected = String(selectedName ?? "").trim();
-  const options = goalEventPlayerChoices(teamId, emptyLabel)
-    .map((c) => {
-      const sel = c.name === selected ? " selected" : "";
-      return `<option value="${esc(c.name)}"${sel}>${esc(c.label)}</option>`;
-    })
-    .join("");
+  const player = findRosterPlayerByName(teamId, selected);
+  const display = player ? lineupPlayerComboLabel(player) : "";
   const ariaLabel = kind === "assist" ? "Assist" : "Scorer";
+  const placeholder = emptyLabel || "Search player…";
   return `
-    <div class="mw-select-wrap mw-select-wrap--compact">
-      <select class="ge-${kind}-pick mw-select" aria-label="${ariaLabel}">${options}</select>
+    <div
+      class="mw-player-combo mw-player-combo--goal"
+      data-team-id="${esc(teamId || "")}"
+      data-value-mode="name"
+      data-empty-label="${esc(emptyLabel || "")}"
+    >
+      <input type="hidden" class="ge-${kind}-pick" value="${esc(player?.name ?? selected)}" />
+      <input
+        type="search"
+        class="mw-player-combo__input mw-input"
+        value="${esc(display)}"
+        placeholder="${esc(placeholder)}"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="${ariaLabel}"
+        aria-autocomplete="list"
+        aria-expanded="false"
+      />
+      <ul class="mw-player-combo__list" role="listbox" hidden></ul>
     </div>`;
 }
 
@@ -2081,6 +2164,7 @@ function refreshGoalEventRowPlayers(row) {
       rosterEl.innerHTML = renderGoalEventPlayerPickHtml(kind, teamId, val, goalEventEmptyLabel(kind));
     }
   }
+  bindPlayerSearchCombos(row);
 }
 
 function renderGoalEventsEditor(events, homeTeamId, awayTeamId, lineups) {
@@ -2136,11 +2220,21 @@ function findRosterPlayerForLineupSlot(teamId, slot) {
   if (!slot?.name) return null;
   const num = Number(slot.number);
   const slotName = stripCaptainSuffix(slot.name);
+  const nameKey =
+    typeof transferPlayerNameKey === "function"
+      ? transferPlayerNameKey(slotName)
+      : String(slotName).trim().toLowerCase();
+  const roster = playersForTeam(teamId);
+  const keyOf = (p) =>
+    typeof transferPlayerNameKey === "function"
+      ? transferPlayerNameKey(p.name)
+      : stripCaptainSuffix(p.name).trim().toLowerCase();
   return (
-    playersForTeam(teamId).find(
-      (p) => stripCaptainSuffix(p.name) === slotName && Number(p.number) === num,
-    ) ??
-    playersForTeam(teamId).find((p) => stripCaptainSuffix(p.name) === slotName || p.name === slot.name)
+    roster.find((p) => stripCaptainSuffix(p.name) === slotName && Number(p.number) === num) ??
+    roster.find((p) => Number.isFinite(num) && Number(p.number) === num && keyOf(p) === nameKey) ??
+    roster.find((p) => stripCaptainSuffix(p.name) === slotName || p.name === slot.name) ??
+    roster.find((p) => keyOf(p) === nameKey) ??
+    null
   );
 }
 
@@ -3417,7 +3511,10 @@ function panelLeague() {
           <div class="row g-2 g-md-3 mw-field-grid mw-field-grid--2">
             <div class="col-12 col-md-6"><div class="mw-field"><label>Match day</label><input id="matchTime" class="mw-input" value="${esc(src?.time ?? "")}" placeholder="Sunday 12 May" /></div></div>
             ${stageField}
-            <div class="col-12 col-md-6">${stadiumSelectField(leagueFilter, stadiumVal, { note: "Choose from this league’s stadium list. Add venues in the <strong>Stadiums</strong> tab." })}</div>
+            <div class="col-12 col-md-6">${stadiumSelectField(leagueFilter, stadiumVal, {
+              linkedOnly: true,
+              note: "Only stadiums linked on <strong>Teams</strong>. Home ground is suggested when you pick the home club.",
+            })}</div>
             <div class="col-12 col-md-6"><div class="mw-field"><label>Home team</label><div class="mw-select-wrap"><select id="matchHome" class="mw-select">${teamOpts(homeId)}</select></div></div></div>
             <div class="col-12 col-md-6"><div class="mw-field"><label>Away team</label><div class="mw-select-wrap"><select id="matchAway" class="mw-select">${teamOpts(awayId)}</select></div></div></div>
             <div class="col-6 col-md-6"><div class="mw-field"><label>Home goals</label><input id="matchHomeScore" class="mw-input mw-input--score" type="number" min="0" value="${esc(src?.score?.[0] ?? 0)}" /></div></div>
@@ -3479,7 +3576,8 @@ function teamsForStadium(leagueId, stadiumName) {
 
 function stadiumsLeagueStats(leagueId, list) {
   const teams = teamsForLeague(leagueId);
-  const linked = teams.filter((t) => list.includes(String(t.stadium ?? "").trim())).length;
+  const linkedNames = new Set(linkedStadiumsForLeague(leagueId));
+  const linked = teams.filter((t) => linkedNames.has(String(t.stadium ?? "").trim())).length;
   return { total: list.length, linked, teams: teams.length };
 }
 
@@ -3725,16 +3823,39 @@ function tmStadiumSyncPanelHtml() {
 
 function panelStadiums() {
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
-  const list = stadiumsForLeague(leagueFilter);
+  const linked = linkedStadiumsForLeague(leagueFilter);
+  const unlinked = unlinkedStadiumsForLeague(leagueFilter);
   const editing = Boolean(stadiumEditName);
-  const stats = stadiumsLeagueStats(leagueFilter, list);
-  const listBody = list.length
-    ? `<div class="stadiums-list">${list.map((s) => stadiumCardHtml(s, leagueFilter)).join("")}</div>`
+  const stats = stadiumsLeagueStats(leagueFilter, linked);
+  const listBody = linked.length
+    ? `<div class="stadiums-list">${linked.map((s) => stadiumCardHtml(s, leagueFilter)).join("")}</div>`
     : `<div class="stadiums-empty">
         <div class="stadiums-empty__icon" aria-hidden="true"></div>
-        <p class="stadiums-empty__title">No stadiums yet</p>
-        <p class="stadiums-empty__text">Add your first venue below — it will appear in Matchweek and Matches dropdowns.</p>
+        <p class="stadiums-empty__title">No linked stadiums</p>
+        <p class="stadiums-empty__text">Set each club’s home stadium on the <strong>Teams</strong> tab — linked venues appear here and in Matchweek.</p>
       </div>`;
+  const unlinkedBlock = unlinked.length
+    ? `<div class="stadiums-unlinked">
+        <div class="stadiums-unlinked__head">
+          <div>
+            <h4 class="stadiums-unlinked__title">Unlinked venues</h4>
+            <p class="admin-muted mb-0">${unlinked.length} not used by any club — hidden from Matchweek.</p>
+          </div>
+          <button type="button" class="mw-btn-danger" id="btnPruneUnlinkedStadiums">Remove all unlinked</button>
+        </div>
+        <ul class="stadiums-unlinked__list">
+          ${unlinked
+            .map(
+              (s) =>
+                `<li class="stadiums-unlinked__row">
+                  <span>${esc(s)}</span>
+                  <button type="button" class="mw-btn-ghost stadiums-row-btn" data-del-stadium="${esc(s)}">Remove</button>
+                </li>`,
+            )
+            .join("")}
+        </ul>
+      </div>`
+    : "";
 
   return `
     <div class="mw-page stadiums-page">
@@ -3748,7 +3869,7 @@ function panelStadiums() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">Venues</p>
             <h2 class="mw-heading">Stadiums</h2>
-            <p class="mw-lead">Define the stadium list for each league or tournament. Matchweek and Matches editors pick from this list when assigning a venue.</p>
+            <p class="mw-lead">Linked club grounds only. Matchweek picks from this list — set home stadiums on the Teams tab.</p>
             ${stadiumsStatChipsHtml(stats)}
           </div>
           <aside class="mw-hero__aside">
@@ -3756,7 +3877,7 @@ function panelStadiums() {
               <div class="stadiums-hero-preview__icon" aria-hidden="true"></div>
               <div class="mw-hero-preview stadiums-hero-preview__box">
                 <span class="mw-hero-preview-label">${esc(leagueName)}</span>
-                <strong class="mw-hero-preview-title">${list.length} stadium${list.length === 1 ? "" : "s"}</strong>
+                <strong class="mw-hero-preview-title">${linked.length} stadium${linked.length === 1 ? "" : "s"}</strong>
                 <span class="mw-hero-preview-range">${stats.linked} club${stats.linked === 1 ? "" : "s"} linked</span>
               </div>
             </div>
@@ -3769,8 +3890,8 @@ function panelStadiums() {
         <div class="mw-card-head mw-card-head--icon">
           <div class="mw-card-head__icon mw-card-head__icon--stadium" aria-hidden="true"></div>
           <div>
-            <h3>League stadiums</h3>
-            <p>${list.length} venue${list.length === 1 ? "" : "s"} available when creating fixtures. Linked clubs show the team that uses each ground on the public site.</p>
+            <h3>Linked stadiums</h3>
+            <p>${linked.length} venue${linked.length === 1 ? "" : "s"} from club home grounds. Unlinked names are excluded from Matchweek.</p>
           </div>
         </div>
         <div class="stadiums-filter-bar">
@@ -3782,6 +3903,7 @@ function panelStadiums() {
         </div>
         ${tmStadiumSyncPanelHtml()}
         ${listBody}
+        ${unlinkedBlock}
       </section>
 
       <section class="mw-card mw-card--striped" id="stadiumFormCard">
@@ -3790,7 +3912,7 @@ function panelStadiums() {
           <div class="mw-card-head__icon mw-card-head__icon--stadium-add" aria-hidden="true"></div>
           <div>
             <h3 id="stadiumFormTitle">${editing ? "Edit stadium" : "Add stadium"}</h3>
-            <p>${editing ? `Renaming updates fixtures and clubs that use “${esc(stadiumEditName)}”.` : "New venues appear in the Matchweek stadium dropdown."}</p>
+            <p>${editing ? `Renaming updates fixtures and clubs that use “${esc(stadiumEditName)}”.` : "Add a venue, then link it on <strong>Teams</strong> so it appears above and in Matchweek."}</p>
           </div>
         </div>
         <input type="hidden" id="stadiumEditName" value="${esc(stadiumEditName)}" />
@@ -8184,7 +8306,12 @@ function renderPanel() {
     settings: panelSettings,
   };
 
-  mwEditorDraft = activeTab === "league" ? readMwEditorDraft() : null;
+  // Prefer an explicitly staged draft (copy lineup / team swap). Otherwise snapshot the open editor.
+  if (activeTab === "league") {
+    if (!mwEditorDraft) mwEditorDraft = readMwEditorDraft();
+  } else {
+    mwEditorDraft = null;
+  }
   if (activeTab !== "squaddepth") squadDepthDraft = null;
   main.innerHTML = map[activeTab]?.() ?? "";
   mwEditorDraft = null;
@@ -8556,11 +8683,13 @@ function bindGoalEventDeletes() {
 
 function bindGoalEventRowHandlers() {
   document.querySelectorAll(".ge-row").forEach((row) => {
+    if (row.dataset.geBound === "1") return;
+    row.dataset.geBound = "1";
+
     for (const kind of ["scorer", "assist"]) {
       const modeSel = row.querySelector(`.ge-${kind}-mode`);
       const rosterEl = row.querySelector(`.ge-${kind}-roster`);
       const manualEl = row.querySelector(`.ge-${kind}-manual`);
-      const pick = row.querySelector(`.ge-${kind}-pick`);
       const man = row.querySelector(`.ge-${kind}-man`);
       const emptyLabel = goalEventEmptyLabel(kind);
 
@@ -8568,18 +8697,22 @@ function bindGoalEventRowHandlers() {
         const manual = modeSel?.value === "manual";
         rosterEl?.classList.toggle("admin-hidden", manual);
         manualEl?.classList.toggle("admin-hidden", !manual);
-        if (!manual && man?.value.trim() && pick) {
-          const teamId = row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
-          const match = goalEventPlayerChoices(teamId, emptyLabel).find((c) => c.name === man.value.trim());
-          if (match) pick.value = match.name;
-        }
       };
 
       modeSel?.addEventListener("change", () => {
-        if (modeSel.value === "roster" && man?.value.trim() && pick) {
-          const teamId = row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
-          const match = goalEventPlayerChoices(teamId, emptyLabel).find((c) => c.name === man.value.trim());
-          if (match) pick.value = match.name;
+        const teamId =
+          row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
+        const pick = row.querySelector(`.ge-${kind}-pick`);
+        if (modeSel.value === "roster") {
+          let val = pick?.value ?? "";
+          if (man?.value.trim()) {
+            const hit = findRosterPlayerByName(teamId, man.value.trim());
+            if (hit) val = hit.name;
+          }
+          if (rosterEl) {
+            rosterEl.innerHTML = renderGoalEventPlayerPickHtml(kind, teamId, val, emptyLabel);
+            bindPlayerSearchCombos(rosterEl);
+          }
         } else if (modeSel.value === "manual" && pick?.value && man) {
           man.value = pick.value;
         }
@@ -8597,6 +8730,8 @@ function bindGoalEventRowHandlers() {
       if (!custom) typeCustom && (typeCustom.value = "");
     });
   });
+
+  bindPlayerSearchCombos();
 }
 
 function recalculateTmMatchdayDiff() {
@@ -8912,6 +9047,8 @@ function bindMatchweek() {
 
   $("#matchHome")?.addEventListener("change", () => {
     const homeId = $("#matchHome")?.value;
+    const homeTeam = state().teams.find((t) => t.id === homeId);
+    const homeStadium = String(homeTeam?.stadium ?? "").trim();
     const draft =
       readMwEditorDraft() ?? {
         id: matchEditId || "",
@@ -8925,6 +9062,7 @@ function bindMatchweek() {
         lineups: { home: readLineupFromDom("home"), away: readLineupFromDom("away") },
       };
     draft.homeTeamId = homeId;
+    if (homeStadium && homeStadium !== "—") draft.stadium = homeStadium;
     mwEditorDraft = draft;
     renderPanel();
   });
@@ -9092,18 +9230,32 @@ function bindCopyLineupHandlers() {
   });
 }
 
-function bindLineupPlayerCombos() {
-  document.querySelectorAll(".mw-player-combo").forEach((combo) => {
+function bindPlayerSearchCombos(scope = document) {
+  const root = scope?.querySelectorAll ? scope : document;
+  root.querySelectorAll(".mw-player-combo").forEach((combo) => {
     if (combo.dataset.bound === "1") return;
     combo.dataset.bound = "1";
 
     const input = combo.querySelector(".mw-player-combo__input");
-    const hidden = combo.querySelector(".lineup-pick");
+    const hidden =
+      combo.querySelector(".lineup-pick") ||
+      combo.querySelector(".ge-scorer-pick") ||
+      combo.querySelector(".ge-assist-pick");
     const list = combo.querySelector(".mw-player-combo__list");
     if (!input || !hidden || !list) return;
 
     const teamId = combo.getAttribute("data-team-id") || "";
+    const valueMode = combo.getAttribute("data-value-mode") === "name" ? "name" : "id";
+    const emptyLabel = combo.getAttribute("data-empty-label") || "";
     const roster = () => playersForTeam(teamId);
+
+    const storedValue = (p) => (valueMode === "name" ? String(p?.name ?? "") : String(p?.id ?? ""));
+    const findByStored = (val) => {
+      const v = String(val ?? "").trim();
+      if (!v) return null;
+      if (valueMode === "name") return findRosterPlayerByName(teamId, v);
+      return roster().find((x) => x.id === v) ?? null;
+    };
 
     const closeList = () => {
       list.hidden = true;
@@ -9126,23 +9278,49 @@ function bindLineupPlayerCombos() {
             return label.includes(q) || name.includes(q) || num.includes(q);
           });
 
-      if (!matches.length) {
-        list.innerHTML = `<li class="mw-player-combo__empty">No match</li>`;
-      } else {
-        list.innerHTML = matches
-          .map((p) => {
-            const active = p.id === hidden.value ? " is-active" : "";
-            return `<li role="option" class="mw-player-combo__opt${active}" data-id="${esc(p.id)}" tabindex="-1">${esc(lineupPlayerComboLabel(p))}</li>`;
-          })
-          .join("");
+      const rows = [];
+      if (emptyLabel) {
+        const clearActive = !hidden.value ? " is-active" : "";
+        rows.push(
+          `<li role="option" class="mw-player-combo__opt mw-player-combo__opt--clear${clearActive}" data-value="" tabindex="-1">${esc(emptyLabel)}</li>`,
+        );
       }
+
+      if (!matches.length && q) {
+        rows.push(`<li class="mw-player-combo__empty">No match</li>`);
+      } else {
+        for (const p of matches) {
+          const val = storedValue(p);
+          const active = val && val === hidden.value ? " is-active" : "";
+          rows.push(
+            `<li role="option" class="mw-player-combo__opt${active}" data-value="${esc(val)}" tabindex="-1">${esc(lineupPlayerComboLabel(p))}</li>`,
+          );
+        }
+      }
+
+      list.innerHTML = rows.join("");
       list.hidden = false;
       input.setAttribute("aria-expanded", "true");
     };
 
-    const pickPlayer = (id) => {
-      const p = roster().find((x) => x.id === id) ?? null;
-      hidden.value = p?.id ?? "";
+    const pickValue = (value) => {
+      const v = String(value ?? "");
+      if (!v) {
+        hidden.value = "";
+        input.value = "";
+        closeList();
+        hidden.dispatchEvent(new Event("change", { bubbles: true }));
+        return;
+      }
+      const p = findByStored(v);
+      if (!p) {
+        hidden.value = valueMode === "name" ? v : "";
+        input.value = valueMode === "name" ? v : "";
+        closeList();
+        hidden.dispatchEvent(new Event("change", { bubbles: true }));
+        return;
+      }
+      hidden.value = storedValue(p);
       input.value = lineupPlayerComboLabel(p);
       closeList();
       hidden.dispatchEvent(new Event("change", { bubbles: true }));
@@ -9150,8 +9328,9 @@ function bindLineupPlayerCombos() {
 
     const restoreOrResolve = () => {
       if (hidden.value) {
-        const p = roster().find((x) => x.id === hidden.value);
-        input.value = lineupPlayerComboLabel(p);
+        const p = findByStored(hidden.value);
+        input.value = p ? lineupPlayerComboLabel(p) : valueMode === "name" ? hidden.value : "";
+        if (!p && valueMode !== "name") hidden.value = "";
         return;
       }
       const typed = input.value.trim().toLowerCase();
@@ -9159,12 +9338,16 @@ function bindLineupPlayerCombos() {
         input.value = "";
         return;
       }
+      if (emptyLabel && typed === emptyLabel.toLowerCase()) {
+        pickValue("");
+        return;
+      }
       const hit = roster().find((p) => {
         const label = lineupPlayerComboLabel(p).toLowerCase();
         const name = String(p.name ?? "").toLowerCase();
         return label === typed || name === typed;
       });
-      if (hit) pickPlayer(hit.id);
+      if (hit) pickValue(storedValue(hit));
       else input.value = "";
     };
 
@@ -9175,8 +9358,9 @@ function bindLineupPlayerCombos() {
 
     input.addEventListener("input", () => {
       if (hidden.value) {
-        const p = roster().find((x) => x.id === hidden.value);
-        if (input.value !== lineupPlayerComboLabel(p)) hidden.value = "";
+        const p = findByStored(hidden.value);
+        const label = p ? lineupPlayerComboLabel(p) : "";
+        if (input.value !== label) hidden.value = "";
       }
       openFiltered(input.value);
     });
@@ -9210,7 +9394,7 @@ function bindLineupPlayerCombos() {
         const chosen = list.querySelector(".mw-player-combo__opt.is-active") || opts[0];
         if (!list.hidden && chosen) {
           e.preventDefault();
-          pickPlayer(chosen.getAttribute("data-id"));
+          pickValue(chosen.getAttribute("data-value") ?? "");
         }
       } else if (e.key === "Escape") {
         e.preventDefault();
@@ -9224,7 +9408,7 @@ function bindLineupPlayerCombos() {
       const opt = e.target.closest(".mw-player-combo__opt");
       if (!opt) return;
       e.preventDefault();
-      pickPlayer(opt.getAttribute("data-id"));
+      pickValue(opt.getAttribute("data-value") ?? "");
     });
 
     input.addEventListener("blur", () => {
@@ -9235,6 +9419,10 @@ function bindLineupPlayerCombos() {
       }, 120);
     });
   });
+}
+
+function bindLineupPlayerCombos() {
+  bindPlayerSearchCombos();
 }
 
 function bindLineupSlotHandlers() {
@@ -9567,6 +9755,16 @@ function bindStadiums() {
 
   $("#btnNewStadium")?.addEventListener("click", () => {
     stadiumEditName = "";
+    renderPanel();
+  });
+
+  $("#btnPruneUnlinkedStadiums")?.addEventListener("click", () => {
+    const n = unlinkedStadiumsForLeague(leagueFilter).length;
+    if (!n) return toast("No unlinked stadiums");
+    if (!confirm(`Remove ${n} unlinked stadium${n === 1 ? "" : "s"} from this league?`)) return;
+    const removed = syncLeagueStadiumsToTeamLinks(leagueFilter);
+    if (tmStadiumSyncState?.leagueId === leagueFilter) recalculateTmStadiumDiff();
+    toast(removed ? `Removed ${removed} unlinked stadium${removed === 1 ? "" : "s"}` : "Stadium list synced");
     renderPanel();
   });
 

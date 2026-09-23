@@ -1222,7 +1222,7 @@
       const grad = ctx.createLinearGradient(cx - tokenR, cy - tokenR, cx + tokenR, cy + tokenR);
       grad.addColorStop(0, "#fbbf24");
       grad.addColorStop(1, "#d97706");
-      ctx.fillStyle = grad;
+    ctx.fillStyle = grad;
     } else {
       ctx.fillStyle = "#ffffff";
     }
@@ -1272,7 +1272,7 @@
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    ctx.textBaseline = "alphabetic";
+      ctx.textBaseline = "alphabetic";
   }
 
   function drawCrestInCircle(ctx, logo, cx, cy, size) {
@@ -1371,8 +1371,8 @@
     }
 
     roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 18);
-    ctx.save();
-    ctx.clip();
+        ctx.save();
+        ctx.clip();
     drawLineup11Pitch(ctx, pitchX, pitchY, pitchW, pitchH);
     const boardH = Math.max(28, Math.round(pitchH * 0.055));
     drawPitchMarkings(ctx, pitchX + 18, pitchY + boardH + 8, pitchW - 36, pitchH - boardH - 28);
@@ -1391,7 +1391,7 @@
     ctx.fillRect(pitchX, pitchY, pitchW, pitchH);
 
     if (!focusRows?.length) {
-      ctx.textAlign = "center";
+    ctx.textAlign = "center";
       ctx.fillStyle = "rgba(255,255,255,0.85)";
       ctx.font = `800 30px ${FONT}`;
       ctx.fillText("Lineup not available", pitchX + pitchW / 2, pitchY + pitchH / 2);
@@ -1431,7 +1431,7 @@
     }
 
     if (focusCoach) {
-      ctx.textAlign = "center";
+    ctx.textAlign = "center";
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.font = `700 14px ${FONT}`;
       ctx.shadowColor = "rgba(0,0,0,0.45)";
@@ -1443,7 +1443,7 @@
       ctx.shadowBlur = 0;
     }
 
-    ctx.restore();
+      ctx.restore();
 
     roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 18);
     ctx.strokeStyle = "rgba(0,0,0,0.12)";

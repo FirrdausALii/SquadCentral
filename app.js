@@ -4955,6 +4955,85 @@ function openModal({ title, bodyHtml, primaryLabel = "Done", showDismiss = true,
 
   if (typeof dlg?.showModal === "function") dlg.showModal();
   else alert(`${title}\n\n${bodyEl?.textContent ?? ""}`);
+  dlg?.style?.removeProperty("transform");
+  dlg?.classList.remove("fc-modal--dragging");
+}
+
+function setupTopbarShrink() {
+  const topbar = $("#siteTopbar") || $(".topbar");
+  if (!(topbar instanceof HTMLElement) || topbar.dataset.shrinkBound) return;
+  topbar.dataset.shrinkBound = "1";
+  let ticking = false;
+  const apply = () => {
+    ticking = false;
+    const compact = window.scrollY > 16;
+    topbar.classList.toggle("is-scrolled", compact);
+    document.documentElement.classList.toggle("topbar-scrolled", compact);
+  };
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(apply);
+    },
+    { passive: true },
+  );
+  apply();
+}
+
+function setupModalSheet() {
+  const dlg = $("#modal");
+  if (!(dlg instanceof HTMLDialogElement) || dlg.dataset.sheetBound) return;
+  dlg.dataset.sheetBound = "1";
+
+  const isMobileSheet = () => window.matchMedia("(max-width: 767.98px)").matches;
+
+  dlg.addEventListener("click", (e) => {
+    if (e.target === dlg) dlg.close();
+  });
+
+  const handle = dlg.querySelector(".modal-sheet-handle");
+  if (!(handle instanceof HTMLElement)) return;
+
+  let startY = 0;
+  let currentY = 0;
+  let dragging = false;
+
+  const onPointerDown = (e) => {
+    if (!isMobileSheet() || !dlg.open) return;
+    dragging = true;
+    startY = e.clientY ?? 0;
+    currentY = 0;
+    dlg.classList.add("fc-modal--dragging");
+    handle.setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e) => {
+    if (!dragging) return;
+    currentY = Math.max(0, e.clientY - startY);
+    dlg.style.transform = `translateY(${currentY}px)`;
+  };
+  const onPointerUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    dlg.classList.remove("fc-modal--dragging");
+    if (currentY > 120) {
+      dlg.close();
+      dlg.style.removeProperty("transform");
+      return;
+    }
+    dlg.style.transform = "translateY(0)";
+    window.setTimeout(() => dlg.style.removeProperty("transform"), 220);
+  };
+
+  handle.addEventListener("pointerdown", onPointerDown);
+  handle.addEventListener("pointermove", onPointerMove);
+  handle.addEventListener("pointerup", onPointerUp);
+  handle.addEventListener("pointercancel", onPointerUp);
+  dlg.addEventListener("close", () => {
+    dlg.style.removeProperty("transform");
+    dlg.classList.remove("fc-modal--dragging");
+  });
 }
 
 function applyTheme(theme) {
@@ -4977,9 +5056,25 @@ function setupSidebarNav() {
   const sidebar = $("#contextSidebar");
   const panels = $$("[data-sidebar-panel]");
   const pageWrapper = $(".page-wrapper");
+  const tabIndicator = $("#sectionTabIndicator");
+  const tabbarInner = $(".home-tabbar__inner");
   const contextualSections = new Set(["squads", "match-center", "transfers"]);
   const sectionIds = ["main", "squads", "match-center", "transfers"];
   const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
+
+  const moveTabIndicator = () => {
+    if (!(tabIndicator instanceof HTMLElement) || !(tabbarInner instanceof HTMLElement)) return;
+    const active = tabbarInner.querySelector(".home-tabbar__tab.active");
+    if (!(active instanceof HTMLElement)) {
+      tabIndicator.style.width = "0px";
+      return;
+    }
+    const parentBox = tabbarInner.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    const left = box.left - parentBox.left + tabbarInner.scrollLeft;
+    tabIndicator.style.width = `${Math.round(box.width)}px`;
+    tabIndicator.style.transform = `translateX(${Math.round(left)}px)`;
+  };
 
   const setNavActive = (id) => {
     const sectionId = id || "main";
@@ -4989,6 +5084,7 @@ function setupSidebarNav() {
       link.classList.toggle("active", match);
       link.closest("li")?.classList.toggle("active", match);
     }
+    requestAnimationFrame(moveTabIndicator);
   };
 
   const setSectionLayout = (id) => {
@@ -5020,7 +5116,7 @@ function setupSidebarNav() {
         setNavActive(id);
         if (id === "main") setSectionLayout("main");
       },
-      { rootMargin: "-40% 0px -45% 0px", threshold: [0, 0.12, 0.3] },
+      { rootMargin: "-35% 0px -45% 0px", threshold: [0, 0.12, 0.3] },
     );
     for (const sec of sections) io.observe(sec);
   }
@@ -5031,6 +5127,9 @@ function setupSidebarNav() {
       activateSection(id, { layout: true });
     });
   }
+
+  window.addEventListener("resize", () => requestAnimationFrame(moveTabIndicator));
+  requestAnimationFrame(moveTabIndicator);
 
   for (const link of $$(".sidebar-item[data-sidebar-focus]")) {
     link.addEventListener("click", (e) => {
@@ -6832,10 +6931,21 @@ function matchCenterDetailTabsHtml(m, ht, at) {
     : (m?.scorers ?? []).length
       ? `<p class="mc-tab-meta">${escapeHtml((m.scorers ?? []).join(" · "))}</p>`
       : "";
+  const possHome = poss.length >= 2 ? Number(poss[0]) : NaN;
+  const possAway = poss.length >= 2 ? Number(poss[1]) : NaN;
   const possHtml =
-    poss.length >= 2
-      ? `<p class="mc-tab-meta">Possession <strong>${escapeHtml(String(poss[0]))}% – ${escapeHtml(String(poss[1]))}%</strong></p>`
-      : "";
+    Number.isFinite(possHome) && Number.isFinite(possAway)
+      ? `<div class="mc-stat-compare" data-stat-animate style="--home-pct:${escapeHtml(String(possHome))}%;--away-pct:${escapeHtml(String(possAway))}%">
+          <div class="mc-stat-compare__head"><span>Possession</span></div>
+          <div class="mc-stat-compare__vals"><span>${escapeHtml(String(possHome))}%</span><span>${escapeHtml(String(possAway))}%</span></div>
+          <div class="mc-stat-compare__track" aria-hidden="true">
+            <span class="mc-stat-compare__bar mc-stat-compare__bar--home"></span>
+            <span class="mc-stat-compare__bar mc-stat-compare__bar--away"></span>
+          </div>
+        </div>`
+      : poss.length >= 2
+        ? `<p class="mc-tab-meta">Possession <strong>${escapeHtml(String(poss[0]))}% – ${escapeHtml(String(poss[1]))}%</strong></p>`
+        : "";
   const statsBody = hasStats
     ? `<div class="mc-tab-panel__stack">${possHtml}${goalsPreview || `<p class="mc-tab-empty">No goal events logged.</p>`}
         <button type="button" class="mc-tab-cta" data-open="${escapeHtml(m.id)}" data-open-tab="stats">Open match sheet →</button>
@@ -6855,6 +6965,7 @@ function matchCenterDetailTabsHtml(m, ht, at) {
   return `
     <div class="mc-match-tabs" data-match-tabs="${escapeHtml(m.id)}">
       <div class="mc-match-tabs__list" role="tablist" aria-label="Match details">
+        <span class="mc-match-tabs__indicator" aria-hidden="true"></span>
         ${tabs
           .map(
             (t, i) => `
@@ -6873,6 +6984,25 @@ function matchCenterDetailTabsHtml(m, ht, at) {
 
 function bindMatchCenterDetailTabs(root) {
   if (!root) return;
+
+  const moveIndicator = (wrap) => {
+    const tablist = wrap.querySelector(".mc-match-tabs__list");
+    const indicator = wrap.querySelector(".mc-match-tabs__indicator");
+    const active = wrap.querySelector(".mc-match-tabs__tab.is-active");
+    if (!(tablist instanceof HTMLElement) || !(indicator instanceof HTMLElement) || !(active instanceof HTMLElement)) return;
+    const parentBox = tablist.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    const left = box.left - parentBox.left + tablist.scrollLeft;
+    indicator.style.width = `${Math.round(box.width * 0.55)}px`;
+    indicator.style.transform = `translateX(${Math.round(left + box.width * 0.225)}px)`;
+  };
+
+  const revealStatBars = (wrap) => {
+    for (const el of $$("[data-stat-animate]", wrap)) {
+      el.classList.add("is-inview");
+    }
+  };
+
   for (const wrap of $$("[data-match-tabs]", root)) {
     const tablist = wrap.querySelector(".mc-match-tabs__list");
     if (!tablist || tablist.dataset.bound === "1") continue;
@@ -6894,7 +7024,12 @@ function bindMatchCenterDetailTabs(root) {
         panel.classList.toggle("is-active", on);
         panel.hidden = !on;
       }
+      moveIndicator(wrap);
+      if (id === "stats") revealStatBars(wrap);
     });
+    requestAnimationFrame(() => moveIndicator(wrap));
+    const statsPanel = wrap.querySelector('[data-mc-panel="stats"]');
+    if (statsPanel && !statsPanel.hidden) revealStatBars(wrap);
   }
 }
 
@@ -6950,8 +7085,10 @@ function matchCenterFixtureHtml(m, { showStatus = true, matchId = m.id } = {}) {
 
   return `
     <div class="match-card match-card--fixture${isLive ? " match-card--live" : ""}${upcoming ? " match-card--upcoming" : ""}">
-      ${headerHtml}
-      ${teamsBlock}
+      <div class="match-card__scoreboard-pin">
+        ${headerHtml}
+        ${teamsBlock}
+      </div>
       <div class="match-card__action">
         <button class="live-blog" type="button" data-open="${escapeHtml(matchId)}">
           Live blog <span class="arr" aria-hidden="true">›</span>
@@ -7554,6 +7691,14 @@ function setFeaturedTeam(teamId) {
       renderRoster();
       $("#squads")?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
+  }
+
+  if (card) {
+    for (const el of $$(".spotlight-hub-stat", card)) {
+      el.classList.remove("is-animated");
+      void el.offsetWidth;
+      el.classList.add("is-animated");
+    }
   }
 }
 
@@ -9504,7 +9649,14 @@ function renderMatchCenter(leagueId) {
         `,
         primaryLabel: "Done",
       });
-      if (showPitch) bindLineupViewToggle();
+      if (showPitch) {
+        bindLineupViewToggle();
+        requestAnimationFrame(() => {
+          for (const pitch of $$(".pitch", document.getElementById("modal") || document)) {
+            pitch.classList.add("is-revealed");
+          }
+        });
+      }
       bindLineupShareButton();
       return;
     }
@@ -10000,7 +10152,9 @@ function main() {
 
   setupNav();
   setupTheme();
+  setupTopbarShrink();
   setupSidebarNav();
+  setupModalSheet();
   setupAdminNavVisibility();
   setupBackToTop();
   setupBootstrapUI();

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-bs-theme="dark">
   <head>
     <meta charset="UTF-8" />
@@ -8,12 +8,14 @@
     <meta name="apple-mobile-web-app-title" content="Squad Central" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#0b1120" />
-    <meta name="msapplication-TileColor" content="#0b1120" />
+    <meta name="theme-color" content="#080e1a" />
+    <meta name="msapplication-TileColor" content="#080e1a" />
     <title>Squad Central</title>
     <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" type="image/png" href="./logo.png" />
-    <link rel="apple-touch-icon" href="./logo.png" />
+    <link rel="icon" type="image/svg+xml" href="./brand-mark.svg" />
+    <link rel="icon" type="image/png" href="./logo.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.svg" />
+    <link rel="apple-touch-icon" href="./logo.png" sizes="180x180" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -23,16 +25,17 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="./squad-central-dark-stadium.css?v=global-search-2" />
-    <link rel="stylesheet" href="./styles.css?v=pos-fotmob-1" />
-    <link rel="stylesheet" href="./styles-home.css?v=global-search-2" />
-    <link rel="stylesheet" href="./standings.css" />
+    <link rel="stylesheet" href="./squad-central-dark-stadium.css?v=mobi-1" />
+    <link rel="stylesheet" href="./styles.css?v=inner-1" />
+    <link rel="stylesheet" href="./styles-home.css?v=mobi-2" />
+    <link rel="stylesheet" href="./standings.css?v=mobi-1" />
     <link rel="stylesheet" href="./lineups-pitch.css?v=pitch-fullname-2row-1" />
-    <link rel="stylesheet" href="./styles-mobile.css?v=squad-chrome-2" />
-    <link rel="stylesheet" href="./dropdowns.css" />
+    <link rel="stylesheet" href="./styles-mobile.css?v=mobi-2" />
+    <link rel="stylesheet" href="./styles-inner.css?v=inner-1" />
+    <link rel="stylesheet" href="./dropdowns.css?v=mobi-1" />
     <style>
       /* Critical fallback if CSS files fail to load on GitHub Pages */
-      body { margin: 0; background: #0b1120; color: #c8d8ea; font-family: system-ui, sans-serif; }
+      body { margin: 0; background: #080e1a; color: #c5d4e8; font-family: system-ui, sans-serif; }
       .reveal { opacity: 1; transform: none; }
       html.reveal-init .reveal:not(.is-visible) { opacity: 0; transform: translateY(8px); }
     </style>
@@ -40,10 +43,17 @@
   <body class="fc-app" data-page="home" tabindex="0">
     <a class="skip-link" href="#main">Skip to content</a>
 
-    <header class="topbar">
-      <a class="topbar-logo" href="#" aria-label="Squad Central Home">
-        <img src="./logo.png" width="28" height="28" alt="" decoding="async" fetchpriority="high" />
-        <span class="topbar-logo__text">Squad Central</span>
+    <header class="topbar" id="siteTopbar">
+      <a class="topbar-logo brand-lockup" href="#" aria-label="Squad Central Home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+            <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+            <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+            <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+            <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+          </svg>
+        </span>
+        <span class="brand-wordmark">Squad Central</span>
       </a>
 
       <div class="home-global-search topbar-search" id="homeGlobalSearch">
@@ -71,57 +81,56 @@
         ></div>
       </div>
 
-      <button
-        class="topbar-toggler navbar-toggler d-lg-none"
-        type="button"
-        data-bs-toggle="offcanvas"
-        data-bs-target="#navOffcanvas"
-        aria-controls="navOffcanvas"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <ul class="topbar-nav d-none d-lg-flex" id="navbarMain">
+      <ul class="topbar-nav d-none" id="navbarMain" hidden>
         <li><a href="#main">Home</a></li>
         <li><a href="#squads">Squads</a></li>
         <li><a href="#match-center">Match Center</a></li>
         <li><a href="#transfers">Transfers</a></li>
       </ul>
 
-      <div class="topbar-actions d-none d-lg-flex align-items-center gap-2">
+      <div class="topbar-actions d-none d-md-flex align-items-center gap-2">
         <a class="btn btn-primary topbar-cta" href="#squads">Browse squads</a>
       </div>
     </header>
 
-    <div
-      class="offcanvas offcanvas-end fc-offcanvas"
-      tabindex="-1"
-      id="navOffcanvas"
-      aria-labelledby="navOffcanvasLabel"
-    >
-      <div class="offcanvas-header border-bottom" style="border-color: var(--border-default) !important">
-        <h2 class="offcanvas-title h5 mb-0" id="navOffcanvasLabel">Menu</h2>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-      </div>
-      <div class="offcanvas-body d-flex flex-column gap-3">
-        <ul class="navbar-nav gap-1">
-          <li class="nav-item"><a class="nav-link" href="#main" data-bs-dismiss="offcanvas">Home</a></li>
-          <li class="nav-item"><a class="nav-link" href="#squads" data-bs-dismiss="offcanvas">Squads</a></li>
-          <li class="nav-item"><a class="nav-link" href="#match-center" data-bs-dismiss="offcanvas">Match Center</a></li>
-          <li class="nav-item"><a class="nav-link" href="#transfers" data-bs-dismiss="offcanvas">Transfers</a></li>
-        </ul>
-        <div class="mt-auto d-grid">
-          <a class="btn btn-primary" href="#squads" data-bs-dismiss="offcanvas">Browse squads</a>
-        </div>
-      </div>
-    </div>
-
-    <nav class="home-tabbar" aria-label="Browse sections">
+    <nav class="home-tabbar" id="sectionTabbar" aria-label="Browse sections">
       <div class="home-tabbar__inner">
-        <a class="home-tabbar__tab" href="#squads">Squads</a>
-        <a class="home-tabbar__tab" href="#match-center">Results</a>
-        <a class="home-tabbar__tab" href="#transfers">Transfers</a>
+        <span class="home-tabbar__indicator" id="sectionTabIndicator"></span>
+        <a class="home-tabbar__tab" href="#main" data-nav-section="main">
+          <span class="home-tabbar__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/>
+            </svg>
+          </span>
+          <span class="home-tabbar__label">Home</span>
+        </a>
+        <a class="home-tabbar__tab" href="#squads" data-nav-section="squads">
+          <span class="home-tabbar__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/>
+              <circle cx="12" cy="11" r="3"/>
+            </svg>
+          </span>
+          <span class="home-tabbar__label">Squads</span>
+        </a>
+        <a class="home-tabbar__tab" href="#match-center" data-nav-section="match-center">
+          <span class="home-tabbar__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="5" width="16" height="16" rx="2"/>
+              <path d="M8 9h8M8 13h5M16 13h.01"/>
+            </svg>
+          </span>
+          <span class="home-tabbar__label">Results</span>
+        </a>
+        <a class="home-tabbar__tab" href="#transfers" data-nav-section="transfers">
+          <span class="home-tabbar__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 10h11M14 7l4 3-4 3"/>
+              <path d="M17 14H6M10 11l-4 3 4 3"/>
+            </svg>
+          </span>
+          <span class="home-tabbar__label">Transfers</span>
+        </a>
       </div>
     </nav>
 
@@ -168,6 +177,18 @@
               <div class="home-hero__scanline"></div>
             </div>
 
+            <div class="home-hero__brand-row">
+              <span class="home-hero__brand-mark brand-mark" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+                  <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+                  <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+                  <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+                  <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+                </svg>
+              </span>
+              <p class="home-hero__name brand-wordmark">Squad Central</p>
+            </div>
+
             <div class="home-statbar" aria-label="Platform snapshot">
               <div class="home-statbar__item">
                 <span class="home-statbar__value stat-value--count" id="statLeagues" data-count-target="">—</span>
@@ -184,41 +205,41 @@
                 <span class="home-statbar__label">Players</span>
               </div>
             </div>
+          </header>
 
-            <div class="home-filters home-enter" aria-label="Competition and match filters">
-              <div class="home-rail" aria-label="Select competition">
-                <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
-                  <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
-                  <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
-                  <div class="home-rail__scroll" id="leaguePillsScroll">
-                    <div class="league-tabs home-rail__pills" id="leaguePills"></div>
-                  </div>
-                  <div class="home-rail__more-mount" id="homeRailMoreMount"></div>
-                  <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
-                  <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
+          <div class="home-filters home-enter" aria-label="Competition and match filters">
+            <div class="home-rail" aria-label="Select competition">
+              <div class="home-rail__scroll-wrap" id="homeRailScrollWrap">
+                <div class="home-rail__fade home-rail__fade--start" aria-hidden="true"></div>
+                <button type="button" class="home-rail-arrow home-rail-arrow--prev" id="homeRailPrev" aria-label="Scroll competitions left" hidden>‹</button>
+                <div class="home-rail__scroll" id="leaguePillsScroll">
+                  <div class="league-tabs home-rail__pills" id="leaguePills"></div>
                 </div>
-              </div>
-              <div class="home-filters__status" id="heroStripToggleMount" hidden>
-                <div class="home-hero__strip-toggle" role="tablist" aria-label="Match status" id="heroStripToggle"></div>
+                <div class="home-rail__more-mount" id="homeRailMoreMount"></div>
+                <button type="button" class="home-rail-arrow home-rail-arrow--next" id="homeRailNext" aria-label="Scroll competitions right" hidden>›</button>
+                <div class="home-rail__fade home-rail__fade--end" aria-hidden="true"></div>
               </div>
             </div>
+            <div class="home-filters__status" id="heroStripToggleMount" hidden>
+              <div class="home-hero__strip-toggle" role="tablist" aria-label="Match status" id="heroStripToggle"></div>
+            </div>
+          </div>
 
-            <section class="home-hero__strip home-enter" aria-label="Matches">
-              <div class="home-hero__strip-head">
-                <p class="home-hero__strip-crumb" id="heroStripCrumb">
-                  <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
-                  <span class="home-hero__strip-crumb-sep" aria-hidden="true">·</span>
-                  <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
-                </p>
-                <a class="home-hero__strip-link home-hero__strip-link--center" href="#match-center">Match center →</a>
-              </div>
-              <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
-                <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
-                <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
-              </div>
-              <div class="home-spotlight__dots" id="heroSpotlightDots" role="tablist" aria-label="Match cards" hidden></div>
-            </section>
-          </header>
+          <section class="home-hero__strip home-enter" aria-label="Matches">
+            <div class="home-hero__strip-head">
+              <p class="home-hero__strip-crumb" id="heroStripCrumb">
+                <span class="home-hero__strip-league" id="heroFeaturedLeague">—</span>
+                <span class="home-hero__strip-crumb-sep" aria-hidden="true">·</span>
+                <span class="home-hero__strip-mw" id="heroMwMeta">—</span>
+              </p>
+              <a class="home-hero__strip-link home-hero__strip-link--center" href="#match-center">Match center →</a>
+            </div>
+            <div class="home-spotlight__track-wrap" id="heroSpotlightWrap">
+              <div class="home-spotlight__track" id="heroSpotlight" aria-live="polite"></div>
+              <div class="home-spotlight__fade home-spotlight__fade--end" aria-hidden="true"></div>
+            </div>
+            <div class="home-spotlight__dots" id="heroSpotlightDots" role="tablist" aria-label="Match cards" hidden></div>
+          </section>
 
           <section class="home-preview home-enter" aria-labelledby="heroClubsTitle">
             <div class="home-preview__head">
@@ -544,9 +565,16 @@
 
         <footer class="site-footer">
           <div class="site-footer-inner">
-            <div class="site-footer-brand">
-              <img src="./logo.png" width="28" height="28" alt="" decoding="async" />
-              Squad Central
+            <div class="site-footer-brand brand-lockup">
+              <span class="brand-mark" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" focusable="false">
+                  <path d="M32 6c8 4 18 6 22 7v22c0 14-10 22-22 27C20 57 10 49 10 35V13c4-1 14-3 22-7z" fill="#101b2e" stroke="currentColor" stroke-width="2.5"/>
+                  <circle cx="32" cy="30" r="11" fill="none" stroke="currentColor" stroke-width="2" opacity="0.9"/>
+                  <path d="M21 30h22M32 19v22" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="0.85"/>
+                  <path d="M24 22.5c2.2 2.4 5 3.7 8 3.7s5.8-1.3 8-3.7M24 37.5c2.2-2.4 5-3.7 8-3.7s5.8 1.3 8 3.7" fill="none" stroke="#9eb2c9" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+                </svg>
+              </span>
+              <span class="brand-wordmark">Squad Central</span>
             </div>
             <nav class="site-footer-nav" aria-label="Footer">
               <a href="#main">Back to top</a>
@@ -563,8 +591,9 @@
 
     <dialog class="fc-modal" id="modal">
       <form method="dialog" class="modal-inner">
+        <div class="modal-sheet-handle" aria-hidden="true"><span></span></div>
         <div class="modal-head">
-          <h3 class="modal-title" id="modalTitle">Details</h3>
+          <h3 class="modal-title text-truncate" id="modalTitle">Details</h3>
           <button class="btn btn-ghost btn-sm" value="cancel" aria-label="Close">✕</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
@@ -591,7 +620,7 @@
     <script src="./squad-depth.js"></script>
     <script src="./national-duty.js"></script>
     <script src="./share-image.js?v=lineup11-1"></script>
-    <script src="./app.js?v=pos-fotmob-1" defer></script>
+    <script src="./app.js?v=inner-1" defer></script>
     <script>
       document.addEventListener("fc-data-missing", () => {
         const msg =
