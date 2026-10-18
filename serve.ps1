@@ -139,6 +139,50 @@ try {
         continue
       }
 
+      if ($path -eq "/api/tm-search") {
+        $query = $request.QueryString.Get("q")
+        if ([string]::IsNullOrWhiteSpace($query) -or $query.Length -gt 80) {
+          Write-JsonError $response 400 "Missing or invalid q query parameter."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query=" + [uri]::EscapeDataString($query.Trim())
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-spieler") {
+        $playerId = $request.QueryString.Get("playerId")
+        if ([string]::IsNullOrWhiteSpace($playerId) -or $playerId -notmatch '^\d+$') {
+          Write-JsonError $response 400 "Missing or invalid playerId query parameter."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/profil/spieler/$playerId"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
       if ($path -eq "/api/tm-transfers") {
         $clubId = $request.QueryString.Get("clubId")
         $season = $request.QueryString.Get("season")
@@ -201,6 +245,124 @@ try {
         }
 
         $tmUrl = "https://www.transfermarkt.com/-/spieltag/wettbewerb/$compId/saison_id/$season/spieltag/$matchday"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-spielbericht") {
+        $matchId = $request.QueryString.Get("matchId")
+        if ([string]::IsNullOrWhiteSpace($matchId) -or $matchId -notmatch '^\d+$') {
+          Write-JsonError $response 400 "Missing or invalid matchId query parameter."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/spielbericht/index/spielbericht/$matchId"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-nationalspieler") {
+        $clubId = $request.QueryString.Get("clubId")
+        if ([string]::IsNullOrWhiteSpace($clubId) -or $clubId -notmatch '^\d+$') {
+          Write-JsonError $response 400 "Missing or invalid clubId query parameter."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/nationalspieler/verein/$clubId"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-tabelle") {
+        $compId = $request.QueryString.Get("compId")
+        $season = $request.QueryString.Get("season")
+        if (
+          [string]::IsNullOrWhiteSpace($compId) -or $compId -notmatch '^[A-Za-z0-9]+$' -or
+          [string]::IsNullOrWhiteSpace($season) -or $season -notmatch '^\d{4}$'
+        ) {
+          Write-JsonError $response 400 "Missing or invalid compId/season query parameters."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/tabelle/wettbewerb/$compId/saison_id/$season"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-torschuetzen") {
+        $compId = $request.QueryString.Get("compId")
+        $season = $request.QueryString.Get("season")
+        if (
+          [string]::IsNullOrWhiteSpace($compId) -or $compId -notmatch '^[A-Za-z0-9]+$' -or
+          [string]::IsNullOrWhiteSpace($season) -or $season -notmatch '^\d{4}$'
+        ) {
+          Write-JsonError $response 400 "Missing or invalid compId/season query parameters."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/torschuetzenliste/wettbewerb/$compId/saison_id/$season"
+        try {
+          $html = Get-TransfermarktHtml $tmUrl
+          $response.StatusCode = 200
+          $response.ContentType = "text/html; charset=utf-8"
+          $htmlBytes = [Text.Encoding]::UTF8.GetBytes($html)
+          $response.ContentLength64 = $htmlBytes.Length
+          $response.OutputStream.Write($htmlBytes, 0, $htmlBytes.Length)
+        }
+        catch {
+          Write-JsonError $response 502 ("Transfermarkt request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/tm-mitarbeiter") {
+        $clubId = $request.QueryString.Get("clubId")
+        if ([string]::IsNullOrWhiteSpace($clubId) -or $clubId -notmatch '^\d+$') {
+          Write-JsonError $response 400 "Missing or invalid clubId query parameter."
+          continue
+        }
+
+        $tmUrl = "https://www.transfermarkt.com/-/mitarbeiter/verein/$clubId"
         try {
           $html = Get-TransfermarktHtml $tmUrl
           $response.StatusCode = 200

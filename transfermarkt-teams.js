@@ -154,9 +154,21 @@
     return Number.isFinite(id) && id > 0 ? id : null;
   }
 
-  function competitionIdForLeague(leagueId) {
+  function competitionIdForLeague(leagueId, meta) {
     const id = String(leagueId ?? "").trim();
     if (!id) return null;
+    const fromMeta = String(meta?.transfermarktCompId ?? "").trim().toUpperCase();
+    if (fromMeta && /^[A-Z0-9]+$/.test(fromMeta)) return fromMeta;
+    try {
+      const storeMeta =
+        typeof global.FCDataStore !== "undefined" && typeof global.FCDataStore.getLeagueMeta === "function"
+          ? global.FCDataStore.getLeagueMeta(id)
+          : null;
+      const fromStore = String(storeMeta?.transfermarktCompId ?? "").trim().toUpperCase();
+      if (fromStore && /^[A-Z0-9]+$/.test(fromStore)) return fromStore;
+    } catch (_) {
+      /* ignore */
+    }
     return TRANSFERMARKT_COMPETITION_IDS[id] ?? null;
   }
 

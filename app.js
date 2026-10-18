@@ -174,11 +174,25 @@ function leagueShowsAllFixtures(leagueId) {
   return isWorldCupLeague(leagueId);
 }
 
+function compareFixtureSortOrder(a, b) {
+  const ao = Number(a?.sortOrder);
+  const bo = Number(b?.sortOrder);
+  const aOk = Number.isFinite(ao);
+  const bOk = Number.isFinite(bo);
+  if (aOk && bOk && ao !== bo) return ao - bo;
+  if (aOk !== bOk) return aOk ? -1 : 1;
+  return 0;
+}
+
 function filterMatchesForLeagueWeek(matches, leagueId, weekNum) {
   const list = (matches ?? []).filter((m) => m.leagueId === leagueId);
-  if (leagueShowsAllFixtures(leagueId)) return list;
-  const mwLabel = `MW ${weekNum ?? 36}`;
-  return list.filter((m) => m.matchday === mwLabel || !m.matchday);
+  const week = leagueShowsAllFixtures(leagueId)
+    ? list
+    : list.filter((m) => {
+        const mwLabel = `MW ${weekNum ?? 36}`;
+        return m.matchday === mwLabel || !m.matchday;
+      });
+  return week.slice().sort(compareFixtureSortOrder);
 }
 
 function matchListDateKey(match, showAll) {
@@ -5059,6 +5073,11 @@ function setupSidebarNav() {
   const tabIndicator = $("#sectionTabIndicator");
   const tabbarInner = $(".home-tabbar__inner");
   const contextualSections = new Set(["squads", "match-center", "transfers"]);
+  let sidebarDismissed = false;
+  $("#sidebarClose")?.addEventListener("click", () => {
+    sidebarDismissed = true;
+    if (sidebar) sidebar.hidden = true;
+  });
   const sectionIds = ["main", "squads", "match-center", "transfers"];
   const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
 
@@ -5090,7 +5109,7 @@ function setupSidebarNav() {
   const setSectionLayout = (id) => {
     const sectionId = id || "main";
     const onHome = sectionId === "main";
-    const showSidebar = contextualSections.has(sectionId);
+    const showSidebar = contextualSections.has(sectionId) && !sidebarDismissed;
     pageWrapper?.classList.toggle("page-wrapper--home", onHome);
     pageWrapper?.classList.toggle("page-wrapper--section", showSidebar);
     if (sidebar) sidebar.hidden = !showSidebar;
@@ -5123,6 +5142,7 @@ function setupSidebarNav() {
 
   for (const link of topLinks) {
     link.addEventListener("click", () => {
+      sidebarDismissed = false;
       const id = (link.getAttribute("href") ?? "#main").replace("#", "") || "main";
       activateSection(id, { layout: true });
     });
@@ -6399,9 +6419,14 @@ function rosterColumns(leagueId, showClub) {
 
 const ROSTER_COL_ORDER = ["num", "player", "pos", "club", "nat"];
 
-function nationalDutyWindowForLeague(leagueId) {
+function nationalDutyWindowForLeague(_leagueId) {
+  if (typeof FCDataStore !== "undefined" && typeof FCDataStore.getNationalDutyWindow === "function") {
+    const shared = FCDataStore.getNationalDutyWindow();
+    if (typeof NationalDuty !== "undefined") return NationalDuty.normalizeWindow(shared);
+    return shared;
+  }
   const meta =
-    typeof FCDataStore !== "undefined" ? FCDataStore.getLeagueMeta(leagueId) : null;
+    typeof FCDataStore !== "undefined" ? FCDataStore.getLeagueMeta(_leagueId) : null;
   if (typeof NationalDuty !== "undefined") {
     return NationalDuty.normalizeWindow({
       from: meta?.nationalDutyFrom,
@@ -6444,7 +6469,11 @@ function renderNationalDutyBlock(team, leagueId) {
   if (!entries.length) return "";
 
   const rosterMap = new Map(playersForTeam(team.id).map((p) => [p.id, p]));
-  const rows = entries
+  const ordered =
+    typeof NationalDuty !== "undefined"
+      ? NationalDuty.sortEntriesByCountry(entries, (entry) => rosterMap.get(entry.playerId)?.name ?? "")
+      : entries;
+  const rows = ordered
     .map((e) => {
       const p = rosterMap.get(e.playerId);
       if (!p) return "";
@@ -8383,6 +8412,7 @@ function applyLeagueSectionToggles(leagueId) {
 }
 
 let transferViewTeamId = "";
+let transferViewWindow = new Date().getMonth() <= 2 ? "winter" : "summer";
 
 function transfersForLeague(leagueId) {
   const block = TRANSFERS.find((t) => t.leagueId === leagueId);
@@ -8404,6 +8434,33 @@ function transferDateSortTs(dateStr) {
 
 function sortTransfersNewestFirst(rows) {
   return [...(rows ?? [])].sort((a, b) => transferDateSortTs(b?.date) - transferDateSortTs(a?.date));
+}
+
+function transferRowWindow(row) {
+  return row?.window === "winter" ? "winter" : "summer";
+}
+
+function transferWindowCounts(leagueId, teamId) {
+  const block = transfersForTeam(leagueId, teamId);
+  let summer = 0;
+  let winter = 0;
+  for (const key of ["in", "out", "promoted", "loanReturn", "loanRecall"]) {
+    for (const row of block[key] ?? []) {
+      if (transferRowWindow(row) === "winter") winter += 1;
+      else summer += 1;
+    }
+  }
+  return { summer, winter };
+}
+
+function transfersForTeamWindow(leagueId, teamId, windowKey = transferViewWindow) {
+  const block = transfersForTeam(leagueId, teamId);
+  const win = windowKey === "winter" ? "winter" : "summer";
+  const out = {};
+  for (const key of ["in", "out", "promoted", "loanReturn", "loanRecall"]) {
+    out[key] = (block[key] ?? []).filter((row) => transferRowWindow(row) === win);
+  }
+  return out;
 }
 
 function transfersForTeam(leagueId, teamId) {
@@ -8531,23 +8588,23 @@ function transferEmptyHtml(direction, clubName) {
   const copy = {
     in: {
       title: "No incoming transfers yet",
-      hint: `Players signed by ${club} will appear here once they are recorded.`,
+      hint: `Players signed by ${club} in the ${transferViewWindow === "winter" ? "winter" : "summer"} window will appear here once they are recorded.`,
     },
     promoted: {
       title: "No promotions yet",
-      hint: `Academy or U21 players promoted into ${club} will appear here once they are recorded.`,
+      hint: `Academy or U21 players promoted into ${club} in the ${transferViewWindow === "winter" ? "winter" : "summer"} window will appear here once they are recorded.`,
     },
     out: {
       title: "No outgoing transfers yet",
-      hint: `Players who left ${club} will appear here once they are recorded.`,
+      hint: `Players who left ${club} in the ${transferViewWindow === "winter" ? "winter" : "summer"} window will appear here once they are recorded.`,
     },
     loanReturn: {
       title: "No loan returns yet",
-      hint: `Players returning from loan to ${club} will appear here once they are recorded.`,
+      hint: `Players returning from loan to ${club} in the ${transferViewWindow === "winter" ? "winter" : "summer"} window will appear here once they are recorded.`,
     },
     loanRecall: {
       title: "No recalls in this window",
-      hint: `No players have been recalled from ${club} in the current transfer window.`,
+      hint: `No players have been recalled from ${club} in the ${transferViewWindow === "winter" ? "winter" : "summer"} window.`,
     },
   }[direction] ?? { title: "Nothing here yet", hint: "" };
   return `
@@ -8703,7 +8760,8 @@ function renderTransfers(leagueId, preferredTeamId) {
   const clubName = team?.name ?? "—";
   if (clubLabelEl) clubLabelEl.textContent = clubName;
 
-  const block = transfersForTeam(leagueId, teamId);
+  const block = transfersForTeamWindow(leagueId, teamId);
+  syncTransferWindowSwitch(leagueId, teamId);
   setTransferPanelMeta(block);
   for (const panel of TRANSFER_PANELS) {
     const el = $(`#${panel.elId}`);
@@ -8711,7 +8769,28 @@ function renderTransfers(leagueId, preferredTeamId) {
   }
 }
 
+function syncTransferWindowSwitch(leagueId, teamId) {
+  const counts = transferWindowCounts(leagueId, teamId);
+  for (const btn of document.querySelectorAll("#transferWindowSwitch [data-transfer-window]")) {
+    const key = btn.getAttribute("data-transfer-window") === "winter" ? "winter" : "summer";
+    const on = key === transferViewWindow;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+    const count = key === "winter" ? counts.winter : counts.summer;
+    btn.textContent = `${key === "winter" ? "Winter" : "Summer"} ${count}`;
+  }
+}
+
 function setupTransferControls() {
+  $("#transferWindowSwitch")?.addEventListener("click", (e) => {
+    const btn = e.target instanceof Element ? e.target.closest("[data-transfer-window]") : null;
+    if (!btn) return;
+    const next = btn.getAttribute("data-transfer-window") === "winter" ? "winter" : "summer";
+    if (next === transferViewWindow) return;
+    transferViewWindow = next;
+    const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
+    if (leagueId) renderTransfers(leagueId, $("#transferTeamSelect")?.value);
+  });
   $("#transferTeamSelect")?.addEventListener("change", () => {
     const leagueId = $("#leagueSelect")?.value ?? LEAGUES[0]?.id;
     if (!leagueId) return;
@@ -9042,10 +9121,11 @@ function getTransferShareState() {
   const teamId = transferViewTeamId || $("#transferTeamSelect")?.value || $("#teamSelect")?.value || "";
   const team = teamById.get(teamId);
   const league = LEAGUES.find((l) => l.id === leagueId);
-  const block = transfersForTeam(leagueId, teamId);
+  const block = transfersForTeamWindow(leagueId, teamId);
+  const windowLabel = transferViewWindow === "winter" ? "Winter" : "Summer";
   return {
     leagueId,
-    leagueName: league?.name ?? leagueId,
+    leagueName: `${league?.name ?? leagueId} · ${windowLabel}`,
     team,
     panels: TRANSFER_PANELS.map((panel) => ({
       key: panel.key,

@@ -170,6 +170,9 @@
       if (!nameKey || seen.has(dedupe)) continue;
       seen.add(dedupe);
 
+      const href = nameLink?.getAttribute("href") || "";
+      const tmPlayerId = href.match(/\/spieler\/(\d+)/)?.[1] || "";
+
       players.push({
         number,
         name,
@@ -177,6 +180,7 @@
         pos: mapped.pos,
         role: mapped.role,
         tmPosition: mapped.tmPosition || tmPosition,
+        tmPlayerId,
       });
     }
 
@@ -668,6 +672,105 @@
     if (looksLikeHtml(body) && !/table\.items|rn_nummer|hauptlink/i.test(body)) {
       throw new Error(
         "Transfermarkt proxy missing Ã¢â‚¬â€ restart serve.bat so /api/tm-squad is available.",
+      );
+    }
+    return body;
+  }
+
+  const INSTAGRAM_PATH_BLOCK = new Set([
+    "p",
+    "reel",
+    "reels",
+    "stories",
+    "explore",
+    "accounts",
+    "share",
+    "about",
+    "legal",
+    "tv",
+    "directory",
+    "transfermarkt",
+    "transfermarkt_official",
+    "transfermarktcom",
+  ]);
+
+  function parsePlayerInstagram(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const links = [...doc.querySelectorAll('a[href*="instagram.com"]')];
+    for (const link of links) {
+      const href = String(link.getAttribute("href") || "").trim();
+      if (!href || /transfermarkt/i.test(href)) continue;
+      let url;
+      try {
+        url = new URL(href, "https://www.instagram.com");
+      } catch {
+        continue;
+      }
+      if (!/instagram\.com$/i.test(url.hostname.replace(/^www\./i, ""))) continue;
+      const handle = url.pathname.split("/").filter(Boolean)[0] || "";
+      if (!handle || INSTAGRAM_PATH_BLOCK.has(handle.toLowerCase())) continue;
+      if (!/^[a-zA-Z0-9._]+$/.test(handle)) continue;
+      return `https://www.instagram.com/${handle}/`;
+    }
+    return "";
+  }
+
+  function parsePlayerSearchHtml(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const rows = [];
+    const seen = new Set();
+    for (const tr of doc.querySelectorAll("table.items > tbody > tr")) {
+      const nameLink = tr.querySelector('td.hauptlink a[href*="/spieler/"]');
+      const href = nameLink?.getAttribute("href") || "";
+      const tmPlayerId = href.match(/\/spieler\/(\d+)/)?.[1] || "";
+      const name = toAsciiName((nameLink?.getAttribute("title") || nameLink?.textContent || "").trim());
+      if (!tmPlayerId || !name || seen.has(tmPlayerId)) continue;
+      seen.add(tmPlayerId);
+      const clubLink = tr.querySelector('table.inline-table a[href*="/verein/"]');
+      const clubHref = clubLink?.getAttribute("href") || "";
+      rows.push({
+        tmPlayerId,
+        name,
+        club: toAsciiName((clubLink?.getAttribute("title") || clubLink?.textContent || "").trim()),
+        clubId: clubHref.match(/\/verein\/(\d+)/)?.[1] || "",
+        nationality:
+          tr.querySelector("img.flaggenrahmen[title]")?.getAttribute("title")?.trim() || "",
+      });
+    }
+    return rows;
+  }
+
+  async function fetchPlayerSearchHtml(query) {
+    const q = String(query ?? "").trim();
+    if (!q) throw new Error("Enter a player name to search Transfermarkt");
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt Instagram fill only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url = `/api/tm-search?q=${encodeURIComponent(q)}`;
+    const body = await fetchProxyText(url, "Instagram search");
+    if (looksLikeHtml(body) && !/spieler\/\d+|schnellsuche|no results|keine/i.test(body)) {
+      throw new Error(
+        "Transfermarkt search proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
+      );
+    }
+    return body;
+  }
+
+  async function fetchPlayerHtml(playerId) {
+    const id = Number(playerId);
+    if (!Number.isFinite(id) || id <= 0) throw new Error("Invalid Transfermarkt player id");
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt Instagram fill only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url = `/api/tm-spieler?playerId=${encodeURIComponent(String(id))}`;
+    const body = await fetchProxyText(url, "Instagram fill");
+    if (looksLikeHtml(body) && !/player data|spielerdaten|instagram|social/i.test(body)) {
+      throw new Error(
+        "Transfermarkt proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
       );
     }
     return body;
@@ -1202,6 +1305,587 @@
     };
   }
 
+  function normalizeFormationLabel(raw) {
+    const text = String(raw ?? "").trim();
+    const m = text.match(/(\d+(?:\s*-\s*\d+)+)/);
+    if (!m) return "";
+    return m[1].replace(/\s+/g, "");
+  }
+
+  function parsePercentStyle(style, prop) {
+    const m = String(style ?? "").match(new RegExp(`${prop}\\s*:\\s*([\\d.]+)\\s*%`, "i"));
+    return m ? Number(m[1]) : null;
+  }
+
+  function parseFormationPlayerContainer(el) {
+    const link = el.querySelector(".formation-number-name a") || el.querySelector('a[href*="/profil/spieler/"]');
+    const rawName = (link?.getAttribute("title") || link?.textContent || "").trim();
+    const name = toAsciiName(rawName);
+    if (!name) return null;
+    const numText = (el.querySelector(".tm-shirt-number")?.textContent || "").trim();
+    const number = Number(numText);
+    const top = parsePercentStyle(el.getAttribute("style"), "top");
+    const left = parsePercentStyle(el.getAttribute("style"), "left");
+    const captain = Boolean(el.querySelector(".kapitaenicon-formation"));
+    const yellow = Boolean(el.querySelector(".icon-gelbekarte-formation"));
+    const red = Boolean(
+      el.querySelector(".icon-rotekarte-formation") || el.querySelector(".icon-gelbrotekarte-formation"),
+    );
+    return {
+      name,
+      number: Number.isFinite(number) && number > 0 ? number : null,
+      top: top ?? 50,
+      left: left ?? 50,
+      captain,
+      yellow,
+      red,
+    };
+  }
+
+  function parseAufstellungBox(box) {
+    const clubLink =
+      box.querySelector(".aufstellung-unterueberschrift-mannschaft a[href*='/verein/']") ||
+      box.querySelector("a.sb-vereinslink[href*='/verein/']") ||
+      box.querySelector("a[href*='/verein/']");
+    const clubId = Number(clubLink?.getAttribute("href")?.match(/\/verein\/(\d+)/i)?.[1]);
+    const clubName = toAsciiName(
+      (clubLink?.getAttribute("title") || clubLink?.textContent || "").replace(/\s+/g, " ").trim(),
+    );
+    const formationRaw =
+      box.querySelector(".formation-subtitle")?.textContent ||
+      box.querySelector(".unterueberschrift.formation-subtitle")?.textContent ||
+      "";
+    const formation = normalizeFormationLabel(formationRaw);
+    const players = [];
+    for (const el of box.querySelectorAll(".formation-player-container")) {
+      if (!el.querySelector(".tm-shirt-number") && !el.querySelector(".formation-number-name")) continue;
+      const parsed = parseFormationPlayerContainer(el);
+      if (!parsed) continue;
+      players.push(parsed);
+    }
+    const seen = new Set();
+    const unique = [];
+    for (const p of players) {
+      const key = `${p.number ?? ""}|${normalizeNameKey(p.name)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(p);
+    }
+    // TM pitch: higher top% = nearer own goal (GK). Left→right within a band.
+    unique.sort((a, b) => b.top - a.top || a.left - b.left);
+    return {
+      clubId: Number.isFinite(clubId) && clubId > 0 ? clubId : null,
+      clubName,
+      formation: formation || "",
+      players: unique.slice(0, 11),
+    };
+  }
+
+  function lineupTagsForFormation(formation) {
+    const outfield =
+      typeof global.SquadDepth !== "undefined" && typeof global.SquadDepth.defaultSlotTagsForFormation === "function"
+        ? global.SquadDepth.defaultSlotTagsForFormation(formation)
+        : null;
+    const tags = ["GK"];
+    if (Array.isArray(outfield) && outfield.length) {
+      for (const t of outfield) {
+        const u = String(t ?? "").trim().toUpperCase();
+        if (u === "LCB" || u === "RCB") tags.push("CB");
+        else if (u === "ST") tags.push("CF");
+        else tags.push(u || "CM");
+      }
+    } else {
+      tags.push("LB", "CB", "CB", "RB", "DM", "CM", "CM", "LW", "AM", "RW", "CF");
+    }
+    while (tags.length < 11) tags.push("CM");
+    return tags.slice(0, 11);
+  }
+
+  function findAufstellungSideBoxes(doc) {
+    const withClass = [...doc.querySelectorAll("div.aufstellung-box")].filter((el) =>
+      el.querySelector(".formation-player-container"),
+    );
+    if (withClass.length >= 2) return withClass.slice(0, 2);
+
+    // TM often omits aufstellung-box on the away block — match by column + pitch players.
+    const byColumn = [...doc.querySelectorAll("div.large-6.columns, div.aufstellung-box")].filter(
+      (el) =>
+        el.querySelector(".formation-player-container") &&
+        (el.querySelector(".formation-subtitle") ||
+          el.querySelector(".aufstellung-unterueberschrift-mannschaft")),
+    );
+    if (byColumn.length >= 2) return byColumn.slice(0, 2);
+
+    // Last resort: climb from each Starting Line-up subtitle.
+    const fromSubtitles = [];
+    for (const sub of doc.querySelectorAll(".formation-subtitle")) {
+      if (!/starting\s*line-?up/i.test(sub.textContent || "")) continue;
+      let node = sub.parentElement;
+      for (let i = 0; i < 6 && node; i++) {
+        if (
+          node.querySelector?.(".formation-player-container") &&
+          (node.classList?.contains("columns") || node.classList?.contains("aufstellung-box"))
+        ) {
+          if (!fromSubtitles.includes(node)) fromSubtitles.push(node);
+          break;
+        }
+        node = node.parentElement;
+      }
+    }
+    return fromSubtitles.slice(0, 2);
+  }
+
+  function parseSpielberichtLineups(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const boxes = findAufstellungSideBoxes(doc);
+    if (boxes.length < 2) {
+      return { home: null, away: null, tmMatchId: "" };
+    }
+    const home = parseAufstellungBox(boxes[0]);
+    const away = parseAufstellungBox(boxes[1]);
+    const pathHref =
+      doc.querySelector('link[rel="canonical"]')?.getAttribute("href") ||
+      doc.querySelector('meta[property="og:url"]')?.getAttribute("content") ||
+      "";
+    const tmMatchId = pathHref.match(/spielbericht\/(\d+)/i)?.[1] || "";
+    return { home, away, tmMatchId };
+  }
+
+  async function fetchSpielberichtHtml(matchId) {
+    const id = String(matchId ?? "").trim();
+    if (!/^\d+$/.test(id)) throw new Error("Invalid Transfermarkt match id");
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt lineup fetch only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url = `/api/tm-spielbericht?matchId=${encodeURIComponent(id)}`;
+    const body = await fetchProxyText(url, "Lineup fetch");
+    if (looksLikeHtml(body) && !/aufstellung|Starting Line-up|formation-player/i.test(body)) {
+      throw new Error(
+        "Transfermarkt proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
+      );
+    }
+    return body;
+  }
+
+  function parseSbClockMinute(style) {
+    const x = Number(String(style ?? "").match(/background-position:\s*(-?\d+(?:\.\d+)?)px/i)?.[1]);
+    const y = Number(
+      String(style ?? "").match(/background-position:\s*-?\d+(?:\.\d+)?px\s+(-?\d+(?:\.\d+)?)px/i)?.[1],
+    );
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const ones = Math.round(Math.abs(x) / 36);
+    const tens = Math.round(Math.abs(y) / 36);
+    if (ones > 9 || tens > 12) return null;
+    return tens * 10 + ones;
+  }
+
+  function parseSpielberichtGoals(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const goals = [];
+    const root = doc.querySelector("#sb-tore") || doc.querySelector(".sb-ereignisse");
+    if (!root) return goals;
+
+    for (const li of root.querySelectorAll("li.sb-aktion-heim, li.sb-aktion-gast, li")) {
+      const action = li.querySelector(".sb-aktion-aktion");
+      if (!action) continue;
+      const scorerLink =
+        action.querySelector("a.wichtig[href*='/spieler/']") ||
+        action.querySelector("a[href*='/profil/spieler/'], a[href*='/leistungsdatendetails/spieler/']");
+      const scorer = toAsciiName((scorerLink?.getAttribute("title") || scorerLink?.textContent || "").trim());
+      if (!scorer) continue;
+
+      const actionText = (action.textContent || "").replace(/\s+/g, " ").trim();
+      const ownGoal = /\bown[\s-]?goal\b|\beigentor\b/i.test(actionText);
+
+      let assist = null;
+      const assistMatch = actionText.match(/\bAssist:\s*/i);
+      if (assistMatch) {
+        const assistLinks = [...action.querySelectorAll("a.wichtig[href*='/spieler/'], a[href*='/spieler/']")];
+        const assistLink =
+          assistLinks.find((a) => {
+            const name = toAsciiName((a.getAttribute("title") || a.textContent || "").trim());
+            return name && normalizeNameKey(name) !== normalizeNameKey(scorer);
+          }) || null;
+        assist = toAsciiName((assistLink?.getAttribute("title") || assistLink?.textContent || "").trim()) || null;
+      }
+
+      const clockEl = li.querySelector(".sb-sprite-uhr-klein, .sb-aktion-uhr span[style*='background']");
+      let minute = parseSbClockMinute(clockEl?.getAttribute("style") || "");
+      if (minute == null) {
+        const m = actionText.match(/\b(\d{1,3})(?:\+(\d{1,2}))?'/);
+        if (m) minute = Number(m[1]) + (m[2] ? Number(m[2]) : 0);
+      }
+      if (minute == null) minute = 0;
+
+      let side = "home";
+      if (li.classList.contains("sb-aktion-gast")) side = "away";
+      else if (li.classList.contains("sb-aktion-heim")) side = "home";
+
+      goals.push({
+        minute,
+        side,
+        scorer,
+        assist: ownGoal ? null : assist,
+        type: ownGoal ? "og" : "goal",
+      });
+    }
+
+    goals.sort((a, b) => a.minute - b.minute || a.side.localeCompare(b.side));
+    return goals;
+  }
+
+  async function fetchAndParseSpielberichtLineups(matchId) {
+    const html = await fetchSpielberichtHtml(matchId);
+    const parsed = parseSpielberichtLineups(html);
+    const goals = parseSpielberichtGoals(html);
+    if (!parsed.home?.players?.length && !parsed.away?.players?.length && !goals.length) {
+      throw new Error("Could not parse starting XIs from Transfermarkt match sheet.");
+    }
+    return { ...parsed, goals };
+  }
+
+  async function fetchAndParseSpielberichtGoals(matchId) {
+    const html = await fetchSpielberichtHtml(matchId);
+    const goals = parseSpielberichtGoals(html);
+    if (!goals.length) {
+      throw new Error("Could not parse goals from Transfermarkt match sheet.");
+    }
+    return { goals, tmMatchId: parseSpielberichtMatchId(matchId) || String(matchId) };
+  }
+
+  function parseSpielberichtMatchId(raw) {
+    const s = String(raw ?? "").trim();
+    if (!s) return "";
+    if (/^\d+$/.test(s)) return s;
+    return s.match(/spielbericht\/(\d+)/i)?.[1] || "";
+  }
+
+  function parseTabelleHtml(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const table = doc.querySelector("table.items");
+    const rows = [];
+    if (!table) return rows;
+    for (const tr of table.querySelectorAll(":scope > tbody > tr")) {
+      const clubLink =
+        tr.querySelector('td.no-border-links a[href*="/verein/"]') ||
+        tr.querySelector('a[href*="/spielplan/verein/"], a[href*="/startseite/verein/"]');
+      const clubName = toAsciiName(
+        (clubLink?.getAttribute("title") || clubLink?.textContent || "").replace(/\s+/g, " ").trim(),
+      );
+      if (!clubName) continue;
+      const clubId = Number(clubLink?.getAttribute("href")?.match(/\/verein\/(\d+)/i)?.[1]);
+      const rankCell = tr.querySelector("td.rechts.hauptlink, td.rechts");
+      const rank = Number(String(rankCell?.textContent || "").replace(/[^\d]/g, ""));
+      const cells = [...tr.querySelectorAll(":scope > td")];
+      const ptsCell = cells[cells.length - 1];
+      const pts = Number(String(ptsCell?.textContent || "").trim());
+      if (!Number.isFinite(rank) || rank <= 0 || !Number.isFinite(pts)) continue;
+      rows.push({
+        rank,
+        clubName,
+        clubId: Number.isFinite(clubId) && clubId > 0 ? clubId : null,
+        pts,
+      });
+    }
+    rows.sort((a, b) => a.rank - b.rank);
+    return rows;
+  }
+
+  async function fetchTabelleHtml(compId, season) {
+    const competition = String(compId ?? "").trim();
+    const seasonId = Number(season);
+    if (!competition || !/^[A-Za-z0-9]+$/.test(competition)) {
+      throw new Error("Invalid Transfermarkt competition id");
+    }
+    if (!Number.isInteger(seasonId) || seasonId < 1900 || seasonId > 2100) {
+      throw new Error("Invalid Transfermarkt season");
+    }
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt table fetch only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url =
+      `/api/tm-tabelle?compId=${encodeURIComponent(competition)}` +
+      `&season=${encodeURIComponent(String(seasonId))}`;
+    const body = await fetchProxyText(url, "Standings fetch");
+    if (looksLikeHtml(body) && !/tabelle|table\.items|Pts/i.test(body)) {
+      throw new Error(
+        "Transfermarkt proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
+      );
+    }
+    return body;
+  }
+
+  async function fetchAndParseTabelle(compId, season) {
+    const html = await fetchTabelleHtml(compId, season);
+    const rows = parseTabelleHtml(html);
+    if (!rows.length) {
+      throw new Error("Could not parse league table from Transfermarkt — check season or page layout.");
+    }
+    return rows;
+  }
+
+  function parseTorschuetzenHtml(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const table = doc.querySelector("table.items");
+    const rows = [];
+    if (!table) return rows;
+    for (const tr of table.querySelectorAll(":scope > tbody > tr")) {
+      const playerLink =
+        tr.querySelector('td .hauptlink a[href*="/profil/spieler/"]') ||
+        tr.querySelector('a[href*="/profil/spieler/"]');
+      const name = toAsciiName((playerLink?.getAttribute("title") || playerLink?.textContent || "").trim());
+      if (!name) continue;
+      const clubImg =
+        tr.querySelector('a[href*="/verein/"] img[title]') ||
+        tr.querySelector('td.zentriert a[href*="/verein/"] img');
+      const clubLink = clubImg?.closest("a") || tr.querySelector('a[href*="/startseite/verein/"]');
+      const clubName = toAsciiName(
+        (clubImg?.getAttribute("title") || clubLink?.getAttribute("title") || clubLink?.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim(),
+      );
+      const clubId = Number(clubLink?.getAttribute("href")?.match(/\/verein\/(\d+)/i)?.[1]);
+      const goalsCell =
+        tr.querySelector("td.zentriert.hauptlink") ||
+        [...tr.querySelectorAll("td.zentriert")].slice(-1)[0];
+      const goals = Number(
+        String(goalsCell?.querySelector("a")?.textContent || goalsCell?.textContent || "").trim(),
+      );
+      if (!Number.isFinite(goals) || goals < 0) continue;
+      rows.push({
+        name,
+        clubName,
+        clubId: Number.isFinite(clubId) && clubId > 0 ? clubId : null,
+        goals,
+      });
+    }
+    return rows;
+  }
+
+  async function fetchTorschuetzenHtml(compId, season) {
+    const competition = String(compId ?? "").trim();
+    const seasonId = Number(season);
+    if (!competition || !/^[A-Za-z0-9]+$/.test(competition)) {
+      throw new Error("Invalid Transfermarkt competition id");
+    }
+    if (!Number.isInteger(seasonId) || seasonId < 1900 || seasonId > 2100) {
+      throw new Error("Invalid Transfermarkt season");
+    }
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt scorers fetch only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url =
+      `/api/tm-torschuetzen?compId=${encodeURIComponent(competition)}` +
+      `&season=${encodeURIComponent(String(seasonId))}`;
+    const body = await fetchProxyText(url, "Scorers fetch");
+    if (looksLikeHtml(body) && !/torschuetzen|profil\/spieler|Goals/i.test(body)) {
+      throw new Error(
+        "Transfermarkt proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
+      );
+    }
+    return body;
+  }
+
+  async function fetchAndParseTorschuetzen(compId, season) {
+    const html = await fetchTorschuetzenHtml(compId, season);
+    const rows = parseTorschuetzenHtml(html);
+    if (!rows.length) {
+      throw new Error("Could not parse top scorers from Transfermarkt — check season or page layout.");
+    }
+    return rows;
+  }
+
+  function parseClubCoachName(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    for (const row of doc.querySelectorAll("table.items tbody tr, table tbody tr")) {
+      const role = (row.querySelector("table.inline-table tr:nth-child(2) td")?.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!/^(manager|head\s*coach|coach|trainer)$/i.test(role)) continue;
+      const link =
+        row.querySelector('a[href*="/profil/trainer/"]') ||
+        row.querySelector("table.inline-table td.hauptlink a") ||
+        row.querySelector("a[title]");
+      const name = toAsciiName((link?.getAttribute("title") || link?.textContent || "").trim());
+      if (name) return name;
+    }
+    return "";
+  }
+
+  async function fetchMitarbeiterHtml(clubId) {
+    const id = Number(clubId);
+    if (!Number.isFinite(id) || id <= 0) throw new Error("Invalid Transfermarkt club id");
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt staff fetch only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url = `/api/tm-mitarbeiter?clubId=${encodeURIComponent(String(id))}`;
+    const body = await fetchProxyText(url, "Club staff");
+    if (looksLikeHtml(body) && !/mitarbeiter|Manager|Trainer|profil\/trainer/i.test(body)) {
+      throw new Error(
+        "Transfermarkt proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
+      );
+    }
+    return body;
+  }
+
+  async function fetchAndParseClubCoach(clubId) {
+    const html = await fetchMitarbeiterHtml(clubId);
+    const coach = parseClubCoachName(html);
+    if (!coach) throw new Error("Could not parse manager/coach from Transfermarkt staff page.");
+    return { coach };
+  }
+
+  function matchTmClubToLocalTeam(tmClubId, tmClubName, teams) {
+    const list = teams ?? [];
+    const id = Number(tmClubId);
+    if (Number.isFinite(id) && id > 0) {
+      const byId = list.find((t) => Number(t.clubId) === id || Number(t.transfermarktId) === id);
+      if (byId) return byId;
+      if (typeof global.TransfermarktTeams !== "undefined") {
+        const hit = list.find((t) => TransfermarktTeams.clubIdForTeam?.(t) === id);
+        if (hit) return hit;
+      }
+    }
+    const name = String(tmClubName ?? "").trim();
+    if (!name) return null;
+    const exact = list.find((t) => normalizeNameKey(t.name) === normalizeNameKey(name));
+    if (exact) return exact;
+    return list.find((t) => namesLooselyMatch(t.name, name)) || null;
+  }
+
+  /** Spain U21 → Spain; leave senior titles unchanged. */
+  function nationalTeamToCountry(title) {
+    return String(title ?? "")
+      .replace(/\s+U\d+\s*$/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function findNationalspielerBox(doc, headingRe) {
+    for (const box of doc.querySelectorAll("div.box")) {
+      const heading = (box.querySelector("h2, .content-box-headline, .table-header")?.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (headingRe.test(heading)) return box;
+    }
+    return null;
+  }
+
+  function parseNationalspielerRows(root, group) {
+    const out = [];
+    const seen = new Set();
+    const table = root?.matches?.("table.items")
+      ? root
+      : root?.querySelector?.("table.items") || null;
+    for (const row of table?.querySelectorAll(":scope > tbody > tr") ?? []) {
+      const playerLink =
+        row.querySelector('td.hauptlink a[href*="/profil/spieler/"]') ||
+        row.querySelector('a[href*="/profil/spieler/"]');
+      const name = toAsciiName((playerLink?.getAttribute("title") || playerLink?.textContent || "").trim());
+      if (!name) continue;
+      const playerId = playerLink?.getAttribute("href")?.match(/\/spieler\/(\d+)/)?.[1] || "";
+      const key = playerId || normalizeNameKey(name);
+      if (!key || seen.has(`${group}:${key}`)) continue;
+      seen.add(`${group}:${key}`);
+
+      const position =
+        row.querySelector("table.inline-table tr:nth-child(2) td")?.textContent?.trim() || "";
+      const teamCell =
+        row.querySelector('td.hauptlink a[href*="/startseite/verein/"]') ||
+        row.querySelector("a[title] img.flaggenrahmen")?.closest("a") ||
+        row.querySelector("img.flaggenrahmen[title]");
+      const nationalTeam = String(
+        teamCell?.getAttribute("title") ||
+          teamCell?.textContent ||
+          row.querySelector("img.flaggenrahmen[title]")?.getAttribute("title") ||
+          "",
+      )
+        .replace(/\s+/g, " ")
+        .trim();
+      const country = nationalTeamToCountry(nationalTeam) || nationalTeam;
+      const ageRaw = Number(row.querySelector("td.zentriert")?.textContent?.trim());
+      const appsRaw = Number(
+        [...row.querySelectorAll("td.zentriert a[href*='/nationalmannschaft/']")]
+          .map((a) => a.textContent?.trim())
+          .find((t) => /^\d+$/.test(String(t ?? ""))) || "",
+      );
+      const nominated =
+        /\bbg_gruen|\bgruen_20\b/i.test(row.className || "") ||
+        row.classList?.contains("bg_gruen_20");
+      const mapped = mapTmPosition(position);
+
+      out.push({
+        name,
+        tmPlayerId: playerId,
+        nationalTeam,
+        country,
+        age: Number.isFinite(ageRaw) ? ageRaw : null,
+        apps: Number.isFinite(appsRaw) ? appsRaw : null,
+        position,
+        pos: mapped.pos,
+        role: mapped.role,
+        group,
+        nominated: Boolean(nominated),
+      });
+    }
+    return out;
+  }
+
+  function parseNationalspielerHtml(html) {
+    const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
+    const seniorBox =
+      findNationalspielerBox(doc, /^national team players$/i) ||
+      [...doc.querySelectorAll("div.box")].find((box) =>
+        /national team players/i.test(box.querySelector("h2")?.textContent || ""),
+      );
+    const youthBox = findNationalspielerBox(doc, /youth national players/i);
+    const previousBox = findNationalspielerBox(doc, /previous senior national players/i);
+
+    let senior = parseNationalspielerRows(seniorBox, "senior");
+    if (!senior.length) {
+      senior = parseNationalspielerRows(doc.querySelector("table.items"), "senior");
+    }
+    const youth = parseNationalspielerRows(youthBox, "youth");
+    const previous = parseNationalspielerRows(previousBox, "previous");
+    return { senior, youth, previous };
+  }
+
+  async function fetchNationalspielerHtml(clubId) {
+    const id = Number(clubId);
+    if (!Number.isFinite(id) || id <= 0) throw new Error("Invalid Transfermarkt club id");
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "Transfermarkt national duty fetch only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const url = `/api/tm-nationalspieler?clubId=${encodeURIComponent(String(id))}`;
+    const body = await fetchProxyText(url, "National duty fetch");
+    if (looksLikeHtml(body) && !/nationalspieler|National team players|flaggenrahmen/i.test(body)) {
+      throw new Error(
+        "Transfermarkt proxy missing — close the old serve.bat window, run serve.bat again, then reopen admin.",
+      );
+    }
+    return body;
+  }
+
+  async function fetchAndParseNationalspieler(clubId) {
+    const html = await fetchNationalspielerHtml(clubId);
+    const parsed = parseNationalspielerHtml(html);
+    const total = (parsed.senior?.length || 0) + (parsed.youth?.length || 0);
+    if (!total) {
+      throw new Error("Could not parse internationals from Transfermarkt — the page layout may have changed.");
+    }
+    return parsed;
+  }
+
   global.TransfermarktSync = {
     normalizeNameKey,
     toAsciiName,
@@ -1212,17 +1896,42 @@
     parseTransfersHtml,
     compareTransferLists,
     parseClubStadiumName,
+    parseClubCoachName,
     compareLeagueStadiums,
     parseMatchdayHtml,
     compareMatchday,
+    parseSpielberichtLineups,
+    parseSpielberichtGoals,
+    parseTabelleHtml,
+    parseTorschuetzenHtml,
+    lineupTagsForFormation,
+    parseSpielberichtMatchId,
+    matchTmClubToLocalTeam,
+    nationalTeamToCountry,
+    parseNationalspielerHtml,
+    fetchNationalspielerHtml,
+    fetchAndParseNationalspieler,
     fetchSquadHtml,
+    fetchPlayerHtml,
+    parsePlayerInstagram,
+    parsePlayerSearchHtml,
+    fetchPlayerSearchHtml,
     fetchTransfersHtml,
     fetchClubHtml,
+    fetchMitarbeiterHtml,
     fetchMatchdayHtml,
+    fetchSpielberichtHtml,
+    fetchTabelleHtml,
+    fetchTorschuetzenHtml,
     fetchAndCompare,
     fetchAndCompareTransfers,
     fetchAndCompareLeagueStadiums,
     fetchAndCompareMatchday,
+    fetchAndParseSpielberichtLineups,
+    fetchAndParseSpielberichtGoals,
+    fetchAndParseTabelle,
+    fetchAndParseTorschuetzen,
+    fetchAndParseClubCoach,
     isLocalProxyHost,
   };
 })(typeof window !== "undefined" ? window : globalThis);

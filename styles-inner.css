@@ -85,7 +85,13 @@
 }
 @media (min-width: 768px) {
   .match-card__scoreboard-pin {
-    top: calc(var(--topbar-h) + var(--safe-top) + var(--tabbar-h, 56px));
+    position: static;
+    top: auto;
+    margin: 0;
+    z-index: auto;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 .match-card--fixture .match-card__header {
@@ -111,18 +117,17 @@
 }
 
 .mc-match-tabs__list {
-  position: sticky;
-  top: calc(var(--topbar-h) + var(--safe-top) + 4px);
-  z-index: 5;
+  position: relative;
+  top: auto;
+  z-index: auto;
   gap: 0;
 }
-@media (min-width: 768px) {
+@media (max-width: 767.98px) {
   .mc-match-tabs__list {
-    top: calc(var(--topbar-h) + var(--safe-top) + var(--tabbar-h, 56px) + 4px);
+    position: sticky;
+    top: calc(var(--topbar-h) + var(--safe-top) + 4px);
+    z-index: 5;
   }
-}
-.mc-match-tabs__list {
-  position: relative;
 }
 .mc-match-tabs__indicator {
   position: absolute;
@@ -311,6 +316,34 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+@media (min-width: 768px) {
+  .squad-board {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  }
+  .squad-card__name-row {
+    flex-wrap: wrap;
+  }
+  .squad-card__name {
+    display: block;
+    flex: 1 1 calc(100% - 40px);
+    min-width: 0;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    -webkit-box-orient: unset;
+  }
+  .squad-card__nat-name,
+  .squad-card__club {
+    max-width: none;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+  }
+}
 .squad-duty-badge,
 .squad-arrival-badge,
 .squad-cap {
@@ -485,7 +518,12 @@
   .spotlight-hub-stat.is-animated .spotlight-hub-stat__value,
   .standings-table tbody tr,
   .mc-score-row,
-  .momentum > span,
+  .momentum > span {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
   .pitch-players .pitch-player,
   .pitch.is-revealed .pitch-players .pitch-player {
     animation: none !important;

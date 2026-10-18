@@ -506,6 +506,32 @@ html.topbar-scrolled {
   transition: color var(--transition), background-color var(--transition), border-color var(--transition);
   background-color: var(--bg-surface-3);
 }
+.sidebar-close {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-3);
+  color: var(--text-primary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sidebar-close:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-surface-3));
+}
+.sidebar-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .sidebar-item.active {
   color: var(--text-primary);
   background-color: var(--accent-dim);

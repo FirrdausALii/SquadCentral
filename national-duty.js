@@ -39,6 +39,34 @@
     return new Set(normalizeNationalDuty(entries).map((e) => e.playerId));
   }
 
+  /** Blank countries sort last. */
+  function compareCountryName(a, b) {
+    const ca = String(a ?? "").trim();
+    const cb = String(b ?? "").trim();
+    if (!ca && !cb) return 0;
+    if (!ca) return 1;
+    if (!cb) return -1;
+    return ca.localeCompare(cb, undefined, { sensitivity: "base" });
+  }
+
+  function sortEntriesByCountry(entries, nameFor) {
+    const list = Array.isArray(entries) ? entries : [];
+    return list
+      .map((entry, index) => ({ entry, index }))
+      .sort((a, b) => {
+        const byCountry = compareCountryName(a.entry?.country, b.entry?.country);
+        if (byCountry !== 0) return byCountry;
+        if (typeof nameFor === "function") {
+          const byName = String(nameFor(a.entry) ?? "").localeCompare(String(nameFor(b.entry) ?? ""), undefined, {
+            sensitivity: "base",
+          });
+          if (byName !== 0) return byName;
+        }
+        return a.index - b.index;
+      })
+      .map((row) => row.entry);
+  }
+
   /** Keep only YYYY-MM-DD for league window compare. */
   function normalizeIsoDate(value) {
     const s = String(value ?? "").trim();
@@ -98,6 +126,8 @@
     normalizeNationalDuty,
     validateNationalDuty,
     dutyPlayerIds,
+    compareCountryName,
+    sortEntriesByCountry,
     normalizeIsoDate,
     normalizeWindow,
     isNationalDutyWindowActive,

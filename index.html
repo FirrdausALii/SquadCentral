@@ -25,13 +25,13 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="./squad-central-dark-stadium.css?v=mobi-1" />
-    <link rel="stylesheet" href="./styles.css?v=inner-1" />
+    <link rel="stylesheet" href="./squad-central-dark-stadium.css?v=sidebar-close-1" />
+    <link rel="stylesheet" href="./styles.css?v=window-1" />
     <link rel="stylesheet" href="./styles-home.css?v=mobi-2" />
     <link rel="stylesheet" href="./standings.css?v=mobi-1" />
     <link rel="stylesheet" href="./lineups-pitch.css?v=pitch-fullname-2row-1" />
     <link rel="stylesheet" href="./styles-mobile.css?v=mobi-2" />
-    <link rel="stylesheet" href="./styles-inner.css?v=inner-2" />
+    <link rel="stylesheet" href="./styles-inner.css?v=inner-6" />
     <link rel="stylesheet" href="./dropdowns.css?v=mobi-1" />
     <style>
       /* Critical fallback if CSS files fail to load on GitHub Pages */
@@ -159,6 +159,9 @@
           <a class="sidebar-item" href="#transfers" data-sidebar-focus="transferIn">Incoming</a>
           <a class="sidebar-item" href="#transfers" data-sidebar-focus="transferOut">Outgoing</a>
         </div>
+        <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">
+          <span aria-hidden="true">×</span>
+        </button>
       </aside>
 
       <div class="main-content">
@@ -409,6 +412,10 @@
             <div class="transfers-shell__filters">
               <div class="league-tabs" aria-label="League filter" id="transferTabs"></div>
               <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+                <div class="transfer-window-switch" id="transferWindowSwitch" role="tablist" aria-label="Transfer window">
+                  <button type="button" class="transfer-window-switch__btn is-active" data-transfer-window="summer" role="tab" aria-selected="true">Summer</button>
+                  <button type="button" class="transfer-window-switch__btn" data-transfer-window="winter" role="tab" aria-selected="false">Winter</button>
+                </div>
                 <label class="d-grid gap-1 flex-grow-1" style="min-width: 12rem; max-width: 24rem;">
                   <span class="field-label">Club</span>
                   <div class="fc-select-wrap">
@@ -615,12 +622,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="./firebase-sync.js?v=split-1"></script>
-    <script src="./data-store.js"></script>
-    <script src="./nationality-flags.js"></script>
+    <script src="./data-store.js?v=duty-window-1"></script>
+    <script src="./nationality-flags.js?v=togo-flag-1"></script>
     <script src="./squad-depth.js"></script>
-    <script src="./national-duty.js"></script>
+    <script src="./national-duty.js?v=duty-sort-1"></script>
     <script src="./share-image.js?v=lineup11-1"></script>
-    <script src="./app.js?v=inner-1" defer></script>
+    <script src="./app.js?v=window-1" defer></script>
     <script>
       document.addEventListener("fc-data-missing", () => {
         const msg =

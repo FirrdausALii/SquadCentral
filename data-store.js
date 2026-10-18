@@ -19,6 +19,15 @@
     return JSON.parse(JSON.stringify(v));
   }
 
+  function readDutyWindow(raw) {
+    const s = String(raw?.from ?? raw?.nationalDutyFrom ?? "").trim();
+    const u = String(raw?.until ?? raw?.nationalDutyUntil ?? "").trim();
+    return {
+      from: /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : "",
+      until: /^\d{4}-\d{2}-\d{2}$/.test(u) ? u : "",
+    };
+  }
+
   function defaultLeagueMeta() {
     const dutyWindow = { nationalDutyFrom: "", nationalDutyUntil: "" };
     return {
@@ -109,6 +118,7 @@
       topScorers: clone(seed.topScorers ?? []),
       transfers: normalizeTransfersList(seed.transfers ?? []),
       leagueMeta: { ...defaultLeagueMeta(), ...(seed.leagueMeta ?? {}) },
+      nationalDutyWindow: readDutyWindow(seed.nationalDutyWindow),
       deleted: emptyTombstones(seed.deleted),
     };
   }
@@ -162,6 +172,7 @@
       topScorers: patch.topScorers ?? base.topScorers,
       transfers: patch.transfers ?? base.transfers,
       leagueMeta: { ...base.leagueMeta, ...(patch.leagueMeta ?? {}) },
+      nationalDutyWindow: readDutyWindow(patch.nationalDutyWindow ?? base.nationalDutyWindow),
       deleted: emptyTombstones(patch.deleted ?? base.deleted),
     };
   }
@@ -372,6 +383,8 @@
     if (local.sortOrder != null) out.sortOrder = local.sortOrder;
     if (local.instagram != null && String(local.instagram).trim()) out.instagram = String(local.instagram).trim();
     else if (local.instagram === "" || local.instagram === null) delete out.instagram;
+    if (local.instagramNone && !out.instagram) out.instagramNone = true;
+    else delete out.instagramNone;
     if (local.displayLastName != null) {
       const label = String(local.displayLastName ?? "").trim().slice(0, 20);
       if (label) out.displayLastName = label;
@@ -501,6 +514,33 @@
     state.leagueMeta[leagueId] = { ...getLeagueMeta(leagueId), ...patch };
     touchRevision();
     save();
+  }
+
+  /** One live window for every club. Falls back to the first league that already has dates. */
+  function getNationalDutyWindow() {
+    const shared = readDutyWindow(state?.nationalDutyWindow);
+    if (shared.from || shared.until) return shared;
+    for (const meta of Object.values(state?.leagueMeta ?? {})) {
+      const window = readDutyWindow(meta);
+      if (window.from || window.until) return window;
+    }
+    return { from: "", until: "" };
+  }
+
+  function setNationalDutyWindow(window) {
+    const next = readDutyWindow(window);
+    state.nationalDutyWindow = next;
+    if (!state.leagueMeta) state.leagueMeta = {};
+    for (const id of Object.keys(state.leagueMeta)) {
+      state.leagueMeta[id] = {
+        ...state.leagueMeta[id],
+        nationalDutyFrom: next.from,
+        nationalDutyUntil: next.until,
+      };
+    }
+    touchRevision();
+    save();
+    return next;
   }
 
   /** Create or update a league entry (id/name) plus its accent UI and feature flags. */
@@ -720,6 +760,8 @@
       if (Object.prototype.hasOwnProperty.call(normalized, "instagram") && !normalized.instagram) {
         delete merged.instagram;
       }
+      if (merged.instagram || normalized.instagramNone === false) delete merged.instagramNone;
+      else if (normalized.instagramNone) merged.instagramNone = true;
       if (Object.prototype.hasOwnProperty.call(normalized, "displayLastName")) {
         const label = String(normalized.displayLastName ?? "").trim().slice(0, 20);
         if (label) merged.displayLastName = label;
@@ -736,6 +778,8 @@
     } else {
       const next = { ...normalized };
       if (!next.instagram) delete next.instagram;
+      if (next.instagram || next.instagramNone === false) delete next.instagramNone;
+      else if (!next.instagramNone) delete next.instagramNone;
       if (!next.displayLastName) delete next.displayLastName;
       const n = Number(next.number);
       if (!Number.isFinite(n) || n <= 0) delete next.number;
@@ -847,6 +891,17 @@
     for (const t of state.teams) {
       if (t.leagueId !== leagueId) continue;
       if (orderMap.has(t.id)) t.sortOrder = orderMap.get(t.id);
+    }
+    touchRevision();
+    save();
+  }
+
+  /** Persist drag order for fixtures (Matchweek cards + public match list). */
+  function reorderMatches(orderedMatchIds) {
+    if (!orderedMatchIds?.length) return;
+    const orderMap = new Map(orderedMatchIds.map((id, i) => [id, i]));
+    for (const m of state.matches) {
+      if (orderMap.has(m.id)) m.sortOrder = orderMap.get(m.id);
     }
     touchRevision();
     save();
@@ -972,6 +1027,8 @@
     getState,
     getLeagueMeta,
     setLeagueMeta,
+    getNationalDutyWindow,
+    setNationalDutyWindow,
     upsertLeague,
     removeLeague,
     setLeagueUi,
@@ -992,6 +1049,7 @@
     transferPlayer,
     reorderTeamPlayers,
     reorderLeagueTeams,
+    reorderMatches,
     upsertMatch,
     removeMatch,
     setStandings,

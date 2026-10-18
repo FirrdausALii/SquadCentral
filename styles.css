@@ -1017,6 +1017,30 @@ html.reveal-init .reveal.is-visible {
   flex-shrink: 0;
   white-space: nowrap;
 }
+.transfer-window-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 0.5px solid var(--border-default);
+  background: rgba(7, 11, 22, 0.45);
+}
+.transfer-window-switch__btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.transfer-window-switch__btn.is-active {
+  color: #041016;
+  background: var(--accent, #2de2e6);
+}
 
 /* Transfers panel */
 .transfers-grid {
