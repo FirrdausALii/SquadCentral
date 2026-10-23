@@ -694,6 +694,14 @@
     "transfermarktcom",
   ]);
 
+  function parsePlayerIdFromUrl(raw) {
+    const text = String(raw ?? "").trim();
+    if (!text) return "";
+    const fromPath = text.match(/\/spieler\/(\d+)/i)?.[1] || "";
+    if (fromPath) return fromPath;
+    return /^\d{4,8}$/.test(text) ? text : "";
+  }
+
   function parsePlayerInstagram(html) {
     const doc = new DOMParser().parseFromString(String(html ?? ""), "text/html");
     const links = [...doc.querySelectorAll('a[href*="instagram.com"]')];
@@ -1914,6 +1922,7 @@
     fetchSquadHtml,
     fetchPlayerHtml,
     parsePlayerInstagram,
+    parsePlayerIdFromUrl,
     parsePlayerSearchHtml,
     fetchPlayerSearchHtml,
     fetchTransfersHtml,

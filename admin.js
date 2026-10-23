@@ -6719,6 +6719,7 @@ function playerHasInstagramLink(p) {
 
 /** Pending Transfermarkt Instagram reads. Nothing here is saved until you add it. */
 const igTmSuggestionsByTeam = new Map();
+const igGapInputDrafts = new Map();
 
 function igTmSuggestionMap(teamId) {
   if (!igTmSuggestionsByTeam.has(teamId)) igTmSuggestionsByTeam.set(teamId, new Map());
@@ -6775,10 +6776,10 @@ function playerIgGapRowHtml(player, { checked = false, suggestion = null } = {})
     </div>
     <label class="ig-gap-row__field">
       <span class="visually-hidden">Instagram for ${esc(stripCaptainSuffix(player.name))}</span>
-      <input class="mw-input ig-gap-row__input" data-ig-input="${esc(player.id)}" type="text" inputmode="url" placeholder="@username" autocomplete="off" spellcheck="false" />
+      <input class="mw-input ig-gap-row__input" data-ig-input="${esc(player.id)}" type="text" inputmode="url" placeholder="@username or Transfermarkt player link" autocomplete="off" spellcheck="false" />
     </label>
     <div class="ig-gap-row__actions">
-      <button type="button" class="mw-btn-ghost ig-gap-row__fetch" data-ig-tm-fetch="${esc(player.id)}" title="Read this player's Transfermarkt profile only">Fetch</button>
+      <button type="button" class="mw-btn-ghost ig-gap-row__fetch" data-ig-tm-fetch="${esc(player.id)}" title="Paste a Transfermarkt player page link, or match this player from the club squad">Fetch</button>
       <button type="button" class="mw-btn-primary ig-gap-row__save" data-ig-save="${esc(player.id)}">Save</button>
       <button type="button" class="mw-btn-ghost ig-gap-row__none" data-ig-none="${esc(player.id)}" title="Checked — this player has no Instagram">No IG</button>
     </div>
@@ -6833,7 +6834,7 @@ function playerIgGapSectionHtml(teamId) {
       <div class="mw-card-head__icon mw-card-head__icon--player" aria-hidden="true"></div>
       <div>
         <h3>Instagram still open</h3>
-        <p>${open.length === 1 ? "1 player on this squad still needs a link." : `${open.length} players on this squad still need a link.`} Paste <strong>@username</strong> and save. If you already looked and they have no account, mark <strong>No IG</strong>.</p>
+        <p>${open.length === 1 ? "1 player on this squad still needs a link." : `${open.length} players on this squad still need a link.`} Paste <strong>@username</strong> and save, or paste a <strong>Transfermarkt player page</strong> then Fetch. If you already looked and they have no account, mark <strong>No IG</strong>.</p>
       </div>
     </div>
     <div class="ig-gap-summary">
@@ -6862,7 +6863,7 @@ function igGapTmFillHtml(teamId, openCount) {
         : "No open players to fetch";
   return `<div class="ig-gap-fetch">
     <button type="button" class="mw-btn-ghost" id="btnIgFromTm"${canFill ? "" : " disabled"} title="${esc(title)}">Fetch from Transfermarkt</button>
-    <p class="ig-gap-fetch__note admin-muted" id="igTmFillStatus">Fetch all, or Fetch on one player. Handles stay in this section until you add them.</p>
+    <p class="ig-gap-fetch__note admin-muted" id="igTmFillStatus">Paste a player Transfermarkt link in a row, then Fetch. Or Fetch all by club. Handles stay here until you add them.</p>
   </div>`;
 }
 
@@ -6958,7 +6959,34 @@ async function tmSquadPlayersForTeam(team) {
   return players;
 }
 
+function captureIgGapInputDrafts() {
+  document.querySelectorAll("#playerIgGaps [data-ig-input]").forEach((input) => {
+    const id = input.getAttribute("data-ig-input");
+    const val = String(input.value || "").trim();
+    if (!id) return;
+    if (val) igGapInputDrafts.set(id, val);
+    else igGapInputDrafts.delete(id);
+  });
+}
+
+function restoreIgGapInputDrafts() {
+  document.querySelectorAll("#playerIgGaps [data-ig-input]").forEach((input) => {
+    const id = input.getAttribute("data-ig-input");
+    const val = id ? igGapInputDrafts.get(id) : "";
+    if (val) input.value = val;
+  });
+}
+
+function pastedTmPlayerId(playerId) {
+  if (!playerId || typeof TransfermarktSync === "undefined") return "";
+  const live = document.querySelector(`[data-ig-input="${CSS.escape(playerId)}"]`)?.value;
+  const raw = String(live ?? igGapInputDrafts.get(playerId) ?? "").trim();
+  return TransfermarktSync.parsePlayerIdFromUrl(raw);
+}
+
 async function resolveTmPlayerId(player, tmPlayers, team) {
+  const pasted = pastedTmPlayerId(player?.id);
+  if (pasted) return pasted;
   const fromSquad = matchOpenPlayerToTmSquad(player, tmPlayers);
   if (fromSquad?.tmPlayerId) return fromSquad.tmPlayerId;
   const html = await TransfermarktSync.fetchPlayerSearchHtml(stripCaptainSuffix(player.name || ""));
@@ -6980,16 +7008,15 @@ async function rememberInstagramSuggestion(teamId, player, tmPlayerId) {
   return "none";
 }
 
-function igTmFetchReady(team) {
+function igTmFetchReady(team, { pastedPlayerId = "" } = {}) {
   if (!team) return "Choose a club first";
-  if (typeof TransfermarktSync === "undefined" || typeof TransfermarktTeams === "undefined") {
-    return "Transfermarkt sync module failed to load";
-  }
-  if (!TransfermarktTeams.clubIdForTeam(team)) {
-    return "Save this club’s Transfermarkt link on the squad panel first";
-  }
+  if (typeof TransfermarktSync === "undefined") return "Transfermarkt sync module failed to load";
   if (!tmSyncLocalProxyReady()) return "Run serve.bat locally — Instagram fill needs the local server proxy";
   if (igTmFetchBusy) return "A Transfermarkt fetch is already running";
+  if (pastedPlayerId) return "";
+  if (typeof TransfermarktTeams === "undefined" || !TransfermarktTeams.clubIdForTeam(team)) {
+    return "Save this club’s Transfermarkt link, or paste a player profile link in the row";
+  }
   return "";
 }
 
@@ -7010,19 +7037,21 @@ async function fillInstagramFromTransfermarkt() {
   const setStatus = (text) => {
     if (status) status.textContent = text;
   };
-  setStatus("Loading the club squad…");
+  captureIgGapInputDrafts();
   const pending = new Map();
   let found = 0;
   let noAccount = 0;
   let unmatched = 0;
   let failed = 0;
   try {
-    const tmPlayers = await tmSquadPlayersForTeam(team);
+    const needsSquad = targets.some((player) => !pastedTmPlayerId(player.id));
+    setStatus(needsSquad ? "Loading the club squad…" : "Checking pasted Transfermarkt links…");
+    const tmPlayers = needsSquad ? await tmSquadPlayersForTeam(team) : [];
     for (let i = 0; i < targets.length; i += 1) {
       const player = targets[i];
       setStatus(`Checking ${i + 1} of ${targets.length} · ${stripCaptainSuffix(player.name)}`);
       try {
-        const tmPlayerId = await resolveTmPlayerId(player, tmPlayers, team);
+        const tmPlayerId = pastedTmPlayerId(player.id) || (await resolveTmPlayerId(player, tmPlayers, team));
         const latest = state().players.find((p) => p.id === player.id) || player;
         if (playerHasInstagramLink(latest) || latest.instagramNone) continue;
         if (!tmPlayerId) {
@@ -7061,7 +7090,9 @@ async function fillInstagramFromTransfermarkt() {
 async function fetchInstagramForPlayer(playerId) {
   const teamId = playerTeamFilter || $("#playerTeamFilter")?.value;
   const team = state().teams.find((t) => t.id === teamId);
-  const blocked = igTmFetchReady(team);
+  captureIgGapInputDrafts();
+  const pastedId = pastedTmPlayerId(playerId);
+  const blocked = igTmFetchReady(team, { pastedPlayerId: pastedId });
   if (blocked) return toast(blocked);
   const player = state().players.find((p) => p.id === playerId && p.teamId === teamId);
   if (!player || playerHasInstagramLink(player) || player.instagramNone) {
@@ -7076,11 +7107,14 @@ async function fetchInstagramForPlayer(playerId) {
   }
   if (status) status.textContent = `Checking ${stripCaptainSuffix(player.name)}…`;
   try {
-    const tmPlayers = await tmSquadPlayersForTeam(team);
-    const tmPlayerId = await resolveTmPlayerId(player, tmPlayers, team);
+    let tmPlayerId = pastedId;
+    if (!tmPlayerId) {
+      const tmPlayers = await tmSquadPlayersForTeam(team);
+      tmPlayerId = await resolveTmPlayerId(player, tmPlayers, team);
+    }
     if (!tmPlayerId) {
       igTmSuggestionMap(teamId).set(player.id, { status: "unmatched", instagram: "" });
-      toast(`No matching Transfermarkt profile · ${stripCaptainSuffix(player.name)}`);
+      toast(`Paste a Transfermarkt player page, or no matching profile · ${stripCaptainSuffix(player.name)}`);
     } else {
       const outcome = await rememberInstagramSuggestion(teamId, player, tmPlayerId);
       if (outcome === "found") toast(`Ready to review · ${stripCaptainSuffix(player.name)}`);
@@ -7132,7 +7166,8 @@ function bindPlayerIgGaps() {
     const undoId = t.closest("[data-ig-undo]")?.getAttribute("data-ig-undo");
     const playerId = saveId || noneId || undoId;
     if (!playerId) return;
-    if (saveId) savePlayerInstagramFromGap(playerId);
+    if (saveId && pastedTmPlayerId(playerId)) fetchInstagramForPlayer(playerId);
+    else if (saveId) savePlayerInstagramFromGap(playerId);
     else if (noneId) markPlayerInstagramNone(playerId);
     else if (undoId) markPlayerInstagramNone(playerId, false);
   });
@@ -7142,7 +7177,9 @@ function bindPlayerIgGaps() {
     if (!input) return;
     e.preventDefault();
     const playerId = input.getAttribute("data-ig-input");
-    if (playerId) savePlayerInstagramFromGap(playerId);
+    if (!playerId) return;
+    if (pastedTmPlayerId(playerId)) fetchInstagramForPlayer(playerId);
+    else savePlayerInstagramFromGap(playerId);
   });
   root.querySelector("#playerIgGapFilter")?.addEventListener("input", (e) => {
     const q = String(e.target?.value || "").trim().toLowerCase();
@@ -7160,11 +7197,13 @@ function refreshPlayerIgGapSection({ focusNext = false } = {}) {
     renderPanel();
     return;
   }
+  captureIgGapInputDrafts();
   const wrap = document.createElement("div");
   wrap.innerHTML = playerIgGapSectionHtml(teamId);
   const next = wrap.firstElementChild;
   if (next) card.replaceWith(next);
   bindPlayerIgGaps();
+  restoreIgGapInputDrafts();
   if (focusNext) document.querySelector("#playerIgGapList [data-ig-input]")?.focus();
   const open = teamMissingInstagramCount(teamId);
   const chip = document.querySelector(".players-pos-chip--ig .players-pos-chip__val");
@@ -7198,6 +7237,7 @@ function applyIgTmSuggestion(playerId) {
   }
   FCDataStore.upsertPlayer({ ...player, instagram: ig, instagramNone: false });
   igTmSuggestionMap(teamId).delete(playerId);
+  igGapInputDrafts.delete(playerId);
   syncToAppArrays();
   toast(`Instagram added · ${stripCaptainSuffix(player.name)}`);
   refreshPlayerIgGapSection();
@@ -7220,6 +7260,7 @@ function applySelectedIgTmSuggestions() {
     }
     FCDataStore.upsertPlayer({ ...player, instagram: ig, instagramNone: false });
     igTmSuggestionMap(teamId).delete(playerId);
+    igGapInputDrafts.delete(playerId);
     added += 1;
   }
   syncToAppArrays();
@@ -7236,12 +7277,17 @@ function dismissIgTmSuggestion(playerId) {
 function savePlayerInstagramFromGap(playerId) {
   const player = state().players.find((p) => p.id === playerId);
   if (!player) return;
+  if (pastedTmPlayerId(playerId)) {
+    fetchInstagramForPlayer(playerId);
+    return;
+  }
   const raw = document.querySelector(`[data-ig-input="${CSS.escape(playerId)}"]`)?.value?.trim() ?? "";
   if (!raw) return toast("Paste an @username first, or mark No IG");
   const ig = typeof normalizeInstagramUrl === "function" ? normalizeInstagramUrl(raw) : "";
   if (!ig) return toast("Invalid Instagram — use @username or an instagram.com link");
   FCDataStore.upsertPlayer({ ...player, instagram: ig, instagramNone: false });
   igTmSuggestionMap(player.teamId).delete(playerId);
+  igGapInputDrafts.delete(playerId);
   syncToAppArrays();
   toast(`Instagram saved · ${stripCaptainSuffix(player.name)}`);
   refreshPlayerIgGapSection({ focusNext: true });
