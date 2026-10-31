@@ -13,12 +13,24 @@
     "4-4-2": ["LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "CF", "CF"],
     "4-2-3-1": ["LB", "CB", "CB", "RB", "CM", "CM", "LW", "AM", "RW", "CF"],
     "4-1-4-1": ["LB", "CB", "CB", "RB", "DM", "LW", "AM", "AM", "RW", "CF"],
+    "4-3-1-2": ["LB", "CB", "CB", "RB", "CM", "CM", "CM", "AM", "CF", "CF"],
+    "4-2-2-2": ["LB", "CB", "CB", "RB", "CM", "CM", "LW", "RW", "CF", "CF"],
+    "4-4-1-1": ["LB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "AM", "CF"],
     "3-5-2": ["CB", "CB", "CB", "LM", "DM", "CM", "CM", "RM", "CF", "CF"],
     "3-4-3": ["CB", "CB", "CB", "LM", "DM", "DM", "RM", "LW", "CF", "RW"],
-    "3-4-2-1": ["CB", "CB", "CB", "LM", "DM", "DM", "RM", "AM", "AM", "CF"],
-    "5-4-1": ["LB", "CB", "CB", "CB", "RB", "LM", "DM", "DM", "RM", "CF"],
+    "3-4-2-1": ["CB", "CB", "CB", "LM", "CM", "CM", "RM", "AM", "AM", "CF"],
+    "3-4-1-2": ["CB", "CB", "CB", "LM", "CM", "CM", "RM", "AM", "CF", "CF"],
+    "3-4-3 Diamond": ["CB", "CB", "CB", "DM", "CM", "CM", "AM", "LW", "CF", "RW"],
+    "5-4-1": ["LB", "CB", "CB", "CB", "RB", "LM", "CM", "CM", "RM", "CF"],
     "5-3-2": ["LB", "CB", "CB", "CB", "RB", "CM", "DM", "CM", "CF", "CF"],
+    "5-2-3": ["LB", "CB", "CB", "CB", "RB", "CM", "CM", "LW", "CF", "RW"],
   };
+
+  function formationTemplateKey(formation) {
+    const raw = String(formation ?? "").trim();
+    if (/diamond/i.test(raw)) return "3-4-3 Diamond";
+    return normalizeFormationKey(raw);
+  }
 
   function parseFormationLines(formation) {
     return String(formation ?? "")
@@ -60,14 +72,14 @@
   }
 
   function defaultSlotTagsForFormation(formation) {
-    const key = normalizeFormationKey(formation);
+    const key = formationTemplateKey(formation);
     const template = FORMATION_SLOT_TEMPLATES[key];
     if (template?.length === DEPTH_OUTFIELD_SLOTS) return template.slice();
     return genericSlotTagsForFormation(formation);
   }
 
   function hasFormationTemplate(formation) {
-    const key = normalizeFormationKey(formation);
+    const key = formationTemplateKey(formation);
     return Boolean(FORMATION_SLOT_TEMPLATES[key]);
   }
 
@@ -417,6 +429,7 @@
     FORMATION_SLOT_TEMPLATES,
     parseFormationLines,
     normalizeFormationKey,
+    formationTemplateKey,
     defaultSlotTagsForFormation,
     hasFormationTemplate,
     formationSlotSummary,

@@ -418,11 +418,16 @@
     pub.time = preferNonPlaceholder(loc.time, pub.time);
     pub.stadium = preferNonPlaceholder(loc.stadium, pub.stadium);
     if (loc.formation?.length) pub.formation = clone(loc.formation);
+    if (loc.formationVerification) pub.formationVerification = clone(loc.formationVerification);
+    if (loc.tacticalFormations) pub.tacticalFormations = clone(loc.tacticalFormations);
     if (loc.goalEvents?.length) pub.goalEvents = clone(loc.goalEvents);
     else if (!pub.goalEvents?.length) pub.goalEvents = [];
     if (loc.lineups) pub.lineups = clone(loc.lineups);
     if (loc.scorers?.length) pub.scorers = clone(loc.scorers);
     if (loc.status) pub.status = loc.status;
+    if (loc.entryReview) pub.entryReview = clone(loc.entryReview);
+    if (loc.sofaScoreEventId) pub.sofaScoreEventId = String(loc.sofaScoreEventId);
+    if (loc.fbrefMatchId) pub.fbrefMatchId = String(loc.fbrefMatchId);
     return pub;
   }
 

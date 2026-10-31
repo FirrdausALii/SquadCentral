@@ -5857,24 +5857,29 @@ function lineupTagPitchSpot(tag) {
 }
 
 /**
- * Primary = most recent GW start tag.
+ * Primary = position started most often this season (through trail end).
  * Others = remaining season tags, most-played first.
+ * Equal counts: the more recent start wins.
  */
 function playerPrimarySecondaryPositions(p, leagueId) {
+  const starts = playerLineupPositionStarts(p, leagueId);
   const tallies = playerPositionTallies(p, leagueId);
   const recent = playerRecentLineupPositions(p, leagueId, { count: 5 });
   if (!tallies.length && !recent.length) return null;
+  const lastWeekByTag = new Map();
+  for (const { week, tag } of starts) lastWeekByTag.set(tag, week);
+  const ranked = [...tallies].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return (lastWeekByTag.get(b.tag) || 0) - (lastWeekByTag.get(a.tag) || 0);
+  });
   const lastTag = recent.length
     ? String(recent[recent.length - 1].tag ?? "").trim().toUpperCase()
     : "";
-  const primaryTag = lastTag || tallies[0]?.tag || "";
+  const primaryTag = ranked[0]?.tag || lastTag || "";
   if (!primaryTag) return null;
-  const others = tallies
-    .filter((t) => t.tag !== primaryTag)
-    .map((t) => t.tag);
-  // Include primary even if somehow missing from tallies
-  const allTags = [primaryTag, ...others.filter((t) => t !== primaryTag)];
-  return { primaryTag, otherTags: others, allTags, recent, tallies };
+  const others = ranked.filter((t) => t.tag !== primaryTag).map((t) => t.tag);
+  const allTags = [primaryTag, ...others];
+  return { primaryTag, otherTags: others, allTags, recent, tallies: ranked };
 }
 
 function renderPlayerPositionPitch(tags, primaryTag) {
@@ -7613,6 +7618,77 @@ function coachInitials(name) {
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 }
 
+function clubLeaderDisplayName(teamId, rawName) {
+  const clean = stripCaptainSuffix(String(rawName ?? "").trim());
+  if (!clean) return "";
+  const key =
+    typeof transferPlayerNameKey === "function" ? transferPlayerNameKey(clean) : clean.toLowerCase();
+  const hit = playersForTeam(teamId).find((p) => {
+    const n = stripCaptainSuffix(p.name);
+    const k = typeof transferPlayerNameKey === "function" ? transferPlayerNameKey(n) : n.toLowerCase();
+    return k === key;
+  });
+  const short = String(hit?.displayLastName ?? "").trim();
+  if (short) return short;
+  const parts = clean.split(/\s+/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : clean;
+}
+
+function clubGoalAssistLeaders(teamId) {
+  const team = teamById.get(teamId);
+  if (!team) return { scorer: null, assist: null };
+  const leagueId = team.leagueId;
+  const published = publishedMatchweekForLeague(leagueId);
+  const decided = new Set(["FT", "AET", "PEN", "AWD", "LIVE"]);
+  const bump = (map, raw) => {
+    const name = stripCaptainSuffix(String(raw ?? "").trim());
+    if (!name) return;
+    const key =
+      typeof transferPlayerNameKey === "function" ? transferPlayerNameKey(name) : name.toLowerCase();
+    const prev = map.get(key) ?? { name, value: 0 };
+    prev.name = name;
+    prev.value += 1;
+    map.set(key, prev);
+  };
+  const goals = new Map();
+  const assists = new Map();
+  for (const m of MATCHES ?? []) {
+    if (m.leagueId !== leagueId) continue;
+    if (m.homeTeamId !== teamId && m.awayTeamId !== teamId) continue;
+    const status = effectiveMatchStatus(m);
+    if (!decided.has(status)) continue;
+    const week = parseMatchweekNumber(m.matchday);
+    if (published > 0 && week > 0 && week > published) continue;
+    const clubSide = m.homeTeamId === teamId ? "home" : "away";
+    for (const ev of m.goalEvents ?? []) {
+      if (typeof isOwnGoalType === "function" && isOwnGoalType(ev.type)) continue;
+      const evSide = ev.side === "away" ? "away" : "home";
+      if (evSide !== clubSide) continue;
+      bump(goals, ev.scorer);
+      bump(assists, ev.assist);
+    }
+  }
+  const pick = (map) =>
+    [...map.values()].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name))[0] ?? null;
+  let scorer = pick(goals);
+  if (!scorer) {
+    const table = topScorerRowsFromTable(leagueId, TOP_SCORER_FULL_LIMIT).filter(
+      (r) => String(r.club ?? "").trim().toLowerCase() === String(team.name ?? "").trim().toLowerCase() && r.value > 0,
+    );
+    if (table[0]) scorer = { name: table[0].name, value: table[0].value };
+  }
+  return { scorer, assist: pick(assists) };
+}
+
+function formatClubLeaderStat(teamId, row) {
+  if (!row || !row.value) return { text: "—", title: "" };
+  const name = clubLeaderDisplayName(teamId, row.name) || row.name;
+  return {
+    text: `${name} · ${row.value}`,
+    title: `${stripCaptainSuffix(row.name)} · ${row.value}`,
+  };
+}
+
 function setFeaturedTeam(teamId) {
   const team = teamById.get(teamId);
   if (!team) return;
@@ -7652,6 +7728,19 @@ function setFeaturedTeam(teamId) {
     const stadium = stadiumForTeam(teamId);
     stadiumEl.textContent = stadium;
     stadiumEl.title = stadium && stadium !== "—" ? stadium : "";
+  }
+  const leaders = clubGoalAssistLeaders(teamId);
+  const scorerEl = $("#featuredTopScorer");
+  const assistEl = $("#featuredTopAssist");
+  const scorerStat = formatClubLeaderStat(teamId, leaders.scorer);
+  const assistStat = formatClubLeaderStat(teamId, leaders.assist);
+  if (scorerEl) {
+    scorerEl.textContent = scorerStat.text;
+    scorerEl.title = scorerStat.title;
+  }
+  if (assistEl) {
+    assistEl.textContent = assistStat.text;
+    assistEl.title = assistStat.title;
   }
 
   const posEl = $("#featuredPos");
@@ -9521,10 +9610,12 @@ function pitchTokenPercents(rowIndex, rowCount, colIndex, colCount) {
 }
 
 /** One team's interactive XI rendered on a glassmorphic pitch. */
-function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true, teamId = "") {
+function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true, teamId = "", interactive = false) {
+  const formationTip =
+    "Formation represents the selected starting lineup arrangement and may differ from tactical shapes used during the match.";
   const formationBadge =
     showFormation && formation
-      ? `<span class="lineup-formation-badge">${escapeHtml(formation)}</span>`
+      ? `<span class="lineup-formation-badge" title="${escapeHtml(formationTip)}">${escapeHtml(formation)}<button type="button" class="lineup-formation-info" aria-label="${escapeHtml(formationTip)}" title="${escapeHtml(formationTip)}">i</button></span>`
       : "";
   const rows = buildFormationRows(formation, lineup);
   if (!rows.length) {
@@ -9555,8 +9646,13 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
           const isCap = isCaptainPlayer(p);
           const capClass = isCap ? " captain" : "";
           const nodeClass = isGk ? "player-node gk pitch-player is-gk" : "player-node pitch-player";
+          const slotIdx = (lineup ?? []).indexOf(p);
+          const swapAttrs =
+            interactive && slotIdx >= 0
+              ? ` data-mw-pitch-side="${escapeHtml(side)}" data-mw-slot="${slotIdx}" draggable="true"`
+              : "";
           return `
-            <div class="${nodeClass}" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%">
+            <div class="${nodeClass}" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%"${swapAttrs}>
               <div class="player-circle pitch-token${capClass}">${num}</div>
               <div class="player-name-tag pitch-name">${pitchNameTagHtml(p.name, isCap || p.captain)}</div>
               <div class="player-tooltip">
@@ -9655,8 +9751,10 @@ function renderMatchCenter(leagueId) {
         })
         .join("");
 
+      const formationTip =
+        "Formation represents the selected starting lineup arrangement and may differ from tactical shapes used during the match.";
       const formationHtml = showFormation && formation
-        ? `<div class="lineup-formation">${escapeHtml(formation)}</div>`
+        ? `<div class="lineup-formation" title="${escapeHtml(formationTip)}">${escapeHtml(formation)}<button type="button" class="lineup-formation-info" aria-label="${escapeHtml(formationTip)}" title="${escapeHtml(formationTip)}">i</button></div>`
         : "";
       return `
         <section class="lineup-side">

@@ -115,7 +115,8 @@
 }
 
 .lineup-formation-badge,
-.pitch-formation {
+.pitch-formation,
+.lineup-formation {
   font-size: 11px;
   font-weight: 600;
   color: var(--accent);
@@ -124,6 +125,25 @@
   border-radius: var(--radius-sm);
   border: 0.5px solid #1a3a5c;
   white-space: nowrap;
+}
+
+.lineup-formation-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 5px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+  vertical-align: middle;
 }
 
 .pitch {
@@ -485,6 +505,20 @@
 }
 
 @media (max-width: 480px) {
+  .player-circle,
+  .pitch-token {
+    width: 22px;
+    height: 22px;
+    font-size: 8px;
+  }
+
+  .player-name-tag,
+  .pitch-name {
+    font-size: 7px;
+    max-width: 64px;
+    padding: 1px 3px;
+  }
+
   .depth-slot {
     max-width: 56px;
   }

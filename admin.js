@@ -30,6 +30,8 @@ let leagueFormDirty = false;
 let leagueFormSnapshot = "";
 let playerTeamFilter = "";
 let playerFormDraft = null;
+/** Player-edit Matchweek XI patcher — in memory until Sync to lineup. */
+let playerLineupSession = null;
 let playerTransferPickId = "";
 let playerSearchQuery = "";
 /** @type {{ tmPlayers: object[], diff: object, clubId: number, ignoredAdd?: Set<string>, ignoredRemove?: Set<string>, ignoredUpdate?: Set<string> } | null} */
@@ -77,9 +79,734 @@ let tmMatchdaySyncState = null;
 let tmLeagueRefreshBusy = false;
 /** Preserves matchweek editor fields across renderPanel() (DOM is rebuilt each time). */
 let mwEditorDraft = null;
+/** Next renderPanel must apply mwEditorDraft (TM fetch / copy / team swap / just-saved). */
+let mwEditorDraftStaged = false;
+let mwFormationTagTimer = null;
 /** Preserves squad depth editor across formation change re-renders. */
 let squadDepthDraft = null;
 const LINEUP_SLOTS = 11;
+let mwFormationVerifyFilter = "all";
+let mwClubFilter = "";
+let mwEntryReviewFilter = "all";
+/** Matchweek fixtures card: match cards or saved club XIs. */
+let mwFixturesView = "matches";
+const MW_LINEUP_PAGE_SIZE = 5;
+let mwLineupPage = 1;
+const MW_REVIEW_QUEUE_KEY = "fc_mw_review_queue";
+/** @type {{ queueId: string, mode: string, existingId: string, source: string, reviewed: boolean, leagueId: string, draft: object, localSnapshot: object|null }[]} */
+let mwReviewQueue = [];
+let mwReviewQueueId = "";
+
+const FORMATION_PRESETS = [
+  "4-3-3",
+  "4-2-3-1",
+  "4-4-2",
+  "4-1-4-1",
+  "4-3-1-2",
+  "4-2-2-2",
+  "4-4-1-1",
+  "3-4-3",
+  "3-4-2-1",
+  "3-5-2",
+  "3-4-1-2",
+  "3-4-3 Diamond",
+  "5-3-2",
+  "5-4-1",
+  "5-2-3",
+];
+
+const FORMATION_SOURCES = [
+  "Sofascore",
+  "FBref",
+  "FotMob",
+  "WhoScored",
+  "Official Club / Competition",
+  "Other",
+  "Manual Tactical Assessment",
+];
+
+const FORMATION_VERIFY_STATUSES = [
+  { id: "confirmed", label: "Confirmed" },
+  { id: "estimated", label: "Estimated" },
+  { id: "unverified", label: "Unverified" },
+];
+
+function emptyFormationVerification() {
+  return {
+    status: "unverified",
+    sources: [
+      { name: "", formation: "", url: "" },
+      { name: "", formation: "", url: "" },
+    ],
+    notes: "",
+    lastReviewedAt: null,
+  };
+}
+
+function emptyTacticalFormations() {
+  return { inPossession: "", outOfPossession: "" };
+}
+
+function normalizeFormationSourceRow(row) {
+  return {
+    name: String(row?.name ?? "").trim(),
+    formation: String(row?.formation ?? "").trim(),
+    url: String(row?.url ?? "").trim(),
+  };
+}
+
+function normalizeFormationVerification(sideObj) {
+  const src = sideObj && typeof sideObj === "object" ? sideObj : {};
+  const statusRaw = String(src.status ?? "").trim().toLowerCase();
+  const status = statusRaw === "confirmed" || statusRaw === "estimated" ? statusRaw : "unverified";
+  let sources = Array.isArray(src.sources) ? src.sources.map(normalizeFormationSourceRow) : [];
+  if (!sources.length && (src.primarySource || src.primaryFormation || src.secondarySource || src.secondaryFormation)) {
+    sources = [
+      {
+        name: String(src.primarySource ?? "").trim(),
+        formation: String(src.primaryFormation ?? "").trim(),
+        url: String(src.primaryUrl ?? "").trim(),
+      },
+      {
+        name: String(src.secondarySource ?? "").trim(),
+        formation: String(src.secondaryFormation ?? "").trim(),
+        url: String(src.secondaryUrl ?? "").trim(),
+      },
+    ];
+  }
+  while (sources.length < 2) sources.push({ name: "", formation: "", url: "" });
+  const seen = new Set();
+  sources = sources.filter((row, i) => {
+    if (i < 2) return true;
+    const key = row.name.toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  sources.slice(0, 2).forEach((row) => {
+    if (row.name) seen.add(row.name.toLowerCase());
+  });
+  return {
+    status,
+    sources,
+    notes: String(src.notes ?? "").trim(),
+    lastReviewedAt: src.lastReviewedAt || null,
+  };
+}
+
+function formationVerificationStatus(match, side) {
+  const raw = side === "away" ? match?.formationVerification?.away : match?.formationVerification?.home;
+  return normalizeFormationVerification(raw).status;
+}
+
+function formationStatusLabel(status) {
+  const hit = FORMATION_VERIFY_STATUSES.find((s) => s.id === status);
+  return hit?.label || "Unverified";
+}
+
+function isFormationPreset(value) {
+  return FORMATION_PRESETS.includes(String(value ?? "").trim());
+}
+
+function isFormationUnset(value) {
+  const t = String(value ?? "").trim();
+  return !t || t === "—" || t === "-" || t === "–";
+}
+
+function normalizeEntryReview(raw) {
+  const status = raw?.status === "done" ? "done" : "open";
+  return {
+    status,
+    note: String(raw?.note ?? "").trim(),
+    at: status === "done" && raw?.at ? String(raw.at) : null,
+  };
+}
+
+function readEntryReviewFromDom(prev) {
+  const done = Boolean($("#matchEntryDone")?.checked);
+  const note = String($("#matchEntryNote")?.value ?? "").trim();
+  const prevReview = normalizeEntryReview(prev);
+  return {
+    status: done ? "done" : "open",
+    note,
+    at: done ? prevReview.at || new Date().toISOString() : null,
+  };
+}
+
+function matchPassesClubFilter(match) {
+  if (!mwClubFilter) return true;
+  return match?.homeTeamId === mwClubFilter || match?.awayTeamId === mwClubFilter;
+}
+
+function compareClubFixtureWeeks(a, b) {
+  const aw = parseMwNumber(a?.matchday);
+  const bw = parseMwNumber(b?.matchday);
+  const aWeek = aw > 0 ? aw : 999;
+  const bWeek = bw > 0 ? bw : 999;
+  if (aWeek !== bWeek) return aWeek - bWeek;
+  if (typeof compareFixtureSortOrder === "function") {
+    const byOrder = compareFixtureSortOrder(a, b);
+    if (byOrder) return byOrder;
+  }
+  return String(a?.time ?? "").localeCompare(String(b?.time ?? ""));
+}
+
+/** Club filter shows every gameweek for that club. Otherwise the selected live week. */
+function listMatchweekPanelMatches(leagueId, weekNum, clubId) {
+  const all = (state().matches ?? []).filter((m) => m.leagueId === leagueId);
+  if (clubId) return all.filter(matchPassesClubFilter).slice().sort(compareClubFixtureWeeks);
+  if (typeof filterMatchesForLeagueWeek === "function") {
+    return filterMatchesForLeagueWeek(state().matches, leagueId, weekNum);
+  }
+  const mwTag = `MW ${weekNum}`;
+  return all.filter((m) => m.matchday === mwTag || !m.matchday);
+}
+
+function matchPassesEntryFilter(match) {
+  if (mwEntryReviewFilter === "all") return true;
+  return normalizeEntryReview(match?.entryReview).status === mwEntryReviewFilter;
+}
+
+function matchweekClubFilterHtml(teams) {
+  const opts = `<option value="">All clubs</option>${teamOptionTags(teams || [], mwClubFilter)}`;
+  const note = mwClubFilter
+    ? mwFixturesView === "lineups"
+      ? "Every saved XI for this club. Clear to pick another club."
+      : "Every gameweek for this club. Clear to return to the selected matchweek."
+    : mwFixturesView === "lineups"
+      ? "Pick a club to review saved lineups across every gameweek."
+      : "Pick a club to see every gameweek, not only this matchweek.";
+  return `<div class="mw-field mb-0 mw-club-filter">
+    <label for="mwClubFilter">Filter by club</label>
+    <div class="mw-select-wrap">
+      <select id="mwClubFilter" class="mw-select" aria-label="Filter fixtures by club">${opts}</select>
+    </div>
+    <p class="mw-field-note admin-muted">${note}</p>
+  </div>`;
+}
+
+function matchweekFixturesViewToggleHtml() {
+  const views = [
+    ["matches", "Matches"],
+    ["lineups", "Lineups"],
+  ];
+  return `<div class="fv-filter mw-fixtures-view" role="tablist" aria-label="Matches or lineups">
+      ${views
+        .map(
+          ([id, label]) =>
+            `<button type="button" class="fv-filter__btn${mwFixturesView === id ? " is-active" : ""}" data-mw-fixtures-view="${id}" role="tab" aria-selected="${mwFixturesView === id ? "true" : "false"}">${label}</button>`,
+        )
+        .join("")}
+    </div>`;
+}
+
+function clubMatchSide(match, clubId) {
+  if (!clubId) return null;
+  if (match?.homeTeamId === clubId) return "home";
+  if (match?.awayTeamId === clubId) return "away";
+  return null;
+}
+
+function clubMatchLineup(match, clubId) {
+  const side = clubMatchSide(match, clubId);
+  return side ? match?.lineups?.[side] ?? [] : [];
+}
+
+function clubLineupIsSaved(match, clubId) {
+  return namedLineupCount(clubMatchLineup(match, clubId)) > 0;
+}
+
+function clampMwLineupPage(total) {
+  const pages = Math.max(1, Math.ceil(Math.max(0, total) / MW_LINEUP_PAGE_SIZE));
+  if (mwLineupPage > pages) mwLineupPage = pages;
+  if (mwLineupPage < 1) mwLineupPage = 1;
+  return pages;
+}
+
+function mwLineupPagerHtml(page, pages) {
+  if (pages <= 1) return "";
+  const nums = Array.from({ length: pages }, (_, i) => i + 1)
+    .map(
+      (n) =>
+        `<button type="button" class="fv-filter__btn${n === page ? " is-active" : ""}" data-mw-lineup-page="${n}" aria-label="Page ${n}"${n === page ? ' aria-current="page"' : ""}>${n}</button>`,
+    )
+    .join("");
+  return `<nav class="mw-lineup-pager" aria-label="Lineup pages">
+      <button type="button" class="mw-btn-ghost mw-lineup-pager__nav" data-mw-lineup-page="prev"${page <= 1 ? " disabled" : ""}>Previous</button>
+      <div class="mw-lineup-pager__pages" role="group" aria-label="Page numbers">${nums}</div>
+      <span class="mw-lineup-pager__status">Page ${page} of ${pages}</span>
+      <button type="button" class="mw-btn-ghost mw-lineup-pager__nav" data-mw-lineup-page="next"${page >= pages ? " disabled" : ""}>Next</button>
+    </nav>`;
+}
+
+function entryReviewFilterHtml() {
+  const opts = [
+    ["all", "All"],
+    ["open", "Open"],
+    ["done", "Verified"],
+  ];
+  return `<div class="fv-filter mw-entry-filter" role="group" aria-label="Filter fixtures by entry status">
+      ${opts
+        .map(
+          ([id, label]) =>
+            `<button type="button" class="fv-filter__btn${mwEntryReviewFilter === id ? " is-active" : ""}" data-mw-entry-filter="${id}">${esc(label)}</button>`,
+        )
+        .join("")}
+    </div>`;
+}
+
+function entryReviewChipHtml(match) {
+  const r = normalizeEntryReview(match?.entryReview);
+  if (r.status === "done") {
+    const note = r.note ? ` · ${r.note}` : "";
+    const short = note.length > 42 ? `${note.slice(0, 39)}…` : note;
+    return `<span class="mw-pill mw-pill--verified">Verified${esc(short)}</span>`;
+  }
+  return `<span class="mw-pill mw-pill--open">Open</span>`;
+}
+
+function formationPresetSelectHtml(value, { id, includeBlank = false, blankLabel = "—" } = {}) {
+  const current = String(value ?? "").trim();
+  const custom = current && !isFormationPreset(current);
+  const selected = includeBlank && !current ? "" : custom ? "__custom__" : current;
+  const opts = [
+    includeBlank ? `<option value=""${selected === "" ? " selected" : ""}>${esc(blankLabel)}</option>` : "",
+    ...FORMATION_PRESETS.map(
+      (f) => `<option value="${esc(f)}"${selected === f ? " selected" : ""}>${esc(f)}</option>`,
+    ),
+    `<option value="__custom__"${selected === "__custom__" ? " selected" : ""}>Custom</option>`,
+  ];
+  return `<div class="mw-select-wrap"><select id="${esc(id)}" class="mw-select fv-form-preset">${opts.join("")}</select></div>`;
+}
+
+function sourceSelectHtml(value, attrs = "") {
+  const current = String(value ?? "").trim();
+  const opts = [
+    `<option value=""${!current ? " selected" : ""}>Not checked</option>`,
+    ...FORMATION_SOURCES.map(
+      (name) => `<option value="${esc(name)}"${current === name ? " selected" : ""}>${esc(name)}</option>`,
+    ),
+  ];
+  return `<div class="mw-select-wrap"><select class="mw-select fv-source-name" ${attrs}>${opts.join("")}</select></div>`;
+}
+
+function namedLineupCount(lineup) {
+  return (Array.isArray(lineup) ? lineup : []).filter((s) => s && String(s.name ?? "").trim()).length;
+}
+
+function lineupDuplicateNames(lineup) {
+  const counts = new Map();
+  for (const slot of Array.isArray(lineup) ? lineup : []) {
+    const key = String(slot?.name ?? "")
+      .trim()
+      .toLowerCase();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return [...counts.entries()].filter(([, n]) => n > 1).map(([name]) => name);
+}
+
+function startingFormationFieldHtml(side, value) {
+  const id = side === "away" ? "matchFormAway" : "matchFormHome";
+  const presetId = `${id}Preset`;
+  const current = String(value ?? "").trim() || (side === "away" ? "4-3-3" : "4-2-3-1");
+  const custom = !isFormationPreset(current);
+  return `<div class="mw-field fv-start-form" data-fv-start="${side}">
+      <label for="${presetId}">Starting formation</label>
+      ${formationPresetSelectHtml(current, { id: presetId })}
+      <input id="${id}" class="mw-input fv-start-form__custom${custom ? "" : " admin-hidden"}" value="${esc(current)}" placeholder="e.g. 4-2-3-1" autocomplete="off" spellcheck="false" />
+      <p class="mw-field-note admin-muted">This is the final formation shown in Match Center. Sources below are for your records only.</p>
+    </div>`;
+}
+
+function fvSourceRowHtml(side, index, row, { extra = false } = {}) {
+  const label = index === 0 ? "Primary" : index === 1 ? "Secondary" : `Source ${index + 1}`;
+  const remove = extra
+    ? `<button type="button" class="mw-btn-ghost fv-source-remove" data-fv-remove-source="${side}" data-fv-source-i="${index}">Remove</button>`
+    : "";
+  return `<div class="fv-source-row" data-fv-source-row="${side}" data-fv-source-i="${index}">
+      <div class="fv-source-row__head"><span>${esc(label)}</span>${remove}</div>
+      <div class="fv-source-row__grid">
+        <div class="mw-field mb-0"><label>Source</label>${sourceSelectHtml(row?.name)}</div>
+        <div class="mw-field mb-0"><label>Formation</label><input class="mw-input fv-source-form" value="${esc(row?.formation ?? "")}" placeholder="4-2-3-1" list="fvFormationList" autocomplete="off" /></div>
+        <div class="mw-field mb-0 fv-source-row__url"><label>Reference URL</label><input class="mw-input fv-source-url" type="url" inputmode="url" value="${esc(row?.url ?? "")}" placeholder="https://…" autocomplete="off" spellcheck="false" /></div>
+      </div>
+    </div>`;
+}
+
+function formationCompareTableHtml(side, sources, startingFormation) {
+  const rows = (sources || [])
+    .filter((s) => s.name || s.formation)
+    .map((s) => {
+      const form = s.formation || "Not checked";
+      return `<tr><th>${esc(s.name || "Source")}</th><td>${esc(form)}</td></tr>`;
+    })
+    .join("");
+  const empty = rows
+    ? ""
+    : `<tr><th colspan="2" class="fv-compare-empty">No sources entered yet</th></tr>`;
+  return `<table class="fv-compare" data-fv-compare="${side}">
+      <caption class="visually-hidden">Source comparison</caption>
+      <thead><tr><th>Source</th><th>Formation</th></tr></thead>
+      <tbody>
+        ${rows}${empty}
+        <tr class="fv-compare-final"><th>Final selection</th><td data-fv-final="${side}">${esc(startingFormation || "—")}</td></tr>
+      </tbody>
+    </table>`;
+}
+
+function formationVerificationSideHtml(side, teamName, verify, tactical, startingFormation, lineup) {
+  const data = normalizeFormationVerification(verify);
+  const tac = {
+    inPossession: String(tactical?.inPossession ?? "").trim(),
+    outOfPossession: String(tactical?.outOfPossession ?? "").trim(),
+  };
+  const named = namedLineupCount(lineup);
+  const dups = lineupDuplicateNames(lineup);
+  const openVerify = data.status !== "confirmed";
+  const statusPills = FORMATION_VERIFY_STATUSES.map((s) => {
+    const on = data.status === s.id;
+    return `<button type="button" class="fv-status-pill fv-status-pill--${s.id}${on ? " is-active" : ""}" data-fv-status="${side}" data-status="${s.id}" aria-pressed="${on ? "true" : "false"}">${esc(s.label)}</button>`;
+  }).join("");
+  const extraRows = data.sources
+    .slice(2)
+    .map((row, i) => fvSourceRowHtml(side, i + 2, row, { extra: true }))
+    .join("");
+  const xiWarn =
+    named < LINEUP_SLOTS
+      ? `<p class="fv-xi-warn">Starting XI is incomplete — ${named} of 11 named.</p>`
+      : "";
+  const dupWarn = dups.length
+    ? `<p class="fv-xi-warn">Same player appears more than once in this XI.</p>`
+    : "";
+  return `<div class="fv-side" data-fv-side="${side}">
+      <h4 class="fv-side__title">${esc(side === "home" ? "Home" : "Away")}${teamName ? ` · ${esc(teamName)}` : ""}</h4>
+      ${startingFormationFieldHtml(side, startingFormation)}
+      ${xiWarn}${dupWarn}
+      <details class="fv-fold"${openVerify ? " open" : ""}>
+        <summary>Formation &amp; Lineup Verification</summary>
+        <div class="fv-status-row" role="group" aria-label="Verification status">${statusPills}</div>
+        <p class="mw-field-note admin-muted">Status is yours to set. Two agreeing sources do not auto-confirm.</p>
+        ${fvSourceRowHtml(side, 0, data.sources[0])}
+        ${fvSourceRowHtml(side, 1, data.sources[1])}
+        <div class="fv-source-extra" data-fv-extra="${side}">${extraRows}</div>
+        <button type="button" class="mw-btn-ghost fv-add-source" data-fv-add-source="${side}">Add source</button>
+        ${formationCompareTableHtml(side, data.sources, startingFormation)}
+        <div class="mw-field mb-0">
+          <label for="fvNotes${side}">Tactical / verification notes</label>
+          <textarea id="fvNotes${side}" class="mw-input fv-notes" rows="3" placeholder="e.g. Sofascore lists 4-2-3-1, FotMob lists 4-3-3. Selected 4-2-3-1 from the first-phase shape.">${esc(data.notes)}</textarea>
+        </div>
+      </details>
+      <details class="fv-fold">
+        <summary>Tactical formation (optional)</summary>
+        <p class="mw-field-note admin-muted">Informational only — does not replace the starting formation.</p>
+        <div class="fv-tactical-grid">
+          <div class="mw-field mb-0">
+            <label>In possession</label>
+            ${formationPresetSelectHtml(tac.inPossession, { id: `fvInPoss${side}`, includeBlank: true, blankLabel: "Not set" })}
+            <input class="mw-input fv-tac-custom admin-hidden" data-fv-tac="${side}" data-fv-tac-kind="inPossession" value="${esc(tac.inPossession)}" placeholder="e.g. 3-2-4-1" />
+          </div>
+          <div class="mw-field mb-0">
+            <label>Out of possession</label>
+            ${formationPresetSelectHtml(tac.outOfPossession, { id: `fvOutPoss${side}`, includeBlank: true, blankLabel: "Not set" })}
+            <input class="mw-input fv-tac-custom admin-hidden" data-fv-tac="${side}" data-fv-tac-kind="outOfPossession" value="${esc(tac.outOfPossession)}" placeholder="e.g. 4-4-2" />
+          </div>
+        </div>
+      </details>
+    </div>`;
+}
+
+function formationVerifyDatalistHtml() {
+  return `<datalist id="fvFormationList">${FORMATION_PRESETS.map((f) => `<option value="${esc(f)}"></option>`).join("")}</datalist>`;
+}
+
+function formationVerificationPanelHtml(src, homeName, awayName) {
+  const homeForm = String(src?.formation?.[0] ?? "4-2-3-1").trim() || "4-2-3-1";
+  const awayForm = String(src?.formation?.[1] ?? "4-3-3").trim() || "4-3-3";
+  return `<div class="fv-panel" id="fvPanel">
+      <div class="fv-panel__grid">
+        ${formationVerificationSideHtml("home", homeName, src?.formationVerification?.home, src?.tacticalFormations?.home, homeForm, src?.lineups?.home)}
+        ${formationVerificationSideHtml("away", awayName, src?.formationVerification?.away, src?.tacticalFormations?.away, awayForm, src?.lineups?.away)}
+      </div>
+      ${formationVerifyDatalistHtml()}
+    </div>`;
+}
+
+function readSideVerificationFromDom(side) {
+  const root = document.querySelector(`[data-fv-side="${side}"]`);
+  const fallback = mwEditorDraft?.formationVerification?.[side] || emptyFormationVerification();
+  if (!root) return normalizeFormationVerification(fallback);
+  const statusBtn = root.querySelector(".fv-status-pill.is-active");
+  const status = statusBtn?.getAttribute("data-status") || "unverified";
+  const sources = [...root.querySelectorAll("[data-fv-source-row]")].map((row) =>
+    normalizeFormationSourceRow({
+      name: row.querySelector(".fv-source-name")?.value,
+      formation: row.querySelector(".fv-source-form")?.value,
+      url: row.querySelector(".fv-source-url")?.value,
+    }),
+  );
+  return normalizeFormationVerification({
+    status,
+    sources,
+    notes: root.querySelector(".fv-notes")?.value,
+    lastReviewedAt: fallback.lastReviewedAt || null,
+  });
+}
+
+function readFormationVerificationFromDom() {
+  return {
+    home: readSideVerificationFromDom("home"),
+    away: readSideVerificationFromDom("away"),
+  };
+}
+
+function readSideTacticalFromDom(side) {
+  const root = document.querySelector(`[data-fv-side="${side}"]`);
+  const fallback = mwEditorDraft?.tacticalFormations?.[side] || emptyTacticalFormations();
+  if (!root) return { ...emptyTacticalFormations(), ...fallback };
+  const inSel = root.querySelector("#fvInPoss" + side);
+  const outSel = root.querySelector("#fvOutPoss" + side);
+  const inCustom = root.querySelector('[data-fv-tac-kind="inPossession"]');
+  const outCustom = root.querySelector('[data-fv-tac-kind="outOfPossession"]');
+  const pick = (sel, custom) => {
+    const v = String(sel?.value ?? "").trim();
+    if (v === "__custom__") return String(custom?.value ?? "").trim();
+    return v;
+  };
+  return {
+    inPossession: pick(inSel, inCustom),
+    outOfPossession: pick(outSel, outCustom),
+  };
+}
+
+function readTacticalFormationsFromDom() {
+  return {
+    home: readSideTacticalFromDom("home"),
+    away: readSideTacticalFromDom("away"),
+  };
+}
+
+function stampFormationVerification(next, prev) {
+  const out = {
+    home: normalizeFormationVerification(next?.home),
+    away: normalizeFormationVerification(next?.away),
+  };
+  for (const side of ["home", "away"]) {
+    if (out[side].status === "unverified") out[side].lastReviewedAt = null;
+    else out[side].lastReviewedAt = new Date().toISOString();
+  }
+  return out;
+}
+
+function refreshFormationCompareTables() {
+  for (const side of ["home", "away"]) {
+    const table = document.querySelector(`[data-fv-compare="${side}"] tbody`);
+    if (!table) continue;
+    const verify = readSideVerificationFromDom(side);
+    const finalForm =
+      (side === "home" ? $("#matchFormHome")?.value : $("#matchFormAway")?.value)?.trim() || "—";
+    const finalCell = table.querySelector(`[data-fv-final="${side}"]`);
+    if (finalCell) finalCell.textContent = finalForm;
+    const old = [...table.querySelectorAll("tr")].filter((tr) => !tr.classList.contains("fv-compare-final"));
+    old.forEach((tr) => tr.remove());
+    const rows = verify.sources.filter((s) => s.name || s.formation);
+    const html = rows.length
+      ? rows.map((s) => `<tr><th>${esc(s.name || "Source")}</th><td>${esc(s.formation || "Not checked")}</td></tr>`).join("")
+      : `<tr><th colspan="2" class="fv-compare-empty">No sources entered yet</th></tr>`;
+    table.insertAdjacentHTML("afterbegin", html);
+  }
+}
+
+function syncStartingFormationPreset(side) {
+  const input = side === "away" ? $("#matchFormAway") : $("#matchFormHome");
+  const preset = side === "away" ? $("#matchFormAwayPreset") : $("#matchFormHomePreset");
+  if (!input || !preset) return;
+  if (preset.value === "__custom__") {
+    input.classList.remove("admin-hidden");
+    if (!input.value.trim()) input.focus();
+    return;
+  }
+  input.value = preset.value;
+  input.classList.add("admin-hidden");
+}
+
+function bindFormationVerificationEditor() {
+  const panel = $("#fvPanel");
+  if (!panel || panel.dataset.fvBound === "1") return;
+  panel.dataset.fvBound = "1";
+
+  panel.addEventListener("change", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    if (t.id === "matchFormHomePreset") {
+      syncStartingFormationPreset("home");
+      $("#matchFormHome")?.dispatchEvent(new Event("change", { bubbles: true }));
+      refreshFormationCompareTables();
+      return;
+    }
+    if (t.id === "matchFormAwayPreset") {
+      syncStartingFormationPreset("away");
+      $("#matchFormAway")?.dispatchEvent(new Event("change", { bubbles: true }));
+      refreshFormationCompareTables();
+      return;
+    }
+    if (t.id === "fvInPosshome" || t.id === "fvInPossaway" || t.id === "fvOutPosshome" || t.id === "fvOutPossaway") {
+      const side = t.id.endsWith("away") ? "away" : "home";
+      const kind = t.id.startsWith("fvIn") ? "inPossession" : "outOfPossession";
+      const custom = panel.querySelector(`[data-fv-tac="${side}"][data-fv-tac-kind="${kind}"]`);
+      if (t.value === "__custom__") custom?.classList.remove("admin-hidden");
+      else {
+        if (custom) custom.value = t.value;
+        custom?.classList.add("admin-hidden");
+      }
+      return;
+    }
+    if (t.classList.contains("fv-source-name")) {
+      const row = t.closest("[data-fv-source-row]");
+      const side = row?.getAttribute("data-fv-source-row");
+      if (!side) return;
+      const picked = String(t.value || "").trim().toLowerCase();
+      if (!picked) return;
+      const others = [...panel.querySelectorAll(`[data-fv-source-row="${side}"] .fv-source-name`)].filter((el) => el !== t);
+      if (others.some((el) => String(el.value || "").trim().toLowerCase() === picked)) {
+        t.value = "";
+        toast("That source is already listed for this team");
+      }
+      refreshFormationCompareTables();
+    }
+    if (t.classList.contains("fv-source-form")) refreshFormationCompareTables();
+  });
+
+  panel.addEventListener("input", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    if (t.id === "matchFormHome" || t.id === "matchFormAway") refreshFormationCompareTables();
+    if (t.classList.contains("fv-source-form")) refreshFormationCompareTables();
+  });
+
+  panel.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const statusBtn = t.closest("[data-fv-status]");
+    if (statusBtn) {
+      const side = statusBtn.getAttribute("data-fv-status");
+      const root = panel.querySelector(`[data-fv-side="${side}"]`);
+      root?.querySelectorAll(".fv-status-pill").forEach((btn) => {
+        const on = btn === statusBtn;
+        btn.classList.toggle("is-active", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      return;
+    }
+    const addBtn = t.closest("[data-fv-add-source]");
+    if (addBtn) {
+      const side = addBtn.getAttribute("data-fv-add-source");
+      const wrap = panel.querySelector(`[data-fv-extra="${side}"]`);
+      if (!wrap) return;
+      const i = wrap.querySelectorAll("[data-fv-source-row]").length + 2;
+      wrap.insertAdjacentHTML("beforeend", fvSourceRowHtml(side, i, { name: "", formation: "", url: "" }, { extra: true }));
+      return;
+    }
+    const removeBtn = t.closest("[data-fv-remove-source]");
+    if (removeBtn) {
+      removeBtn.closest("[data-fv-source-row]")?.remove();
+      refreshFormationCompareTables();
+    }
+  });
+
+  for (const side of ["home", "away"]) {
+    const inVal = $(`#fvInPoss${side}`)?.value;
+    const outVal = $(`#fvOutPoss${side}`)?.value;
+    const inCustom = panel.querySelector(`[data-fv-tac="${side}"][data-fv-tac-kind="inPossession"]`);
+    const outCustom = panel.querySelector(`[data-fv-tac="${side}"][data-fv-tac-kind="outOfPossession"]`);
+    if (inVal === "__custom__") inCustom?.classList.remove("admin-hidden");
+    if (outVal === "__custom__") outCustom?.classList.remove("admin-hidden");
+  }
+}
+
+function formationVerifyFilterHtml() {
+  const opts = [
+    ["all", "All"],
+    ["confirmed", "Confirmed"],
+    ["estimated", "Estimated"],
+    ["unverified", "Unverified"],
+  ];
+  return `<div class="fv-filter" role="group" aria-label="Filter fixtures by formation verification">
+      ${opts
+        .map(
+          ([id, label]) =>
+            `<button type="button" class="fv-filter__btn${mwFormationVerifyFilter === id ? " is-active" : ""}" data-fv-filter="${id}">${esc(label)}</button>`,
+        )
+        .join("")}
+    </div>`;
+}
+
+function matchPassesFormationFilter(match) {
+  if (mwFormationVerifyFilter === "all") return true;
+  return (
+    formationVerificationStatus(match, "home") === mwFormationVerifyFilter ||
+    formationVerificationStatus(match, "away") === mwFormationVerifyFilter
+  );
+}
+
+function formationVerifyChipHtml(match, side, teamName) {
+  const form = String(side === "away" ? match?.formation?.[1] : match?.formation?.[0] ?? "").trim() || "—";
+  const status = formationVerificationStatus(match, side);
+  return `<span class="fv-card-chip fv-card-chip--${status}">${esc(teamName || (side === "home" ? "Home" : "Away"))} · ${esc(form)} · ${esc(formationStatusLabel(status))}</span>`;
+}
+
+function fixturePlayerShortName(name) {
+  const clean = typeof stripCaptainSuffix === "function" ? stripCaptainSuffix(name) : String(name ?? "").trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return parts[parts.length - 1];
+  return clean;
+}
+
+function goalEventTypeShort(type) {
+  const t = String(type ?? "").trim().toLowerCase();
+  if (!t) return "";
+  if (t.includes("own")) return "OG";
+  if (t.includes("pen")) return "P";
+  if (t.includes("free")) return "FK";
+  return "";
+}
+
+function sortGoalEventsForCard(events) {
+  return [...(events ?? [])].sort((a, b) => {
+    const na = Number(String(a?.minute ?? "").replace("+", "."));
+    const nb = Number(String(b?.minute ?? "").replace("+", "."));
+    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+    return String(a?.minute ?? "").localeCompare(String(b?.minute ?? ""), undefined, { numeric: true });
+  });
+}
+
+function fixtureGoalAssistSideHtml(events, side) {
+  const rows = sortGoalEventsForCard(events)
+    .filter((ev) => (ev?.side === "away" ? "away" : "home") === side && String(ev?.scorer ?? "").trim())
+    .map((ev) => {
+      const min = ev.minute != null && ev.minute !== "" ? `${ev.minute}'` : "";
+      const scorer = fixturePlayerShortName(ev.scorer);
+      const assist = fixturePlayerShortName(ev.assist || "");
+      const type = goalEventTypeShort(ev.type);
+      return `<li class="mw-ga-row">
+        <span class="mw-ga-min">${esc(min)}</span>
+        <span class="mw-ga-scorer">${esc(scorer)}</span>
+        ${type ? `<span class="mw-ga-type">${esc(type)}</span>` : ""}
+        ${assist ? `<span class="mw-ga-assist">${esc(assist)}</span>` : ""}
+      </li>`;
+    });
+  if (!rows.length) return `<div class="mw-ga-side mw-ga-side--empty" aria-hidden="true"></div>`;
+  return `<ul class="mw-ga-side" aria-label="${side === "away" ? "Away" : "Home"} goals">${rows.join("")}</ul>`;
+}
+
+function fixtureGoalAssistHtml(match) {
+  const events = (match?.goalEvents ?? []).filter((ev) => String(ev?.scorer ?? "").trim());
+  if (!events.length) return "";
+  return `<div class="mw-ga" aria-label="Saved goals and assists">
+    ${fixtureGoalAssistSideHtml(events, "home")}
+    ${fixtureGoalAssistSideHtml(events, "away")}
+  </div>`;
+}
 
 function toast(msg, opts = {}) {
   const el = $("#toast");
@@ -2449,6 +3176,18 @@ function playerNameOptions(teamId, selectedName, emptyLabel = "— Player —") 
   return `<option value="">${esc(emptyLabel)}</option>${opts.join("")}`;
 }
 
+function stageMwEditorDraft(draft) {
+  mwEditorDraft = draft || null;
+  mwEditorDraftStaged = Boolean(draft);
+}
+
+function clearMwFormationTagTimer() {
+  if (mwFormationTagTimer) {
+    clearTimeout(mwFormationTagTimer);
+    mwFormationTagTimer = null;
+  }
+}
+
 function readMwEditorDraft() {
   const idEl = $("#matchEditId");
   if (!idEl) return null;
@@ -2475,6 +3214,12 @@ function readMwEditorDraft() {
       away: readLineupFromDom("away"),
     },
     tmMatchId: String($("#matchTmId")?.value ?? "").trim(),
+    sofaScoreEventId: String($("#matchSsId")?.value ?? "").trim(),
+    fbrefMatchId: String($("#matchFbrefId")?.value ?? "").trim(),
+    formationVerification: readFormationVerificationFromDom(),
+    tacticalFormations: readTacticalFormationsFromDom(),
+    entryReview: readEntryReviewFromDom(),
+    ...(Number($("#matchMw")?.value) > 0 ? { matchday: `MW ${Number($("#matchMw").value)}` } : {}),
   };
 }
 
@@ -2871,15 +3616,15 @@ function getLineupSourceByMatchId(sources, matchId) {
   return sources.find((s) => s.matchId === matchId) ?? sources[0];
 }
 
-function mwLineupPitchPreviewHtml(side, teamId, formation, lineup) {
+function mwLineupPitchPreviewHtml(side, teamId, formation, lineup, { interactive = false } = {}) {
   const team = state().teams.find((t) => t.id === teamId);
   const name = team?.name ?? (side === "home" ? "Home" : "Away");
   const form = String(formation ?? "").trim() || (side === "home" ? "4-2-3-1" : "4-3-3");
-  const slots = Array.isArray(lineup) ? lineup.filter(Boolean) : [];
+  const slots = Array.isArray(lineup) ? (interactive ? lineup.slice(0, LINEUP_SLOTS) : lineup.filter(Boolean)) : [];
   if (typeof renderPitchSideHtml !== "function") {
     return `<div class="pitch pitch--empty"><span class="admin-muted">Pitch preview unavailable</span></div>`;
   }
-  return `<div class="mw-lineup-pitch-wrap">${renderPitchSideHtml(name, form, slots, side, true, teamId || "")}</div>`;
+  return `<div class="mw-lineup-pitch-wrap${interactive ? " mw-lineup-pitch-wrap--swap" : ""}">${renderPitchSideHtml(name, form, slots, side, true, teamId || "", interactive)}</div>`;
 }
 
 function refreshMwLineupPitchPreviews() {
@@ -2894,6 +3639,7 @@ function refreshMwLineupPitchPreviews() {
       homeId,
       $("#matchFormHome")?.value?.trim(),
       readLineupFromDom("home"),
+      { interactive: true },
     );
   }
   if (awayHost) {
@@ -2902,7 +3648,96 @@ function refreshMwLineupPitchPreviews() {
       awayId,
       $("#matchFormAway")?.value?.trim(),
       readLineupFromDom("away"),
+      { interactive: true },
     );
+  }
+  bindMwPitchSwapHandlers();
+}
+
+function swapLineupSlotPlayerFields(slotA, slotB) {
+  if (!slotA || !slotB || slotA === slotB) return false;
+  const swapValue = (sel) => {
+    const ea = slotA.querySelector(sel);
+    const eb = slotB.querySelector(sel);
+    if (!ea || !eb) return;
+    if (ea.type === "checkbox") {
+      const checked = ea.checked;
+      ea.checked = eb.checked;
+      eb.checked = checked;
+      return;
+    }
+    const value = ea.value;
+    ea.value = eb.value;
+    eb.value = value;
+  };
+  swapValue(".lineup-mode");
+  swapValue(".lineup-pick");
+  swapValue(".mw-player-combo__input");
+  swapValue(".lineup-man-num");
+  swapValue(".lineup-man-name");
+  swapValue(".lineup-man-nat");
+  swapValue(".lineup-man-flag");
+  swapValue(".lineup-cap");
+  swapValue(".lineup-mins");
+  swapValue(".lineup-yc");
+  swapValue(".lineup-rc");
+  swapValue(".lineup-add-roster");
+  const syncVis = (slot) => {
+    const manual = slot.querySelector(".lineup-mode")?.value === "manual";
+    slot.querySelector(".lineup-roster-fields")?.classList.toggle("admin-hidden", manual);
+    slot.querySelector(".lineup-manual-fields")?.classList.toggle("admin-hidden", !manual);
+    slot.querySelector(".lineup-add-roster-wrap")?.classList.toggle("admin-hidden", !manual);
+  };
+  syncVis(slotA);
+  syncVis(slotB);
+  return true;
+}
+
+function bindMwPitchSwapHandlers() {
+  for (const side of ["home", "away"]) {
+    const host = side === "home" ? $("#mwPitchPreviewHome") : $("#mwPitchPreviewAway");
+    if (!host || host.dataset.mwPitchSwapBound === "1") continue;
+    host.dataset.mwPitchSwapBound = "1";
+    let fromSlot = null;
+
+    host.addEventListener("dragstart", (e) => {
+      const token = e.target.closest("[data-mw-pitch-side][data-mw-slot]");
+      if (!token || !host.contains(token)) return;
+      fromSlot = token.getAttribute("data-mw-slot");
+      token.classList.add("is-pitch-dragging");
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", `${side}:${fromSlot}`);
+      }
+    });
+    host.addEventListener("dragend", () => {
+      host.querySelectorAll(".is-pitch-dragging").forEach((el) => el.classList.remove("is-pitch-dragging"));
+      host.querySelectorAll(".is-pitch-drop").forEach((el) => el.classList.remove("is-pitch-drop"));
+      fromSlot = null;
+    });
+    host.addEventListener("dragover", (e) => {
+      const token = e.target.closest("[data-mw-pitch-side][data-mw-slot]");
+      if (!token || !host.contains(token)) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      host.querySelectorAll(".is-pitch-drop").forEach((el) => el.classList.remove("is-pitch-drop"));
+      token.classList.add("is-pitch-drop");
+    });
+    host.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const token = e.target.closest("[data-mw-pitch-side][data-mw-slot]");
+      host.querySelectorAll(".is-pitch-drop").forEach((el) => el.classList.remove("is-pitch-drop"));
+      if (!token) return;
+      const toSlot = token.getAttribute("data-mw-slot");
+      const raw = e.dataTransfer?.getData("text/plain") || (fromSlot != null ? `${side}:${fromSlot}` : "");
+      const [srcSide, srcIdx] = raw.split(":");
+      if (srcSide !== side || srcIdx === "" || srcIdx == null || srcIdx === toSlot) return;
+      const slotA = document.querySelector(`.admin-lineup-slot[data-side="${side}"][data-i="${srcIdx}"]`);
+      const slotB = document.querySelector(`.admin-lineup-slot[data-side="${side}"][data-i="${toSlot}"]`);
+      if (!swapLineupSlotPlayerFields(slotA, slotB)) return;
+      persistOpenMwReviewFromDom();
+      refreshMwLineupPitchPreviews();
+    });
   }
 }
 
@@ -2937,12 +3772,12 @@ function renderLineupEditor(side, teamId, lineup, editorOpts = {}) {
             ? `<button type="button" class="mw-btn-ghost mw-btn-copy-lineup" data-copy-lineup="${side}">Copy lineup</button>`
             : ""
         }
-        <button type="button" class="mw-btn-ghost players-auto-btn" data-tm-fetch-lineup="${side}" title="Fetch this XI from Transfermarkt match sheet (serve.bat)">Fetch TM XI</button>
+        <button type="button" class="mw-btn-ghost players-auto-btn" data-ss-fetch-lineup="${side}" title="Fetch this XI from SofaScore (serve.bat)">Fetch SofaScore XI</button>
         <button type="button" class="mw-btn-ghost players-auto-btn" data-apply-form-tags="${side}" title="Set position tags from the formation field above">Apply formation tags</button>
       </div>`;
   const noCopyHint = sources.length
     ? ""
-    : `<p class="mw-lineup-no-copy admin-muted mb-0">No earlier matchweek XI for ${esc(team?.name ?? "this team")} yet — use <strong>Fetch TM XI</strong> or enter manually.</p>`;
+    : `<p class="mw-lineup-no-copy admin-muted mb-0">No earlier matchweek XI for ${esc(team?.name ?? "this team")} yet — use <strong>Fetch SofaScore XI</strong> or enter manually.</p>`;
 
   return `
     <div class="mw-lineup-block h-100" data-lineup-side="${side}">
@@ -2952,7 +3787,9 @@ function renderLineupEditor(side, teamId, lineup, editorOpts = {}) {
         </div>
         <div class="col-12">${copyTools}${noCopyHint}</div>
       </div>
-      <p class="mw-lineup-hint admin-muted">Drag <strong>⋮⋮</strong> to reorder players — positions stay locked to the formation (<strong>${esc(formation)}</strong>: ${esc(tagPreview)}). <strong>Copy lineup</strong> reuses a previous MW; <strong>Fetch TM XI</strong> needs serve.bat.</p>
+      <p class="mw-lineup-hint admin-muted">Drag <strong>⋮⋮</strong> to reorder players — positions stay locked to the formation (<strong>${esc(formation)}</strong>: ${esc(tagPreview)}). <strong>Copy lineup</strong> reuses a previous MW; <strong>Fetch SofaScore XI</strong> needs serve.bat.</p>
+      ${namedLineupCount(lineup) < LINEUP_SLOTS ? `<p class="fv-xi-warn">Starting XI is incomplete — ${namedLineupCount(lineup)} of 11 named. You can still save.</p>` : ""}
+      ${lineupDuplicateNames(lineup).length ? `<p class="fv-xi-warn">Same player appears more than once in this XI.</p>` : ""}
       <div class="admin-lineup-grid mw-lineup-grid" data-lineup-grid="${side}">${slots}</div>
     </div>
   `;
@@ -2974,6 +3811,8 @@ function applyCopiedLineupToEditor(side, lineup, sourceLabel) {
     goalEvents: readGoalEventsFromDom(),
     lineups: { home: readLineupFromDom("home"), away: readLineupFromDom("away") },
     tmMatchId: String($("#matchTmId")?.value ?? "").trim(),
+    sofaScoreEventId: String($("#matchSsId")?.value ?? "").trim(),
+    fbrefMatchId: String($("#matchFbrefId")?.value ?? "").trim(),
   };
 
   draft.lineups = draft.lineups ?? { home: [], away: [] };
@@ -2986,7 +3825,10 @@ function applyCopiedLineupToEditor(side, lineup, sourceLabel) {
     ...slot,
     tag: tags[i] || slot.tag || "",
   }));
-  mwEditorDraft = draft;
+  draft.formationVerification = draft.formationVerification || readFormationVerificationFromDom();
+  draft.tacticalFormations = draft.tacticalFormations || readTacticalFormationsFromDom();
+  stageMwEditorDraft(draft);
+  syncOpenMwReviewDraft(draft);
   renderPanel();
   toast(`Copied ${lineup.length} players — ${sourceLabel} · tags from ${form}`);
 }
@@ -3039,7 +3881,7 @@ function findRosterForTmPlayer(teamId, tmPlayer) {
         aNumber: p.number,
         bNumber: tmPlayer?.number,
         aNationality: p.nationality,
-        bNationality: "",
+        bNationality: tmPlayer?.nationality || "",
       }),
     );
     if (byName) return byName;
@@ -3068,8 +3910,8 @@ function mapTmSideToLineupSlots(tmSide, teamId) {
       nationality: roster?.nationality ?? "",
       flag: roster?.flag ?? "",
       captain: Boolean(tm.captain),
-      yellow: Boolean(tm.yellow),
-      red: Boolean(tm.red),
+      yellow: false,
+      red: false,
       minutes: "",
     };
   });
@@ -3098,7 +3940,7 @@ function pairTmSidesToHomeAway(parsed, homeTeamId, awayTeamId) {
   return { homeSide, awaySide };
 }
 
-function applyTmLineupsToEditor({ homeLineup, awayLineup, homeForm, awayForm, tmMatchId, toastMsg }) {
+function applyTmLineupsToEditor({ homeLineup, awayLineup, homeForm, awayForm, tmMatchId, sofaScoreEventId, fbrefMatchId, toastMsg }) {
   const existing = readMwEditorDraft();
   const home = $("#matchHome")?.value;
   const away = $("#matchAway")?.value;
@@ -3114,6 +3956,8 @@ function applyTmLineupsToEditor({ homeLineup, awayLineup, homeForm, awayForm, tm
     goalEvents: readGoalEventsFromDom(),
     lineups: { home: readLineupFromDom("home"), away: readLineupFromDom("away") },
     tmMatchId: String($("#matchTmId")?.value ?? "").trim(),
+    sofaScoreEventId: String($("#matchSsId")?.value ?? "").trim(),
+    fbrefMatchId: String($("#matchFbrefId")?.value ?? "").trim(),
   };
   draft.lineups = draft.lineups ?? { home: [], away: [] };
   if (homeLineup) draft.lineups.home = cloneLineupSlots(homeLineup);
@@ -3123,7 +3967,13 @@ function applyTmLineupsToEditor({ homeLineup, awayLineup, homeForm, awayForm, tm
     awayForm || draft.formation?.[1] || "4-3-3",
   ];
   if (tmMatchId) draft.tmMatchId = String(tmMatchId);
-  mwEditorDraft = draft;
+  if (sofaScoreEventId) draft.sofaScoreEventId = String(sofaScoreEventId);
+  if (fbrefMatchId) draft.fbrefMatchId = String(fbrefMatchId);
+  draft.formationVerification = draft.formationVerification || readFormationVerificationFromDom();
+  draft.tacticalFormations = draft.tacticalFormations || readTacticalFormationsFromDom();
+  clearMwFormationTagTimer();
+  stageMwEditorDraft(draft);
+  syncOpenMwReviewDraft(draft);
   renderPanel();
   if (toastMsg) toast(toastMsg);
 }
@@ -3144,6 +3994,8 @@ function applyTmGoalsToEditor(goals, { replace = false, tmMatchId = "" } = {}) {
     goalEvents: readGoalEventsFromDom(),
     lineups: { home: readLineupFromDom("home"), away: readLineupFromDom("away") },
     tmMatchId: String($("#matchTmId")?.value ?? "").trim(),
+    sofaScoreEventId: String($("#matchSsId")?.value ?? "").trim(),
+    fbrefMatchId: String($("#matchFbrefId")?.value ?? "").trim(),
   };
   const incoming = tmGoalsForSave(goals);
   if (!incoming.length) return 0;
@@ -3175,69 +4027,143 @@ function applyTmGoalsToEditor(goals, { replace = false, tmMatchId = "" } = {}) {
   // Own goals credit the opposing side on the public site; keep simple FT score from non-OG sides + OG flips.
   draft.score = [hs + ogAway, as + ogHome];
   if (draft.status === "NS" && draft.score[0] + draft.score[1] > 0) draft.status = "FT";
-  mwEditorDraft = draft;
+  stageMwEditorDraft(draft);
+  syncOpenMwReviewDraft(draft);
   renderPanel();
   return draft.goalEvents.length;
 }
 
-async function fetchTransfermarktLineupsForEditor(sides = ["home", "away"]) {
-  if (typeof TransfermarktSync === "undefined") {
-    return toast("Transfermarkt sync module failed to load");
+function pairSsSidesToHomeAway(parsed, homeTeamId, awayTeamId) {
+  const homeName = state().teams.find((t) => t.id === homeTeamId)?.name || "";
+  const awayName = state().teams.find((t) => t.id === awayTeamId)?.name || "";
+  let homeSide = parsed.home;
+  let awaySide = parsed.away;
+  const matchName = (a, b) =>
+    typeof SofaScoreSync !== "undefined" && SofaScoreSync.namesLooselyMatch
+      ? SofaScoreSync.namesLooselyMatch(a, b)
+      : String(a ?? "").toLowerCase() === String(b ?? "").toLowerCase();
+  if (homeName && awayName && parsed.home?.teamName && parsed.away?.teamName) {
+    if (matchName(parsed.home.teamName, awayName) && matchName(parsed.away.teamName, homeName)) {
+      homeSide = parsed.away;
+      awaySide = parsed.home;
+    }
   }
-  if (!tmSyncLocalProxyReady()) {
-    return toast("Run serve.bat locally — Transfermarkt lineup fetch needs the local server proxy");
+  return { homeSide, awaySide };
+}
+
+function setMwLineupFetchBusy(busy) {
+  const btnBoth = $("#btnSsFetchBothLineups");
+  const btnGoals = $("#btnTmFetchGoalsAssists");
+  const sideBtns = $$("[data-ss-fetch-lineup]");
+  if (btnBoth) {
+    btnBoth.disabled = busy;
+    btnBoth.textContent = busy ? "Fetching…" : "Fetch both XIs from SofaScore";
+  }
+  if (btnGoals) btnGoals.disabled = busy;
+  sideBtns.forEach((b) => {
+    b.disabled = busy;
+  });
+}
+
+async function resolveSsEventIdForEditor() {
+  const fromInput =
+    typeof SofaScoreSync !== "undefined" && SofaScoreSync.parseEventId
+      ? SofaScoreSync.parseEventId($("#matchSsId")?.value)
+      : String($("#matchSsId")?.value ?? "").trim().match(/^\d{4,}$/)?.[0] || "";
+  const editId = $("#matchEditId")?.value || matchEditId;
+  const local = editId ? state().matches.find((m) => m.id === editId) : null;
+  if (fromInput) return { eventId: fromInput, entity: null };
+
+  const saved = SofaScoreSync.parseEventId?.(local?.sofaScoreEventId) || "";
+  if (saved) return { eventId: saved, entity: null };
+
+  const home = $("#matchHome")?.value;
+  const away = $("#matchAway")?.value;
+  const homeName = state().teams.find((t) => t.id === home)?.name || "";
+  const awayName = state().teams.find((t) => t.id === away)?.name || "";
+  if (!homeName || !awayName) return { eventId: "", entity: null };
+
+  const time = $("#matchTime")?.value || local?.time || "";
+  const round =
+    Number($("#matchMw")?.value) ||
+    parseMwNumber(local?.matchday) ||
+    Number(FCDataStore.getLeagueMeta(leagueFilter)?.matchweek) ||
+    0;
+  const seasonYear = Number($("#tmMatchdaySeason")?.value) || Number(new Date().getFullYear());
+  if (SofaScoreSync.fetchRoundEvents && round > 0) {
+    try {
+      const roundEvents = await SofaScoreSync.fetchRoundEvents(leagueFilter, seasonYear, round);
+      const fromRound = SofaScoreSync.pickEventForTeams(roundEvents, {
+        homeName,
+        awayName,
+        time,
+        leagueId: leagueFilter,
+        allowFuture: true,
+      });
+      if (fromRound?.id) return { eventId: String(fromRound.id), entity: fromRound };
+    } catch {
+      /* fall through to name search */
+    }
+  }
+
+  const events = await SofaScoreSync.searchEvents(`${homeName} ${awayName}`);
+  const picked = SofaScoreSync.pickEventForTeams(events, {
+    homeName,
+    awayName,
+    time,
+    leagueId: leagueFilter,
+  });
+  return { eventId: picked?.id ? String(picked.id) : "", entity: picked || null };
+}
+
+async function fetchSofaScoreLineupsForEditor(sides = ["home", "away"]) {
+  if (typeof SofaScoreSync === "undefined") {
+    return toast("SofaScore sync module failed to load");
+  }
+  if (!SofaScoreSync.isLocalProxyHost?.()) {
+    return toast("Run serve.bat locally — SofaScore lineup fetch needs the local server proxy");
   }
   const home = $("#matchHome")?.value;
   const away = $("#matchAway")?.value;
   if (!home || !away) return toast("Choose home and away teams first");
 
-  const matchId = resolveTmMatchIdForEditor();
-  if (!matchId) {
-    return toast("Paste a Transfermarkt match id/URL, or Compare this MW first so fixtures get a match id");
-  }
-
-  const btnBoth = $("#btnTmFetchBothLineups");
-  const btnGoals = $("#btnTmFetchGoalsAssists");
-  const sideBtns = $$("[data-tm-fetch-lineup]");
-  const setBusy = (busy) => {
-    if (btnBoth) btnBoth.disabled = busy;
-    if (btnGoals) btnGoals.disabled = busy;
-    sideBtns.forEach((b) => {
-      b.disabled = busy;
-    });
-  };
-  setBusy(true);
+  setMwLineupFetchBusy(true);
   try {
-    const parsed = await TransfermarktSync.fetchAndParseSpielberichtLineups(matchId);
-    const { homeSide, awaySide } = pairTmSidesToHomeAway(parsed, home, away);
+    const resolved = await resolveSsEventIdForEditor();
+    const eventId = resolved.eventId;
+    if (!eventId) {
+      return toast("Paste a SofaScore match id/URL, or keep home/away names so search can find the fixture");
+    }
+
+    const parsed = await SofaScoreSync.fetchAndParseLineups(eventId);
+    if (resolved.entity?.homeTeam?.name) {
+      parsed.home.teamName = parsed.home.teamName || resolved.entity.homeTeam.name;
+      parsed.away.teamName = parsed.away.teamName || resolved.entity.awayTeam?.name || "";
+    }
+    const { homeSide, awaySide } = pairSsSidesToHomeAway(parsed, home, away);
     const wantHome = sides.includes("home");
     const wantAway = sides.includes("away");
     const homeLineup = wantHome ? mapTmSideToLineupSlots(homeSide, home) : null;
     const awayLineup = wantAway ? mapTmSideToLineupSlots(awaySide, away) : null;
-    if (wantHome && !homeLineup?.length) throw new Error("No home starting XI found on Transfermarkt");
-    if (wantAway && !awayLineup?.length) throw new Error("No away starting XI found on Transfermarkt");
+    if (wantHome && !homeLineup?.length) throw new Error("No home starting XI found on SofaScore");
+    if (wantAway && !awayLineup?.length) throw new Error("No away starting XI found on SofaScore");
 
     const parts = [];
     if (homeLineup?.length) parts.push(`home ${homeLineup.length}`);
     if (awayLineup?.length) parts.push(`away ${awayLineup.length}`);
-    const existingGoals = readGoalEventsFromDom();
     applyTmLineupsToEditor({
       homeLineup,
       awayLineup,
       homeForm: wantHome ? homeSide?.formation || "" : "",
       awayForm: wantAway ? awaySide?.formation || "" : "",
-      tmMatchId: parsed.tmMatchId || matchId,
+      sofaScoreEventId: parsed.eventId || eventId,
       toastMsg: null,
     });
-    if ((parsed.goals ?? []).length && !existingGoals.length) {
-      applyTmGoalsToEditor(parsed.goals, { replace: true, tmMatchId: parsed.tmMatchId || matchId });
-      parts.push(`${parsed.goals.length} goals`);
-    }
-    toast(`Fetched TM XI — ${parts.join(" · ")}. Review pitch, then Save fixture.`);
+    toast(`Fetched SofaScore XI — ${parts.join(" · ")}. Review pitch, then Save Match.`);
   } catch (err) {
-    toast(err?.message || "Transfermarkt lineup fetch failed");
+    toast(err?.message || "SofaScore lineup fetch failed");
   } finally {
-    setBusy(false);
+    setMwLineupFetchBusy(false);
   }
 }
 
@@ -3253,7 +4179,7 @@ async function fetchTransfermarktGoalsAssistsForEditor() {
     return toast("Paste a Transfermarkt match id/URL, or Compare this MW first so fixtures get a match id");
   }
   const btn = $("#btnTmFetchGoalsAssists");
-  const btnBoth = $("#btnTmFetchBothLineups");
+  const btnBoth = $("#btnSsFetchBothLineups");
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Fetching…";
@@ -3281,18 +4207,187 @@ async function fetchTransfermarktGoalsAssistsForEditor() {
   }
 }
 
+function matchweekFixtureToolbarHtml(teams) {
+  return `<div class="mw-fixture-toolbar">
+    ${matchweekClubFilterHtml(teams)}
+    <div class="mw-fixture-chip-filters">
+      ${entryReviewFilterHtml()}
+      ${formationVerifyFilterHtml()}
+    </div>
+  </div>`;
+}
+
+function clubLineupXiListHtml(lineup) {
+  const slots = (Array.isArray(lineup) ? lineup : []).filter(Boolean);
+  if (!slots.length) return "";
+  const items = slots
+    .map((p) => {
+      const name = String(p?.name ?? "").trim() || "—";
+      const num = p?.number != null && String(p.number).trim() !== "" ? String(p.number) : "—";
+      const tag = String(p?.tag ?? "").trim().toUpperCase() || "—";
+      const cap = p?.captain ? ` <span class="mw-xi-c" title="Captain">C</span>` : "";
+      return `<li class="mw-xi-row"><span class="mw-xi-tag">${esc(tag)}</span><span class="mw-xi-num">${esc(num)}</span><span class="mw-xi-name">${esc(name)}${cap}</span></li>`;
+    })
+    .join("");
+  const n = namedLineupCount(lineup);
+  const warn =
+    n < LINEUP_SLOTS ? `<p class="fv-xi-warn">Starting XI is incomplete — ${n} of 11 named.</p>` : "";
+  return `<div class="mw-xi-panel"><ol class="mw-xi-list">${items}</ol>${warn}</div>`;
+}
+
+function mwFixtureCrestStyle(logo) {
+  return logo
+    ? `style="background-color:#fff;background-image:url('${esc(logo)}');background-size:68% auto;background-position:center;background-repeat:no-repeat"`
+    : 'style="background-color:#fff"';
+}
+
+function renderClubLineupReviewCard(match, clubId, hasLineup) {
+  const side = clubMatchSide(match, clubId);
+  const ht = state().teams.find((t) => t.id === match.homeTeamId);
+  const at = state().teams.find((t) => t.id === match.awayTeamId);
+  const hName = ht?.name ?? "Home";
+  const aName = at?.name ?? "Away";
+  const club = state().teams.find((t) => t.id === clubId);
+  const clubName = club?.name ?? "Club";
+  const form = String(side === "away" ? match?.formation?.[1] : match?.formation?.[0] ?? "").trim();
+  const lineup = clubMatchLineup(match, clubId);
+  const mwLabel = match.matchday || "—";
+  const emptyBody = `<div class="mw-lineup-review-empty">
+      <p class="mw-lineup-review-empty__text">No saved lineup yet; switch to the match layout to save or edit.</p>
+      <button type="button" class="mw-btn-ghost" data-mw-open-match-layout="${esc(match.id)}">Edit in match layout</button>
+    </div>`;
+  const body = hasLineup
+    ? `<div class="mw-lineup-review-body">
+        <div class="mw-lineup-pitch-wrap mw-lineup-pitch-wrap--review">${mwLineupPitchPreviewHtml(side || "home", clubId, form, lineup)}</div>
+        ${clubLineupXiListHtml(lineup)}
+      </div>`
+    : emptyBody;
+
+  return `<article class="mw-lineup-review-card${hasLineup ? "" : " is-empty"}${matchEditId === match.id ? " is-active" : ""}">
+      <div class="mw-lineup-review-top">
+        <span class="mw-pill">${esc(mwLabel)}</span>
+        <span class="mw-fixture-day">${esc(match.time ?? "—")}</span>
+        ${entryReviewChipHtml(match)}
+      </div>
+      <div class="mw-fixture-scoreline">
+        <div class="mw-fixture-club home">
+          <span class="mw-fixture-crest" ${mwFixtureCrestStyle(ht?.logo)} aria-hidden="true"></span>
+          <span class="mw-fixture-name">${esc(hName)}</span>
+        </div>
+        <div class="mw-fixture-result">
+          <span class="mw-fixture-goals">${esc(match.score?.[0] ?? 0)}</span>
+          <span class="mw-fixture-sep">–</span>
+          <span class="mw-fixture-goals">${esc(match.score?.[1] ?? 0)}</span>
+        </div>
+        <div class="mw-fixture-club away">
+          <span class="mw-fixture-crest" ${mwFixtureCrestStyle(at?.logo)} aria-hidden="true"></span>
+          <span class="mw-fixture-name">${esc(aName)}</span>
+        </div>
+      </div>
+      <div class="fv-card-row">
+        ${formationVerifyChipHtml(match, side || "home", clubName)}
+      </div>
+      ${body}
+      ${
+        hasLineup
+          ? `<div class="mw-fixture-actions">
+        <button type="button" class="mw-btn-ghost" data-mw-open-match-layout="${esc(match.id)}">Edit in match layout</button>
+      </div>`
+          : ""
+      }
+    </article>`;
+}
+
+function renderClubLineupCards(matches) {
+  const weekList = matches ?? [];
+  const teams = teamsForLeague(leagueFilter);
+  const toolbar = matchweekFixtureToolbarHtml(teams);
+  const clubId = mwClubFilter;
+  const clubName = teams.find((t) => t.id === clubId)?.name || "this club";
+
+  if (!clubId) {
+    mwLineupPage = 1;
+    return `${toolbar}
+      <div class="matchweek-empty">
+        <p class="matchweek-empty__title">Pick a club</p>
+        <p class="matchweek-empty__text">Select a club above to review saved lineups across every gameweek.</p>
+      </div>`;
+  }
+
+  const filtered = weekList.filter(
+    (m) => matchPassesClubFilter(m) && matchPassesFormationFilter(m) && matchPassesEntryFilter(m),
+  );
+  if (!filtered.length) {
+    mwLineupPage = 1;
+    return `${toolbar}
+      <div class="matchweek-empty">
+        <p class="matchweek-empty__title">No fixtures for this club</p>
+        <p class="matchweek-empty__text">Clear the club filter, or add a fixture on the Matches tab.</p>
+        <button type="button" class="mw-btn-ghost" data-mw-fixtures-view="matches">Show match layout</button>
+      </div>`;
+  }
+
+  const savedN = filtered.filter((m) => clubLineupIsSaved(m, clubId)).length;
+  const missingN = filtered.length - savedN;
+  if (!savedN) {
+    mwLineupPage = 1;
+    return `${toolbar}
+      <div class="matchweek-empty">
+        <p class="matchweek-empty__title">No saved lineup yet</p>
+        <p class="matchweek-empty__text">No saved lineup yet; switch to the match layout to save or edit.</p>
+        <button type="button" class="mw-btn-primary mw-btn-primary--sm" data-mw-fixtures-view="matches">Show match layout</button>
+      </div>`;
+  }
+
+  const pages = clampMwLineupPage(filtered.length);
+  const start = (mwLineupPage - 1) * MW_LINEUP_PAGE_SIZE;
+  const slice = filtered.slice(start, start + MW_LINEUP_PAGE_SIZE);
+  const end = start + slice.length;
+  const cards = slice
+    .map((m) => renderClubLineupReviewCard(m, clubId, clubLineupIsSaved(m, clubId)))
+    .join("");
+  const pager = mwLineupPagerHtml(mwLineupPage, pages);
+  const range = pages > 1 ? ` · showing ${start + 1}–${end} of ${filtered.length}` : "";
+  const summary = `<p class="mw-lineup-review-summary">${savedN} saved XI${savedN === 1 ? "" : "s"} for ${esc(clubName)}${missingN ? ` · ${missingN} match${missingN === 1 ? "" : "es"} still empty` : ""}${range}</p>`;
+  return `${toolbar}${summary}${pager}<div class="mw-lineup-review-list" id="mwLineupReviewList">${cards}</div>${pager}`;
+}
+
 function renderFixtureCards(matches) {
-  if (!matches.length) {
-    return `
+  const weekList = matches ?? [];
+  const teams = teamsForLeague(leagueFilter);
+  if (mwClubFilter && !teams.some((t) => t.id === mwClubFilter)) mwClubFilter = "";
+  if (mwFixturesView === "lineups") return renderClubLineupCards(weekList);
+  const clubWeeks = Boolean(mwClubFilter);
+  const filtered = weekList.filter(
+    (m) => matchPassesClubFilter(m) && matchPassesFormationFilter(m) && matchPassesEntryFilter(m),
+  );
+  const toolbar = matchweekFixtureToolbarHtml(teams);
+  if (!weekList.length) {
+    if (clubWeeks) {
+      return `${toolbar}
+      <div class="matchweek-empty">
+        <p class="matchweek-empty__title">No fixtures for this club</p>
+        <p class="matchweek-empty__text">Clear the club filter, or add a fixture for them on the Matchweek tab.</p>
+      </div>`;
+    }
+    return `${toolbar}
       <div class="matchweek-empty">
         <div class="matchweek-empty__icon" aria-hidden="true"></div>
         <p class="matchweek-empty__title">No fixtures yet</p>
-        <p class="matchweek-empty__text">Add matches for this gameweek — they appear in the public Match Center.</p>
+        <p class="matchweek-empty__text">Add matches for this gameweek — they appear in the public Match Center. Or pick a club to see every gameweek.</p>
         <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-empty__btn" id="btnNewMwMatchEmpty">+ Add first fixture</button>
       </div>`;
   }
 
-  return `<div class="row g-2 g-md-3 mw-fixture-list">${matches
+  if (!filtered.length) {
+    return `${toolbar}
+      <div class="matchweek-empty">
+        <p class="matchweek-empty__title">No fixtures match these filters</p>
+        <p class="matchweek-empty__text">Try All clubs, Open, Verified, or another formation status.</p>
+      </div>`;
+  }
+
+  return `${toolbar}<div class="row g-2 g-md-3 mw-fixture-list">${filtered
     .map((match) => {
       const ht = state().teams.find((t) => t.id === match.homeTeamId);
       const at = state().teams.find((t) => t.id === match.awayTeamId);
@@ -3311,7 +4406,7 @@ function renderFixtureCards(matches) {
         <article class="mw-fixture-card h-100${active ? " is-active" : ""}">
           <div class="mw-fixture-card__stripe" aria-hidden="true"></div>
           <div class="mw-fixture-top">
-            <span class="player-drag-handle mw-fixture-drag" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
+            ${clubWeeks ? "" : `<span class="player-drag-handle mw-fixture-drag" title="Drag to reorder" aria-hidden="true">⋮⋮</span>`}
             <span class="mw-fixture-day">${esc(match.time ?? "—")}</span>
             ${active ? '<span class="mw-fixture-editing">Editing</span>' : ""}
           </div>
@@ -3331,11 +4426,17 @@ function renderFixtureCards(matches) {
             </div>
           </div>
           <div class="mw-fixture-meta">
-            ${match.matchday && typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter) ? `<span class="mw-pill">${esc(match.matchday)}</span>` : ""}
+            ${entryReviewChipHtml(match)}
+            ${match.matchday && (clubWeeks || (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter))) ? `<span class="mw-pill">${esc(match.matchday)}</span>` : ""}
             ${goals ? `<span class="mw-pill mw-pill--goals">${goals} goal${goals === 1 ? "" : "s"}</span>` : ""}
             ${lineupN ? `<span class="mw-pill mw-pill--lineup">${lineupN} in lineup</span>` : ""}
             ${match.stadium ? `<span class="mw-pill mw-pill--venue">${esc(match.stadium)}</span>` : ""}
           </div>
+          <div class="fv-card-row">
+            ${formationVerifyChipHtml(match, "home", hName)}
+            ${formationVerifyChipHtml(match, "away", aName)}
+          </div>
+          ${fixtureGoalAssistHtml(match)}
           <div class="mw-fixture-actions">
             <button type="button" class="mw-btn-ghost" data-edit-mw-match="${esc(match.id)}">Edit</button>
             <button type="button" class="mw-btn-danger" data-del-mw-match="${esc(match.id)}">Remove</button>
@@ -4070,7 +5171,7 @@ function tmMatchdaySyncPanelHtml(matchweek) {
           <label for="tmMatchdaySeason">Season starts</label>
           <input id="tmMatchdaySeason" class="mw-input" type="number" min="1900" max="2100" step="1" value="${esc(tmMatchdaySeason)}" />
         </div>
-        <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmMatchdayRefresh"${canCompare ? "" : " disabled"} title="${canCompare ? "Compare this matchweek with Transfermarkt (fixtures, scores, goals). Open a fixture to Fetch TM XI for lineups." : localReady ? "No competition mapping for this league" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
+        <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmMatchdayRefresh"${canCompare ? "" : " disabled"} title="${canCompare ? "Compare this matchweek with Transfermarkt (fixtures, scores, goals). Open a fixture to Fetch SofaScore XI for lineups." : localReady ? "No competition mapping for this league" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
       </div>
       <div class="matchweek-tm-import row g-2 align-items-end mt-2">
         <div class="col-4 col-md-2">
@@ -4189,8 +5290,10 @@ function applySelectedMatchweek(num, { toastMsg = false } = {}) {
     matchweek: num,
     matchweekTitle: autoTitle ? `Matchweek ${num}` : prevTitle,
   });
+  persistOpenMwReviewFromDom();
   matchEditId = "";
-  mwEditorDraft = null;
+  mwReviewQueueId = "";
+  stageMwEditorDraft(null);
   if (tmMatchdaySyncState && tmMatchdaySyncState.matchweek !== num) tmMatchdaySyncState = null;
   syncToAppArrays();
   if (toastMsg && prev !== num) toast(`Showing Matchweek ${num}`);
@@ -4231,10 +5334,8 @@ function panelLeague() {
   const mwTag = `MW ${mw}`;
   const mwTitle = meta.matchweekTitle ?? (isWc ? "Group Stage" : `Matchweek ${mw}`);
   const teams = teamsForLeague(leagueFilter);
-  const list =
-    typeof filterMatchesForLeagueWeek === "function"
-      ? filterMatchesForLeagueWeek(state().matches, leagueFilter, mw)
-      : state().matches.filter((m) => m.leagueId === leagueFilter && (m.matchday === mwTag || !m.matchday));
+  if (mwClubFilter && !teams.some((t) => t.id === mwClubFilter)) mwClubFilter = "";
+  const list = listMatchweekPanelMatches(leagueFilter, mw, mwClubFilter);
   const m = matchEditId ? state().matches.find((x) => x.id === matchEditId) : null;
   const src = mwEditorDraft ?? m;
   const homeId = src?.homeTeamId ?? teams[0]?.id ?? "";
@@ -4280,12 +5381,34 @@ function panelLeague() {
   const settingsHint = isWc
     ? "Tournament title and dates shown above the full fixture list on the site."
     : "Pick a matchweek to filter fixtures. Title and date range are shown on the public site.";
-  const fixturesTitle = isWc ? "All fixtures" : `Fixtures <span class="mw-badge">MW ${mw}</span>`;
-  const fixturesHint = isWc
-    ? `${list.length} match${list.length === 1 ? "" : "es"} · every round is kept`
-    : `${list.length} match${list.length === 1 ? "" : "es"} in this gameweek · drag a card to reorder`;
+  const clubList = list.filter(matchPassesClubFilter);
+  const clubName = mwClubFilter ? teams.find((t) => t.id === mwClubFilter)?.name || "club" : "";
+  const verifiedN = clubList.filter((m) => normalizeEntryReview(m.entryReview).status === "done").length;
+  const lineupSavedN = mwClubFilter
+    ? clubList.filter((m) => clubLineupIsSaved(m, mwClubFilter)).length
+    : 0;
+  const fixturesTitle =
+    mwFixturesView === "lineups"
+      ? mwClubFilter
+        ? `Lineups <span class="mw-badge">All</span>`
+        : "Lineups"
+      : isWc
+        ? "All fixtures"
+        : mwClubFilter
+          ? `Fixtures <span class="mw-badge">All</span>`
+          : `Fixtures <span class="mw-badge">MW ${mw}</span>`;
+  const fixturesHint =
+    mwFixturesView === "lineups"
+      ? mwClubFilter
+        ? `${lineupSavedN} saved XI${lineupSavedN === 1 ? "" : "s"} · ${clubList.length} ${esc(clubName)} match${clubList.length === 1 ? "" : "es"} · all gameweeks`
+        : "Pick a club to review that club’s saved lineups across every gameweek."
+      : isWc
+        ? `${clubList.length} match${clubList.length === 1 ? "" : "es"}${clubName ? ` · ${esc(clubName)}` : ""} · every round is kept · ${verifiedN} verified`
+        : mwClubFilter
+          ? `${clubList.length} ${esc(clubName)} match${clubList.length === 1 ? "" : "es"} · all gameweeks · ${verifiedN} verified`
+          : `${clubList.length} match${clubList.length === 1 ? "" : "es"} in this gameweek · ${verifiedN} verified · drag a card to reorder`;
   const leagueName = leagues().find((l) => l.id === leagueFilter)?.name ?? leagueFilter;
-  const stats = matchweekStats(list);
+  const stats = matchweekStats(clubList);
   const mwBadge = isWc ? "" : `<span class="matchweek-broadcast__badge">MW ${mw}</span>`;
 
   return `
@@ -4359,8 +5482,12 @@ function panelLeague() {
             <h3>${fixturesTitle}</h3>
             <p>${fixturesHint}</p>
           </div>
-          <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-add-fixture-btn" id="btnNewMwMatch">+ Add fixture</button>
+          <div class="matchweek-fixtures-head__actions">
+            ${matchweekFixturesViewToggleHtml()}
+            <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-add-fixture-btn${mwFixturesView === "lineups" ? " admin-hidden" : ""}" id="btnNewMwMatch">+ Add fixture</button>
+          </div>
         </div>
+        ${mwReviewQueueHtml()}
         ${renderFixtureCards(list)}
       </section>
 
@@ -4369,17 +5496,24 @@ function panelLeague() {
         <div class="mw-editor-head matchweek-editor-head">
           <div class="mw-card-head__icon mw-card-head__icon--editor" aria-hidden="true"></div>
           <div class="matchweek-editor-head__copy">
-            <p class="mw-eyebrow mw-eyebrow--live">${src ? (matchEditId ? "Editing fixture" : "New fixture") : "New fixture"}</p>
+            <p class="mw-eyebrow mw-eyebrow--live">${currentMwReviewItem() ? (currentMwReviewItem().mode === "update" ? "Review · update existing" : "Review · new fixture") : src ? (matchEditId ? "Editing fixture" : "New fixture") : "New fixture"}</p>
             <h3 class="mw-editor-title">${esc(ht?.name ?? "Home")} <span class="mw-editor-score">${previewH} – ${previewA}</span> ${esc(at?.name ?? "Away")}</h3>
           </div>
         </div>
+        ${mwReviewBannerHtml(currentMwReviewItem())}
 
-        <input type="hidden" id="matchEditId" value="${esc(src?.id ?? matchEditId ?? "")}" />
+        <input type="hidden" id="matchEditId" value="${esc(currentMwReviewItem() ? (currentMwReviewItem().mode === "update" ? currentMwReviewItem().existingId || "" : "") : (src?.id ?? matchEditId ?? ""))}" />
+        <input type="hidden" id="matchQueueId" value="${esc(mwReviewQueueId)}" />
 
         <div class="mw-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">①</span> Match details</h4>
           <div class="row g-2 g-md-3 mw-field-grid mw-field-grid--2">
             <div class="col-12 col-md-6"><div class="mw-field"><label>Match day</label><input id="matchTime" class="mw-input" value="${esc(src?.time ?? "")}" placeholder="Sunday 12 May" /></div></div>
+            ${isWc ? "" : `<div class="col-12 col-md-6">${matchweekSelectField(leagueFilter, parseMwNumber(src?.matchday) || meta.matchweek || 1, {
+              id: "matchMw",
+              label: "Gameweek",
+              fieldClass: "mw-field mb-0",
+            })}<p class="mw-field-note admin-muted">This fixture’s week. Saving verified status does not move it to the live matchweek at the top.</p></div>`}
             ${stageField}
             <div class="col-12 col-md-6">${stadiumSelectField(leagueFilter, stadiumVal, {
               linkedOnly: true,
@@ -4404,8 +5538,6 @@ function panelLeague() {
                 return `<option value="${s}"${cur === s ? " selected" : ""}>${s === "NS" ? "NS (upcoming)" : s}</option>`;
               }).join("")}
             </select></div></div></div>
-            <div class="col-12 col-md-6"><div class="mw-field"><label>Home formation</label><input id="matchFormHome" class="mw-input" value="${esc(src?.formation?.[0] ?? "4-2-3-1")}" placeholder="4-2-3-1" /></div></div>
-            <div class="col-12 col-md-6"><div class="mw-field"><label>Away formation</label><input id="matchFormAway" class="mw-input" value="${esc(src?.formation?.[1] ?? "4-3-3")}" placeholder="4-3-3" /></div></div>
           </div>
         </div>
 
@@ -4417,8 +5549,17 @@ function panelLeague() {
 
         <div class="mw-editor-section">
           <h4 class="mw-section-label"><span class="mw-section-icon">③</span> Lineups</h4>
-          <p class="mw-section-hint">Use <strong>Copy lineup</strong> for a previous MW, or <strong>Fetch TM XI</strong> from Transfermarkt (needs <strong>serve.bat</strong>). Match id is filled when you Compare / Add from the matchweek Transfermarkt panel.</p>
+          <p class="mw-section-hint">Pick a <strong>starting formation</strong>, then the XI. Use <strong>Copy lineup</strong> for a previous MW, or <strong>Fetch SofaScore XI</strong> (needs <strong>serve.bat</strong>). SofaScore match id is filled after a successful fetch, or paste an event URL. Positions fill left-to-right (<strong>GK · LB · CB · CB · RB</strong>…). Captain is fetched; cards are not. Goals still come from Transfermarkt.</p>
           <div class="mw-tm-lineup-bar row g-2 align-items-end mb-2">
+            <div class="col-12 col-md-6 col-xl-5">
+              <div class="mw-field mb-0">
+                <label for="matchSsId">SofaScore match id / URL</label>
+                <input id="matchSsId" class="mw-input admin-url-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${esc(src?.sofaScoreEventId ?? "")}" placeholder="12436888 or sofascore.com/event/…" />
+              </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-7 d-flex flex-wrap gap-2 align-items-center">
+              <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSsFetchBothLineups" title="Fetch home + away starting XIs from SofaScore">Fetch both XIs from SofaScore</button>
+            </div>
             <div class="col-12 col-md-6 col-xl-5">
               <div class="mw-field mb-0">
                 <label for="matchTmId">Transfermarkt match id / URL</label>
@@ -4426,13 +5567,13 @@ function panelLeague() {
               </div>
             </div>
             <div class="col-12 col-md-6 col-xl-7 d-flex flex-wrap gap-2 align-items-center">
-              <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmFetchBothLineups" title="Fetch home + away starting XIs from Transfermarkt">Fetch both XIs from Transfermarkt</button>
               <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmFetchGoalsAssists" title="Fetch goals and assists from Transfermarkt match sheet">Fetch goals &amp; assists</button>
             </div>
           </div>
+          ${formationVerificationPanelHtml(src, ht?.name, at?.name)}
           <div class="mw-lineup-pitch-previews pitch-grid" aria-label="Lineup pitch previews">
-            <div id="mwPitchPreviewHome">${mwLineupPitchPreviewHtml("home", homeId, src?.formation?.[0], src?.lineups?.home)}</div>
-            <div id="mwPitchPreviewAway">${mwLineupPitchPreviewHtml("away", awayId, src?.formation?.[1], src?.lineups?.away)}</div>
+            <div id="mwPitchPreviewHome">${mwLineupPitchPreviewHtml("home", homeId, src?.formation?.[0], src?.lineups?.home, { interactive: true })}</div>
+            <div id="mwPitchPreviewAway">${mwLineupPitchPreviewHtml("away", awayId, src?.formation?.[1], src?.lineups?.away, { interactive: true })}</div>
           </div>
           <div class="row g-3 mw-lineups-grid">
             <div class="col-12 col-xl-6">${renderLineupEditor("home", homeId, src?.lineups?.home, { currentMw: mw, excludeMatchId: matchEditId, formation: src?.formation?.[0] })}</div>
@@ -4440,8 +5581,17 @@ function panelLeague() {
           </div>
         </div>
 
+        <div class="mw-entry-review">
+          <label class="mw-entry-review__check">
+            <input id="matchEntryDone" type="checkbox"${normalizeEntryReview(src?.entryReview).status === "done" ? " checked" : ""} />
+            <span>Mark fixture verified</span>
+          </label>
+          <input id="matchEntryNote" class="mw-input" type="text" maxlength="160" value="${esc(normalizeEntryReview(src?.entryReview).note)}" placeholder="Remark (optional) — e.g. XI + goals checked" />
+        </div>
         <div class="mw-editor-footer matchweek-editor-footer">
-          <button type="button" class="mw-btn-primary matchweek-save-fixture-btn" id="btnSaveMwMatch">Save fixture</button>
+          <button type="button" class="mw-btn-ghost" id="btnMarkMwReviewed"${currentMwReviewItem() ? "" : " disabled"}>Mark reviewed</button>
+          <button type="button" class="mw-btn-primary matchweek-save-fixture-btn" id="btnSaveMwMatch">Save Match</button>
+          <button type="button" class="mw-btn-ghost" id="btnSaveAllReviewedMwEditor"${mwReviewQueueForLeague().some((r) => r.reviewed) ? "" : " disabled"}>Save All Reviewed</button>
           <button type="button" class="mw-btn-ghost matchweek-cancel-fixture-btn" id="btnCancelMwMatch">Cancel</button>
         </div>
       </section>
@@ -5693,15 +6843,7 @@ function panelSquadDepth() {
                 <label for="sdFormation">Formation</label>
                 <input id="sdFormation" class="mw-input squaddepth-formation-input" value="${esc(depth.formation)}" placeholder="4-2-3-1" list="sdFormationList" autocomplete="off" />
                 <datalist id="sdFormationList">
-                  <option value="4-3-3"></option>
-                  <option value="4-4-2"></option>
-                  <option value="4-2-3-1"></option>
-                  <option value="4-1-4-1"></option>
-                  <option value="3-5-2"></option>
-                  <option value="3-4-3"></option>
-                  <option value="3-4-2-1"></option>
-                  <option value="5-4-1"></option>
-                  <option value="5-3-2"></option>
+                  ${FORMATION_PRESETS.map((f) => `<option value="${esc(f)}"></option>`).join("")}
                 </datalist>
                 <p class="mw-field-note admin-muted" id="sdFormationHint">Slots: ${esc(slotSummary.label)}</p>
               </div>
@@ -7788,6 +8930,7 @@ function panelPlayers() {
             </div>
           </div>
         </div>
+        <div id="playerLineupSection" class="player-lineup admin-hidden" hidden></div>
         <div class="players-form-footer row g-2 mt-1">
           <div class="col-12 col-sm-auto">
             <button type="button" class="mw-btn-primary w-100" id="btnSavePlayer">Save player</button>
@@ -10996,15 +12139,19 @@ function renderPanel() {
     settings: panelSettings,
   };
 
-  // Prefer an explicitly staged draft (copy lineup / team swap). Otherwise snapshot the open editor.
+  // Staged drafts (TM fetch / copy / team swap / just-saved) win once.
+  // Otherwise snapshot the live editor — a leftover persist must not overwrite later tag/card edits.
+  clearMwFormationTagTimer();
   if (activeTab === "league") {
-    if (!mwEditorDraft) mwEditorDraft = readMwEditorDraft();
+    if (!mwEditorDraftStaged) mwEditorDraft = readMwEditorDraft();
   } else {
     mwEditorDraft = null;
+    mwEditorDraftStaged = false;
   }
   if (activeTab !== "squaddepth") squadDepthDraft = null;
   main.innerHTML = map[activeTab]?.() ?? "";
   mwEditorDraft = null;
+  mwEditorDraftStaged = false;
   squadDepthDraft = null;
   bindLeagueSelect();
   bindPanelHandlers();
@@ -11026,6 +12173,9 @@ function bindLeagueSelect() {
     nationalDutyTeamFilter = "";
     if (activeTab === "transfers") stashTransferEditsFromDom();
     transferTeamFilter = "";
+    mwClubFilter = "";
+    mwFixturesView = "matches";
+    mwLineupPage = 1;
     matchEditId = "";
     matchesBrowseWeek = null;
     stadiumEditName = "";
@@ -11277,8 +12427,8 @@ function readLineupSlotExtras(slotEl) {
   if (minsRaw !== "" && minsRaw != null && Number.isFinite(minutesNum)) {
     extras.minutes = Math.max(0, Math.min(120, Math.trunc(minutesNum)));
   }
-  if (yellow) extras.yellow = true;
-  if (red) extras.red = true;
+  extras.yellow = yellow;
+  extras.red = red;
   return extras;
 }
 
@@ -11511,6 +12661,447 @@ function patchMatchFromTm(local, tm, changes) {
   return next;
 }
 
+function loadMwReviewQueue() {
+  try {
+    const raw = sessionStorage.getItem(MW_REVIEW_QUEUE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    mwReviewQueue = Array.isArray(parsed) ? parsed.filter((row) => row && row.queueId && row.draft) : [];
+  } catch {
+    mwReviewQueue = [];
+  }
+}
+
+function persistMwReviewQueue() {
+  try {
+    sessionStorage.setItem(MW_REVIEW_QUEUE_KEY, JSON.stringify(mwReviewQueue));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function nextMwReviewQueueId() {
+  return `rq_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cloneMwReviewValue(value) {
+  try {
+    return structuredClone(value);
+  } catch {
+    return JSON.parse(JSON.stringify(value ?? null));
+  }
+}
+
+function findMwReviewItem(queueId) {
+  return mwReviewQueue.find((row) => row.queueId === queueId) || null;
+}
+
+function currentMwReviewItem() {
+  return mwReviewQueueId ? findMwReviewItem(mwReviewQueueId) : null;
+}
+
+function mwReviewQueueForLeague(leagueId = leagueFilter) {
+  return mwReviewQueue.filter((row) => !row.leagueId || row.leagueId === leagueId);
+}
+
+function proposedMatchIdForTeams(homeTeamId, awayTeamId, matchweek) {
+  const home = state().teams.find((t) => t.id === homeTeamId);
+  const away = state().teams.find((t) => t.id === awayTeamId);
+  const week = Number(matchweek) || 1;
+  return `${leagueFilter}_mw${week}_${FCDataStore.slugify(home?.name ?? "h")}_${FCDataStore.slugify(away?.name ?? "a")}`;
+}
+
+function localHasNamedLineup(match) {
+  const home = match?.lineups?.home ?? [];
+  const away = match?.lineups?.away ?? [];
+  return namedLineupCount(home) > 0 || namedLineupCount(away) > 0;
+}
+
+function localHasGoalEvents(match) {
+  return (match?.goalEvents ?? []).some((g) => String(g?.scorer ?? "").trim());
+}
+
+function upsertMwReviewItem(item) {
+  const keyExisting = item.existingId || "";
+  const keyDraft = item.draft?.id || "";
+  const found = mwReviewQueue.find((row) => {
+    if (keyExisting && row.existingId === keyExisting) return true;
+    if (keyDraft && row.draft?.id === keyDraft && row.mode === item.mode) return true;
+    return false;
+  });
+  if (found) {
+    found.mode = item.mode;
+    found.existingId = item.existingId || found.existingId;
+    found.source = item.source || found.source;
+    found.reviewed = false;
+    found.leagueId = item.leagueId || found.leagueId;
+    found.draft = item.draft;
+    found.localSnapshot = item.localSnapshot ?? found.localSnapshot;
+    persistMwReviewQueue();
+    return found;
+  }
+  const next = { ...item, queueId: item.queueId || nextMwReviewQueueId() };
+  mwReviewQueue.push(next);
+  persistMwReviewQueue();
+  return next;
+}
+
+function persistOpenMwReviewFromDom() {
+  const item = currentMwReviewItem();
+  if (!item || !$("#mwMatchEditor")) return;
+  persistMwEditorDraftFromDom();
+  syncOpenMwReviewDraft(mwEditorDraft);
+}
+
+function syncOpenMwReviewDraft(draft) {
+  const item = currentMwReviewItem();
+  if (!item || !draft) return;
+  item.draft = {
+    ...item.draft,
+    ...draft,
+    id: item.mode === "update" ? item.existingId || draft.id : draft.id || item.draft?.id,
+  };
+  persistMwReviewQueue();
+}
+
+function leaveMwReviewEditor({ persist = true } = {}) {
+  if (persist) persistOpenMwReviewFromDom();
+  mwReviewQueueId = "";
+}
+
+function dropMwReviewItem(queueId) {
+  mwReviewQueue = mwReviewQueue.filter((row) => row.queueId !== queueId);
+  if (mwReviewQueueId === queueId) mwReviewQueueId = "";
+  persistMwReviewQueue();
+}
+
+function enqueueTmAddDraft(entry, matchweek, source = "tm-add") {
+  const built = buildMatchFromTmFixture(entry, matchweek);
+  const existing = state().matches.find((m) => m.id === built.id);
+  if (existing) {
+    return enqueueTmSyncDraft({ local: existing, tm: entry, changes: ["score", "time", "goals"] }, source, { confirmReplace: false });
+  }
+  return upsertMwReviewItem({
+    mode: "create",
+    existingId: "",
+    source,
+    reviewed: false,
+    leagueId: leagueFilter,
+    draft: built,
+    localSnapshot: null,
+  });
+}
+
+function enqueueTmSyncDraft(entry, source = "tm-sync", { confirmReplace = false } = {}) {
+  const local = entry.local;
+  if (!local) return null;
+  const keepGoals = localHasGoalEvents(local);
+  const keepXi = localHasNamedLineup(local);
+  let applyGoals = !keepGoals;
+  if (keepGoals && confirmReplace && (entry.tm?.goals ?? []).length) {
+    applyGoals = confirm("Replace current goal events with Transfermarkt scorers and assists?");
+  }
+  const changes = (entry.changes ?? []).filter((c) => c !== "goals" || applyGoals);
+  const next = patchMatchFromTm(cloneMwReviewValue(local), entry.tm, changes);
+  if (keepXi) next.lineups = cloneMwReviewValue(local.lineups) || { home: [], away: [] };
+  if (keepGoals && !applyGoals) next.goalEvents = cloneMwReviewValue(local.goalEvents) || [];
+  next.formation = cloneMwReviewValue(local.formation) || next.formation;
+  return upsertMwReviewItem({
+    mode: "update",
+    existingId: local.id,
+    source,
+    reviewed: false,
+    leagueId: leagueFilter,
+    draft: next,
+    localSnapshot: cloneMwReviewValue(local),
+  });
+}
+
+function enqueueTmAdds(entries, matchweek, source) {
+  return (entries ?? []).map((entry) => enqueueTmAddDraft(entry, matchweek, source)).filter(Boolean);
+}
+
+function enqueueTmSyncs(entries, source, confirmReplace) {
+  return (entries ?? []).map((entry) => enqueueTmSyncDraft(entry, source, { confirmReplace })).filter(Boolean);
+}
+
+function openMwReviewItem(queueId) {
+  persistOpenMwReviewFromDom();
+  const item = findMwReviewItem(queueId);
+  if (!item) return;
+  mwReviewQueueId = item.queueId;
+  matchEditId = item.mode === "update" ? item.existingId || item.draft?.id || "" : "";
+  stageMwEditorDraft(cloneMwReviewValue(item.draft));
+  renderPanel();
+  $("#mwMatchEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function markCurrentMwReviewReviewed() {
+  persistOpenMwReviewFromDom();
+  const item = currentMwReviewItem();
+  if (!item) return toast("Open a queued match first");
+  item.reviewed = true;
+  persistMwReviewQueue();
+  toast("Marked reviewed — not saved yet");
+  renderPanel();
+}
+
+function compileMatchRecordFromParts({
+  home,
+  away,
+  idHint,
+  prev,
+  time,
+  stadium,
+  score,
+  statusPick,
+  matchdayRaw,
+  stageValue,
+  formation,
+  lineups,
+  goalEventsRaw,
+  tmMatchId,
+  sofaScoreEventId,
+  fbrefMatchId,
+  formationVerification,
+  tacticalFormations,
+  entryReview,
+  applyRosterAdds = false,
+}) {
+  if (!home || !away) return { error: "Choose home and away teams" };
+  if (home === away) return { error: "Home and away must differ" };
+
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const mw = meta.matchweek ?? 36;
+  const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
+  const rosterAdded = applyRosterAdds ? applyLineupRosterAdds(home, away) : 0;
+  const nextLineups = lineups || { home: [], away: [] };
+  const hasLineup = (nextLineups.home ?? []).length > 0 || (nextLineups.away ?? []).length > 0;
+  const goalEvents = normalizeGoalEventsForSave(goalEventsRaw ?? [], home, away, hasLineup ? nextLineups : prev?.lineups);
+  const scorePair = Array.isArray(score) ? [Number(score[0]) || 0, Number(score[1]) || 0] : [0, 0];
+  let status = String(statusPick ?? "").trim().toUpperCase() || "NS";
+  if (status === "NS" && (scorePair[0] + scorePair[1] > 0 || goalEvents.length > 0)) status = "FT";
+
+  const pickedMw = Number(matchdayRaw);
+  const keptMw = parseMwNumber(prev?.matchday);
+  const weekNum =
+    Number.isInteger(pickedMw) && pickedMw > 0 ? pickedMw : keptMw > 0 ? keptMw : Number(mw) || 1;
+  const matchday = isWc
+    ? typeof matchdayForSavedFixture === "function"
+      ? matchdayForSavedFixture(leagueFilter, meta, stageValue)
+      : String(stageValue ?? "").trim() || meta.matchweekTitle || "Group Stage"
+    : `MW ${weekNum}`;
+  const stageSlug = isWc
+    ? FCDataStore.slugify(stageValue || meta.matchweekTitle || "stage")
+    : `mw${weekNum}`;
+  const existingByHint = idHint ? state().matches.find((x) => x.id === idHint) : null;
+  const id =
+    idHint ||
+    `${leagueFilter}_${stageSlug}_${FCDataStore.slugify(state().teams.find((t) => t.id === home)?.name ?? "h")}_${FCDataStore.slugify(state().teams.find((t) => t.id === away)?.name ?? "a")}`;
+
+  const saved = {
+    id,
+    leagueId: leagueFilter,
+    matchday,
+    status,
+    time: String(time ?? "").trim() || "—",
+    stadium: String(stadium ?? "").trim() || "—",
+    homeTeamId: home,
+    awayTeamId: away,
+    score: scorePair,
+    scorers: prev?.scorers ?? [],
+    goalEvents,
+    possession: prev?.possession ?? [],
+    momentum: prev?.momentum ?? 0.5,
+    formation: Array.isArray(formation) ? formation : [formation || "—", "—"],
+    lineups: hasLineup ? nextLineups : prev?.lineups,
+    formationVerification: stampFormationVerification(formationVerification, prev?.formationVerification),
+    tacticalFormations: tacticalFormations || prev?.tacticalFormations,
+    entryReview: entryReview || prev?.entryReview,
+    ...(Number.isFinite(Number(prev?.sortOrder)) ? { sortOrder: Number(prev.sortOrder) } : {}),
+    tmMatchId:
+      (typeof TransfermarktSync !== "undefined" && TransfermarktSync.parseSpielberichtMatchId
+        ? TransfermarktSync.parseSpielberichtMatchId(tmMatchId)
+        : String(tmMatchId ?? "").trim()) ||
+      prev?.tmMatchId ||
+      "",
+    sofaScoreEventId:
+      (typeof SofaScoreSync !== "undefined" && SofaScoreSync.parseEventId
+        ? SofaScoreSync.parseEventId(sofaScoreEventId)
+        : String(sofaScoreEventId ?? "").trim()) ||
+      prev?.sofaScoreEventId ||
+      "",
+    fbrefMatchId: fbrefMatchId || prev?.fbrefMatchId || "",
+  };
+  return { saved, rosterAdded, existingByHint: Boolean(existingByHint) };
+}
+
+function compileMatchRecordFromDom() {
+  persistOpenMwReviewFromDom();
+  const review = currentMwReviewItem();
+  const home = $("#matchHome")?.value;
+  const away = $("#matchAway")?.value;
+  const editId =
+    review?.mode === "update"
+      ? review.existingId || ""
+      : review
+        ? review.draft?.id || ""
+        : $("#matchEditId")?.value || matchEditId || "";
+  const prev = editId ? state().matches.find((x) => x.id === editId) : null;
+  const pickedMw = Number($("#matchMw")?.value);
+  return compileMatchRecordFromParts({
+    home,
+    away,
+    idHint: editId,
+    prev,
+    time: $("#matchTime")?.value,
+    stadium: $("#matchStadium")?.value,
+    score: [Number($("#matchHomeScore")?.value) || 0, Number($("#matchAwayScore")?.value) || 0],
+    statusPick: $("#matchStatus")?.value,
+    matchdayRaw: Number.isInteger(pickedMw) && pickedMw > 0 ? pickedMw : parseMwNumber(prev?.matchday || review?.draft?.matchday),
+    stageValue: $("#matchStage")?.value,
+    formation: [$("#matchFormHome")?.value.trim() || "—", $("#matchFormAway")?.value.trim() || "—"],
+    lineups: { home: readLineupFromDom("home"), away: readLineupFromDom("away") },
+    goalEventsRaw: readGoalEventsFromDom(),
+    tmMatchId: $("#matchTmId")?.value,
+    sofaScoreEventId: $("#matchSsId")?.value,
+    fbrefMatchId: prev?.fbrefMatchId || review?.draft?.fbrefMatchId || "",
+    formationVerification: readFormationVerificationFromDom(),
+    tacticalFormations: readTacticalFormationsFromDom(),
+    entryReview: readEntryReviewFromDom(prev?.entryReview),
+    applyRosterAdds: true,
+  });
+}
+
+function compileMatchRecordFromDraft(item) {
+  const draft = item?.draft || {};
+  const prev = item.existingId
+    ? state().matches.find((x) => x.id === item.existingId)
+    : state().matches.find((x) => x.id === draft.id);
+  const idHint = item.mode === "update" ? item.existingId || draft.id : draft.id;
+  return compileMatchRecordFromParts({
+    home: draft.homeTeamId,
+    away: draft.awayTeamId,
+    idHint,
+    prev: prev || item.localSnapshot || null,
+    time: draft.time,
+    stadium: draft.stadium,
+    score: draft.score,
+    statusPick: draft.status,
+    matchdayRaw: parseMwNumber(draft.matchday),
+    stageValue: draft.matchday,
+    formation: draft.formation,
+    lineups: draft.lineups,
+    goalEventsRaw: draft.goalEvents,
+    tmMatchId: draft.tmMatchId,
+    sofaScoreEventId: draft.sofaScoreEventId,
+    fbrefMatchId: draft.fbrefMatchId,
+    formationVerification: draft.formationVerification,
+    tacticalFormations: draft.tacticalFormations,
+    entryReview: draft.entryReview,
+    applyRosterAdds: false,
+  });
+}
+
+function saveCurrentMwMatch() {
+  const compiled = compileMatchRecordFromDom();
+  if (compiled.error) return alert(compiled.error);
+  FCDataStore.upsertMatch(compiled.saved);
+  const queueId = currentMwReviewItem()?.queueId || "";
+  if (queueId) dropMwReviewItem(queueId);
+  matchEditId = compiled.saved.id;
+  mwReviewQueueId = "";
+  stageMwEditorDraft(compiled.saved);
+  syncToAppArrays();
+  toast(
+    compiled.rosterAdded
+      ? `Match saved · ${compiled.rosterAdded} player${compiled.rosterAdded === 1 ? "" : "s"} added to roster`
+      : "Match saved",
+  );
+  renderPanel();
+}
+
+function saveAllReviewedMwMatches() {
+  persistOpenMwReviewFromDom();
+  const reviewed = mwReviewQueueForLeague().filter((row) => row.reviewed);
+  if (!reviewed.length) return toast("Mark matches reviewed first");
+  const openId = mwReviewQueueId;
+  let savedN = 0;
+  let lastSaved = null;
+  for (const item of reviewed) {
+    const compiled =
+      item.queueId === openId && $("#mwMatchEditor")
+        ? compileMatchRecordFromDom()
+        : compileMatchRecordFromDraft(item);
+    if (compiled.error) {
+      toast(compiled.error);
+      continue;
+    }
+    FCDataStore.upsertMatch(compiled.saved);
+    dropMwReviewItem(item.queueId);
+    savedN += 1;
+    lastSaved = compiled.saved;
+  }
+  if (!savedN) return;
+  if (lastSaved) {
+    matchEditId = lastSaved.id;
+    stageMwEditorDraft(lastSaved);
+  }
+  syncToAppArrays();
+  toast(`Saved ${savedN} reviewed match${savedN === 1 ? "" : "es"}`);
+  renderPanel();
+}
+
+function mwReviewQueueHtml() {
+  const rows = mwReviewQueueForLeague();
+  if (!rows.length) return "";
+  const reviewedN = rows.filter((r) => r.reviewed).length;
+  const items = rows
+    .map((row) => {
+      const d = row.draft || {};
+      const home = state().teams.find((t) => t.id === d.homeTeamId)?.name || "Home";
+      const away = state().teams.find((t) => t.id === d.awayTeamId)?.name || "Away";
+      const score = Array.isArray(d.score) ? `${d.score[0] ?? 0}–${d.score[1] ?? 0}` : "–";
+      const mwLabel = String(d.matchday || "").trim() || "—";
+      const modeLabel = row.mode === "update" ? "Update" : "New";
+      const revLabel = row.reviewed ? "Reviewed" : "Not reviewed";
+      const active = mwReviewQueueId === row.queueId ? " is-active" : "";
+      return `<li class="mw-review-queue__item${active}">
+        <div class="mw-review-queue__copy">
+          <strong>${esc(home)} vs ${esc(away)}</strong>
+          <span class="mw-review-queue__meta">${esc(mwLabel)} · ${esc(score)} · ${esc(modeLabel)} · ${esc(revLabel)}</span>
+        </div>
+        <button type="button" class="mw-btn-ghost mw-btn-ghost--sm" data-mw-review-open="${esc(row.queueId)}">Open</button>
+      </li>`;
+    })
+    .join("");
+  return `<div class="mw-review-queue" id="mwReviewQueue">
+    <div class="mw-review-queue__head">
+      <div>
+        <h4 class="mw-review-queue__title">Review queue</h4>
+        <p class="mw-review-queue__hint admin-muted">Fetched matches stay here until you save. ${reviewedN} of ${rows.length} marked reviewed.</p>
+      </div>
+      <button type="button" class="mw-btn-primary mw-btn-primary--sm" id="btnSaveAllReviewedMw"${reviewedN ? "" : " disabled"}>Save All Reviewed</button>
+    </div>
+    <ul class="mw-review-queue__list">${items}</ul>
+  </div>`;
+}
+
+function mwReviewBannerHtml(item) {
+  if (!item) return "";
+  const isUpdate = item.mode === "update";
+  const kept =
+    isUpdate && (localHasNamedLineup(item.localSnapshot) || localHasGoalEvents(item.localSnapshot))
+      ? `<p class="mw-review-banner__note">Saved lineup/goals kept. Fetch again to replace.</p>`
+      : "";
+  return `<div class="mw-review-banner" role="status">
+    <p class="mw-review-banner__title">Reviewing fetched data — not saved until you click Save Match.</p>
+    <p class="mw-review-banner__badge">${isUpdate ? `Update existing fixture · ${esc(item.existingId || item.draft?.id || "")}` : "New fixture"}</p>
+    ${kept}
+  </div>`;
+}
+
+loadMwReviewQueue();
+
 function maybeUpdateMatchweekDateRangeFromTm() {
   const dates = (tmMatchdaySyncState?.tmFixtures ?? [])
     .map((f) => f.dateIso)
@@ -11641,7 +13232,7 @@ async function importTransfermarktMatchweekRange() {
   const weeks = to - from + 1;
   if (
     !confirm(
-      `Import matchweeks ${from}â€“${to} (${weeks} week${weeks === 1 ? "" : "s"}) from Transfermarkt?\n\nAdds missing fixtures and syncs scores/goals. Does not remove local-only matches.`,
+      `Import matchweeks ${from}â€“${to} (${weeks} week${weeks === 1 ? "" : "s"}) from Transfermarkt?\n\nMatches will be queued for review. Nothing is saved until you Save Match or Save All Reviewed.`,
     )
   ) {
     return;
@@ -11690,27 +13281,26 @@ async function importTransfermarktMatchweekRange() {
           ignoredUpdate: new Set(),
           ignoredRemove: new Set(),
         };
-        for (const entry of result.diff?.toAdd ?? []) {
-          FCDataStore.upsertMatch(buildMatchFromTmFixture(entry, mw));
-          added += 1;
-        }
-        for (const entry of result.diff?.toUpdate ?? []) {
-          FCDataStore.upsertMatch(patchMatchFromTm(entry.local, entry.tm, entry.changes));
-          synced += 1;
-        }
-        maybeUpdateMatchweekDateRangeFromTm();
-        maybeAdvanceLiveMatchweek(mw);
+        const queuedAdds = enqueueTmAdds(result.diff?.toAdd ?? [], mw, "tm-import");
+        const queuedSyncs = enqueueTmSyncs(result.diff?.toUpdate ?? [], "tm-import", false);
+        added += queuedAdds.length;
+        synced += queuedSyncs.length;
       } catch (err) {
         console.error(`MW ${mw}`, err);
         failed += 1;
       }
       await new Promise((r) => setTimeout(r, 180));
     }
-    syncToAppArrays();
     toast(
-      [`Imported MW ${from}â€“${to}`, `+${added} fixtures`, `${synced} synced`, failed ? `${failed} failed` : null]
+      [
+        `Queued MW ${from}–${to} for review`,
+        `+${added} new`,
+        `${synced} updates`,
+        failed ? `${failed} failed` : null,
+        "nothing saved yet",
+      ]
         .filter(Boolean)
-        .join(" Â· "),
+        .join(" · "),
     );
     renderPanel();
   } finally {
@@ -11736,23 +13326,19 @@ function maybeAdvanceLiveMatchweek(week) {
 function applyTmMatchdayAdd(key) {
   const entry = tmMatchdayVisibleDiff()?.toAdd?.find((row) => tmMatchdayFixtureKey(row) === key);
   if (!entry || !tmMatchdaySyncState) return;
-  FCDataStore.upsertMatch(buildMatchFromTmFixture(entry, tmMatchdaySyncState.matchweek));
-  maybeUpdateMatchweekDateRangeFromTm();
-  maybeAdvanceLiveMatchweek(tmMatchdaySyncState.matchweek);
-  syncToAppArrays();
-  recalculateTmMatchdayDiff();
-  toast(`${entry.homeTeamName} vs ${entry.awayTeamName} added`);
-  renderPanel();
+  const item = enqueueTmAddDraft(entry, tmMatchdaySyncState.matchweek, "tm-add");
+  toast(`Queued ${entry.homeTeamName} vs ${entry.awayTeamName} for review — nothing saved yet`);
+  if (item) openMwReviewItem(item.queueId);
+  else renderPanel();
 }
 
 function applyTmMatchdaySync(key) {
   const entry = tmMatchdayVisibleDiff()?.toUpdate?.find((row) => tmMatchdayFixtureKey(row) === key);
   if (!entry) return;
-  FCDataStore.upsertMatch(patchMatchFromTm(entry.local, entry.tm, entry.changes));
-  syncToAppArrays();
-  recalculateTmMatchdayDiff();
-  toast(`Synced ${entry.tm.homeTeamName} vs ${entry.tm.awayTeamName}`);
-  renderPanel();
+  const item = enqueueTmSyncDraft(entry, "tm-sync", { confirmReplace: true });
+  toast(`Queued update for ${entry.tm.homeTeamName} vs ${entry.tm.awayTeamName} — nothing saved yet`);
+  if (item) openMwReviewItem(item.queueId);
+  else renderPanel();
 }
 
 function applyTmMatchdayRemove(key) {
@@ -11770,26 +13356,16 @@ function applyTmMatchdayRemove(key) {
 function applyAllTmMatchdayAdds() {
   const entries = tmMatchdayVisibleDiff()?.toAdd ?? [];
   if (!entries.length || !tmMatchdaySyncState) return;
-  for (const entry of entries) {
-    FCDataStore.upsertMatch(buildMatchFromTmFixture(entry, tmMatchdaySyncState.matchweek));
-  }
-  maybeUpdateMatchweekDateRangeFromTm();
-  maybeAdvanceLiveMatchweek(tmMatchdaySyncState.matchweek);
-  syncToAppArrays();
-  recalculateTmMatchdayDiff();
-  toast(`Added ${entries.length} fixture${entries.length === 1 ? "" : "s"}`);
+  const queued = enqueueTmAdds(entries, tmMatchdaySyncState.matchweek, "tm-add");
+  toast(`Queued ${queued.length} fixture${queued.length === 1 ? "" : "s"} for review — nothing saved yet`);
   renderPanel();
 }
 
 function applyAllTmMatchdaySyncs() {
   const entries = tmMatchdayVisibleDiff()?.toUpdate ?? [];
   if (!entries.length) return;
-  for (const entry of entries) {
-    FCDataStore.upsertMatch(patchMatchFromTm(entry.local, entry.tm, entry.changes));
-  }
-  syncToAppArrays();
-  recalculateTmMatchdayDiff();
-  toast(`Synced ${entries.length} fixture${entries.length === 1 ? "" : "s"}`);
+  const queued = enqueueTmSyncs(entries, "tm-sync", false);
+  toast(`Queued ${queued.length} update${queued.length === 1 ? "" : "s"} for review — nothing saved yet`);
   renderPanel();
 }
 
@@ -11872,6 +13448,7 @@ function bindTmMatchdaySync() {
 }
 
 function bindFixtureCardDrag() {
+  if (mwClubFilter || mwFixturesView === "lineups") return;
   const list = document.querySelector(".mw-fixture-list");
   if (!list || list.dataset.fixtureDragBound === "1") return;
   list.dataset.fixtureDragBound = "1";
@@ -12015,7 +13592,7 @@ function bindMatchweek() {
       };
     draft.homeTeamId = homeId;
     if (homeStadium && homeStadium !== "—") draft.stadium = homeStadium;
-    mwEditorDraft = draft;
+    stageMwEditorDraft(draft);
     renderPanel();
   });
   $("#matchAway")?.addEventListener("change", refreshForTeams);
@@ -12044,14 +13621,70 @@ function bindMatchweek() {
   bindCopyLineupHandlers();
 
   bindLineupSlotHandlers();
+  bindFormationVerificationEditor();
 
-  let formTagTimer = null;
+  document.querySelectorAll("[data-fv-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      persistMwEditorDraftFromDom();
+      mwFormationVerifyFilter = btn.getAttribute("data-fv-filter") || "all";
+      mwLineupPage = 1;
+      renderPanel();
+    });
+  });
+  document.querySelectorAll("[data-mw-entry-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      persistMwEditorDraftFromDom();
+      mwEntryReviewFilter = btn.getAttribute("data-mw-entry-filter") || "all";
+      mwLineupPage = 1;
+      renderPanel();
+    });
+  });
+  $("#mwClubFilter")?.addEventListener("change", () => {
+    persistMwEditorDraftFromDom();
+    mwClubFilter = $("#mwClubFilter")?.value || "";
+    mwLineupPage = 1;
+    renderPanel();
+  });
+  document.querySelectorAll("[data-mw-fixtures-view]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      persistMwEditorDraftFromDom();
+      mwFixturesView = btn.getAttribute("data-mw-fixtures-view") === "lineups" ? "lineups" : "matches";
+      if (mwFixturesView === "lineups") mwLineupPage = 1;
+      renderPanel();
+    });
+  });
+  document.querySelectorAll("[data-mw-lineup-page]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      persistMwEditorDraftFromDom();
+      const raw = btn.getAttribute("data-mw-lineup-page") || "";
+      if (raw === "prev") mwLineupPage -= 1;
+      else if (raw === "next") mwLineupPage += 1;
+      else {
+        const n = Number(raw);
+        if (Number.isInteger(n) && n > 0) mwLineupPage = n;
+      }
+      renderPanel();
+      $("#mwLineupReviewList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+  document.querySelectorAll("[data-mw-open-match-layout]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      persistMwEditorDraftFromDom();
+      leaveMwReviewEditor({ persist: true });
+      mwFixturesView = "matches";
+      matchEditId = btn.getAttribute("data-mw-open-match-layout") || "";
+      renderPanel();
+      $("#mwMatchEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
   const onFormationChange = (side) => {
     refreshMwLineupPitchPreviews();
-    clearTimeout(formTagTimer);
-    formTagTimer = setTimeout(() => {
+    clearMwFormationTagTimer();
+    mwFormationTagTimer = setTimeout(() => {
+      mwFormationTagTimer = null;
       applyFormationTagsToSide(side);
-      persistMwEditorDraftFromDom();
     }, 280);
   };
   $("#matchFormHome")?.addEventListener("input", () => onFormationChange("home"));
@@ -12071,7 +13704,9 @@ function bindMatchweek() {
   });
 
   const startNewFixture = () => {
+    leaveMwReviewEditor({ persist: true });
     matchEditId = "";
+    stageMwEditorDraft(null);
     renderPanel();
     $("#mwMatchEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -12079,17 +13714,30 @@ function bindMatchweek() {
   $("#btnNewMwMatchEmpty")?.addEventListener("click", startNewFixture);
 
   $("#btnCancelMwMatch")?.addEventListener("click", () => {
+    leaveMwReviewEditor({ persist: true });
     matchEditId = "";
+    stageMwEditorDraft(null);
     renderPanel();
   });
 
   document.querySelectorAll("[data-edit-mw-match]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      leaveMwReviewEditor({ persist: true });
       matchEditId = btn.getAttribute("data-edit-mw-match") || "";
+      stageMwEditorDraft(null);
       renderPanel();
       $("#mwMatchEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
+
+  document.querySelectorAll("[data-mw-review-open]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      openMwReviewItem(btn.getAttribute("data-mw-review-open") || "");
+    });
+  });
+  $("#btnMarkMwReviewed")?.addEventListener("click", markCurrentMwReviewReviewed);
+  $("#btnSaveAllReviewedMw")?.addEventListener("click", saveAllReviewedMwMatches);
+  $("#btnSaveAllReviewedMwEditor")?.addEventListener("click", saveAllReviewedMwMatches);
 
   document.querySelectorAll("[data-del-mw-match]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -12103,76 +13751,7 @@ function bindMatchweek() {
     });
   });
 
-  $("#btnSaveMwMatch")?.addEventListener("click", () => {
-    const meta = FCDataStore.getLeagueMeta(leagueFilter);
-    const mw = meta.matchweek ?? 36;
-    const isWc = typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter);
-    const home = $("#matchHome")?.value;
-    const away = $("#matchAway")?.value;
-    if (!home || !away) return alert("Choose home and away teams");
-    if (home === away) return alert("Home and away must differ");
-
-    const editId = $("#matchEditId")?.value;
-    const prev = editId ? state().matches.find((x) => x.id === editId) : null;
-    const stageSlug = isWc
-      ? FCDataStore.slugify($("#matchStage")?.value || meta.matchweekTitle || "stage")
-      : `mw${mw}`;
-    const id =
-      editId ||
-      `${leagueFilter}_${stageSlug}_${FCDataStore.slugify(state().teams.find((t) => t.id === home)?.name ?? "h")}_${FCDataStore.slugify(state().teams.find((t) => t.id === away)?.name ?? "a")}`;
-
-    const rosterAdded = applyLineupRosterAdds(home, away);
-
-    const lineups = {
-      home: readLineupFromDom("home"),
-      away: readLineupFromDom("away"),
-    };
-    const hasLineup = lineups.home.length > 0 || lineups.away.length > 0;
-    const goalEvents = normalizeGoalEventsForSave(readGoalEventsFromDom(), home, away, hasLineup ? lineups : prev?.lineups);
-    const statusPick = String($("#matchStatus")?.value ?? "").trim().toUpperCase();
-    const score = [Number($("#matchHomeScore")?.value) || 0, Number($("#matchAwayScore")?.value) || 0];
-    let status = statusPick || "NS";
-    // Goals/score under NS → FT so Match Center shows the result (not kickoff)
-    if (status === "NS" && (score[0] + score[1] > 0 || goalEvents.length > 0)) {
-      status = "FT";
-    }
-    const matchday =
-      typeof matchdayForSavedFixture === "function"
-        ? matchdayForSavedFixture(leagueFilter, meta, isWc ? $("#matchStage")?.value : null)
-        : isWc
-          ? $("#matchStage")?.value.trim() || meta.matchweekTitle || "Group Stage"
-          : `MW ${mw}`;
-
-    FCDataStore.upsertMatch({
-      id,
-      leagueId: leagueFilter,
-      matchday,
-      status,
-      time: $("#matchTime")?.value.trim() || "—",
-      stadium: $("#matchStadium")?.value.trim() || "—",
-      homeTeamId: home,
-      awayTeamId: away,
-      score,
-      scorers: prev?.scorers ?? [],
-      goalEvents,
-      possession: prev?.possession ?? [],
-      momentum: prev?.momentum ?? 0.5,
-      formation: [$("#matchFormHome")?.value.trim() || "—", $("#matchFormAway")?.value.trim() || "—"],
-      lineups: hasLineup ? lineups : prev?.lineups,
-      ...(Number.isFinite(Number(prev?.sortOrder)) ? { sortOrder: Number(prev.sortOrder) } : {}),
-      tmMatchId:
-        (typeof TransfermarktSync !== "undefined" && TransfermarktSync.parseSpielberichtMatchId
-          ? TransfermarktSync.parseSpielberichtMatchId($("#matchTmId")?.value)
-          : String($("#matchTmId")?.value ?? "").trim()) ||
-        prev?.tmMatchId ||
-        "",
-    });
-
-    matchEditId = id;
-    syncToAppArrays();
-    toast(rosterAdded ? `Fixture saved · ${rosterAdded} player${rosterAdded === 1 ? "" : "s"} added to roster` : "Fixture saved");
-    renderPanel();
-  });
+  $("#btnSaveMwMatch")?.addEventListener("click", saveCurrentMwMatch);
 
   bindTmMatchdaySync();
   bindFixtureCardDrag();
@@ -12200,15 +13779,15 @@ function bindCopyLineupHandlers() {
     });
   });
 
-  document.querySelectorAll("[data-tm-fetch-lineup]").forEach((btn) => {
+  document.querySelectorAll("[data-ss-fetch-lineup]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const side = btn.getAttribute("data-tm-fetch-lineup");
+      const side = btn.getAttribute("data-ss-fetch-lineup");
       if (side !== "home" && side !== "away") return;
-      fetchTransfermarktLineupsForEditor([side]);
+      fetchSofaScoreLineupsForEditor([side]);
     });
   });
-  $("#btnTmFetchBothLineups")?.addEventListener("click", () => {
-    fetchTransfermarktLineupsForEditor(["home", "away"]);
+  $("#btnSsFetchBothLineups")?.addEventListener("click", () => {
+    fetchSofaScoreLineupsForEditor(["home", "away"]);
   });
   $("#btnTmFetchGoalsAssists")?.addEventListener("click", () => {
     fetchTransfermarktGoalsAssistsForEditor();
@@ -12253,7 +13832,17 @@ function bindPlayerSearchCombos(scope = document) {
         .trim()
         .toLowerCase()
         .replace(/\s+/g, " ");
-      const players = roster();
+      const slot = combo.closest(".admin-lineup-slot");
+      const grid = combo.closest("[data-lineup-grid]");
+      const taken = new Set();
+      if (grid && slot) {
+        grid.querySelectorAll(".admin-lineup-slot").forEach((other) => {
+          if (other === slot) return;
+          const id = other.querySelector(".lineup-pick")?.value;
+          if (id) taken.add(id);
+        });
+      }
+      const players = roster().filter((p) => !taken.has(p.id) || p.id === hidden.value);
       const matches = !q
         ? players
         : players.filter((p) => {
@@ -12453,7 +14042,6 @@ function bindLineupDragSort(side) {
   const finishReorder = () => {
     renumberLineupSlots(side);
     applyFormationTagsToSide(side);
-    persistMwEditorDraftFromDom();
   };
 
   list.addEventListener("dragstart", (e) => {
@@ -12558,6 +14146,8 @@ function persistMwEditorDraftFromDom() {
     goalEvents: readGoalEventsFromDom(),
     lineups: { home: [], away: [] },
     tmMatchId: String($("#matchTmId")?.value ?? "").trim(),
+    sofaScoreEventId: String($("#matchSsId")?.value ?? "").trim(),
+    fbrefMatchId: String($("#matchFbrefId")?.value ?? "").trim(),
   };
   draft.formation = [
     $("#matchFormHome")?.value?.trim() || draft.formation?.[0] || "4-2-3-1",
@@ -12567,7 +14157,18 @@ function persistMwEditorDraftFromDom() {
     home: readLineupFromDom("home"),
     away: readLineupFromDom("away"),
   };
+  draft.tmMatchId = String($("#matchTmId")?.value ?? "").trim();
+  draft.sofaScoreEventId = String($("#matchSsId")?.value ?? "").trim();
+  draft.fbrefMatchId = String($("#matchFbrefId")?.value ?? "").trim();
+  draft.formationVerification = readFormationVerificationFromDom();
+  draft.tacticalFormations = readTacticalFormationsFromDom();
+  draft.entryReview = readEntryReviewFromDom(draft.entryReview);
+  if (Number($("#matchMw")?.value) > 0) draft.matchday = `MW ${Number($("#matchMw").value)}`;
+  // Snapshot only — do not stage. A leftover persist after Fetch XI was
+  // winning on the next Save and restoring TM tags/cards over live edits.
   mwEditorDraft = draft;
+  mwEditorDraftStaged = false;
+  syncOpenMwReviewDraft(draft);
 }
 
 function bindLineupSlotHandlers() {
@@ -12594,6 +14195,7 @@ function bindLineupSlotHandlers() {
   bindLineupPlayerCombos();
   bindLineupDragSort("home");
   bindLineupDragSort("away");
+  bindMwPitchSwapHandlers();
 
   document.querySelectorAll("[data-apply-form-tags]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -13755,6 +15357,492 @@ function bindNationalDuty() {
   });
 }
 
+function padLineupSlots11(lineup) {
+  return Array.from({ length: LINEUP_SLOTS }, (_, i) => {
+    const slot = lineup?.[i];
+    return slot && String(slot.name ?? "").trim() ? { ...slot } : null;
+  });
+}
+
+function lineupSlotsForSave(slots) {
+  const out = (Array.isArray(slots) ? slots : []).map((s) =>
+    s && String(s.name ?? "").trim() ? { ...s } : null,
+  );
+  while (out.length && !out[out.length - 1]) out.pop();
+  return out;
+}
+
+function playerLineupSlotFromRoster(player, tag) {
+  return {
+    tag: String(tag || player?.role || player?.pos || "").trim() || "CM",
+    number: player?.number ?? "",
+    name: stripCaptainSuffix(player?.name),
+    flag: player?.flag ?? "",
+    nationality: player?.nationality ?? "",
+    captain: rosterPlayerIsCaptain(player),
+  };
+}
+
+function matchLineupSlotIsCaptain(slot) {
+  return Boolean(slot?.captain) || playerNameMarksCaptain(slot?.name);
+}
+
+function indexOfPlayerInLineupSlots(slots, teamId, player) {
+  if (!player?.id) return -1;
+  const list = Array.isArray(slots) ? slots : [];
+  for (let i = 0; i < Math.max(list.length, LINEUP_SLOTS); i++) {
+    const slot = list[i];
+    if (!slot || !String(slot.name ?? "").trim()) continue;
+    const hit = findRosterPlayerForLineupSlot(teamId, slot);
+    if (hit?.id === player.id) return i;
+  }
+  return -1;
+}
+
+function listPlayerClubFixtures(leagueId, teamId, player) {
+  if (!leagueId || !teamId) return [];
+  const currentMw = Number(FCDataStore.getLeagueMeta(leagueId)?.matchweek) || 0;
+  return state()
+    .matches.filter((m) => m.leagueId === leagueId && (m.homeTeamId === teamId || m.awayTeamId === teamId))
+    .map((m) => {
+      const week = parseMwNumber(m.matchday);
+      const home = m.homeTeamId === teamId;
+      const side = home ? "home" : "away";
+      const oppId = home ? m.awayTeamId : m.homeTeamId;
+      const opp = state().teams.find((t) => t.id === oppId);
+      const lineup = m.lineups?.[side] ?? [];
+      const filled = namedLineupCount(lineup);
+      const idx = indexOfPlayerInLineupSlots(lineup, teamId, player);
+      const inTag = idx >= 0 ? String(lineup[idx]?.tag ?? "").trim() : "";
+      let status = "no lineup yet";
+      if (filled > 0 || (Array.isArray(m.lineups?.[side]) && m.lineups[side].length)) {
+        status = idx >= 0 ? `in XI as ${inTag || "—"}` : "not in XI";
+      }
+      return { match: m, week, home, side, opp, filled, idx, inTag, status, current: week > 0 && week === currentMw };
+    })
+    .sort((a, b) => (b.week || 0) - (a.week || 0) || String(b.match.id).localeCompare(String(a.match.id)));
+}
+
+function playerLineupTagChoices(formation) {
+  const tags = getLineupFormationTags(formation);
+  const seen = new Set();
+  const out = [];
+  for (const t of [...tags, ...PLAYER_ROLE_ORDER]) {
+    const u = String(t ?? "").trim().toUpperCase();
+    if (!u || seen.has(u)) continue;
+    seen.add(u);
+    out.push(u);
+  }
+  return out;
+}
+
+function renderPlayerLineupSection() {
+  const root = $("#playerLineupSection");
+  if (!root) return;
+  const sess = playerLineupSession;
+  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
+  if (!sess || !player) {
+    root.innerHTML = "";
+    root.hidden = true;
+    root.classList.add("admin-hidden");
+    return;
+  }
+
+  const teamId = player.teamId;
+  const team = state().teams.find((t) => t.id === teamId);
+  const fixtures = listPlayerClubFixtures(leagueFilter, teamId, player);
+  const selected = fixtures.find((f) => f.match.id === sess.matchId) ?? null;
+  const match = selected?.match ?? null;
+  const side = selected?.side ?? null;
+  if (match && side && (!sess.slots || sess.matchId !== match.id)) {
+    sess.matchId = match.id;
+    sess.slots = padLineupSlots11(match.lineups?.[side]);
+    sess.dirty = false;
+    sess.formDirty = false;
+    const stored = String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim();
+    sess.formation = isFormationUnset(stored) ? "" : stored;
+  }
+  const storedForm = match
+    ? String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim()
+    : "";
+  const formation = sess.formDirty
+    ? String(sess.formation ?? "").trim()
+    : String(sess.formation || storedForm || "").trim();
+  const formTags = getLineupFormationTags(formation || (side === "away" ? "4-3-3" : "4-2-3-1"));
+  const slots = sess.slots && sess.matchId === match?.id ? sess.slots : padLineupSlots11(match?.lineups?.[side]);
+  if (match && sess.matchId === match.id) sess.slots = slots;
+  const playerIdx = indexOfPlayerInLineupSlots(slots, teamId, player);
+  const filled = namedLineupCount(slots);
+  const xiFull = filled >= LINEUP_SLOTS && playerIdx < 0;
+  const formUnset = isFormationUnset(formation);
+  const canSync = playerIdx >= 0 || !formUnset;
+  const tagVal = playerIdx >= 0 ? String(slots[playerIdx]?.tag ?? "").trim() : "";
+  const capVal = playerIdx >= 0 && matchLineupSlotIsCaptain(slots[playerIdx]);
+  const oppName = selected?.opp?.name ?? "—";
+  const venue = selected ? (selected.home ? "Home" : "Away") : "";
+
+  const fixtureRows = fixtures.length
+    ? fixtures
+        .map((f) => {
+          const on = f.match.id === sess.matchId;
+          const mw = f.week > 0 ? `MW ${f.week}` : esc(f.match.matchday || "Match");
+          const now = f.current ? ` <span class="player-lineup-now">Now</span>` : "";
+          return `<button type="button" class="player-lineup-fix${on ? " is-active" : ""}${f.current ? " is-current" : ""}" data-player-xi-match="${esc(f.match.id)}">
+            <span class="player-lineup-fix__mw">${mw}${now}</span>
+            <span class="player-lineup-fix__opp">${f.home ? "vs" : "at"} ${esc(f.opp?.name ?? "—")} · ${f.home ? "H" : "A"}</span>
+            <span class="player-lineup-fix__fill">${f.filled}/${LINEUP_SLOTS}</span>
+            <span class="player-lineup-fix__st">${esc(f.status)}</span>
+          </button>`;
+        })
+        .join("")
+    : `<p class="admin-muted player-lineup-empty">No fixtures for ${esc(team?.name ?? "this club")} in this league yet. Add them on the Matchweek tab.</p>`;
+
+  const slotBtns = match
+    ? slots
+        .map((slot, i) => {
+          const tag = String(slot?.tag ?? "").trim() || formTags[i] || "";
+          const isPlayer = i === playerIdx;
+          const empty = !slot || !String(slot.name ?? "").trim();
+          const capMark = !empty && matchLineupSlotIsCaptain(slot) ? " · C" : "";
+          const label = empty
+            ? `Empty · ${tag || "—"}`
+            : `${slot.number != null && slot.number !== "" ? `${slot.number} · ` : ""}${stripCaptainSuffix(slot.name)} · ${tag || "—"}${capMark}`;
+          const cls = `player-lineup-slot${isPlayer ? " is-self" : ""}${empty ? " is-empty" : ""}${!empty && !isPlayer ? " is-other" : ""}`;
+          const title = empty
+            ? "Place this player in this slot"
+            : isPlayer
+              ? "This player"
+              : "Filled — swap in Matchweek";
+          return `<button type="button" class="${cls}" data-player-xi-slot="${i}" title="${esc(title)}">
+            <span class="player-lineup-slot__i">#${i + 1}</span>
+            <span class="player-lineup-slot__txt">${esc(label)}</span>
+          </button>`;
+        })
+        .join("")
+    : "";
+
+  const tagList = playerLineupTagChoices(formation || "4-2-3-1")
+    .map((t) => `<option value="${esc(t)}"></option>`)
+    .join("");
+  const pitch =
+    match && typeof mwLineupPitchPreviewHtml === "function"
+      ? `<div class="player-lineup-pitch">${mwLineupPitchPreviewHtml(side, teamId, formation, slots)}</div>`
+      : "";
+
+  let detail = `<p class="admin-muted player-lineup-empty">Pick a match to preview the XI and set this player’s position.</p>`;
+  if (match) {
+    const fullNote = xiFull
+      ? `<p class="player-lineup-warn">XI is full — swap in Matchweek.</p>`
+      : "";
+    const formNote = formUnset
+      ? `<p class="player-lineup-warn">No formation yet — pick one below and Sync to save it on this match.</p>`
+      : "";
+    const placeHint =
+      playerIdx < 0 && !xiFull
+        ? `<p class="mw-field-note admin-muted">Not in this XI — click an empty slot to add ${esc(stripCaptainSuffix(player.name))}.</p>`
+        : "";
+    const formCurrent = formUnset ? "" : formation;
+    const formCustom = Boolean(formCurrent) && !isFormationPreset(formCurrent);
+    detail = `
+      <div class="player-lineup-detail">
+        <p class="player-lineup-detail__title">${esc(team?.name ?? "Club")} · ${selected.week > 0 ? `MW ${selected.week}` : esc(match.matchday || "")} · ${esc(venue)} vs ${esc(oppName)}${formUnset ? " · No formation" : ` · ${esc(formation)}`} · ${filled}/${LINEUP_SLOTS}</p>
+        ${fullNote}${formNote}${placeHint}
+        ${pitch}
+        <div class="player-lineup-form mw-field mb-0">
+          <label for="playerLineupFormPreset">Starting formation</label>
+          ${formationPresetSelectHtml(formCurrent, { id: "playerLineupFormPreset", includeBlank: true, blankLabel: "Not set" })}
+          <input id="playerLineupForm" class="mw-input${formCustom ? "" : " admin-hidden"}" value="${esc(formCurrent)}" placeholder="e.g. 4-2-3-1" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="player-lineup-slots" role="list">${slotBtns}</div>
+        <div class="player-lineup-edit row g-2 align-items-end">
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="mw-field mb-0">
+              <label for="playerLineupTag">Position for this match</label>
+              <input id="playerLineupTag" class="mw-input player-lineup-tag" list="playerLineupTagList" value="${esc(tagVal)}" placeholder="${playerIdx >= 0 ? "CM" : "Click an empty slot"}" ${playerIdx >= 0 ? "" : "disabled"} autocomplete="off" spellcheck="false" />
+              <datalist id="playerLineupTagList">${tagList}</datalist>
+            </div>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <label class="lineup-cap-label player-lineup-cap-label" title="Captain for this match only — not the club captain">
+              <input type="checkbox" class="player-lineup-cap" id="playerLineupCap"${capVal ? " checked" : ""}${playerIdx >= 0 ? "" : " disabled"} /> C
+            </label>
+          </div>
+          <div class="col-12 col-sm-auto">
+            <button type="button" class="mw-btn-primary" id="btnPlayerLineupSync"${canSync ? "" : " disabled"}>Sync to lineup</button>
+          </div>
+        </div>
+        <p class="mw-field-note admin-muted player-lineup-cap-note">C is for this fixture’s XI. Checking it clears any other match captain in this lineup. Club captain on the player form is separate. Formation Sync writes this club’s starting shape on the match.</p>
+      </div>`;
+  }
+
+  root.innerHTML = `
+    <div class="player-lineup__head">
+      <h4 class="player-lineup__title">Matchweek lineups</h4>
+      <p class="mw-field-note admin-muted mb-0">${esc(team?.name ?? "This club")} fixtures from the Matchweek tab. Pick a match, set this player’s slot, then <strong>Sync to lineup</strong>. Save player does not write the XI.</p>
+    </div>
+    <div class="player-lineup-fixes">${fixtureRows}</div>
+    ${detail}`;
+  root.hidden = false;
+  root.classList.remove("admin-hidden");
+}
+
+function openPlayerLineupSection(player) {
+  if (!player?.id) {
+    playerLineupSession = null;
+    renderPlayerLineupSection();
+    return;
+  }
+  const keep = playerLineupSession?.playerId === player.id ? playerLineupSession : null;
+  playerLineupSession = {
+    playerId: player.id,
+    matchId: keep?.matchId || "",
+    slots: keep?.slots || null,
+    dirty: Boolean(keep?.dirty),
+    formation: keep?.formation ?? "",
+    formDirty: Boolean(keep?.formDirty),
+  };
+  const match = playerLineupSession.matchId
+    ? state().matches.find((m) => m.id === playerLineupSession.matchId)
+    : null;
+  const side = match
+    ? match.homeTeamId === player.teamId
+      ? "home"
+      : match.awayTeamId === player.teamId
+        ? "away"
+        : null
+    : null;
+  if (!side) {
+    playerLineupSession.matchId = "";
+    playerLineupSession.slots = null;
+    playerLineupSession.dirty = false;
+  } else if (!playerLineupSession.dirty || !playerLineupSession.slots) {
+    playerLineupSession.slots = padLineupSlots11(match.lineups?.[side]);
+    if (!playerLineupSession.formDirty) {
+      const stored = String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim();
+      playerLineupSession.formation = isFormationUnset(stored) ? "" : stored;
+    }
+  }
+  renderPlayerLineupSection();
+}
+
+function selectPlayerLineupMatch(matchId) {
+  const sess = playerLineupSession;
+  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
+  if (!sess || !player || !matchId) return;
+  if (sess.matchId === matchId && sess.slots) {
+    renderPlayerLineupSection();
+    return;
+  }
+  const match = state().matches.find((m) => m.id === matchId);
+  const side = match
+    ? match.homeTeamId === player.teamId
+      ? "home"
+      : match.awayTeamId === player.teamId
+        ? "away"
+        : null
+    : null;
+  if (!match || !side) return toast("That fixture is not this player’s club");
+  sess.matchId = matchId;
+  sess.slots = padLineupSlots11(match.lineups?.[side]);
+  sess.dirty = false;
+  sess.formDirty = false;
+  const stored = String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim();
+  sess.formation = isFormationUnset(stored) ? "" : stored;
+  renderPlayerLineupSection();
+}
+
+function placePlayerOnLineupSlot(index) {
+  const sess = playerLineupSession;
+  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
+  const match = sess?.matchId ? state().matches.find((m) => m.id === sess.matchId) : null;
+  if (!sess || !player || !match || !sess.slots) return;
+  const i = Number(index);
+  if (!Number.isInteger(i) || i < 0 || i >= LINEUP_SLOTS) return;
+  const side = match.homeTeamId === player.teamId ? "home" : match.awayTeamId === player.teamId ? "away" : null;
+  if (!side) return;
+  const formation =
+    String(sess.formation || (side === "away" ? match.formation?.[1] : match.formation?.[0]) || "").trim();
+  const formTags = getLineupFormationTags(formation || (side === "away" ? "4-3-3" : "4-2-3-1"));
+  const cur = sess.slots[i];
+  const occupied = Boolean(cur && String(cur.name ?? "").trim());
+  const existingIdx = indexOfPlayerInLineupSlots(sess.slots, player.teamId, player);
+  if (occupied && existingIdx !== i) {
+    return toast("That slot is filled — pick an empty one or swap in Matchweek");
+  }
+  if (existingIdx === i) return;
+  if (existingIdx < 0 && namedLineupCount(sess.slots) >= LINEUP_SLOTS) {
+    return toast("XI is full — swap in Matchweek");
+  }
+  const prev = existingIdx >= 0 ? sess.slots[existingIdx] : null;
+  const tag =
+    String(prev?.tag ?? "").trim() ||
+    formTags[i] ||
+    canonicalPlayingRole(player.role) ||
+    player.role ||
+    "CM";
+  const next = { ...playerLineupSlotFromRoster(player, tag) };
+  if (prev) {
+    if (prev.minutes != null && prev.minutes !== "") next.minutes = prev.minutes;
+    if (prev.yellow) next.yellow = true;
+    if (prev.red) next.red = true;
+    next.captain = matchLineupSlotIsCaptain(prev);
+  }
+  if (existingIdx >= 0) sess.slots[existingIdx] = null;
+  sess.slots[i] = next;
+  sess.dirty = true;
+  renderPlayerLineupSection();
+}
+
+function updatePlayerLineupTag(tag) {
+  const sess = playerLineupSession;
+  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
+  if (!sess || !player || !sess.slots) return;
+  const idx = indexOfPlayerInLineupSlots(sess.slots, player.teamId, player);
+  if (idx < 0) return;
+  const next = String(tag ?? "").trim();
+  sess.slots[idx] = { ...sess.slots[idx], tag: next || sess.slots[idx].tag || "CM" };
+  sess.dirty = true;
+}
+
+function applyPlayerLineupCaptain(on) {
+  const sess = playerLineupSession;
+  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
+  if (!sess || !player || !sess.slots) return;
+  const idx = indexOfPlayerInLineupSlots(sess.slots, player.teamId, player);
+  if (idx < 0) return;
+  const want = !!on;
+  sess.slots = sess.slots.map((slot, i) => {
+    if (!slot || !String(slot.name ?? "").trim()) return slot;
+    const next = { ...slot, name: stripCaptainSuffix(slot.name) };
+    if (i === idx) next.captain = want;
+    else if (want) next.captain = false;
+    return next;
+  });
+  sess.dirty = true;
+}
+
+function applyPlayerLineupFormation(value) {
+  const sess = playerLineupSession;
+  if (!sess) return;
+  sess.formation = String(value ?? "").trim();
+  sess.formDirty = true;
+  sess.dirty = true;
+}
+
+function readPlayerLineupFormationFromDom() {
+  const preset = $("#playerLineupFormPreset");
+  const custom = $("#playerLineupForm");
+  if (!preset) return String(playerLineupSession?.formation ?? "").trim();
+  if (preset.value === "__custom__") return String(custom?.value ?? "").trim();
+  return String(preset.value ?? "").trim();
+}
+
+function syncPlayerLineupToMatch() {
+  const sess = playerLineupSession;
+  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
+  const match = sess?.matchId ? state().matches.find((m) => m.id === sess.matchId) : null;
+  if (!sess || !player || !match || !sess.slots) return toast("Pick a match first");
+  const side = match.homeTeamId === player.teamId ? "home" : match.awayTeamId === player.teamId ? "away" : null;
+  if (!side) return toast("That fixture is not this player’s club");
+  const pendingForm = readPlayerLineupFormationFromDom();
+  if (pendingForm) applyPlayerLineupFormation(pendingForm);
+  const idx = indexOfPlayerInLineupSlots(sess.slots, player.teamId, player);
+  const storedForm = String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim();
+  const formToWrite = isFormationUnset(pendingForm) ? "" : pendingForm;
+  const formChanged = Boolean(formToWrite) && formToWrite !== storedForm;
+  if (idx < 0 && !formToWrite) {
+    return toast("Pick an empty slot to add this player, or set a formation first");
+  }
+  const capBox = $("#playerLineupCap");
+  if (capBox && idx >= 0) applyPlayerLineupCaptain(capBox.checked);
+  const next = JSON.parse(JSON.stringify(match));
+  if (idx >= 0) {
+    next.lineups = { ...(next.lineups || {}) };
+    next.lineups.home = Array.isArray(next.lineups.home) ? next.lineups.home : [];
+    next.lineups.away = Array.isArray(next.lineups.away) ? next.lineups.away : [];
+    next.lineups[side] = lineupSlotsForSave(sess.slots);
+  }
+  if (formToWrite) {
+    const forms = [
+      String(match.formation?.[0] ?? "").trim() || "—",
+      String(match.formation?.[1] ?? "").trim() || "—",
+    ];
+    forms[side === "away" ? 1 : 0] = formToWrite;
+    next.formation = forms;
+  }
+  FCDataStore.upsertMatch(next);
+  syncToAppArrays();
+  sess.slots = padLineupSlots11(next.lineups?.[side] ?? sess.slots);
+  sess.formation = formToWrite || sess.formation || "";
+  sess.formDirty = false;
+  sess.dirty = false;
+  renderPlayerLineupSection();
+  const bits = [];
+  if (idx >= 0) {
+    const tag = String(sess.slots[idx]?.tag ?? "").trim() || "—";
+    const cap = matchLineupSlotIsCaptain(sess.slots[idx]) ? " · C" : "";
+    bits.push(`${stripCaptainSuffix(player.name)} ${tag}${cap}`);
+  }
+  if (formChanged || (formToWrite && isFormationUnset(storedForm))) bits.push(formToWrite);
+  toast(bits.length ? `Lineup synced · ${bits.join(" · ")}` : "Lineup synced");
+}
+
+function bindPlayerLineupSection() {
+  const root = $("#playerLineupSection");
+  if (!root || root.dataset.bound === "1") return;
+  root.dataset.bound = "1";
+  root.addEventListener("click", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    const fix = t.closest("[data-player-xi-match]");
+    if (fix && root.contains(fix)) {
+      selectPlayerLineupMatch(fix.getAttribute("data-player-xi-match") || "");
+      return;
+    }
+    const slot = t.closest("[data-player-xi-slot]");
+    if (slot && root.contains(slot)) {
+      placePlayerOnLineupSlot(Number(slot.getAttribute("data-player-xi-slot")));
+      return;
+    }
+    if (t.closest("#btnPlayerLineupSync")) syncPlayerLineupToMatch();
+  });
+  root.addEventListener("input", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    if (t.classList.contains("player-lineup-tag")) updatePlayerLineupTag(t.value);
+    if (t.id === "playerLineupForm") applyPlayerLineupFormation(t.value);
+  });
+  root.addEventListener("change", (e) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t) return;
+    if (t.classList.contains("player-lineup-tag")) {
+      updatePlayerLineupTag(t.value);
+      renderPlayerLineupSection();
+      return;
+    }
+    if (t.classList.contains("player-lineup-cap") || t.id === "playerLineupCap") {
+      applyPlayerLineupCaptain(t.checked);
+      renderPlayerLineupSection();
+      return;
+    }
+    if (t.id === "playerLineupFormPreset") {
+      if (t.value === "__custom__") {
+        $("#playerLineupForm")?.classList.remove("admin-hidden");
+        $("#playerLineupForm")?.focus();
+        applyPlayerLineupFormation($("#playerLineupForm")?.value || "");
+        return;
+      }
+      applyPlayerLineupFormation(t.value);
+      renderPlayerLineupSection();
+      return;
+    }
+    if (t.id === "playerLineupForm") {
+      applyPlayerLineupFormation(t.value);
+      renderPlayerLineupSection();
+    }
+  });
+}
+
 function capturePlayerFormDraft() {
   return {
     editId: $("#playerEditId")?.value || "",
@@ -14335,6 +16423,19 @@ function bindPlayers() {
   }
 
   restorePlayerFormDraft();
+  bindPlayerLineupSection();
+  const restoredEditId = $("#playerEditId")?.value;
+  if (restoredEditId) {
+    const restoredPlayer = state().players.find((x) => x.id === restoredEditId);
+    if (restoredPlayer) openPlayerLineupSection(restoredPlayer);
+    else {
+      playerLineupSession = null;
+      renderPlayerLineupSection();
+    }
+  } else {
+    playerLineupSession = null;
+    renderPlayerLineupSection();
+  }
   setupPlayerFlagAuto();
   refreshPlayerFormFieldHints();
 
@@ -14406,6 +16507,7 @@ function bindPlayers() {
     FCDataStore.upsertPlayer(playerPayload);
     syncToAppArrays();
     playerFormDraft = null;
+    playerLineupSession = null;
     toast("Player saved");
     renderPanel();
   });
@@ -14439,6 +16541,8 @@ function bindPlayers() {
       }
       setupPlayerFlagAuto();
       refreshPlayerFormFieldHints();
+      openPlayerLineupSection(p);
+      $("#playerFormCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 

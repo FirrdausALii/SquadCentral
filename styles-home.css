@@ -1526,6 +1526,13 @@
   text-align: center !important;
 }
 
+.spotlight-stats-grid #featuredTopScorer,
+.spotlight-stats-grid #featuredTopAssist {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+}
+
 .spotlight-stat-text {
   font-size: 13px !important;
   font-weight: 600;

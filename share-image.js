@@ -992,39 +992,164 @@
     }
   }
 
-  /** Lineup11-style pitch: concentric mow rings + soft boards at the far end. */
-  function drawLineup11Pitch(ctx, x, y, w, h) {
-    ctx.fillStyle = "#2a7d3a";
-    ctx.fillRect(x, y, w, h);
+  const LINEUP_W = 1080;
+  const LINEUP_H = 1350;
+  const PITCH_TOP_INSET = 0.12;
+  const PITCH_BOTTOM_INSET = 0.018;
 
-    const boardH = Math.max(28, Math.round(h * 0.055));
-    const boardColors = ["#1e3a5f", "#c8102e", "#f5f5f5", "#0b5cab", "#111111", "#ffd100", "#1e3a5f"];
-    const boardW = w / boardColors.length;
-    for (let i = 0; i < boardColors.length; i++) {
-      ctx.fillStyle = boardColors[i];
-      ctx.fillRect(x + i * boardW, y, boardW + 1, boardH);
+  function perspectivePoint(nx, ny, box) {
+    const inset = PITCH_TOP_INSET + (PITCH_BOTTOM_INSET - PITCH_TOP_INSET) * ny;
+    return {
+      x: box.x + box.w * (inset + nx * (1 - 2 * inset)),
+      y: box.y + box.h * ny,
+    };
+  }
+
+  function perspectiveTokenPoint(rowIndex, rowCount, colIndex, colCount, box) {
+    const rows = Math.max(1, Number(rowCount) || 1);
+    const cols = Math.max(1, Number(colCount) || 1);
+    const r = Math.max(0, Number(rowIndex) || 0);
+    const c = Math.max(0, Number(colIndex) || 0);
+    const ny = rows > 1 ? 0.86 - (r / (rows - 1)) * 0.72 : 0.5;
+    const nx = (c + 1) / (cols + 1);
+    return perspectivePoint(nx, ny, box);
+  }
+
+  function jerseyScaleForRow(colCount, depth = 0.5) {
+    const n = Math.max(1, Number(colCount) || 1);
+    const byCount = n >= 5 ? 0.78 : n === 4 ? 0.92 : n === 3 ? 1.02 : 1.08;
+    const byDepth = 0.88 + depth * 0.18;
+    return byCount * byDepth;
+  }
+
+  function fitShareLine(ctx, text, maxW, weight, size) {
+    const raw = String(text ?? "");
+    let s = size;
+    while (s > 11) {
+      ctx.font = `${weight} ${s}px ${FONT}`;
+      if (ctx.measureText(raw).width <= maxW) return { text: raw, size: s };
+      s -= 1;
     }
-    ctx.fillStyle = "rgba(0,0,0,0.18)";
-    ctx.fillRect(x, y + boardH - 4, w, 4);
+    ctx.font = `${weight} 11px ${FONT}`;
+    return { text: truncateText(ctx, raw, maxW), size: 11 };
+  }
 
-    const cx = x + w / 2;
-    const cy = y + boardH + (h - boardH) * 0.52;
-    const maxRx = w * 0.72;
-    const maxRy = (h - boardH) * 0.62;
-    const rings = 18;
-    for (let i = rings; i >= 0; i--) {
-      const t = i / rings;
+  function strokePerspectivePoly(ctx, points, close = true) {
+    if (!points.length) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    if (close) ctx.closePath();
+    ctx.stroke();
+  }
+
+  function perspectiveRectPoints(u0, v0, u1, v1, box) {
+    return [
+      perspectivePoint(u0, v0, box),
+      perspectivePoint(u1, v0, box),
+      perspectivePoint(u1, v1, box),
+      perspectivePoint(u0, v1, box),
+    ];
+  }
+
+  function perspectiveCirclePoints(uc, vc, ru, rv, box, steps = 48) {
+    const pts = [];
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      pts.push(perspectivePoint(uc + Math.cos(a) * ru, vc + Math.sin(a) * rv, box));
+    }
+    return pts;
+  }
+
+  /** Trapezoid grass: wider at the bottom, striped, no concentric rings. */
+  function drawPerspectivePitch(ctx, box) {
+    const { x, y, w, h } = box;
+    const trap = [
+      perspectivePoint(0, 0, box),
+      perspectivePoint(1, 0, box),
+      perspectivePoint(1, 1, box),
+      perspectivePoint(0, 1, box),
+    ];
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(trap[0].x, trap[0].y);
+    for (let i = 1; i < trap.length; i++) ctx.lineTo(trap[i].x, trap[i].y);
+    ctx.closePath();
+    ctx.clip();
+
+    const stripes = 16;
+    for (let i = 0; i < stripes; i++) {
+      const v0 = i / stripes;
+      const v1 = (i + 1) / stripes;
+      const quad = perspectiveRectPoints(0, v0, 1, v1, box);
       ctx.beginPath();
-      ctx.ellipse(cx, cy, maxRx * t, maxRy * t, 0, 0, Math.PI * 2);
-      ctx.fillStyle = i % 2 === 0 ? "#318f44" : "#277a38";
+      ctx.moveTo(quad[0].x, quad[0].y);
+      quad.slice(1).forEach((p) => ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle = i % 2 === 0 ? "#2f9a4a" : "#26843d";
       ctx.fill();
     }
 
-    const fade = ctx.createLinearGradient(x, y + boardH, x, y + boardH + 50);
-    fade.addColorStop(0, "rgba(0,0,0,0.22)");
-    fade.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = fade;
-    ctx.fillRect(x, y + boardH, w, 50);
+    const shade = ctx.createLinearGradient(x, y, x, y + h);
+    shade.addColorStop(0, "rgba(0,0,0,0.22)");
+    shade.addColorStop(0.18, "rgba(0,0,0,0.04)");
+    shade.addColorStop(0.72, "rgba(0,0,0,0)");
+    shade.addColorStop(1, "rgba(0,0,0,0.16)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(x, y, w, h);
+
+    const sideShade = ctx.createLinearGradient(x, y, x + w, y);
+    sideShade.addColorStop(0, "rgba(0,0,0,0.16)");
+    sideShade.addColorStop(0.18, "rgba(0,0,0,0)");
+    sideShade.addColorStop(0.82, "rgba(0,0,0,0)");
+    sideShade.addColorStop(1, "rgba(0,0,0,0.16)");
+    ctx.fillStyle = sideShade;
+    ctx.fillRect(x, y, w, h);
+
+    drawPerspectivePitchMarkings(ctx, box);
+    ctx.restore();
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.22)";
+    ctx.shadowBlur = 18;
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 2;
+    strokePerspectivePoly(ctx, trap, true);
+    ctx.restore();
+  }
+
+  function drawPerspectivePitchMarkings(ctx, box) {
+    ctx.strokeStyle = "rgba(255,255,255,0.42)";
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    strokePerspectivePoly(ctx, perspectiveRectPoints(0.045, 0.035, 0.955, 0.965, box));
+    strokePerspectivePoly(ctx, [perspectivePoint(0.045, 0.5, box), perspectivePoint(0.955, 0.5, box)], false);
+    strokePerspectivePoly(ctx, perspectiveCirclePoints(0.5, 0.5, 0.145, 0.09, box));
+
+    ctx.beginPath();
+    const spot = perspectivePoint(0.5, 0.5, box);
+    ctx.arc(spot.x, spot.y, 2.4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fill();
+
+    strokePerspectivePoly(ctx, perspectiveRectPoints(0.22, 0.035, 0.78, 0.2, box));
+    strokePerspectivePoly(ctx, perspectiveRectPoints(0.34, 0.035, 0.66, 0.105, box));
+    strokePerspectivePoly(ctx, perspectiveRectPoints(0.22, 0.8, 0.78, 0.965, box));
+    strokePerspectivePoly(ctx, perspectiveRectPoints(0.34, 0.895, 0.66, 0.965, box));
+
+    const arc = (uc, vc, a0, a1) => {
+      const pts = [];
+      for (let i = 0; i <= 16; i++) {
+        const a = a0 + ((a1 - a0) * i) / 16;
+        pts.push(perspectivePoint(uc + Math.cos(a) * 0.09, vc + Math.sin(a) * 0.055, box));
+      }
+      strokePerspectivePoly(ctx, pts, false);
+    };
+    arc(0.5, 0.2, 0.12 * Math.PI, 0.88 * Math.PI);
+    arc(0.5, 0.8, 1.12 * Math.PI, 1.88 * Math.PI);
   }
 
   function teamKitColors(team, { isGk = false } = {}) {
@@ -1035,12 +1160,12 @@
     return { c1, c2, sleeve: c2 };
   }
 
-  /** Flat kit icon: striped body, sleeves, crest, number badge — Lineup11 style. */
+  /** Club-color kit: larger shirt, crest, lower-right number badge. */
   function drawJerseyToken(ctx, cx, cy, player, { kit, crest, scale = 1 } = {}) {
-    const w = 58 * scale;
-    const h = 62 * scale;
+    const w = 96 * scale;
+    const h = 104 * scale;
     const x = cx - w / 2;
-    const y = cy - h / 2 - 6 * scale;
+    const y = cy - h / 2 - 8 * scale;
     const c1 = kit?.c1 ?? "#ffffff";
     const c2 = kit?.c2 ?? c1;
     const sleeve = kit?.sleeve ?? c2;
@@ -1049,21 +1174,21 @@
     ctx.save();
 
     ctx.beginPath();
-    ctx.ellipse(cx, cy + h * 0.42, w * 0.42, 6 * scale, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.ellipse(cx, cy + h * 0.46, w * 0.4, 8 * scale, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.32)";
     ctx.fill();
 
     const jerseyOutline = () => {
       ctx.beginPath();
       ctx.moveTo(x + w * 0.22, y + h * 0.12);
-      ctx.lineTo(x + w * 0.08, y + h * 0.22);
-      ctx.lineTo(x + w * 0.02, y + h * 0.38);
-      ctx.lineTo(x + w * 0.18, y + h * 0.42);
-      ctx.lineTo(x + w * 0.18, y + h * 0.92);
-      ctx.quadraticCurveTo(cx, y + h * 0.98, x + w * 0.82, y + h * 0.92);
-      ctx.lineTo(x + w * 0.82, y + h * 0.42);
-      ctx.lineTo(x + w * 0.98, y + h * 0.38);
-      ctx.lineTo(x + w * 0.92, y + h * 0.22);
+      ctx.lineTo(x + w * 0.06, y + h * 0.2);
+      ctx.lineTo(x + w * 0.0, y + h * 0.38);
+      ctx.lineTo(x + w * 0.17, y + h * 0.44);
+      ctx.lineTo(x + w * 0.18, y + h * 0.9);
+      ctx.quadraticCurveTo(cx, y + h * 0.98, x + w * 0.82, y + h * 0.9);
+      ctx.lineTo(x + w * 0.83, y + h * 0.44);
+      ctx.lineTo(x + w, y + h * 0.38);
+      ctx.lineTo(x + w * 0.94, y + h * 0.2);
       ctx.lineTo(x + w * 0.78, y + h * 0.12);
       ctx.quadraticCurveTo(cx, y + h * 0.02, x + w * 0.22, y + h * 0.12);
       ctx.closePath();
@@ -1074,14 +1199,14 @@
     ctx.clip();
 
     if (striped) {
-      const stripeW = Math.max(5, w / 7);
-      for (let i = -1; i < 9; i++) {
+      const stripeW = Math.max(7, w / 6.4);
+      for (let i = -1; i < 10; i++) {
         ctx.fillStyle = i % 2 === 0 ? c1 : c2;
         ctx.fillRect(x + i * stripeW, y, stripeW + 1, h);
       }
       ctx.fillStyle = sleeve;
-      ctx.fillRect(x, y + h * 0.12, w * 0.2, h * 0.32);
-      ctx.fillRect(x + w * 0.8, y + h * 0.12, w * 0.2, h * 0.32);
+      ctx.fillRect(x, y + h * 0.1, w * 0.2, h * 0.34);
+      ctx.fillRect(x + w * 0.8, y + h * 0.1, w * 0.2, h * 0.34);
     } else {
       const grad = ctx.createLinearGradient(x, y, x + w, y + h);
       grad.addColorStop(0, c1);
@@ -1090,19 +1215,26 @@
       ctx.fillRect(x, y, w, h);
     }
 
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    const gloss = ctx.createLinearGradient(x, y, x, y + h);
+    gloss.addColorStop(0, "rgba(255,255,255,0.18)");
+    gloss.addColorStop(0.45, "rgba(255,255,255,0)");
+    gloss.addColorStop(1, "rgba(0,0,0,0.12)");
+    ctx.fillStyle = gloss;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.beginPath();
-    ctx.moveTo(cx - w * 0.12, y + h * 0.1);
+    ctx.moveTo(cx - w * 0.13, y + h * 0.1);
     ctx.lineTo(cx, y + h * 0.2);
-    ctx.lineTo(cx + w * 0.12, y + h * 0.1);
+    ctx.lineTo(cx + w * 0.13, y + h * 0.1);
     ctx.closePath();
     ctx.fill();
 
     if (crest) {
-      const cw = 14 * scale;
-      const ch = 14 * scale;
+      const cw = 22 * scale;
+      const ch = 22 * scale;
       try {
-        ctx.drawImage(crest, cx - w * 0.18 - cw / 2, y + h * 0.32, cw, ch);
+        ctx.drawImage(crest, cx - w * 0.16 - cw / 2, y + h * 0.34, cw, ch);
       } catch (_) {
         /* ignore crest draw failures */
       }
@@ -1111,69 +1243,69 @@
     ctx.restore();
 
     jerseyOutline();
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
-    ctx.lineWidth = 1.5 * scale;
+    ctx.strokeStyle = "rgba(0,0,0,0.38)";
+    ctx.lineWidth = 1.8 * scale;
     ctx.stroke();
 
     const num = String(player?.number ?? "").trim() || "—";
-    const badgeR = 11 * scale;
-    const bx = cx + w * 0.28;
-    const by = cy + h * 0.22;
+    const badgeR = 16 * scale;
+    const bx = cx + w * 0.3;
+    const by = y + h * 0.78;
+    ctx.beginPath();
+    ctx.arc(bx, by, badgeR + 1.2 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fill();
     ctx.beginPath();
     ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.2)";
-    ctx.lineWidth = 1.2 * scale;
+    ctx.strokeStyle = "rgba(0,0,0,0.18)";
+    ctx.lineWidth = 1.4 * scale;
     ctx.stroke();
-    ctx.fillStyle = "#0b1120";
-    ctx.font = `800 ${Math.round(12 * scale)}px ${FONT}`;
+    ctx.fillStyle = "#111827";
+    ctx.font = `800 ${Math.round(15 * scale)}px ${FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(num, bx, by + 0.5);
 
     if (isCaptainPlayer(player)) {
-      const capR = 8 * scale;
-      const capX = cx + w * 0.3;
-      const capY = y + h * 0.14;
+      const capR = 10 * scale;
+      const capX = cx + w * 0.28;
+      const capY = y + h * 0.16;
       ctx.beginPath();
       ctx.arc(capX, capY, capR, 0, Math.PI * 2);
       ctx.fillStyle = "#facc15";
       ctx.fill();
       ctx.strokeStyle = "#0b1120";
-      ctx.lineWidth = 1.2 * scale;
+      ctx.lineWidth = 1.4 * scale;
       ctx.stroke();
       ctx.fillStyle = "#422006";
-      ctx.font = `800 ${Math.round(9 * scale)}px ${FONT}`;
+      ctx.font = `800 ${Math.round(11 * scale)}px ${FONT}`;
       ctx.fillText("C", capX, capY + 0.5);
     }
 
     ctx.restore();
   }
 
-  function drawLineup11PlayerName(ctx, cx, cy, player, { maxW = 120 } = {}) {
-    const captain = isCaptainPlayer(player);
+  function drawLineup11PlayerName(ctx, cx, cy, player, { maxW = 160, scale = 1 } = {}) {
     const lines = pitchNameLines(player?.name, false);
-    const first = truncateText(ctx, lines[0] || "—", maxW);
-    const last = lines[1] ? truncateText(ctx, lines[1], maxW) : "";
+    const firstFit = fitShareLine(ctx, lines[0] || "—", maxW, "800", Math.round(22 * scale));
+    const lastFit = lines[1] ? fitShareLine(ctx, lines[1], maxW, "500", Math.round(20 * scale)) : null;
 
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(0,0,0,0.65)";
-    ctx.shadowBlur = 5;
+    ctx.shadowColor = "rgba(0,0,0,0.7)";
+    ctx.shadowBlur = 6;
     ctx.shadowOffsetY = 1;
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = `800 17px ${FONT}`;
-    ctx.fillText(first, cx, cy);
+    ctx.font = `800 ${firstFit.size}px ${FONT}`;
+    ctx.fillText(firstFit.text, cx, cy);
 
-    if (last) {
-      ctx.font = `600 15px ${FONT}`;
-      ctx.fillStyle = "rgba(255,255,255,0.95)";
-      ctx.fillText(last + (captain ? " (C)" : ""), cx, cy + 20);
-    } else if (captain) {
-      ctx.font = `600 14px ${FONT}`;
-      ctx.fillText("(C)", cx, cy + 20);
+    if (lastFit) {
+      ctx.font = `500 ${lastFit.size}px ${FONT}`;
+      ctx.fillStyle = "rgba(255,255,255,0.96)";
+      ctx.fillText(lastFit.text, cx, cy + firstFit.size + 3);
     }
 
     ctx.shadowColor = "transparent";
@@ -1292,8 +1424,8 @@
   }
 
   /**
-   * Lineup11-style single-team share card (1122 × 1402).
-   * Jersey tokens on a concentric-mow pitch, full names in two rows.
+   * Single-team lineup share card (1080 × 1350).
+   * Perspective pitch, large club-color shirts, saved XI only.
    */
   async function renderLineupShareImage(options) {
     const {
@@ -1315,8 +1447,8 @@
     } = options;
 
     const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = LINEUP_W;
+    canvas.height = LINEUP_H;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not supported");
 
@@ -1333,24 +1465,41 @@
     const brandLogo = await loadImage(logoSrc);
     const focusLogo = await loadImage(focusTeam.logo);
 
-    ctx.fillStyle = "#d8d4cc";
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#efece6";
+    ctx.fillRect(0, 0, LINEUP_W, LINEUP_H);
 
-    const margin = 28;
-    const headerH = 150;
-    const footerH = 64;
-    const headerY = margin;
-    const footerY = H - margin - footerH;
-    const pitchY = headerY + headerH + 8;
-    const pitchH = footerY - pitchY - 10;
-    const pitchX = margin;
-    const pitchW = W - margin * 2;
-    const centerX = W / 2;
+    const margin = 36;
+    const headerH = 168;
+    const managerH = focusCoach ? 58 : 18;
+    const footerH = 72;
+    const headerY = 28;
+    const footerY = LINEUP_H - footerH;
+    const managerY = footerY - managerH;
+    const pitchX = 8;
+    const pitchW = LINEUP_W - 16;
+    const pitchY = headerY + headerH;
+    const pitchH = managerY - pitchY - 8;
+    const centerX = LINEUP_W / 2;
+    const pitchBox = { x: pitchX, y: pitchY, w: pitchW, h: pitchH };
 
+    const clubName = String(focusTeam.name ?? "Team").toUpperCase();
+    const crestSize = focusLogo ? 52 : 0;
     ctx.textAlign = "center";
-    ctx.fillStyle = "#0b1f3a";
-    ctx.font = `900 56px ${FONT}`;
-    ctx.fillText(truncateText(ctx, focusTeam.name ?? "Team", pitchW - 40), centerX, headerY + 62);
+    ctx.fillStyle = "#102033";
+    ctx.font = `800 54px ${FONT}`;
+    const nameW = Math.min(LINEUP_W - margin * 2 - (crestSize ? crestSize + 16 : 0), LINEUP_W - 80);
+    const title = truncateText(ctx, clubName, nameW);
+    const titleW = ctx.measureText(title).width;
+    const titleX = crestSize ? centerX + (crestSize + 14) / 2 : centerX;
+    if (focusLogo) {
+      const crestX = titleX - titleW / 2 - 14 - crestSize;
+      try {
+        ctx.drawImage(focusLogo, crestX, headerY + 8, crestSize, crestSize);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    ctx.fillText(title, titleX, headerY + 50);
 
     const metaBits = [];
     if (focusFormation) metaBits.push(String(focusFormation));
@@ -1358,108 +1507,72 @@
     const gw = String(matchday ?? "").trim();
     if (gw) metaBits.push(gw);
     ctx.fillStyle = "#3d4f66";
-    ctx.font = `700 22px ${FONT}`;
-    ctx.fillText(truncateText(ctx, metaBits.join("  ·  "), pitchW - 60), centerX, headerY + 102);
+    ctx.font = `600 22px ${FONT}`;
+    ctx.fillText(truncateText(ctx, metaBits.join("  |  "), LINEUP_W - margin * 2), centerX, headerY + 96);
 
     const subBits = [String(leagueName ?? "").trim(), time, venue]
       .map((s) => String(s ?? "").trim())
       .filter(Boolean);
     if (subBits.length) {
       ctx.fillStyle = "#6a7a8c";
-      ctx.font = `600 18px ${FONT}`;
-      ctx.fillText(truncateText(ctx, subBits.join("  ·  "), pitchW - 80), centerX, headerY + 132);
+      ctx.font = `500 18px ${FONT}`;
+      ctx.fillText(truncateText(ctx, subBits.join("  |  "), LINEUP_W - margin * 2), centerX, headerY + 126);
     }
 
-    roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 18);
-        ctx.save();
-        ctx.clip();
-    drawLineup11Pitch(ctx, pitchX, pitchY, pitchW, pitchH);
-    const boardH = Math.max(28, Math.round(pitchH * 0.055));
-    drawPitchMarkings(ctx, pitchX + 18, pitchY + boardH + 8, pitchW - 36, pitchH - boardH - 28);
-
-    const vig = ctx.createRadialGradient(
-      pitchX + pitchW / 2,
-      pitchY + pitchH * 0.55,
-      pitchW * 0.15,
-      pitchX + pitchW / 2,
-      pitchY + pitchH * 0.55,
-      pitchW * 0.75,
-    );
-    vig.addColorStop(0, "rgba(0,0,0,0)");
-    vig.addColorStop(1, "rgba(0,0,0,0.18)");
-    ctx.fillStyle = vig;
-    ctx.fillRect(pitchX, pitchY, pitchW, pitchH);
+    drawPerspectivePitch(ctx, pitchBox);
 
     if (!focusRows?.length) {
-    ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = `800 30px ${FONT}`;
-      ctx.fillText("Lineup not available", pitchX + pitchW / 2, pitchY + pitchH / 2);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = `800 28px ${FONT}`;
+      ctx.fillText("Lineup not available", centerX, pitchY + pitchH / 2);
     } else {
       const rowCount = focusRows.length;
-      const scale = Math.max(0.85, Math.min(1.15, pitchW / 980));
-      const padTop = 56 + boardH;
-      const padBottom = focusCoach ? 96 : 56;
-      const innerY = pitchY + padTop;
-      const innerH = pitchH - padTop - padBottom;
-      const layout =
-        typeof pitchTokenPercents === "function"
-          ? pitchTokenPercents
-          : (r, rows, c, cols) => ({
-              top: rows > 1 ? 90 - (r / (rows - 1)) * 78 : 50,
-              left: ((c + 1) / (cols + 1)) * 100,
-            });
-
       const outfieldKit = teamKitColors(focusTeam, { isGk: false });
       const gkKit = teamKitColors(focusTeam, { isGk: true });
 
       focusRows.forEach((row, r) => {
         const isGkRow = r === 0;
+        const depth = rowCount > 1 ? r / (rowCount - 1) : 0.5;
+        const scale = jerseyScaleForRow(row.length, depth);
+        const nameMax = Math.min(188, (pitchW / (row.length + 0.55)) * (0.72 + depth * 0.16));
         row.forEach((p, c) => {
-          const { left: leftPct, top: topPct } = layout(r, rowCount, c, row.length);
-          const px = pitchX + (leftPct / 100) * pitchW;
-          const py = innerY + (topPct / 100) * innerH;
+          const { x: px, y: py } = perspectiveTokenPoint(r, rowCount, c, row.length, pitchBox);
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
-          drawJerseyToken(ctx, px, py - 8, p, {
+          drawJerseyToken(ctx, px, py - 10, p, {
             kit: isGk ? gkKit : outfieldKit,
             crest: focusLogo,
             scale,
           });
-          drawLineup11PlayerName(ctx, px, py + 42 * scale, p, { maxW: 130 * scale });
+          drawLineup11PlayerName(ctx, px, py + 52 * scale, p, { maxW: nameMax, scale });
         });
       });
     }
 
     if (focusCoach) {
-    ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.font = `700 14px ${FONT}`;
-      ctx.shadowColor = "rgba(0,0,0,0.45)";
-      ctx.shadowBlur = 4;
-      ctx.fillText("MANAGER", pitchX + pitchW / 2, pitchY + pitchH - 48);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `800 22px ${FONT}`;
-      ctx.fillText(truncateText(ctx, focusCoach, pitchW - 80), pitchX + pitchW / 2, pitchY + pitchH - 24);
-      ctx.shadowBlur = 0;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#6a7a8c";
+      ctx.font = `700 12px ${FONT}`;
+      ctx.fillText("MANAGER", centerX, managerY + 18);
+      ctx.fillStyle = "#102033";
+      ctx.font = `700 20px ${FONT}`;
+      ctx.fillText(truncateText(ctx, focusCoach, LINEUP_W - 120), centerX, managerY + 42);
     }
 
-      ctx.restore();
-
-    roundRect(ctx, pitchX, pitchY, pitchW, pitchH, 18);
-    ctx.strokeStyle = "rgba(0,0,0,0.12)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.textAlign = "right";
     ctx.textBaseline = "middle";
     const footCy = footerY + footerH / 2;
+    const brandLabel = "SQUAD CENTRAL";
+    ctx.font = `800 22px ${FONT}`;
+    const brandW = ctx.measureText(brandLabel).width;
+    const logoS = 28;
+    const clusterW = (brandLogo ? logoS + 10 : 0) + brandW;
+    const clusterX = LINEUP_W - margin - clusterW;
     if (brandLogo) {
-      const bw = 28;
-      ctx.drawImage(brandLogo, W - margin - 210, footCy - bw / 2, bw, bw);
+      ctx.drawImage(brandLogo, clusterX, footCy - logoS / 2, logoS, logoS);
     }
-    ctx.fillStyle = "#0b1f3a";
-    ctx.font = `900 26px ${FONT}`;
-    ctx.fillText("SQUAD CENTRAL", W - margin - 8, footCy);
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#102033";
+    ctx.fillText(brandLabel, clusterX + (brandLogo ? logoS + 10 : 0), footCy);
     ctx.textBaseline = "alphabetic";
 
     return canvas;
