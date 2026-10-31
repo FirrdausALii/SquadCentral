@@ -283,6 +283,14 @@
   pointer-events: none;
 }
 
+.pitch-name__full {
+  display: contents;
+}
+
+.pitch-name__short {
+  display: none;
+}
+
 .pitch-name__line {
   display: block;
   max-width: 100%;
@@ -532,5 +540,186 @@
   .depth-pos-name {
     max-width: 54px;
     font-size: 7.5px;
+  }
+}
+
+/* Public Match Center lineup viewer — compact mobile pitch (does not change admin) */
+.lineup-pitch-panel {
+  min-width: 0;
+}
+
+.fc-modal--lineup .lineup-modal-chips {
+  margin-bottom: 8px;
+}
+
+.fc-modal--lineup .modal-title--lineup {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: clamp(15px, 4.2vw, 18px);
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.fc-modal--lineup .modal-close {
+  width: var(--tap-min);
+  height: var(--tap-min);
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (max-width: 767.98px) {
+  .fc-modal--lineup .pitch-grid,
+  .fc-modal--lineup .lineups-wrapper {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .fc-modal--lineup [data-lineup-side]:not(.is-active) {
+    display: none;
+  }
+
+  .fc-modal--lineup .lineup-toolbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .fc-modal--lineup .lineup-share-side {
+    order: -1;
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 0;
+  }
+
+  .fc-modal--lineup .lineup-share-side-btn {
+    flex: 1;
+    max-width: none;
+    min-height: var(--tap-min);
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .fc-modal--lineup .lineup-toggle-btn,
+  .fc-modal--lineup .lineup-view-btn,
+  .fc-modal--lineup #shareLineupBtn {
+    min-height: var(--tap-min);
+  }
+
+  .fc-modal--lineup .pitch-side {
+    gap: 8px;
+  }
+
+  .fc-modal--lineup .pitch-side-head {
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 0;
+  }
+
+  .fc-modal--lineup .pitch-team {
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .fc-modal--lineup .pitch-team::after {
+    content: "|";
+    margin-left: 8px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .fc-modal--lineup .lineup-formation-badge {
+    padding: 2px 7px;
+  }
+
+  .fc-modal--lineup .pitch {
+    aspect-ratio: 5 / 6;
+    width: 100%;
+    max-height: min(66dvh, calc(100dvh - 11.5rem));
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  .fc-modal--lineup .pitch-players {
+    inset: 8% 3% 17% 3%;
+    width: auto;
+    height: auto;
+  }
+
+  .fc-modal--lineup .pitch-player {
+    gap: 3px;
+  }
+
+  .fc-modal--lineup .pitch-token,
+  .fc-modal--lineup .player-circle {
+    width: clamp(30px, 8.6vw, 38px);
+    height: clamp(34px, 9.4vw, 42px);
+    border-radius: 8px 8px 11px 11px;
+    font-size: clamp(11px, 3.1vw, 13px);
+    font-weight: 800;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(55, 138, 221, 0.28);
+  }
+
+  .fc-modal--lineup .pitch-player.is-gk .pitch-token,
+  .fc-modal--lineup .player-node.gk .player-circle {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(217, 119, 6, 0.4);
+  }
+
+  .fc-modal--lineup .player-circle.captain::after {
+    top: -6px;
+    right: -6px;
+    width: 14px;
+    height: 14px;
+    font-size: 8px;
+    line-height: 14px;
+  }
+
+  .fc-modal--lineup .pitch-name,
+  .fc-modal--lineup .player-name-tag {
+    font-size: clamp(10px, 2.8vw, 12px);
+    max-width: min(104px, 30vw);
+    padding: 2px 6px;
+    line-height: 1.2;
+    font-weight: 650;
+  }
+
+  .fc-modal--lineup .pitch-name__full {
+    display: none;
+  }
+
+  .fc-modal--lineup .pitch-name__short {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fc-modal--lineup .pitch-player--n4 .pitch-name,
+  .fc-modal--lineup .pitch-player--n5 .pitch-name {
+    max-width: min(78px, 22vw);
+  }
+}
+
+@media (max-width: 360px) {
+  .fc-modal--lineup .pitch {
+    max-height: min(68dvh, calc(100dvh - 10.75rem));
+  }
+}
+
+@media (min-width: 768px) {
+  .fc-modal--lineup .pitch-grid,
+  .fc-modal--lineup .lineups-wrapper,
+  .fc-modal--lineup .lineups-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fc-modal--lineup [data-lineup-side] {
+    display: block;
   }
 }

@@ -4929,7 +4929,28 @@ function isCaptainPlayer(p) {
   return playerNameMarksCaptain(p.name);
 }
 
-function openModal({ title, bodyHtml, primaryLabel = "Done", showDismiss = true, onPrimary = null, compact = false } = {}) {
+let pageScrollLockY = 0;
+let pageScrollLocked = false;
+
+function lockPageScroll() {
+  if (pageScrollLocked) return;
+  pageScrollLocked = true;
+  pageScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.documentElement.classList.add("fc-modal-open");
+  document.body.classList.add("fc-modal-open");
+  document.body.style.top = `-${pageScrollLockY}px`;
+}
+
+function unlockPageScroll() {
+  if (!pageScrollLocked) return;
+  pageScrollLocked = false;
+  document.documentElement.classList.remove("fc-modal-open");
+  document.body.classList.remove("fc-modal-open");
+  document.body.style.removeProperty("top");
+  window.scrollTo(0, pageScrollLockY);
+}
+
+function openModal({ title, bodyHtml, primaryLabel = "Done", showDismiss = true, onPrimary = null, compact = false, variant = "" } = {}) {
   const dlg = $("#modal");
   const titleEl = $("#modalTitle");
   const bodyEl = $("#modalBody");
@@ -4938,8 +4959,10 @@ function openModal({ title, bodyHtml, primaryLabel = "Done", showDismiss = true,
   const actions = $("#modalActions");
 
   if (titleEl) titleEl.textContent = title;
+  titleEl?.classList.toggle("modal-title--lineup", variant === "lineup");
   if (bodyEl) bodyEl.innerHTML = bodyHtml;
   dlg?.classList.toggle("fc-modal--compact", Boolean(compact));
+  dlg?.classList.toggle("fc-modal--lineup", variant === "lineup");
 
   if (dismiss) dismiss.hidden = !showDismiss;
 
@@ -4971,6 +4994,7 @@ function openModal({ title, bodyHtml, primaryLabel = "Done", showDismiss = true,
   else alert(`${title}\n\n${bodyEl?.textContent ?? ""}`);
   dlg?.style?.removeProperty("transform");
   dlg?.classList.remove("fc-modal--dragging");
+  lockPageScroll();
 }
 
 function setupTopbarShrink() {
@@ -5005,6 +5029,11 @@ function setupModalSheet() {
 
   dlg.addEventListener("click", (e) => {
     if (e.target === dlg) dlg.close();
+  });
+  dlg.addEventListener("close", () => {
+    dlg.style.removeProperty("transform");
+    dlg.classList.remove("fc-modal--dragging", "fc-modal--lineup");
+    unlockPageScroll();
   });
 
   const handle = dlg.querySelector(".modal-sheet-handle");
@@ -5044,10 +5073,6 @@ function setupModalSheet() {
   handle.addEventListener("pointermove", onPointerMove);
   handle.addEventListener("pointerup", onPointerUp);
   handle.addEventListener("pointercancel", onPointerUp);
-  dlg.addEventListener("close", () => {
-    dlg.style.removeProperty("transform");
-    dlg.classList.remove("fc-modal--dragging");
-  });
 }
 
 function applyTheme(theme) {
@@ -8991,7 +9016,7 @@ function lineupShareToolbarHtml({ showPitchToggle = false } = {}) {
   return `
     <div class="lineup-toolbar lineup-toolbar--share">
       ${toggle}
-      <div class="lineup-share-side" role="tablist" aria-label="Share team">
+      <div class="lineup-share-side" role="tablist" aria-label="Team lineup">
         <button type="button" class="lineup-toggle-btn lineup-share-side-btn${homeActive}" data-share-side="home" role="tab" aria-selected="${matchLineupShareSide !== "away"}">${escapeHtml(homeLabel)}</button>
         <button type="button" class="lineup-toggle-btn lineup-share-side-btn${awayActive}" data-share-side="away" role="tab" aria-selected="${matchLineupShareSide === "away"}">${escapeHtml(awayLabel)}</button>
       </div>
@@ -9044,19 +9069,28 @@ async function handleShareLineup() {
   }
 }
 
+function syncLineupSideView(side) {
+  const next = side === "away" ? "away" : "home";
+  matchLineupShareSide = next;
+  const root = $("#modalBody .lineup-views-wrap") || $("#modalBody");
+  if (root) root.dataset.activeSide = next;
+  document.querySelectorAll("[data-share-side]").forEach((el) => {
+    const on = el.getAttribute("data-share-side") === next;
+    el.classList.toggle("is-active", on);
+    el.classList.toggle("active", on);
+    el.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.querySelectorAll("#modalBody [data-lineup-side]").forEach((el) => {
+    el.classList.toggle("is-active", el.getAttribute("data-lineup-side") === next);
+  });
+}
+
 function bindLineupShareButton() {
   document.querySelectorAll("[data-share-side]").forEach((btn) => {
     if (btn.dataset.bound === "1") return;
     btn.dataset.bound = "1";
     btn.addEventListener("click", () => {
-      const side = btn.getAttribute("data-share-side") === "away" ? "away" : "home";
-      matchLineupShareSide = side;
-      document.querySelectorAll("[data-share-side]").forEach((el) => {
-        const on = el.getAttribute("data-share-side") === side;
-        el.classList.toggle("is-active", on);
-        el.classList.toggle("active", on);
-        el.setAttribute("aria-selected", on ? "true" : "false");
-      });
+      syncLineupSideView(btn.getAttribute("data-share-side") === "away" ? "away" : "home");
     });
   });
 
@@ -9542,7 +9576,14 @@ function buildFormationRows(formation, lineup) {
 
 /** Short label for a pitch token: surname only, falling back to the full name. */
 function lineupShortName(name) {
-  return deriveLastNameFromFullName(name);
+  const clean = stripCaptainSuffix(name);
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return clean;
+  const particle = /^(le|la|de|da|do|dos|van|von|di|del|della|bin|al)$/i;
+  if (parts.length >= 3 && particle.test(parts[parts.length - 2])) {
+    return `${parts[parts.length - 2]} ${parts[parts.length - 1]}`;
+  }
+  return parts[parts.length - 1];
 }
 
 /**
@@ -9645,16 +9686,21 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
           const meta = [tag, nat || teamName].filter(Boolean).join(" · ");
           const isCap = isCaptainPlayer(p);
           const capClass = isCap ? " captain" : "";
+          const rowClass = ` pitch-player--n${row.length}`;
           const nodeClass = isGk ? "player-node gk pitch-player is-gk" : "player-node pitch-player";
           const slotIdx = (lineup ?? []).indexOf(p);
           const swapAttrs =
             interactive && slotIdx >= 0
               ? ` data-mw-pitch-side="${escapeHtml(side)}" data-mw-slot="${slotIdx}" draggable="true"`
               : "";
+          const shortName = `${lineupShortName(p.name)}${isCap || p.captain ? " (C)" : ""}`;
           return `
-            <div class="${nodeClass}" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%"${swapAttrs}>
+            <div class="${nodeClass}${rowClass}" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%"${swapAttrs}>
               <div class="player-circle pitch-token${capClass}">${num}</div>
-              <div class="player-name-tag pitch-name">${pitchNameTagHtml(p.name, isCap || p.captain)}</div>
+              <div class="player-name-tag pitch-name">
+                <span class="pitch-name__full">${pitchNameTagHtml(p.name, isCap || p.captain)}</span>
+                <span class="pitch-name__short">${escapeHtml(shortName)}</span>
+              </div>
               <div class="player-tooltip">
                 <div class="player-tooltip-name">${escapeHtml(fullName)}</div>
                 <div class="player-tooltip-meta">${meta}</div>
@@ -9731,7 +9777,7 @@ function renderMatchCenter(leagueId) {
       : "";
     const venueHtml = renderMatchVenueCoachesHtml(m, ht, at);
 
-    const renderLineupSide = (title, formation, list) => {
+    const renderLineupSide = (title, formation, list, side) => {
       const rows = (list ?? [])
         .map((p) => {
           const nat = leagueFeatureOn(leagueId, "playerNationality")
@@ -9756,8 +9802,10 @@ function renderMatchCenter(leagueId) {
       const formationHtml = showFormation && formation
         ? `<div class="lineup-formation" title="${escapeHtml(formationTip)}">${escapeHtml(formation)}<button type="button" class="lineup-formation-info" aria-label="${escapeHtml(formationTip)}" title="${escapeHtml(formationTip)}">i</button></div>`
         : "";
+      const sideKey = side === "away" ? "away" : "home";
+      const active = matchLineupShareSide === sideKey ? " is-active" : "";
       return `
-        <section class="lineup-side">
+        <section class="lineup-side${active}" data-lineup-side="${sideKey}">
           <div class="lineup-head">
             <div class="lineup-team">${escapeHtml(title)}</div>
             ${formationHtml}
@@ -9784,21 +9832,27 @@ function renderMatchCenter(leagueId) {
           ? `<p class="muted" style="margin:0 0 14px;font-weight:800;line-height:1.5">${escapeHtml((m.scorers ?? []).join(" • "))}</p>`
           : "";
 
+      const homeActive = matchLineupShareSide !== "away" ? " is-active" : "";
+      const awayActive = matchLineupShareSide === "away" ? " is-active" : "";
       const listGrid = `
         <div class="lineups-grid">
-          ${renderLineupSide(ht?.name ?? "Home", m.formation?.[0], m.lineups.home)}
-          ${renderLineupSide(at?.name ?? "Away", m.formation?.[1], m.lineups.away)}
+          ${renderLineupSide(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home")}
+          ${renderLineupSide(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away")}
         </div>
       `;
 
       const lineupBlock = showPitch
         ? `
-          <div class="lineup-views-wrap">
+          <div class="lineup-views-wrap" data-active-side="${matchLineupShareSide === "away" ? "away" : "home"}">
             ${lineupShareToolbarHtml({ showPitchToggle: true })}
             <div class="lineup-view" data-view-panel="pitch">
               <div class="lineups-wrapper pitch-grid">
-                ${renderPitchSideHtml(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home", showFormation, m.homeTeamId)}
-                ${renderPitchSideHtml(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away", showFormation, m.awayTeamId)}
+                <div class="lineup-pitch-panel${homeActive}" data-lineup-side="home">
+                  ${renderPitchSideHtml(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home", showFormation, m.homeTeamId)}
+                </div>
+                <div class="lineup-pitch-panel${awayActive}" data-lineup-side="away">
+                  ${renderPitchSideHtml(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away", showFormation, m.awayTeamId)}
+                </div>
               </div>
             </div>
             <div class="lineup-view is-hidden" data-view-panel="list">
@@ -9807,7 +9861,7 @@ function renderMatchCenter(leagueId) {
           </div>
         `
         : `
-          <div class="lineup-views-wrap">
+          <div class="lineup-views-wrap" data-active-side="${matchLineupShareSide === "away" ? "away" : "home"}">
             ${lineupShareToolbarHtml({ showPitchToggle: false })}
             ${listGrid}
           </div>
@@ -9815,14 +9869,17 @@ function renderMatchCenter(leagueId) {
 
       openModal({
         title: `${ht?.name ?? "Home"} ${m.score?.[0] ?? "—"}–${m.score?.[1] ?? "—"} ${at?.name ?? "Away"}`,
+        variant: "lineup",
         bodyHtml: `
-          <div class="chips" style="margin-bottom:10px">
-            <span class="chip">${escapeHtml(m.matchday)}</span>
-            ${statusChip}
+          <div class="lineup-modal-meta">
+            <div class="chips lineup-modal-chips">
+              <span class="chip">${escapeHtml(m.matchday)}</span>
+              ${statusChip}
+            </div>
+            ${venueHtml}
+            ${goalsHtml}
+            ${legacyScorers}
           </div>
-          ${venueHtml}
-          ${goalsHtml}
-          ${legacyScorers}
           ${lineupBlock}
         `,
         primaryLabel: "Done",
@@ -9836,6 +9893,7 @@ function renderMatchCenter(leagueId) {
         });
       }
       bindLineupShareButton();
+      syncLineupSideView(matchLineupShareSide);
       return;
     }
 

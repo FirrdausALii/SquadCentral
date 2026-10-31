@@ -715,6 +715,71 @@ body.fc-app {
   .modal-sheet-handle { display: none !important; }
 }
 
+/* Public lineup viewer — near-fullscreen on phones, header close only */
+@media (max-width: 767.98px) {
+  .fc-modal.fc-modal--lineup {
+    inset: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    border: 0;
+    padding-top: var(--safe-top);
+    overflow: hidden;
+  }
+
+  .fc-modal.fc-modal--lineup .modal-inner {
+    height: 100%;
+    max-height: 100%;
+    padding: 0 14px calc(10px + var(--safe-bottom));
+    overflow: hidden;
+  }
+
+  .fc-modal.fc-modal--lineup .modal-sheet-handle {
+    display: none;
+  }
+
+  .fc-modal.fc-modal--lineup .modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 6px 0 8px;
+    background: var(--bg-surface-2);
+  }
+
+  .fc-modal.fc-modal--lineup .modal-body {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0 4px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fc-modal.fc-modal--lineup .lineup-views-wrap {
+    order: 1;
+  }
+
+  .fc-modal.fc-modal--lineup .lineup-modal-meta {
+    order: 2;
+    margin-top: 10px;
+  }
+
+  .fc-modal.fc-modal--lineup .modal-actions {
+    display: none !important;
+  }
+
+  .fc-modal.fc-modal--lineup .mw-venue-meta,
+  .fc-modal.fc-modal--lineup .fc-goal-sheet {
+    margin-top: 6px;
+    margin-bottom: 8px;
+  }
+}
+
 /* Keep wordmark visible in compact header on phones */
 @media (max-width: 991.98px) {
   .topbar-logo__text,

@@ -2362,6 +2362,21 @@ html.reveal-init .reveal.is-visible {
   color: var(--text-primary);
   min-width: 0;
 }
+.modal-title--lineup {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 750;
+}
+html.fc-modal-open,
+body.fc-modal-open {
+  overflow: hidden;
+}
+body.fc-modal-open {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
 
 .text-truncate,
 .truncate {
