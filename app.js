@@ -8959,6 +8959,12 @@ function shareFilenameSlug(text, suffix) {
   return `${slug || "team"}-${suffix}.png`;
 }
 
+function shareSeasonLabel() {
+  const now = new Date();
+  const start = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${start}-${String(start + 1).slice(-2)}`;
+}
+
 let matchLineupSharePayload = null;
 let matchLineupShareSide = "home";
 
@@ -9106,7 +9112,7 @@ function setShareBusy(btn, busy) {
 }
 
 async function handleShareSquad() {
-  if (typeof ShareImage === "undefined") {
+  if (typeof ShareImage === "undefined" || typeof ShareImage.presentSharePages !== "function") {
     alert("Share image module did not load. Refresh the page.");
     return;
   }
@@ -9123,6 +9129,7 @@ async function handleShareSquad() {
   }
 
   const shareDepth = rosterViewMode === "depth";
+  const filtered = players.filter((p) => playerMatches(p, state));
   if (shareDepth) {
     if (typeof SquadDepth === "undefined") {
       alert("Squad depth module did not load. Refresh the page.");
@@ -9133,34 +9140,38 @@ async function handleShareSquad() {
       alert("Set up this team’s depth chart before sharing (Admin → Squad depth).");
       return;
     }
+  } else if (!filtered.length) {
+    alert("No players match your filters.");
+    return;
   }
 
   setShareBusy(btn, true);
   try {
-    const canvas = shareDepth
-      ? await ShareImage.renderSquadDepthShareImage({
+    const season = shareSeasonLabel();
+    const pages = shareDepth
+      ? await ShareImage.renderSquadDepthSharePages({
           team,
           leagueName: league?.name ?? state.leagueId,
           formation: formationForTeam(state.teamId),
+          season,
           depth: team.squadDepth,
           players,
         })
-      : await ShareImage.renderSquadShareImage({
+      : await ShareImage.renderSquadSharePages({
           team,
           leagueName: league?.name ?? state.leagueId,
           formation: formationForTeam(state.teamId),
-          players,
+          season,
+          players: filtered,
           dutyIds: nationalDutyPlayerIdsForTeam(team, state.leagueId),
           showNumber: leagueFeatureOn(state.leagueId, "playerNumber"),
           showPos: leagueFeatureOn(state.leagueId, "playerPosition"),
           showNat: leagueFeatureOn(state.leagueId, "playerNationality"),
           showClub: isWorldCupLeague(state.leagueId) && leagueFeatureOn(state.leagueId, "playerClub"),
-          helpers: { playerFlagEmoji },
         });
-    await ShareImage.exportShareImage(
-      canvas,
-      shareFilenameSlug(team.name, shareDepth ? "depth" : "squad"),
-    );
+    await ShareImage.presentSharePages(pages, {
+      title: `${team.name} · ${shareDepth ? "Squad depth" : "Squad list"}`,
+    });
   } catch (err) {
     console.error(err);
     alert(
@@ -9246,7 +9257,9 @@ function getTransferShareState() {
   const windowLabel = transferViewWindow === "winter" ? "Winter" : "Summer";
   return {
     leagueId,
-    leagueName: `${league?.name ?? leagueId} · ${windowLabel}`,
+    leagueName: league?.name ?? leagueId,
+    windowLabel,
+    season: shareSeasonLabel(),
     team,
     panels: TRANSFER_PANELS.map((panel) => ({
       key: panel.key,
@@ -9258,23 +9271,27 @@ function getTransferShareState() {
 }
 
 async function handleShareTransfers() {
-  if (typeof ShareImage === "undefined") {
+  if (typeof ShareImage === "undefined" || typeof ShareImage.presentSharePages !== "function") {
     alert("Share image module did not load. Refresh the page.");
     return;
   }
   const btn = $("#shareTransfersBtn");
-  const { leagueId, leagueName, team, panels } = getTransferShareState();
+  const { leagueId, leagueName, windowLabel, season, team, panels } = getTransferShareState();
   if (!leagueHasTransfers(leagueId)) return;
   if (!team) return;
 
   setShareBusy(btn, true);
   try {
-    const canvas = await ShareImage.renderTransfersShareImage({
+    const pages = await ShareImage.renderTransfersSharePages({
       team,
       leagueName,
+      windowLabel,
+      season,
       panels,
     });
-    await ShareImage.exportShareImage(canvas, shareFilenameSlug(`${team.name}-transfers`, "transfers"));
+    await ShareImage.presentSharePages(pages, {
+      title: `${team.name} · ${windowLabel} transfers`,
+    });
   } catch (err) {
     console.error(err);
     alert("Could not generate transfers image. Use a local server (http://) and try again.");

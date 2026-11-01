@@ -2926,6 +2926,94 @@ body.fc-modal-open {
   .squad-profile-grid { grid-template-columns: 1fr; }
 }
 
+.share-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, var(--safe-top)) 14px max(12px, var(--safe-bottom));
+  background: rgba(5, 8, 16, 0.72);
+  backdrop-filter: blur(10px);
+}
+.share-preview__sheet {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-2);
+  padding: 16px;
+}
+.share-preview__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.share-preview__kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.share-preview__title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+.share-preview__meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.share-preview__close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg-surface-3);
+  color: var(--text-primary);
+  font-size: 22px;
+  line-height: 1;
+}
+.share-preview__stage {
+  display: flex;
+  justify-content: center;
+  background: #070b14;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.share-preview__img {
+  width: 100%;
+  max-height: min(62vh, 720px);
+  object-fit: contain;
+  display: block;
+}
+.share-preview__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 10px 0;
+}
+.share-preview__page {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.share-preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+body.share-preview-open {
+  overflow: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
   html.reveal-init .reveal:not(.is-visible) { opacity: 1; transform: none; }
