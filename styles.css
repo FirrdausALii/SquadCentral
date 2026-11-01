@@ -1864,6 +1864,17 @@ html.reveal-init .reveal.is-visible {
   display: block;
 }
 .squad-flag { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.squad-flag--empty {
+  display: inline-block;
+  width: 20px;
+  height: 15px;
+  border-radius: 2px;
+  border: 0.5px solid var(--border-default);
+  background:
+    linear-gradient(135deg, transparent 46%, var(--border-default) 46%, var(--border-default) 54%, transparent 54%),
+    var(--bg-surface-3);
+  flex-shrink: 0;
+}
 .squad-flag--code {
   display: inline-flex;
   align-items: center;
@@ -2488,6 +2499,205 @@ body.fc-modal-open {
 .lineup-num { font-weight: 700; color: var(--text-primary); }
 .lineup-name { font-weight: 500; color: var(--text-primary); }
 .lineup-nat { color: var(--text-muted); font-size: 11px; }
+
+.lineup-xi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lineup-xi-group__title {
+  margin: 0 0 4px;
+  padding: 0 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 0.5px solid var(--border-subtle);
+}
+
+.lineup-xi-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 2px;
+  border-bottom: 0.5px solid var(--border-subtle);
+}
+
+.lineup-xi-group .lineup-xi-row:last-child {
+  border-bottom: none;
+}
+
+.lineup-xi-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  background: var(--bg-surface-3);
+  border: 0.5px solid var(--border-default);
+}
+
+.lineup-xi-copy {
+  min-width: 0;
+}
+
+.lineup-xi-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.lineup-xi-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--color-draw, #facc15);
+  color: #422006;
+  font-size: 8px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+
+.lineup-xi-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.lineup-xi-pos {
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.lineup-xi-nat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lineup-xi-nat .squad-flag-img,
+.lineup-xi-nat .squad-flag {
+  width: 18px;
+  height: 13px;
+}
+
+.lineup-side--xi {
+  padding: 12px 12px 10px;
+}
+
+.lineup-side--xi .lineup-head {
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.lineup-side--xi .lineup-formation {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background-color: var(--accent-dim);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid #1a3a5c;
+}
+
+.mc-info-card {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border-default);
+  background: var(--bg-surface-1);
+}
+
+.mc-info-card__title {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.mc-info-card__list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 0;
+}
+
+.mc-info-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top: 0.5px solid var(--border-subtle);
+}
+
+.mc-info-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.mc-info-row dt {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.mc-info-row dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.fc-modal--lineup .modal-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.fc-modal--lineup .lineup-views-wrap {
+  order: 1;
+}
+
+.fc-modal--lineup .lineup-modal-meta {
+  order: 2;
+  margin-top: 12px;
+}
+
+@media (min-width: 768px) {
+  .mc-info-card__list {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+  }
+
+  .mc-info-row {
+    padding: 8px 0;
+  }
+}
 
 .lineup-view.is-hidden { display: none; }
 .is-hidden { display: none !important; }

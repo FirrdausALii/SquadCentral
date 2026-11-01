@@ -2464,16 +2464,14 @@ function playerFlagEmoji(p) {
 function squadFlagHtml(p) {
   const nat = String(p?.nationality ?? "").trim();
   if (!nat) {
-    return `<span class="squad-flag squad-flag--empty" aria-hidden="true">—</span>`;
+    return `<span class="squad-flag squad-flag--empty" aria-hidden="true"></span>`;
   }
   const imgUrl =
-    typeof NationalityFlags !== "undefined" ? NationalityFlags.getFlagImageUrl(nat, 40) : "";
+    typeof NationalityFlags !== "undefined" ? NationalityFlags.getFlagImageUrl(nat) : "";
   if (imgUrl) {
-    const imgUrl2x =
-      typeof NationalityFlags !== "undefined" ? NationalityFlags.getFlagImageUrl(nat, 80) : imgUrl;
-    return `<img class="squad-flag-img" src="${escapeHtml(imgUrl)}" srcset="${escapeHtml(imgUrl2x)} 2x" width="20" height="15" alt="" loading="lazy" decoding="async" title="${escapeHtml(nat)}" />`;
+    return `<img class="squad-flag-img" src="${escapeHtml(imgUrl)}" width="20" height="15" alt="" loading="lazy" decoding="async" title="${escapeHtml(nat)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'squad-flag squad-flag--empty'}))" />`;
   }
-  return `<span class="squad-flag squad-flag--code" aria-hidden="true" title="${escapeHtml(nat)}">${escapeHtml(nat.slice(0, 3).toUpperCase())}</span>`;
+  return `<span class="squad-flag squad-flag--empty" aria-hidden="true" title="${escapeHtml(nat)}"></span>`;
 }
 
 function refreshNationalityFlagsLearn() {
@@ -9721,6 +9719,107 @@ const VIEWER_PITCH_LANES = {
   "mid-5": [10, 90],
 };
 
+function viewerKitFromTeam(teamId, isGk = false) {
+  const team = teamById.get(teamId);
+  const colors = Array.isArray(team?.colors) ? team.colors.map((c) => String(c ?? "").trim()).filter(Boolean) : [];
+  if (!colors.length) return null;
+  const c1 = colors[0];
+  const c2 = colors[1] || c1;
+  if (isGk) {
+    return { c1: "#f59e0b", c2: "#b45309", crest: String(team?.logo ?? "").trim() };
+  }
+  return { c1, c2, crest: String(team?.logo ?? "").trim() };
+}
+
+function pitchShirtHtml(player, { isGk = false, isCap = false, teamId = "" } = {}) {
+  const kit = viewerKitFromTeam(teamId, isGk);
+  const num = escapeHtml(player?.number ?? "");
+  if (!kit) {
+    return `<div class="player-circle pitch-token${isCap ? " captain" : ""}">${num}</div>`;
+  }
+  const striped = kit.c1.toLowerCase() !== kit.c2.toLowerCase();
+  const crest = kit.crest
+    ? `<img class="pitch-shirt__crest" src="${escapeHtml(kit.crest)}" alt="" draggable="false" />`
+    : "";
+  return `
+    <div class="pitch-shirt${isGk ? " is-gk" : ""}${striped ? " is-striped" : ""}${isCap ? " is-captain" : ""}" style="--kit-c1:${escapeHtml(kit.c1)};--kit-c2:${escapeHtml(kit.c2)}">
+      <span class="pitch-shirt__body" aria-hidden="true"></span>
+      ${crest}
+      <span class="pitch-shirt__num">${num}</span>
+      ${isCap ? `<span class="pitch-shirt__cap">C</span>` : ""}
+    </div>
+  `;
+}
+
+function lineupListGroup(tag) {
+  const t = String(tag ?? "").toUpperCase();
+  if (t === "GK") return "gk";
+  if (["CB", "RB", "LB", "RWB", "LWB", "WB", "DF", "RCB", "LCB", "SW"].includes(t)) return "df";
+  if (["RW", "LW", "CF", "ST", "SS", "FW", "LF", "RF"].includes(t)) return "fw";
+  return "mf";
+}
+
+function formatLineupMatchDate(time) {
+  const raw = String(time ?? "").trim();
+  const months = {
+    jan: "January",
+    feb: "February",
+    mar: "March",
+    apr: "April",
+    may: "May",
+    jun: "June",
+    jul: "July",
+    aug: "August",
+    sep: "September",
+    oct: "October",
+    nov: "November",
+    dec: "December",
+  };
+  const m = raw.match(/^([A-Za-z]+)\s+(\d{1,2})\s+([A-Za-z]+)\.?$/);
+  if (!m) return raw;
+  const month = months[m[3].slice(0, 3).toLowerCase()];
+  if (!month) return raw;
+  return `${m[1]}, ${Number(m[2])} ${month}`;
+}
+
+function renderLineupMatchInfoHtml(m, ht, at, leagueId) {
+  const rows = [];
+  if (m?.matchday) {
+    rows.push(`<div class="mc-info-row"><dt>Matchweek</dt><dd>${escapeHtml(m.matchday)}</dd></div>`);
+  }
+  if (leagueFeatureOn(leagueId, "matchStatus") && effectiveMatchStatus(m)) {
+    const when = formatLineupMatchDate(m.time);
+    rows.push(
+      `<div class="mc-info-row"><dt>Date</dt><dd>${escapeHtml(when)}${m.time ? ` · ${escapeHtml(effectiveMatchStatus(m))}` : ""}</dd></div>`,
+    );
+  } else if (m?.time) {
+    rows.push(`<div class="mc-info-row"><dt>Date</dt><dd>${escapeHtml(formatLineupMatchDate(m.time))}</dd></div>`);
+  }
+  const stadium = String(m?.stadium ?? "").trim();
+  if (leagueFeatureOn(leagueId, "matchStadium") && stadium && stadium !== "—") {
+    rows.push(`<div class="mc-info-row"><dt>Venue</dt><dd>${escapeHtml(stadium)}</dd></div>`);
+  }
+  const homeCoach = String(ht?.coach ?? "").trim();
+  const awayCoach = String(at?.coach ?? "").trim();
+  if (leagueFeatureOn(leagueId, "matchCoaches")) {
+    if (homeCoach && homeCoach !== "—") {
+      rows.push(
+        `<div class="mc-info-row"><dt>${escapeHtml(ht?.name ?? "Home")} manager</dt><dd>${escapeHtml(homeCoach)}</dd></div>`,
+      );
+    }
+    if (awayCoach && awayCoach !== "—") {
+      rows.push(
+        `<div class="mc-info-row"><dt>${escapeHtml(at?.name ?? "Away")} manager</dt><dd>${escapeHtml(awayCoach)}</dd></div>`,
+      );
+    }
+  }
+  if (!rows.length) return "";
+  return `<section class="mc-info-card" aria-label="Match information">
+    <h4 class="mc-info-card__title">Match information</h4>
+    <dl class="mc-info-card__list">${rows.join("")}</dl>
+  </section>`;
+}
+
 /** Public Match Center pitch — formation-aware width, compact vertical stack. */
 function viewerPitchTokenPercents(rowIndex, rowCount, colIndex, colCount, row, player) {
   const manual = manualPitchTokenPoint(player);
@@ -9786,9 +9885,13 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
               ? ` data-mw-pitch-side="${escapeHtml(side)}" data-mw-slot="${slotIdx}" draggable="true"`
               : "";
           const shortName = `${lineupShortName(p.name)}${isCap || p.captain ? " (C)" : ""}`;
+          const marker =
+            layout === "viewer"
+              ? pitchShirtHtml(p, { isGk, isCap, teamId })
+              : `<div class="player-circle pitch-token${capClass}">${num}</div>`;
           return `
             <div class="${nodeClass}${rowClass}" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%"${swapAttrs}>
-              <div class="player-circle pitch-token${capClass}">${num}</div>
+              ${marker}
               <div class="player-name-tag pitch-name">
                 <span class="pitch-name__full">${pitchNameTagHtml(p.name, isCap || p.captain)}</span>
                 <span class="pitch-name__short">${escapeHtml(shortName)}</span>
@@ -9867,25 +9970,48 @@ function renderMatchCenter(leagueId) {
           lineups: m.lineups,
         })
       : "";
-    const venueHtml = renderMatchVenueCoachesHtml(m, ht, at);
-
     const renderLineupSide = (title, formation, list, side) => {
-      const rows = (list ?? [])
-        .map((p) => {
-          const nat = leagueFeatureOn(leagueId, "playerNationality")
-            ? [p.flag, p.nationality].filter(Boolean).join(" ")
-            : "";
-          const numCell = leagueFeatureOn(leagueId, "playerNumber")
-            ? `<span class="lineup-num">${escapeHtml(p.number ?? "")}</span>`
-            : "";
-          return `
-            <div class="lineup-row">
-              <span class="lineup-tag">(${escapeHtml(p.tag ?? "")})</span>
-              ${numCell}
-              <span class="lineup-name">${escapeHtml(formatLineupDisplayName(p.name, p.captain))}</span>
-              <span class="lineup-nat">${escapeHtml(nat)}</span>
-            </div>
-          `;
+      const groups = [
+        { key: "gk", label: "Goalkeeper" },
+        { key: "df", label: "Defenders" },
+        { key: "mf", label: "Midfielders" },
+        { key: "fw", label: "Forwards" },
+      ];
+      const buckets = { gk: [], df: [], mf: [], fw: [] };
+      for (const p of list ?? []) {
+        if (!p) continue;
+        buckets[lineupListGroup(p.tag)].push(p);
+      }
+      const sections = groups
+        .map((g) => {
+          if (!buckets[g.key].length) return "";
+          const rows = buckets[g.key]
+            .map((p) => {
+              const isCap = isCaptainPlayer(p);
+              const tag = String(p.tag ?? "").toUpperCase() || "—";
+              const nat = String(p.nationality ?? "").trim();
+              const flag = leagueFeatureOn(leagueId, "playerNationality") ? squadFlagHtml(p) : "";
+              const numCell = leagueFeatureOn(leagueId, "playerNumber")
+                ? `<span class="lineup-xi-num">${escapeHtml(p.number ?? "—")}</span>`
+                : "";
+              return `
+                <div class="lineup-xi-row">
+                  ${numCell}
+                  <div class="lineup-xi-copy">
+                    <div class="lineup-xi-name">${escapeHtml(stripCaptainSuffix(p.name))}${isCap ? `<span class="lineup-xi-cap">C</span>` : ""}</div>
+                    <div class="lineup-xi-meta">
+                      <span class="lineup-xi-pos">${escapeHtml(tag)}</span>
+                      ${nat && leagueFeatureOn(leagueId, "playerNationality") ? `<span class="lineup-xi-nat">${flag}<span>${escapeHtml(nat)}</span></span>` : ""}
+                    </div>
+                  </div>
+                </div>
+              `;
+            })
+            .join("");
+          return `<div class="lineup-xi-group">
+            <h4 class="lineup-xi-group__title">${escapeHtml(g.label)}</h4>
+            ${rows}
+          </div>`;
         })
         .join("");
 
@@ -9897,12 +10023,12 @@ function renderMatchCenter(leagueId) {
       const sideKey = side === "away" ? "away" : "home";
       const active = matchLineupShareSide === sideKey ? " is-active" : "";
       return `
-        <section class="lineup-side${active}" data-lineup-side="${sideKey}">
+        <section class="lineup-side lineup-side--xi${active}" data-lineup-side="${sideKey}">
           <div class="lineup-head">
             <div class="lineup-team">${escapeHtml(title)}</div>
             ${formationHtml}
           </div>
-          <div class="lineup-list">${rows || "<div class='muted'>Lineup not available.</div>"}</div>
+          <div class="lineup-list lineup-xi">${sections || "<div class='muted'>Lineup not available.</div>"}</div>
         </section>
       `;
     };
@@ -9964,11 +10090,7 @@ function renderMatchCenter(leagueId) {
         variant: "lineup",
         bodyHtml: `
           <div class="lineup-modal-meta">
-            <div class="chips lineup-modal-chips">
-              <span class="chip">${escapeHtml(m.matchday)}</span>
-              ${statusChip}
-            </div>
-            ${venueHtml}
+            ${renderLineupMatchInfoHtml(m, ht, at, leagueId)}
             ${goalsHtml}
             ${legacyScorers}
           </div>

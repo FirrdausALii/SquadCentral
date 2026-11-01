@@ -137,6 +137,7 @@
     Belgium: "be",
     Bolivia: "bo",
     "Bosnia and Herzegovina": "ba",
+    "Bosnia-Herzegovina": "ba",
     Brazil: "br",
     Bulgaria: "bg",
     "Burkina Faso": "bf",
@@ -207,6 +208,10 @@
     Nigeria: "ng",
     "North Macedonia": "mk",
     "Northern Ireland": "gb-nir",
+    "North Ireland": "gb-nir",
+    "United Kingdom": "gb",
+    UK: "gb",
+    "Great Britain": "gb",
     Norway: "no",
     Paraguay: "py",
     Peru: "pe",
@@ -275,6 +280,10 @@
     "bosnia & herzegovina": "bosnia and herzegovina",
     "guinea bissau": "guinea-bissau",
     "cape verde": "cape verde",
+    uk: "united kingdom",
+    "great britain": "united kingdom",
+    britain: "united kingdom",
+    "north ireland": "northern ireland",
   };
 
   function resolveNationalityKey(nationality) {
@@ -327,8 +336,7 @@
   function getFlagImageUrl(nationality, width = 40) {
     const iso = getIsoCode(nationality);
     if (!iso) return "";
-    const w = Math.max(20, Math.min(160, Number(width) || 40));
-    return `https://flagcdn.com/w${w}/${iso}.png`;
+    return `https://flagcdn.com/${iso}.svg`;
   }
 
   function listNationalities() {

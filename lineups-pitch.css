@@ -258,6 +258,11 @@
   box-shadow: 0 4px 16px rgba(55, 138, 221, 0.6), 0 0 0 3px rgba(55, 138, 221, 0.5);
 }
 
+.pitch-player:hover .pitch-shirt {
+  transform: scale(1.08);
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5));
+}
+
 .player-name-tag,
 .pitch-name {
   display: flex;
@@ -300,6 +305,118 @@
 
 .pitch-flag {
   display: none;
+}
+
+.pitch-shirt {
+  position: relative;
+  width: 34px;
+  height: 38px;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
+  flex-shrink: 0;
+}
+
+.pitch-shirt__body {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, var(--kit-c1) 0%, var(--kit-c2) 100%);
+  clip-path: polygon(26% 10%, 8% 18%, 2% 36%, 20% 42%, 22% 88%, 50% 96%, 78% 88%, 80% 42%, 98% 36%, 92% 18%, 74% 10%, 50% 4%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.pitch-shirt.is-striped .pitch-shirt__body {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--kit-c1) 0 18%,
+    var(--kit-c2) 18% 36%
+  );
+}
+
+.pitch-shirt__crest {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.pitch-shirt__num {
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  font-size: 8px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(11, 17, 32, 0.12);
+}
+
+.pitch-shirt__cap {
+  position: absolute;
+  top: -4px;
+  right: -3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-draw, #facc15);
+  color: #422006;
+  font-size: 7px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1px solid var(--bg-page, #0b1120);
+}
+
+.pitch--viewer {
+  background: repeating-linear-gradient(
+    180deg,
+    #1f8f46 0 8.33%,
+    #177a3b 8.33% 16.66%
+  );
+  box-shadow:
+    inset 0 0 48px rgba(0, 0, 0, 0.28),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pitch--viewer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 28%, transparent 72%, rgba(0, 0, 0, 0.18)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.12), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.12));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pitch--viewer .pitch-markings {
+  transform: perspective(920px) rotateX(5deg) scale(1.015);
+  transform-origin: center 62%;
+  z-index: 1;
+}
+
+.pitch--viewer .pitch-markings line,
+.pitch--viewer .pitch-markings rect,
+.pitch--viewer .pitch-markings circle,
+.pitch--viewer .pitch-markings path {
+  stroke: rgba(255, 255, 255, 0.42);
+}
+
+.pitch--viewer .pitch-players {
+  z-index: 2;
 }
 
 .player-node.gk .player-circle,
@@ -666,6 +783,22 @@
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(55, 138, 221, 0.28);
   }
 
+  .fc-modal--lineup .pitch-shirt {
+    width: clamp(32px, 9vw, 40px);
+    height: clamp(36px, 10vw, 46px);
+  }
+
+  .fc-modal--lineup .pitch-shirt__crest {
+    width: 13px;
+    height: 13px;
+  }
+
+  .fc-modal--lineup .pitch-shirt__num {
+    width: 17px;
+    height: 17px;
+    font-size: 8.5px;
+  }
+
   .fc-modal--lineup .pitch-player.is-gk .pitch-token,
   .fc-modal--lineup .player-node.gk .player-circle {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(217, 119, 6, 0.4);
@@ -740,6 +873,22 @@
     font-size: 10px;
   }
 
+  .fc-modal--lineup .pitch-shirt {
+    width: 30px;
+    height: 34px;
+  }
+
+  .fc-modal--lineup .pitch-shirt__crest {
+    width: 11px;
+    height: 11px;
+  }
+
+  .fc-modal--lineup .pitch-shirt__num {
+    width: 15px;
+    height: 15px;
+    font-size: 7.5px;
+  }
+
   .fc-modal--lineup .pitch-name,
   .fc-modal--lineup .player-name-tag {
     font-size: 9px;
@@ -763,5 +912,21 @@
 
   .fc-modal--lineup [data-lineup-side] {
     display: block;
+  }
+
+  .fc-modal--lineup .pitch-shirt {
+    width: 40px;
+    height: 46px;
+  }
+
+  .fc-modal--lineup .pitch-shirt__crest {
+    width: 14px;
+    height: 14px;
+  }
+
+  .fc-modal--lineup .pitch-shirt__num {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
   }
 }
