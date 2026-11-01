@@ -639,27 +639,27 @@
   }
 
   .fc-modal--lineup .pitch {
-    aspect-ratio: 5 / 6;
+    aspect-ratio: 4 / 5;
     width: 100%;
-    max-height: min(66dvh, calc(100dvh - 11.5rem));
+    max-height: min(68dvh, calc(100dvh - 11.25rem));
     margin: 0 auto;
     overflow: hidden;
   }
 
   .fc-modal--lineup .pitch-players {
-    inset: 8% 3% 17% 3%;
+    inset: 6% 2% 15% 2%;
     width: auto;
     height: auto;
   }
 
   .fc-modal--lineup .pitch-player {
-    gap: 3px;
+    gap: 2px;
   }
 
   .fc-modal--lineup .pitch-token,
   .fc-modal--lineup .player-circle {
-    width: clamp(30px, 8.6vw, 38px);
-    height: clamp(34px, 9.4vw, 42px);
+    width: clamp(28px, 8vw, 36px);
+    height: clamp(32px, 8.6vw, 40px);
     border-radius: 8px 8px 11px 11px;
     font-size: clamp(11px, 3.1vw, 13px);
     font-weight: 800;
@@ -682,33 +682,75 @@
 
   .fc-modal--lineup .pitch-name,
   .fc-modal--lineup .player-name-tag {
-    font-size: clamp(10px, 2.8vw, 12px);
-    max-width: min(104px, 30vw);
-    padding: 2px 6px;
-    line-height: 1.2;
+    font-size: clamp(9.5px, 2.55vw, 11.5px);
+    max-width: min(118px, 34vw);
+    padding: 1px 5px;
+    line-height: 1.15;
     font-weight: 650;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   .fc-modal--lineup .pitch-name__full {
-    display: none;
+    display: contents;
   }
 
   .fc-modal--lineup .pitch-name__short {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none;
   }
 
-  .fc-modal--lineup .pitch-player--n4 .pitch-name,
+  .fc-modal--lineup .pitch-name__line {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: nowrap;
+  }
+
+  .fc-modal--lineup .pitch-player--n3 .pitch-name {
+    max-width: min(104px, 28vw);
+  }
+
+  .fc-modal--lineup .pitch-player--n4 .pitch-name {
+    max-width: min(88px, 23vw);
+    font-size: clamp(9px, 2.35vw, 11px);
+  }
+
   .fc-modal--lineup .pitch-player--n5 .pitch-name {
-    max-width: min(78px, 22vw);
+    max-width: min(74px, 19vw);
+    font-size: clamp(8.5px, 2.2vw, 10.5px);
   }
 }
 
 @media (max-width: 360px) {
   .fc-modal--lineup .pitch {
-    max-height: min(68dvh, calc(100dvh - 10.75rem));
+    aspect-ratio: 3 / 4;
+    max-height: min(72dvh, calc(100dvh - 10rem));
+  }
+
+  .fc-modal--lineup .pitch-players {
+    inset: 5% 3% 14% 3%;
+  }
+
+  .fc-modal--lineup .pitch-token,
+  .fc-modal--lineup .player-circle {
+    width: clamp(26px, 8vw, 32px);
+    height: clamp(28px, 8.4vw, 34px);
+    font-size: 10px;
+  }
+
+  .fc-modal--lineup .pitch-name,
+  .fc-modal--lineup .player-name-tag {
+    font-size: 9px;
+    padding: 0 3px;
+    max-width: min(92px, 28vw);
+  }
+
+  .fc-modal--lineup .pitch-player--n4 .pitch-name,
+  .fc-modal--lineup .pitch-player--n5 .pitch-name {
+    max-width: min(68px, 20vw);
+    overflow: hidden;
   }
 }
 

@@ -9596,11 +9596,14 @@ function pitchNameLines(name, captain = false) {
   const parts = String(base ?? "")
     .split(/\s+/)
     .filter(Boolean);
+  const particle = /^(le|la|de|da|do|dos|van|von|di|del|della|bin|al)$/i;
   let lines;
   if (parts.length <= 1) {
     lines = [base || "—"];
   } else if (parts.length === 2) {
     lines = [parts[0], parts[1]];
+  } else if (particle.test(parts[parts.length - 2])) {
+    lines = [parts.slice(0, -2).join(" "), `${parts[parts.length - 2]} ${parts[parts.length - 1]}`];
   } else {
     lines = [parts.slice(0, -1).join(" "), parts[parts.length - 1]];
   }
@@ -9650,8 +9653,94 @@ function pitchTokenPercents(rowIndex, rowCount, colIndex, colCount) {
   return { left, top };
 }
 
+function clampPitchPercent(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+/** Keep a saved TM/manual pitch point when present. */
+function manualPitchTokenPoint(player) {
+  if (!player || typeof player !== "object") return null;
+  const left = Number(player.left ?? player.x ?? player.posX);
+  const top = Number(player.top ?? player.y ?? player.posY);
+  if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+  return {
+    left: clampPitchPercent(left, 6, 94),
+    top: clampPitchPercent(top, 8, 92),
+  };
+}
+
+function distributePitchLanes(count, start, end) {
+  const n = Math.max(1, Number(count) || 1);
+  if (n === 1) return [50];
+  const a = Number(start);
+  const b = Number(end);
+  return Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
+}
+
+/** Classify a formation line so wide players sit wider than compact midfield pairs. */
+function viewerPitchRowRole(rowIndex, rowCount, row) {
+  const n = Array.isArray(row) ? row.length : 0;
+  if (rowIndex === 0 || n === 0) return "gk";
+  const last = rowIndex === rowCount - 1;
+  const firstOut = rowIndex === 1;
+  const tags = row.map((p) => String(p?.tag ?? "").toUpperCase());
+  const wideAttack = tags.some((t) => /^(LW|RW|LM|RM|LAM|RAM)$/.test(t));
+  const wingBack = tags.some((t) => /^(LWB|RWB|WB)$/.test(t));
+  if (n === 1) return "st";
+  if (n === 2) {
+    if (last) return "st-pair";
+    if (tags.every((t) => /^(DM|CDM|CM|CMF)$/.test(t))) return "dm-pair";
+    return rowIndex >= rowCount - 2 ? "am-pair" : "dm-pair";
+  }
+  if (n === 3) {
+    if (last || wideAttack) return "front-3";
+    if (firstOut) return "back-3";
+    if (rowIndex === rowCount - 2) return "am-3";
+    return "cm-3";
+  }
+  if (n === 4) return firstOut && !wingBack ? "back-4" : "mid-4";
+  if (n >= 5) return firstOut && !wingBack ? "back-5" : "mid-5";
+  return "cm-3";
+}
+
+const VIEWER_PITCH_LANES = {
+  gk: [50, 50],
+  st: [50, 50],
+  "st-pair": [37, 63],
+  "dm-pair": [35, 65],
+  "am-pair": [28, 72],
+  "back-3": [18, 82],
+  "cm-3": [26, 74],
+  "am-3": [14, 86],
+  "front-3": [12, 88],
+  "back-4": [12, 88],
+  "mid-4": [11, 89],
+  "back-5": [10, 90],
+  "mid-5": [10, 90],
+};
+
+/** Public Match Center pitch — formation-aware width, compact vertical stack. */
+function viewerPitchTokenPercents(rowIndex, rowCount, colIndex, colCount, row, player) {
+  const manual = manualPitchTokenPoint(player);
+  if (manual) return manual;
+  const rows = Math.max(1, Number(rowCount) || 1);
+  const cols = Math.max(1, Number(colCount) || 1);
+  const r = Math.max(0, Number(rowIndex) || 0);
+  const c = Math.min(cols - 1, Math.max(0, Number(colIndex) || 0));
+  const role = viewerPitchRowRole(r, rows, row);
+  const band = VIEWER_PITCH_LANES[role] || VIEWER_PITCH_LANES["cm-3"];
+  const lanes = distributePitchLanes(cols, band[0], band[1]);
+  const top = rows > 1 ? 87 - (r / (rows - 1)) * 74 : 50;
+  return {
+    left: clampPitchPercent(lanes[c], 8, 92),
+    top: clampPitchPercent(top, 12, 88),
+  };
+}
+
 /** One team's interactive XI rendered on a glassmorphic pitch. */
-function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true, teamId = "", interactive = false) {
+function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = true, teamId = "", interactive = false, layout = "") {
   const formationTip =
     "Formation represents the selected starting lineup arrangement and may differ from tactical shapes used during the match.";
   const formationBadge =
@@ -9677,7 +9766,10 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
       const isGkRow = r === 0;
       return row
         .map((p, c) => {
-          const { left, top } = pitchTokenPercents(r, rowCount, c, row.length);
+          const { left, top } =
+            layout === "viewer"
+              ? viewerPitchTokenPercents(r, rowCount, c, row.length, row, p)
+              : pitchTokenPercents(r, rowCount, c, row.length);
           const isGk = isGkRow || String(p.tag ?? "").toUpperCase() === "GK";
           const fullName = formatLineupDisplayName(p.name, p.captain);
           const num = escapeHtml(p.number ?? "");
@@ -9718,7 +9810,7 @@ function renderPitchSideHtml(teamName, formation, lineup, side, showFormation = 
         <h3 class="lineup-team-name pitch-team">${escapeHtml(teamName)}</h3>
         ${formationBadge}
       </div>
-      <div class="pitch" data-side="${escapeHtml(side)}">
+      <div class="pitch${layout === "viewer" ? " pitch--viewer" : ""}" data-side="${escapeHtml(side)}">
         ${pitchMarkingsSvg()}
         <div class="pitch-players">${tokens}</div>
       </div>
@@ -9848,10 +9940,10 @@ function renderMatchCenter(leagueId) {
             <div class="lineup-view" data-view-panel="pitch">
               <div class="lineups-wrapper pitch-grid">
                 <div class="lineup-pitch-panel${homeActive}" data-lineup-side="home">
-                  ${renderPitchSideHtml(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home", showFormation, m.homeTeamId)}
+                  ${renderPitchSideHtml(ht?.name ?? "Home", m.formation?.[0], m.lineups.home, "home", showFormation, m.homeTeamId, false, "viewer")}
                 </div>
                 <div class="lineup-pitch-panel${awayActive}" data-lineup-side="away">
-                  ${renderPitchSideHtml(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away", showFormation, m.awayTeamId)}
+                  ${renderPitchSideHtml(at?.name ?? "Away", m.formation?.[1], m.lineups.away, "away", showFormation, m.awayTeamId, false, "viewer")}
                 </div>
               </div>
             </div>
