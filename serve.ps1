@@ -886,6 +886,69 @@ try {
         continue
       }
 
+      if ($path -eq "/api/ss-incidents") {
+        $eventId = $request.QueryString.Get("eventId")
+        if ([string]::IsNullOrWhiteSpace($eventId) -or $eventId -notmatch '^\d{4,}$') {
+          Write-JsonError $response 400 "Missing or invalid eventId query parameter."
+          continue
+        }
+
+        $ssUrl = "https://www.sofascore.com/api/v1/event/$eventId/incidents"
+        try {
+          $json = Get-SofaScoreJson $ssUrl
+          Write-JsonOk $response $json
+        }
+        catch {
+          Write-JsonError $response 502 ("SofaScore incidents request failed: " + $_.Exception.Message)
+        }
+        continue
+      }
+
+      if ($path -eq "/api/ss-week-enrich") {
+        $rawIds = $request.QueryString.Get("eventIds")
+        if ([string]::IsNullOrWhiteSpace($rawIds)) {
+          Write-JsonError $response 400 "Missing eventIds query parameter (comma-separated SofaScore ids)."
+          continue
+        }
+        $ids = @(
+          $rawIds -split "," |
+            ForEach-Object { ([string]$_).Trim() } |
+            Where-Object { $_ -match '^\d{4,}$' } |
+            Select-Object -Unique -First 20
+        )
+        if (-not $ids.Count) {
+          Write-JsonError $response 400 "No valid SofaScore event ids in eventIds."
+          continue
+        }
+
+        $includeLineups = $request.QueryString.Get("includeLineups")
+        $wantLineups = -not ($includeLineups -eq "0" -or $includeLineups -eq "false")
+        $parts = New-Object System.Collections.Generic.List[string]
+        foreach ($eventId in $ids) {
+          $entryJson = $null
+          try {
+            $lineups = "null"
+            if ($wantLineups) {
+              $lineups = Get-SofaScoreJson "https://www.sofascore.com/api/v1/event/$eventId/lineups"
+              if ([string]::IsNullOrWhiteSpace($lineups)) { $lineups = "null" }
+              Start-Sleep -Milliseconds 200
+            }
+            $incidents = Get-SofaScoreJson "https://www.sofascore.com/api/v1/event/$eventId/incidents"
+            if ([string]::IsNullOrWhiteSpace($incidents)) { $incidents = "null" }
+            $entryJson = "{`"eventId`":`"$eventId`",`"lineups`":$lineups,`"incidents`":$incidents}"
+          }
+          catch {
+            $safe = ($_.Exception.Message -replace '\\', '\\' -replace '"', '\"' -replace "[\r\n]+", " ")
+            $entryJson = "{`"eventId`":`"$eventId`",`"error`":`"$safe`"}"
+          }
+          $parts.Add($entryJson)
+          Start-Sleep -Milliseconds 250
+        }
+        $json = "{`"results`":[" + ($parts -join ",") + "]}"
+        Write-JsonOk $response $json
+        continue
+      }
+
       if ($path -eq "/api/ss-avg-positions") {
         $eventId = $request.QueryString.Get("eventId")
         if ([string]::IsNullOrWhiteSpace($eventId) -or $eventId -notmatch '^\d{4,}$') {

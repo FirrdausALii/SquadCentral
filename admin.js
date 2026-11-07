@@ -88,14 +88,20 @@ const LINEUP_SLOTS = 11;
 let mwFormationVerifyFilter = "all";
 let mwClubFilter = "";
 let mwEntryReviewFilter = "all";
-/** Matchweek fixtures card: match cards or saved club XIs. */
+/** Matchweek fixtures card: match cards, saved club XIs, or week workspace. */
 let mwFixturesView = "matches";
 const MW_LINEUP_PAGE_SIZE = 5;
 let mwLineupPage = 1;
 const MW_REVIEW_QUEUE_KEY = "fc_mw_review_queue";
-/** @type {{ queueId: string, mode: string, existingId: string, source: string, reviewed: boolean, leagueId: string, draft: object, localSnapshot: object|null }[]} */
+/** @type {{ queueId: string, mode: string, existingId: string, source: string, reviewed: boolean, leagueId: string, draft: object, localSnapshot: object|null, changes?: string[] }[]} */
 let mwReviewQueue = [];
 let mwReviewQueueId = "";
+/** Last hybrid Fetch gameweek status line. */
+let mwGameweekFetchStatus = null;
+/** Workspace editor: expanded match id + unsaved drafts by match id. */
+let mwWorkspaceExpandedId = "";
+/** @type {Record<string, object>} */
+let mwWorkspaceDrafts = {};
 
 const FORMATION_PRESETS = [
   "4-3-3",
@@ -223,7 +229,9 @@ function normalizeEntryReview(raw) {
 }
 
 function readEntryReviewFromDom(prev) {
-  const done = Boolean($("#matchEntryDone")?.checked);
+  const box = $("#matchEntryDone");
+  if (!box) return normalizeEntryReview(prev);
+  const done = Boolean(box.checked);
   const note = String($("#matchEntryNote")?.value ?? "").trim();
   const prevReview = normalizeEntryReview(prev);
   return {
@@ -288,9 +296,9 @@ function matchweekClubFilterHtml(teams) {
 function matchweekFixturesViewToggleHtml() {
   const views = [
     ["matches", "Matches"],
-    ["lineups", "Lineups"],
+    ["workspace", "Workspace"],
   ];
-  return `<div class="fv-filter mw-fixtures-view" role="tablist" aria-label="Matches or lineups">
+  return `<div class="fv-filter mw-fixtures-view" role="tablist" aria-label="Matches, lineups, or workspace">
       ${views
         .map(
           ([id, label]) =>
@@ -3396,7 +3404,8 @@ function readGoalEventPlayerFromDom(row, kind) {
 function refreshGoalEventRowPlayers(row) {
   if (!row) return;
   const side = row.querySelector(".ge-side")?.value === "away" ? "away" : "home";
-  const teamId = side === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
+  const sides = resolveGoalEventTeamIds(row);
+  const teamId = side === "away" ? sides.away : sides.home;
 
   for (const kind of ["scorer", "assist"]) {
     if (row.querySelector(`.ge-${kind}-mode`)?.value === "manual") continue;
@@ -4210,10 +4219,6 @@ async function fetchTransfermarktGoalsAssistsForEditor() {
 function matchweekFixtureToolbarHtml(teams) {
   return `<div class="mw-fixture-toolbar">
     ${matchweekClubFilterHtml(teams)}
-    <div class="mw-fixture-chip-filters">
-      ${entryReviewFilterHtml()}
-      ${formationVerifyFilterHtml()}
-    </div>
   </div>`;
 }
 
@@ -4267,7 +4272,6 @@ function renderClubLineupReviewCard(match, clubId, hasLineup) {
       <div class="mw-lineup-review-top">
         <span class="mw-pill">${esc(mwLabel)}</span>
         <span class="mw-fixture-day">${esc(match.time ?? "—")}</span>
-        ${entryReviewChipHtml(match)}
       </div>
       <div class="mw-fixture-scoreline">
         <div class="mw-fixture-club home">
@@ -4283,9 +4287,6 @@ function renderClubLineupReviewCard(match, clubId, hasLineup) {
           <span class="mw-fixture-crest" ${mwFixtureCrestStyle(at?.logo)} aria-hidden="true"></span>
           <span class="mw-fixture-name">${esc(aName)}</span>
         </div>
-      </div>
-      <div class="fv-card-row">
-        ${formationVerifyChipHtml(match, side || "home", clubName)}
       </div>
       ${body}
       ${
@@ -4314,9 +4315,7 @@ function renderClubLineupCards(matches) {
       </div>`;
   }
 
-  const filtered = weekList.filter(
-    (m) => matchPassesClubFilter(m) && matchPassesFormationFilter(m) && matchPassesEntryFilter(m),
-  );
+  const filtered = weekList.filter((m) => matchPassesClubFilter(m));
   if (!filtered.length) {
     mwLineupPage = 1;
     return `${toolbar}
@@ -4352,15 +4351,234 @@ function renderClubLineupCards(matches) {
   return `${toolbar}${summary}${pager}<div class="mw-lineup-review-list" id="mwLineupReviewList">${cards}</div>${pager}`;
 }
 
+function workspaceDraftForMatch(match) {
+  if (!match?.id) return match;
+  return mwWorkspaceDrafts[match.id] ? { ...match, ...mwWorkspaceDrafts[match.id], id: match.id } : match;
+}
+
+function persistWorkspaceRowFromDom(matchId) {
+  const row = document.querySelector(`[data-mw-workspace-row="${CSS.escape(String(matchId))}"]`);
+  if (!row) return;
+  const match = state().matches.find((m) => m.id === matchId);
+  if (!match) return;
+  const prev = workspaceDraftForMatch(match);
+  const homeScore = Number(row.querySelector("[data-ws-home-score]")?.value) || 0;
+  const awayScore = Number(row.querySelector("[data-ws-away-score]")?.value) || 0;
+  const time = String(row.querySelector("[data-ws-time]")?.value ?? "").trim() || prev.time || "—";
+  const status = String(row.querySelector("[data-ws-status]")?.value ?? "").trim().toUpperCase() || prev.status || "NS";
+  const sofaScoreEventId = String(row.querySelector("[data-ws-ss-id]")?.value ?? "").trim();
+  let goalEvents = prev.goalEvents || [];
+  const goalsBody = row.querySelector("[data-ws-goals-body]");
+  if (goalsBody) {
+    goalEvents = Array.from(goalsBody.querySelectorAll(".ge-row"))
+      .map((tr) => {
+        const assist = readGoalEventPlayerFromDom(tr, "assist");
+        const type = readGoalEventTypeFromDom(tr);
+        return {
+          minute: Number(tr.querySelector(".ge-min")?.value) || 0,
+          side: tr.querySelector(".ge-side")?.value === "away" ? "away" : "home",
+          scorer: readGoalEventPlayerFromDom(tr, "scorer"),
+          assist: assist || null,
+          type: type || undefined,
+        };
+      })
+      .filter((g) => g.scorer);
+  }
+  mwWorkspaceDrafts[matchId] = {
+    ...prev,
+    time,
+    status,
+    score: [homeScore, awayScore],
+    sofaScoreEventId: sofaScoreEventId || prev.sofaScoreEventId || "",
+    goalEvents,
+    lineups: prev.lineups || match.lineups,
+    formation: prev.formation || match.formation,
+  };
+}
+
+function renderMatchweekWorkspace(matches) {
+  const weekList = (matches ?? []).filter((m) => matchPassesClubFilter(m));
+  const dirtyN = weekList.filter((m) => mwWorkspaceDrafts[m.id]).length;
+  const toolbar = `<div class="mw-workspace-toolbar">
+      <p class="admin-muted mb-0">Edit scores, goals/assists, and SofaScore ids for every fixture in this week. Lineups open in the match editor.</p>
+      <button type="button" class="mw-btn-primary mw-btn-primary--sm" id="btnSaveMwWorkspaceWeek"${weekList.length ? "" : " disabled"}>Save week${dirtyN ? ` (${dirtyN})` : ""}</button>
+    </div>`;
+  if (!weekList.length) {
+    return `${toolbar}<div class="matchweek-empty"><p class="matchweek-empty__title">No fixtures this week</p><p class="matchweek-empty__text">Fetch gameweek or add fixtures first.</p></div>`;
+  }
+  const rows = weekList
+    .map((raw) => {
+      const match = workspaceDraftForMatch(raw);
+      const ht = state().teams.find((t) => t.id === match.homeTeamId);
+      const at = state().teams.find((t) => t.id === match.awayTeamId);
+      const hName = ht?.name ?? "Home";
+      const aName = at?.name ?? "Away";
+      const goals = (match.goalEvents ?? []).filter((g) => String(g?.scorer ?? "").trim());
+      const assists = goals.filter((g) => String(g?.assist ?? "").trim()).length;
+      const homeXi = namedLineupCount(match.lineups?.home);
+      const awayXi = namedLineupCount(match.lineups?.away);
+      const expanded = mwWorkspaceExpandedId === match.id;
+      const dirty = Boolean(mwWorkspaceDrafts[match.id]);
+      const ssId = String(match.sofaScoreEventId ?? "").trim();
+      const goalsEditor = expanded
+        ? `<div class="mw-workspace-goals">
+            <table class="ge-table mw-workspace-ge-table">
+              <thead><tr><th>Min</th><th>Side</th><th>Scorer</th><th>Assist</th><th>Type</th><th></th></tr></thead>
+              <tbody data-ws-goals-body>${(goals.length ? goals : [{ minute: "", side: "home", scorer: "", assist: "" }])
+                .map((ev, i) =>
+                  renderGoalEventRowHtml(ev, i, match.homeTeamId, match.awayTeamId, match.lineups),
+                )
+                .join("")}</tbody>
+            </table>
+            <button type="button" class="mw-btn-ghost mw-btn-ghost--sm" data-ws-add-goal="${esc(match.id)}">+ Goal</button>
+          </div>`
+        : "";
+      return `<article class="mw-workspace-row${expanded ? " is-open" : ""}${dirty ? " is-dirty" : ""}" data-mw-workspace-row="${esc(match.id)}" data-ws-home-id="${esc(match.homeTeamId)}" data-ws-away-id="${esc(match.awayTeamId)}">
+        <div class="mw-workspace-row__main">
+          <button type="button" class="mw-workspace-row__toggle" data-ws-toggle="${esc(match.id)}" aria-expanded="${expanded ? "true" : "false"}">
+            <span class="mw-workspace-row__teams">${esc(hName)} vs ${esc(aName)}</span>
+            <span class="mw-workspace-row__meta">${esc(match.time || "—")} · ${goals.length} goal${goals.length === 1 ? "" : "s"}${assists ? ` · ${assists} assist${assists === 1 ? "" : "s"}` : ""} · XI ${homeXi}/11 · ${awayXi}/11 · ${ssId ? `SS ${ssId}` : "no SS id"}${dirty ? " · unsaved" : ""}</span>
+          </button>
+          <div class="mw-workspace-row__scores">
+            <input class="mw-input mw-workspace-score" type="number" min="0" max="99" data-ws-home-score value="${esc(match.score?.[0] ?? 0)}" aria-label="${esc(hName)} score" />
+            <span>–</span>
+            <input class="mw-input mw-workspace-score" type="number" min="0" max="99" data-ws-away-score value="${esc(match.score?.[1] ?? 0)}" aria-label="${esc(aName)} score" />
+          </div>
+          <button type="button" class="mw-btn-ghost mw-btn-ghost--sm" data-edit-mw-match="${esc(match.id)}">Full editor</button>
+        </div>
+        <div class="mw-workspace-row__detail${expanded ? "" : " admin-hidden"}">
+          <div class="mw-workspace-fields">
+            <div class="mw-field mb-0"><label>Kickoff / day</label><input class="mw-input" type="text" data-ws-time value="${esc(match.time ?? "")}" /></div>
+            <div class="mw-field mb-0"><label>Status</label>
+              <div class="mw-select-wrap"><select class="mw-select" data-ws-status>
+                ${["NS", "LIVE", "HT", "FT", "POSTP"].map((s) => `<option value="${s}"${String(match.status || "NS").toUpperCase() === s ? " selected" : ""}>${s}</option>`).join("")}
+              </select></div>
+            </div>
+            <div class="mw-field mb-0"><label>SofaScore event id</label><input class="mw-input" type="text" data-ws-ss-id value="${esc(ssId)}" placeholder="e.g. 12436888" /></div>
+          </div>
+          ${goalsEditor}
+        </div>
+      </article>`;
+    })
+    .join("");
+  return `${toolbar}<div class="mw-workspace-list">${rows}</div>`;
+}
+
+function saveMatchweekWorkspaceWeek() {
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const mwFromInput = Number($("#mwNum")?.value);
+  const matchweek = Number.isInteger(mwFromInput) && mwFromInput > 0 ? mwFromInput : meta.matchweek ?? 36;
+  const mwTag = `MW ${matchweek}`;
+  const list =
+    typeof filterMatchesForLeagueWeek === "function"
+      ? filterMatchesForLeagueWeek(state().matches, leagueFilter, matchweek)
+      : state().matches.filter((m) => m.leagueId === leagueFilter && (m.matchday === mwTag || !m.matchday));
+
+  if (mwWorkspaceExpandedId) persistWorkspaceRowFromDom(mwWorkspaceExpandedId);
+  document.querySelectorAll("[data-mw-workspace-row]").forEach((el) => {
+    const id = el.getAttribute("data-mw-workspace-row");
+    if (id) persistWorkspaceRowFromDom(id);
+  });
+
+  const dirtyIds = Object.keys(mwWorkspaceDrafts).filter((id) => list.some((m) => m.id === id));
+  if (!dirtyIds.length) return toast("No workspace edits to save");
+
+  let savedN = 0;
+  for (const id of dirtyIds) {
+    const prev = state().matches.find((m) => m.id === id);
+    const draft = workspaceDraftForMatch(prev);
+    if (!prev || !draft) continue;
+    const compiled = compileMatchRecordFromParts({
+      home: draft.homeTeamId,
+      away: draft.awayTeamId,
+      idHint: id,
+      prev,
+      time: draft.time,
+      stadium: draft.stadium,
+      score: draft.score,
+      statusPick: draft.status,
+      matchdayRaw: parseMwNumber(draft.matchday) || matchweek,
+      stageValue: draft.matchday,
+      formation: draft.formation,
+      lineups: draft.lineups,
+      goalEventsRaw: draft.goalEvents,
+      tmMatchId: draft.tmMatchId,
+      sofaScoreEventId: draft.sofaScoreEventId,
+      fbrefMatchId: draft.fbrefMatchId,
+      formationVerification: draft.formationVerification,
+      tacticalFormations: draft.tacticalFormations,
+      entryReview: draft.entryReview,
+      applyRosterAdds: false,
+    });
+    if (compiled.error) {
+      toast(compiled.error);
+      continue;
+    }
+    FCDataStore.upsertMatch(compiled.saved);
+    delete mwWorkspaceDrafts[id];
+    savedN += 1;
+  }
+  if (!savedN) return;
+  syncToAppArrays();
+  toast(`Saved ${savedN} match${savedN === 1 ? "" : "es"} for MW ${matchweek}`);
+  renderPanel();
+}
+
+function bindMatchweekWorkspace() {
+  if (mwFixturesView !== "workspace") return;
+  $("#btnSaveMwWorkspaceWeek")?.addEventListener("click", saveMatchweekWorkspaceWeek);
+  document.querySelectorAll("[data-ws-toggle]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-ws-toggle");
+      if (!id) return;
+      if (mwWorkspaceExpandedId && mwWorkspaceExpandedId !== id) {
+        persistWorkspaceRowFromDom(mwWorkspaceExpandedId);
+      }
+      if (mwWorkspaceExpandedId === id) {
+        persistWorkspaceRowFromDom(id);
+        mwWorkspaceExpandedId = "";
+      } else {
+        mwWorkspaceExpandedId = id;
+      }
+      renderPanel();
+    });
+  });
+  document.querySelectorAll("[data-ws-add-goal]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-ws-add-goal");
+      if (!id) return;
+      persistWorkspaceRowFromDom(id);
+      const match = workspaceDraftForMatch(state().matches.find((m) => m.id === id));
+      const goals = [...(match?.goalEvents ?? [])];
+      goals.push({ minute: "", side: "home", scorer: "", assist: "", type: "goal" });
+      mwWorkspaceDrafts[id] = { ...match, goalEvents: goals };
+      mwWorkspaceExpandedId = id;
+      renderPanel();
+    });
+  });
+  document.querySelectorAll("[data-mw-workspace-row]").forEach((row) => {
+    const id = row.getAttribute("data-mw-workspace-row");
+    row.querySelectorAll("input, select").forEach((el) => {
+      el.addEventListener("change", () => {
+        if (id) persistWorkspaceRowFromDom(id);
+      });
+    });
+  });
+  if (mwWorkspaceExpandedId) {
+    bindGoalEventDeletes();
+    bindGoalEventRowHandlers();
+  }
+}
+
 function renderFixtureCards(matches) {
+  if (mwFixturesView === "lineups") mwFixturesView = "matches";
   const weekList = matches ?? [];
   const teams = teamsForLeague(leagueFilter);
   if (mwClubFilter && !teams.some((t) => t.id === mwClubFilter)) mwClubFilter = "";
+  if (mwFixturesView === "workspace") return renderMatchweekWorkspace(weekList);
   if (mwFixturesView === "lineups") return renderClubLineupCards(weekList);
   const clubWeeks = Boolean(mwClubFilter);
-  const filtered = weekList.filter(
-    (m) => matchPassesClubFilter(m) && matchPassesFormationFilter(m) && matchPassesEntryFilter(m),
-  );
+  const filtered = weekList.filter((m) => matchPassesClubFilter(m));
   const toolbar = matchweekFixtureToolbarHtml(teams);
   if (!weekList.length) {
     if (clubWeeks) {
@@ -4383,7 +4601,7 @@ function renderFixtureCards(matches) {
     return `${toolbar}
       <div class="matchweek-empty">
         <p class="matchweek-empty__title">No fixtures match these filters</p>
-        <p class="matchweek-empty__text">Try All clubs, Open, Verified, or another formation status.</p>
+        <p class="matchweek-empty__text">Try another club, or clear the club filter.</p>
       </div>`;
   }
 
@@ -4394,7 +4612,6 @@ function renderFixtureCards(matches) {
       const hName = ht?.name ?? "Home";
       const aName = at?.name ?? "Away";
       const goals = (match.goalEvents ?? []).length;
-      const lineupN = (match.lineups?.home?.length ?? 0) + (match.lineups?.away?.length ?? 0);
       const active = matchEditId === match.id;
       const crestStyle = (logo) =>
         logo
@@ -4426,15 +4643,9 @@ function renderFixtureCards(matches) {
             </div>
           </div>
           <div class="mw-fixture-meta">
-            ${entryReviewChipHtml(match)}
             ${match.matchday && (clubWeeks || (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter))) ? `<span class="mw-pill">${esc(match.matchday)}</span>` : ""}
             ${goals ? `<span class="mw-pill mw-pill--goals">${goals} goal${goals === 1 ? "" : "s"}</span>` : ""}
-            ${lineupN ? `<span class="mw-pill mw-pill--lineup">${lineupN} in lineup</span>` : ""}
             ${match.stadium ? `<span class="mw-pill mw-pill--venue">${esc(match.stadium)}</span>` : ""}
-          </div>
-          <div class="fv-card-row">
-            ${formationVerifyChipHtml(match, "home", hName)}
-            ${formationVerifyChipHtml(match, "away", aName)}
           </div>
           ${fixtureGoalAssistHtml(match)}
           <div class="mw-fixture-actions">
@@ -5021,7 +5232,20 @@ function tmMatchdayVisibleDiff() {
   };
 }
 
+function setMatchweekTmSyncStatusText(text) {
+  const el = $("#matchweekTmSyncStatus");
+  if (el) el.innerHTML = `<span class="players-tm-sync__hint">${esc(text)}</span>`;
+}
+
 function tmMatchdaySyncStatusHtml(matchweek) {
+  if (
+    mwGameweekFetchStatus &&
+    mwGameweekFetchStatus.leagueId === leagueFilter &&
+    mwGameweekFetchStatus.matchweek === matchweek &&
+    mwGameweekFetchStatus.text
+  ) {
+    return `<span class="players-tm-sync__hint">${esc(mwGameweekFetchStatus.text)}</span>`;
+  }
   if (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter)) {
     return `<span class="players-tm-sync__hint admin-muted">World Cup fixtures are managed manually.</span>`;
   }
@@ -5172,6 +5396,7 @@ function tmMatchdaySyncPanelHtml(matchweek) {
           <input id="tmMatchdaySeason" class="mw-input" type="number" min="1900" max="2100" step="1" value="${esc(tmMatchdaySeason)}" />
         </div>
         <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmMatchdayRefresh"${canCompare ? "" : " disabled"} title="${canCompare ? "Compare this matchweek with Transfermarkt (fixtures, scores, goals). Open a fixture to Fetch SofaScore XI for lineups." : localReady ? "No competition mapping for this league" : "Only available via serve.bat on your computer"}">Compare with Transfermarkt</button>
+        <button type="button" class="mw-btn-primary players-auto-btn" id="btnFetchGameweek"${canCompare ? "" : " disabled"} title="${canCompare ? "Batch fetch: Transfermarkt fixtures/scores + SofaScore goals and assists. Does not fetch starting XIs." : localReady ? "No competition mapping for this league" : "Only available via serve.bat on your computer"}">Fetch gameweek</button>
       </div>
       <div class="matchweek-tm-import row g-2 align-items-end mt-2">
         <div class="col-4 col-md-2">
@@ -5423,7 +5648,7 @@ function panelLeague() {
           <div class="mw-hero__copy">
             <p class="mw-eyebrow mw-eyebrow--live">Match center</p>
             <h2 class="mw-heading">Matchweek</h2>
-            <p class="mw-lead">${isWc ? "Set the tournament header and every fixture — scores, goals, and lineups. All games stay visible on the site." : "Set the public gameweek title, dates, and every fixture — scores, goals, and lineups."}</p>
+            <p class="mw-lead">${isWc ? "Set the tournament header and every fixture — scores, goals, and assists. Saved historical lineups stay available. New results do not need a full XI." : "Set the public gameweek title, dates, and every fixture — scores, goals, and assists. A full starting XI is optional."}</p>
             ${matchweekStatChipsHtml(stats, isWc)}
           </div>
           <aside class="mw-hero__aside">
@@ -5484,7 +5709,7 @@ function panelLeague() {
           </div>
           <div class="matchweek-fixtures-head__actions">
             ${matchweekFixturesViewToggleHtml()}
-            <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-add-fixture-btn${mwFixturesView === "lineups" ? " admin-hidden" : ""}" id="btnNewMwMatch">+ Add fixture</button>
+            <button type="button" class="mw-btn-primary mw-btn-primary--sm matchweek-add-fixture-btn${mwFixturesView === "lineups" || mwFixturesView === "workspace" ? " admin-hidden" : ""}" id="btnNewMwMatch">+ Add fixture</button>
           </div>
         </div>
         ${mwReviewQueueHtml()}
@@ -5548,46 +5773,27 @@ function panelLeague() {
         </div>
 
         <div class="mw-editor-section">
-          <h4 class="mw-section-label"><span class="mw-section-icon">③</span> Lineups</h4>
-          <p class="mw-section-hint">Pick a <strong>starting formation</strong>, then the XI. Use <strong>Copy lineup</strong> for a previous MW, or <strong>Fetch SofaScore XI</strong> (needs <strong>serve.bat</strong>). SofaScore match id is filled after a successful fetch, or paste an event URL. Positions fill left-to-right (<strong>GK · LB · CB · CB · RB</strong>…). Captain is fetched; cards are not. Goals still come from Transfermarkt.</p>
+          <h4 class="mw-section-label"><span class="mw-section-icon">③</span> Sources</h4>
+          <p class="mw-section-hint">Starting XIs are no longer stored on fixtures. Use these ids only for goals and assists. Player positions are set on the Players tab.</p>
           <div class="mw-tm-lineup-bar row g-2 align-items-end mb-2">
-            <div class="col-12 col-md-6 col-xl-5">
+            <div class="col-12 col-md-6">
               <div class="mw-field mb-0">
                 <label for="matchSsId">SofaScore match id / URL</label>
                 <input id="matchSsId" class="mw-input admin-url-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${esc(src?.sofaScoreEventId ?? "")}" placeholder="12436888 or sofascore.com/event/…" />
               </div>
             </div>
-            <div class="col-12 col-md-6 col-xl-7 d-flex flex-wrap gap-2 align-items-center">
-              <button type="button" class="mw-btn-ghost players-auto-btn" id="btnSsFetchBothLineups" title="Fetch home + away starting XIs from SofaScore">Fetch both XIs from SofaScore</button>
-            </div>
-            <div class="col-12 col-md-6 col-xl-5">
+            <div class="col-12 col-md-6">
               <div class="mw-field mb-0">
                 <label for="matchTmId">Transfermarkt match id / URL</label>
                 <input id="matchTmId" class="mw-input admin-url-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${esc(src?.tmMatchId ?? "")}" placeholder="4373458 or …/spielbericht/4373458" />
               </div>
             </div>
-            <div class="col-12 col-md-6 col-xl-7 d-flex flex-wrap gap-2 align-items-center">
+            <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
               <button type="button" class="mw-btn-ghost players-auto-btn" id="btnTmFetchGoalsAssists" title="Fetch goals and assists from Transfermarkt match sheet">Fetch goals &amp; assists</button>
             </div>
           </div>
-          ${formationVerificationPanelHtml(src, ht?.name, at?.name)}
-          <div class="mw-lineup-pitch-previews pitch-grid" aria-label="Lineup pitch previews">
-            <div id="mwPitchPreviewHome">${mwLineupPitchPreviewHtml("home", homeId, src?.formation?.[0], src?.lineups?.home, { interactive: true })}</div>
-            <div id="mwPitchPreviewAway">${mwLineupPitchPreviewHtml("away", awayId, src?.formation?.[1], src?.lineups?.away, { interactive: true })}</div>
-          </div>
-          <div class="row g-3 mw-lineups-grid">
-            <div class="col-12 col-xl-6">${renderLineupEditor("home", homeId, src?.lineups?.home, { currentMw: mw, excludeMatchId: matchEditId, formation: src?.formation?.[0] })}</div>
-            <div class="col-12 col-xl-6">${renderLineupEditor("away", awayId, src?.lineups?.away, { currentMw: mw, excludeMatchId: matchEditId, formation: src?.formation?.[1] })}</div>
-          </div>
         </div>
 
-        <div class="mw-entry-review">
-          <label class="mw-entry-review__check">
-            <input id="matchEntryDone" type="checkbox"${normalizeEntryReview(src?.entryReview).status === "done" ? " checked" : ""} />
-            <span>Mark fixture verified</span>
-          </label>
-          <input id="matchEntryNote" class="mw-input" type="text" maxlength="160" value="${esc(normalizeEntryReview(src?.entryReview).note)}" placeholder="Remark (optional) — e.g. XI + goals checked" />
-        </div>
         <div class="mw-editor-footer matchweek-editor-footer">
           <button type="button" class="mw-btn-ghost" id="btnMarkMwReviewed"${currentMwReviewItem() ? "" : " disabled"}>Mark reviewed</button>
           <button type="button" class="mw-btn-primary matchweek-save-fixture-btn" id="btnSaveMwMatch">Save Match</button>
@@ -6417,6 +6623,30 @@ function confirmReplaceDepthPicks(depth) {
   return confirm(`Replace current ${count} depth pick${count === 1 ? "" : "s"}?`);
 }
 
+function applySquadDepthFromPositions() {
+  const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
+  const team = state().teams.find((t) => t.id === teamId);
+  if (!team) return;
+  const roster = squadDepthRoster(team.id);
+  if (!roster.length) {
+    alert("Add players for this team first.");
+    return;
+  }
+  if (typeof FCDataStore.seedPlayerMatchPositionsFromLineups === "function") {
+    FCDataStore.seedPlayerMatchPositionsFromLineups();
+  }
+  const countsByPlayer = {};
+  for (const player of roster) countsByPlayer[player.id] = positionCountsForPlayer(player.id, team.id);
+  const current = readSquadDepthFromDom();
+  if (!confirmReplaceDepthPicks(current)) return;
+  squadDepthDraft = SquadDepth.fillDepthFromPositionHistory(current, roster, countsByPlayer, {
+    replaceExisting: true,
+  });
+  writeSquadDepthPicksToDom(squadDepthDraft);
+  refreshSquadDepthUiFromDraft();
+  toast(`Depth chart built from match positions (${SquadDepth.countDepthPlayers(squadDepthDraft)} players). Save to keep it.`);
+}
+
 function applySquadDepthAutoFill() {
   const teamId = $("#sdTeam")?.value ?? squadDepthTeamFilter;
   const team = state().teams.find((t) => t.id === teamId);
@@ -6856,6 +7086,7 @@ function panelSquadDepth() {
             ? `
           <p class="sd-status ${meta.statusClass}" id="sdStatus" aria-live="polite">${esc(meta.statusText)}</p>
           <div class="sd-toolbar">
+            <button type="button" class="mw-btn-ghost sd-tool-btn" id="btnSdFromPositions" title="Rank this chart from recorded match positions. Does not change those records or player profiles.">Build from match positions</button>
             <button type="button" class="mw-btn-ghost sd-tool-btn" id="btnSdAutoFill" title="Place squad by position/role">Auto-fill by role</button>
             <button type="button" class="mw-btn-ghost sd-tool-btn" id="btnSdSeedLineup" title="${esc(seedHint)}">Seed from last XI</button>
             <button type="button" class="mw-btn-ghost sd-tool-btn" id="btnSdSeedTm" title="${
@@ -8763,6 +8994,7 @@ function panelPlayers() {
                       : ""
                   }
                   <button type="button" class="mw-btn-ghost players-auto-btn" id="btnFillBlankPitchLabels">Fill blank pitch labels</button>
+                  <button type="button" class="mw-btn-danger players-auto-btn" id="btnResetClubMatchPositions" title="Clear saved match positions for every player at this club, all gameweeks">Reset match positions</button>
                 </div>
                 <span class="admin-muted players-toolbar-hint">${
                   playerCount > 1
@@ -8930,6 +9162,7 @@ function panelPlayers() {
             </div>
           </div>
         </div>
+        <div id="playerMatchPositions" class="player-match-pos admin-hidden" hidden></div>
         <div id="playerLineupSection" class="player-lineup admin-hidden" hidden></div>
         <div class="players-form-footer row g-2 mt-1">
           <div class="col-12 col-sm-auto">
@@ -11802,7 +12035,112 @@ function seasonTallyEntriesForTeam(team, leagueId) {
   return { counted, ignored };
 }
 
-function matchLogTallyRowHtml(entry, { draggable }) {
+function seasonTallyAppearanceMeta(match, teamId, week, tag) {
+  const side = matchLogSideForTeam(match, teamId);
+  const oppId = side === "home" ? match?.awayTeamId : match?.homeTeamId;
+  const opp = oppId ? state().teams.find((t) => t.id === oppId) : null;
+  const score = Array.isArray(match?.score) ? match.score : null;
+  const scoreLabel =
+    score && Number.isFinite(Number(score[0])) && Number.isFinite(Number(score[1]))
+      ? `${score[0]}–${score[1]}`
+      : "";
+  const venue = side === "home" ? "H" : side === "away" ? "A" : "";
+  return {
+    week,
+    tag: String(tag ?? "").trim().toUpperCase(),
+    matchday: match?.matchday || `MW ${week}`,
+    opponent: opp?.name || "Opponent",
+    venue,
+    scoreLabel,
+    status: String(match?.status ?? "").trim(),
+  };
+}
+
+/** Match-by-match starts for a season tally row, grouped by position tag. */
+function seasonTallyAppearancesByTag(entry, teamId, leagueId) {
+  if (!entry || !teamId || !leagueId) return [];
+  const byTag = new Map();
+  const push = (app) => {
+    if (!app?.tag) return;
+    const list = byTag.get(app.tag) ?? [];
+    list.push(app);
+    byTag.set(app.tag, list);
+  };
+
+  if (!entry.isManual && entry.p && typeof playerLineupPositionStarts === "function") {
+    for (const { week, tag } of playerLineupPositionStarts(entry.p, leagueId)) {
+      const match = findTeamMatchForWeek(leagueId, teamId, week);
+      push(seasonTallyAppearanceMeta(match, teamId, week, tag));
+    }
+  } else if (entry.isManual && typeof positionTrailEndWeekForLeague === "function") {
+    const endWeek = positionTrailEndWeekForLeague(leagueId);
+    const targetNorm =
+      typeof normLineupName === "function" ? normLineupName(entry.name) : String(entry.name ?? "").trim().toLowerCase();
+    const targetNum = String(entry.number ?? "").trim();
+    for (let week = 1; week <= endWeek; week++) {
+      const match = findTeamMatchForWeek(leagueId, teamId, week);
+      if (!match) continue;
+      const side = matchLogSideForTeam(match, teamId);
+      const lineup = side ? match.lineups?.[side] ?? [] : [];
+      for (const slot of lineup) {
+        if (!slot?.name) continue;
+        if (findRosterPlayerForLineupSlot(teamId, slot)) continue;
+        const name = stripCaptainSuffix(slot.name);
+        const norm = typeof normLineupName === "function" ? normLineupName(name) : String(name).trim().toLowerCase();
+        const number = String(slot.number ?? "—").trim();
+        if (norm !== targetNorm || number !== targetNum) continue;
+        const tag = String(slot.tag ?? "").trim().toUpperCase();
+        if (!tag) continue;
+        push(seasonTallyAppearanceMeta(match, teamId, week, tag));
+        break;
+      }
+    }
+  }
+
+  const order = new Map((entry.tallies ?? []).map((t, i) => [t.tag, i]));
+  return [...byTag.entries()]
+    .map(([tag, apps]) => ({
+      tag,
+      count: apps.length,
+      apps: apps.sort((a, b) => a.week - b.week),
+    }))
+    .sort((a, b) => (order.get(a.tag) ?? 99) - (order.get(b.tag) ?? 99) || b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+function matchLogTallyDetailHtml(entry, teamId, leagueId) {
+  const groups = seasonTallyAppearancesByTag(entry, teamId, leagueId);
+  if (!groups.length) {
+    return `<div class="matchlog-tally-detail" hidden data-tally-detail="${esc(entry.key)}">
+      <p class="admin-muted mb-0">No match starts found for this player.</p>
+    </div>`;
+  }
+  const sections = groups
+    .map((g) => {
+      const label =
+        typeof lineupTagDisplayName === "function" ? lineupTagDisplayName(g.tag) : g.tag;
+      const rows = g.apps
+        .map((app) => {
+          const bits = [
+            app.matchday,
+            app.venue ? `vs ${app.opponent} (${app.venue})` : `vs ${app.opponent}`,
+            app.scoreLabel,
+            app.status && app.status !== "NS" ? app.status : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return `<li class="matchlog-tally-match">${esc(bits)}</li>`;
+        })
+        .join("");
+      return `<section class="matchlog-tally-pos">
+        <h5 class="matchlog-tally-pos__title"><span>${esc(g.tag)}</span> ${esc(label)} · ${g.count}</h5>
+        <ul class="matchlog-tally-matches">${rows}</ul>
+      </section>`;
+    })
+    .join("");
+  return `<div class="matchlog-tally-detail" hidden data-tally-detail="${esc(entry.key)}">${sections}</div>`;
+}
+
+function matchLogTallyRowHtml(entry, { draggable, teamId, leagueId }) {
   const bits = entry.tallies.map((t) => `${esc(t.tag)}×${t.count}`).join(" · ");
   const manualBadge = entry.isManual
     ? `<span class="matchlog-tally-manual" title="Entered manually in Matchweek (not on roster)">Manual</span>`
@@ -11813,12 +12151,17 @@ function matchLogTallyRowHtml(entry, { draggable }) {
       </span>`
     : `<span class="matchlog-tally-handle matchlog-tally-handle--off" aria-hidden="true"></span>`;
   return `<li class="matchlog-tally-row${draggable ? " player-sort-row" : " matchlog-tally-row--off"}${entry.isManual ? " matchlog-tally-row--manual" : ""}"${draggable ? ' draggable="true"' : ""} data-tally-key="${esc(entry.key)}">
-    <label class="matchlog-tally-check" title="${entry.counted ? "Counted in position totals" : "Not counted — tick to include"}">
-      <input type="checkbox" class="ml-tally-count"${entry.counted ? " checked" : ""} aria-label="Count in position totals" />
-    </label>
-    ${handle}
-    <span class="matchlog-tally-name">${esc(entry.number ?? "—")} · ${esc(entry.name)}${manualBadge}</span>
-    <span class="matchlog-tally-bits">${bits}</span>
+    <div class="matchlog-tally-main">
+      <label class="matchlog-tally-check" title="${entry.counted ? "Counted in position totals" : "Not counted — tick to include"}">
+        <input type="checkbox" class="ml-tally-count"${entry.counted ? " checked" : ""} aria-label="Count in position totals" />
+      </label>
+      ${handle}
+      <button type="button" class="matchlog-tally-open" aria-expanded="false" title="Show matches by position">
+        <span class="matchlog-tally-name">${esc(entry.number ?? "—")} · ${esc(entry.name)}${manualBadge}</span>
+        <span class="matchlog-tally-bits">${bits}</span>
+      </button>
+    </div>
+    ${matchLogTallyDetailHtml(entry, teamId, leagueId)}
   </li>`;
 }
 
@@ -11828,11 +12171,11 @@ function matchLogSeasonTallyHtml(team, leagueId) {
   if (!counted.length && !ignored.length) {
     return `<div class="matchlog-tally-block"><p class="matchlog-tally-title">Season position counts</p><p class="admin-muted mb-0">No starts logged yet for this squad.</p></div>`;
   }
-  const countedHtml = counted.map((e) => matchLogTallyRowHtml(e, { draggable: true })).join("");
-  const ignoredHtml = ignored.map((e) => matchLogTallyRowHtml(e, { draggable: false })).join("");
+  const countedHtml = counted.map((e) => matchLogTallyRowHtml(e, { draggable: true, teamId: team.id, leagueId })).join("");
+  const ignoredHtml = ignored.map((e) => matchLogTallyRowHtml(e, { draggable: false, teamId: team.id, leagueId })).join("");
   return `<div class="matchlog-tally-block">
     <p class="matchlog-tally-title">Season position counts</p>
-    <p class="admin-muted matchlog-tally-hint">Tick to include in counts. Manual Matchweek names (not on roster) start unticked. Drag counted rows to reorder.</p>
+    <p class="admin-muted matchlog-tally-hint">Tick to include in counts. Tap a player to see which matches they started in each position. Manual Matchweek names (not on roster) start unticked. Drag counted rows to reorder.</p>
     <ul class="matchlog-tally-list" id="matchLogTallyList">${countedHtml || `<li class="matchlog-tally-empty admin-muted">No players counted yet.</li>`}</ul>
     ${
       ignored.length
@@ -12525,6 +12868,21 @@ function applyLineupRosterAdds(homeTeamId, awayTeamId) {
   return added;
 }
 
+function resolveGoalEventTeamIds(row) {
+  const host =
+    row?.closest("[data-ws-home-id][data-ws-away-id]") ||
+    row?.closest("[data-mw-workspace-row]");
+  const home =
+    host?.getAttribute("data-ws-home-id") ||
+    $("#matchHome")?.value ||
+    "";
+  const away =
+    host?.getAttribute("data-ws-away-id") ||
+    $("#matchAway")?.value ||
+    "";
+  return { home, away };
+}
+
 function bindGoalEventDeletes() {
   document.querySelectorAll(".ge-del").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -12552,8 +12910,8 @@ function bindGoalEventRowHandlers() {
       };
 
       modeSel?.addEventListener("change", () => {
-        const teamId =
-          row.querySelector(".ge-side")?.value === "away" ? $("#matchAway")?.value : $("#matchHome")?.value;
+        const sides = resolveGoalEventTeamIds(row);
+        const teamId = row.querySelector(".ge-side")?.value === "away" ? sides.away : sides.home;
         const pick = row.querySelector(`.ge-${kind}-pick`);
         if (modeSel.value === "roster") {
           let val = pick?.value ?? "";
@@ -12736,6 +13094,9 @@ function upsertMwReviewItem(item) {
     found.leagueId = item.leagueId || found.leagueId;
     found.draft = item.draft;
     found.localSnapshot = item.localSnapshot ?? found.localSnapshot;
+    if (item.changes) {
+      found.changes = [...new Set([...(found.changes || []), ...item.changes])];
+    }
     persistMwReviewQueue();
     return found;
   }
@@ -12774,11 +13135,16 @@ function dropMwReviewItem(queueId) {
   persistMwReviewQueue();
 }
 
-function enqueueTmAddDraft(entry, matchweek, source = "tm-add") {
+function enqueueTmAddDraft(entry, matchweek, source = "tm-add", { omitGoals = false } = {}) {
   const built = buildMatchFromTmFixture(entry, matchweek);
+  if (omitGoals) built.goalEvents = [];
   const existing = state().matches.find((m) => m.id === built.id);
   if (existing) {
-    return enqueueTmSyncDraft({ local: existing, tm: entry, changes: ["score", "time", "goals"] }, source, { confirmReplace: false });
+    const changes = omitGoals ? ["score", "time"] : ["score", "time", "goals"];
+    return enqueueTmSyncDraft({ local: existing, tm: entry, changes }, source, {
+      confirmReplace: false,
+      omitGoals,
+    });
   }
   return upsertMwReviewItem({
     mode: "create",
@@ -12788,22 +13154,28 @@ function enqueueTmAddDraft(entry, matchweek, source = "tm-add") {
     leagueId: leagueFilter,
     draft: built,
     localSnapshot: null,
+    changes: omitGoals
+      ? ["fixture", "score", "time"].filter(Boolean)
+      : ["fixture", "score", "time", "goals"],
   });
 }
 
-function enqueueTmSyncDraft(entry, source = "tm-sync", { confirmReplace = false } = {}) {
+function enqueueTmSyncDraft(entry, source = "tm-sync", { confirmReplace = false, omitGoals = false } = {}) {
   const local = entry.local;
   if (!local) return null;
   const keepGoals = localHasGoalEvents(local);
   const keepXi = localHasNamedLineup(local);
-  let applyGoals = !keepGoals;
-  if (keepGoals && confirmReplace && (entry.tm?.goals ?? []).length) {
+  let applyGoals = !keepGoals && !omitGoals;
+  if (!omitGoals && keepGoals && confirmReplace && (entry.tm?.goals ?? []).length) {
     applyGoals = confirm("Replace current goal events with Transfermarkt scorers and assists?");
   }
-  const changes = (entry.changes ?? []).filter((c) => c !== "goals" || applyGoals);
+  let changes = (entry.changes ?? []).filter((c) => c !== "goals" || applyGoals);
+  if (omitGoals) changes = changes.filter((c) => c !== "goals");
   const next = patchMatchFromTm(cloneMwReviewValue(local), entry.tm, changes);
   if (keepXi) next.lineups = cloneMwReviewValue(local.lineups) || { home: [], away: [] };
-  if (keepGoals && !applyGoals) next.goalEvents = cloneMwReviewValue(local.goalEvents) || [];
+  if ((keepGoals && !applyGoals) || omitGoals) {
+    next.goalEvents = cloneMwReviewValue(local.goalEvents) || [];
+  }
   next.formation = cloneMwReviewValue(local.formation) || next.formation;
   return upsertMwReviewItem({
     mode: "update",
@@ -12813,15 +13185,105 @@ function enqueueTmSyncDraft(entry, source = "tm-sync", { confirmReplace = false 
     leagueId: leagueFilter,
     draft: next,
     localSnapshot: cloneMwReviewValue(local),
+    changes,
   });
 }
 
-function enqueueTmAdds(entries, matchweek, source) {
-  return (entries ?? []).map((entry) => enqueueTmAddDraft(entry, matchweek, source)).filter(Boolean);
+function enqueueTmAdds(entries, matchweek, source, opts) {
+  return (entries ?? []).map((entry) => enqueueTmAddDraft(entry, matchweek, source, opts)).filter(Boolean);
 }
 
-function enqueueTmSyncs(entries, source, confirmReplace) {
-  return (entries ?? []).map((entry) => enqueueTmSyncDraft(entry, source, { confirmReplace })).filter(Boolean);
+function enqueueTmSyncs(entries, source, confirmReplace, opts) {
+  return (entries ?? [])
+    .map((entry) => enqueueTmSyncDraft(entry, source, { confirmReplace, ...(opts || {}) }))
+    .filter(Boolean);
+}
+
+function applySsEnrichmentToDraft(draft, enrich, { applyGoals = true, applyLineups = true } = {}) {
+  const next = cloneMwReviewValue(draft) || {};
+  const changeTags = [];
+  if (enrich?.eventId) {
+    next.sofaScoreEventId = String(enrich.eventId);
+    changeTags.push("sofaScoreEventId");
+  }
+  if (applyLineups && enrich?.lineups) {
+    const { homeSide, awaySide } = pairSsSidesToHomeAway(
+      enrich.lineups,
+      next.homeTeamId,
+      next.awayTeamId,
+    );
+    const homeLineup = mapTmSideToLineupSlots(homeSide, next.homeTeamId);
+    const awayLineup = mapTmSideToLineupSlots(awaySide, next.awayTeamId);
+    if (homeLineup.length || awayLineup.length) {
+      next.lineups = {
+        home: homeLineup.length ? homeLineup : next.lineups?.home || [],
+        away: awayLineup.length ? awayLineup : next.lineups?.away || [],
+      };
+      next.formation = [
+        homeSide?.formation || next.formation?.[0] || "4-2-3-1",
+        awaySide?.formation || next.formation?.[1] || "4-3-3",
+      ];
+      changeTags.push("lineups");
+    }
+  }
+  if (applyGoals && (enrich?.goalEvents ?? []).length) {
+    next.goalEvents = tmGoalsForSave(enrich.goalEvents);
+    changeTags.push("goals");
+    const hs = next.goalEvents.filter((g) => g.side === "home" && g.type !== "og").length;
+    const as = next.goalEvents.filter((g) => g.side === "away" && g.type !== "og").length;
+    const ogHome = next.goalEvents.filter((g) => g.side === "home" && g.type === "og").length;
+    const ogAway = next.goalEvents.filter((g) => g.side === "away" && g.type === "og").length;
+    next.score = [hs + ogAway, as + ogHome];
+    if (next.status === "NS" && next.score[0] + next.score[1] > 0) next.status = "FT";
+  }
+  return { draft: next, changeTags };
+}
+
+function findMwReviewItemForMatch(matchId) {
+  const id = String(matchId ?? "");
+  if (!id) return null;
+  return (
+    mwReviewQueue.find(
+      (row) =>
+        row.leagueId === leagueFilter &&
+        (row.existingId === id || row.draft?.id === id),
+    ) || null
+  );
+}
+
+function enqueueSsWeekPatch(baseMatch, enrich, { applyGoals, applyLineups, source = "ss-week" } = {}) {
+  if (!baseMatch || !enrich) return null;
+  const existingItem = findMwReviewItemForMatch(baseMatch.id);
+  const baseDraft = existingItem
+    ? cloneMwReviewValue(existingItem.draft)
+    : cloneMwReviewValue(baseMatch);
+  const { draft, changeTags } = applySsEnrichmentToDraft(baseDraft, enrich, {
+    applyGoals,
+    applyLineups,
+  });
+  if (!changeTags.length && !enrich.error) return existingItem;
+  const prevChanges = existingItem?.changes ?? [];
+  const mergedChanges = [...new Set([...prevChanges, ...changeTags])];
+  if (enrich.error) mergedChanges.push("ss-error");
+  return upsertMwReviewItem({
+    mode: existingItem?.mode === "create" || !state().matches.find((m) => m.id === baseMatch.id) ? (existingItem?.mode || "create") : "update",
+    existingId:
+      existingItem?.mode === "create"
+        ? ""
+        : baseMatch.id && state().matches.find((m) => m.id === baseMatch.id)
+          ? baseMatch.id
+          : existingItem?.existingId || "",
+    source,
+    reviewed: false,
+    leagueId: leagueFilter,
+    draft,
+    localSnapshot:
+      existingItem?.localSnapshot ||
+      (state().matches.find((m) => m.id === baseMatch.id)
+        ? cloneMwReviewValue(baseMatch)
+        : null),
+    changes: mergedChanges,
+  });
 }
 
 function openMwReviewItem(queueId) {
@@ -12912,8 +13374,8 @@ function compileMatchRecordFromParts({
     goalEvents,
     possession: prev?.possession ?? [],
     momentum: prev?.momentum ?? 0.5,
-    formation: Array.isArray(formation) ? formation : [formation || "—", "—"],
-    lineups: hasLineup ? nextLineups : prev?.lineups,
+    formation: ["—", "—"],
+    lineups: { home: [], away: [] },
     formationVerification: stampFormationVerification(formationVerification, prev?.formationVerification),
     tacticalFormations: tacticalFormations || prev?.tacticalFormations,
     entryReview: entryReview || prev?.entryReview,
@@ -13051,6 +13513,21 @@ function saveAllReviewedMwMatches() {
   renderPanel();
 }
 
+function mwReviewChangeTagsHtml(changes) {
+  const tags = (changes ?? []).filter(Boolean);
+  if (!tags.length) return "";
+  const label = (c) => {
+    if (c === "sofaScoreEventId") return "SS id";
+    if (c === "ss-error") return "SS error";
+    if (c === "lineups") return "XI";
+    if (c === "goals") return "goals+assists";
+    return c;
+  };
+  return `<span class="mw-review-queue__tags">${tags
+    .map((c) => `<span class="mw-pill mw-pill--${c === "ss-error" ? "danger" : "goals"}">${esc(label(c))}</span>`)
+    .join("")}</span>`;
+}
+
 function mwReviewQueueHtml() {
   const rows = mwReviewQueueForLeague();
   if (!rows.length) return "";
@@ -13065,10 +13542,13 @@ function mwReviewQueueHtml() {
       const modeLabel = row.mode === "update" ? "Update" : "New";
       const revLabel = row.reviewed ? "Reviewed" : "Not reviewed";
       const active = mwReviewQueueId === row.queueId ? " is-active" : "";
+      const goalsN = (d.goalEvents ?? []).filter((g) => String(g?.scorer ?? "").trim()).length;
+      const xiN = namedLineupCount(d.lineups?.home) + namedLineupCount(d.lineups?.away);
       return `<li class="mw-review-queue__item${active}">
         <div class="mw-review-queue__copy">
           <strong>${esc(home)} vs ${esc(away)}</strong>
-          <span class="mw-review-queue__meta">${esc(mwLabel)} · ${esc(score)} · ${esc(modeLabel)} · ${esc(revLabel)}</span>
+          <span class="mw-review-queue__meta">${esc(mwLabel)} · ${esc(score)} · ${esc(modeLabel)} · ${esc(revLabel)}${goalsN ? ` · ${goalsN} goals` : ""}${xiN ? ` · XI ${xiN}` : ""}</span>
+          ${mwReviewChangeTagsHtml(row.changes)}
         </div>
         <button type="button" class="mw-btn-ghost mw-btn-ghost--sm" data-mw-review-open="${esc(row.queueId)}">Open</button>
       </li>`;
@@ -13080,7 +13560,10 @@ function mwReviewQueueHtml() {
         <h4 class="mw-review-queue__title">Review queue</h4>
         <p class="mw-review-queue__hint admin-muted">Fetched matches stay here until you save. ${reviewedN} of ${rows.length} marked reviewed.</p>
       </div>
-      <button type="button" class="mw-btn-primary mw-btn-primary--sm" id="btnSaveAllReviewedMw"${reviewedN ? "" : " disabled"}>Save All Reviewed</button>
+      <div class="mw-review-queue__actions">
+        <button type="button" class="mw-btn-ghost mw-btn-ghost--sm" id="btnMarkAllReviewedMw">Mark all reviewed</button>
+        <button type="button" class="mw-btn-primary mw-btn-primary--sm" id="btnSaveAllReviewedMw"${reviewedN ? "" : " disabled"}>Save All Reviewed</button>
+      </div>
     </div>
     <ul class="mw-review-queue__list">${items}</ul>
   </div>`;
@@ -13315,6 +13798,242 @@ async function importTransfermarktMatchweekRange() {
     }
   }
 }
+
+async function fetchGameweekHybrid() {
+  if (typeof isWorldCupLeague === "function" && isWorldCupLeague(leagueFilter)) {
+    return toast("World Cup fixtures are managed manually");
+  }
+  if (typeof TransfermarktSync === "undefined" || typeof TransfermarktTeams === "undefined") {
+    return toast("Transfermarkt sync module failed to load");
+  }
+  if (typeof SofaScoreSync === "undefined") {
+    return toast("SofaScore sync module failed to load");
+  }
+  if (!tmSyncLocalProxyReady() || !SofaScoreSync.isLocalProxyHost?.()) {
+    return toast("Run serve.bat locally — Fetch gameweek needs the local server proxy");
+  }
+  const compId = resolveTmCompetitionId(leagueFilter);
+  if (!compId) return toast("No Transfermarkt competition mapping for this league — set it in Leagues");
+
+  const meta = FCDataStore.getLeagueMeta(leagueFilter);
+  const mwFromInput = Number($("#mwNum")?.value);
+  const matchweek = Number.isInteger(mwFromInput) && mwFromInput > 0 ? mwFromInput : meta.matchweek ?? 36;
+  const season = Number($("#tmMatchdaySeason")?.value ?? tmMatchdaySeason);
+  if (!Number.isInteger(season) || season < 1900 || season > 2100) {
+    return toast("Enter a valid season start year, for example 2025");
+  }
+  tmMatchdaySeason = season;
+
+  if (
+    !confirm(
+      `Fetch MW ${matchweek}?\n\nTransfermarkt: fixtures + scores\nSofaScore: goals and assists only\n\nStarting XIs are not fetched. Queued for review — nothing saved until Save Match / Save All Reviewed.`,
+    )
+  ) {
+    return;
+  }
+
+  const btn = $("#btnFetchGameweek");
+  const compareBtn = $("#btnTmMatchdayRefresh");
+  const importBtn = $("#btnTmMatchdayImportRange");
+  const setBusy = (busy, label) => {
+    if (btn) {
+      btn.disabled = busy;
+      btn.textContent = busy ? label || "Fetching…" : "Fetch gameweek";
+    }
+    if (compareBtn) compareBtn.disabled = busy;
+    if (importBtn) importBtn.disabled = busy;
+  };
+
+  setBusy(true, "Fetching TM…");
+  setMatchweekTmSyncStatusText(`MW ${matchweek}: fetching Transfermarkt fixtures…`);
+
+  let tmAdded = 0;
+  let tmSynced = 0;
+  let ssIds = 0;
+  let ssEnriched = 0;
+  let ssGoals = 0;
+  let ssFailed = 0;
+
+  try {
+    const mwTag = `MW ${matchweek}`;
+    const localMatches =
+      typeof filterMatchesForLeagueWeek === "function"
+        ? filterMatchesForLeagueWeek(state().matches, leagueFilter, matchweek)
+        : state().matches.filter((m) => m.leagueId === leagueFilter && (m.matchday === mwTag || !m.matchday));
+    const teams = teamsForLeague(leagueFilter).map((t) => ({
+      id: t.id,
+      name: t.name,
+      stadium: t.stadium,
+      clubId: TransfermarktTeams.clubIdForTeam(t),
+    }));
+
+    const result = await TransfermarktSync.fetchAndCompareMatchday({
+      localMatches,
+      teams,
+      compId,
+      season,
+      matchday: matchweek,
+    });
+    tmMatchdaySyncState = {
+      ...result,
+      leagueId: leagueFilter,
+      matchweek,
+      season,
+      ignoredAdd: new Set(),
+      ignoredUpdate: new Set(),
+      ignoredRemove: new Set(),
+    };
+
+    const omitGoals = { omitGoals: true };
+    tmAdded = enqueueTmAdds(result.diff?.toAdd ?? [], matchweek, "gw-fetch", omitGoals).length;
+    tmSynced = enqueueTmSyncs(result.diff?.toUpdate ?? [], "gw-fetch", false, omitGoals).length;
+
+    setBusy(true, "Fetching SS round…");
+    setMatchweekTmSyncStatusText(
+      `TM ${result.tmFixtures?.length ?? 0} fixtures · queued +${tmAdded} / ${tmSynced} updates · resolving SofaScore ids…`,
+    );
+
+    const roundEvents = await SofaScoreSync.fetchRoundEvents(leagueFilter, season, matchweek);
+    const fixtureBases = [];
+    const seenIds = new Set();
+
+    for (const row of mwReviewQueueForLeague()) {
+      const d = row.draft;
+      if (!d?.homeTeamId || !d?.awayTeamId) continue;
+      const week = parseMwNumber(d.matchday);
+      if (week > 0 && week !== matchweek) continue;
+      const id = d.id || row.existingId;
+      if (id && seenIds.has(id)) continue;
+      if (id) seenIds.add(id);
+      fixtureBases.push({
+        matchId: id || `${d.homeTeamId}_${d.awayTeamId}`,
+        homeTeamId: d.homeTeamId,
+        awayTeamId: d.awayTeamId,
+        homeName: state().teams.find((t) => t.id === d.homeTeamId)?.name || "",
+        awayName: state().teams.find((t) => t.id === d.awayTeamId)?.name || "",
+        time: d.time || "",
+        base: d,
+        fromQueue: true,
+      });
+    }
+    for (const m of localMatches) {
+      if (seenIds.has(m.id)) continue;
+      seenIds.add(m.id);
+      fixtureBases.push({
+        matchId: m.id,
+        homeTeamId: m.homeTeamId,
+        awayTeamId: m.awayTeamId,
+        homeName: state().teams.find((t) => t.id === m.homeTeamId)?.name || "",
+        awayName: state().teams.find((t) => t.id === m.awayTeamId)?.name || "",
+        time: m.time || "",
+        base: m,
+        fromQueue: false,
+      });
+    }
+
+    const mapped = SofaScoreSync.matchRoundEventsToFixtures(roundEvents, fixtureBases, {
+      leagueId: leagueFilter,
+    });
+    const withIds = mapped.filter((f) => f.sofaScoreEventId);
+    ssIds = withIds.length;
+
+    const localsWithAssists = mapped.filter((f) => {
+      const local = state().matches.find((m) => m.id === f.matchId) || f.base;
+      return (local?.goalEvents ?? []).some((g) => String(g?.assist ?? "").trim());
+    });
+    let applyGoals = true;
+    if (localsWithAssists.length) {
+      applyGoals = confirm(
+        `${localsWithAssists.length} match${localsWithAssists.length === 1 ? "" : "es"} already have assists saved. Replace goal events with SofaScore goals+assists for this week?`,
+      );
+    }
+
+    setBusy(true, "Fetching goals…");
+    setMatchweekTmSyncStatusText(
+      `TM ${result.tmFixtures?.length ?? 0} fixtures · SS ${ssIds} ids · fetching goals and assists…`,
+    );
+
+    const enrichRows = await SofaScoreSync.fetchWeekEnrichment(
+      withIds.map((f) => f.sofaScoreEventId),
+      { lineups: false },
+    );
+    const byEventId = new Map(enrichRows.map((r) => [String(r.eventId), r]));
+
+    for (const fix of withIds) {
+      const enrich = byEventId.get(String(fix.sofaScoreEventId));
+      if (!enrich) {
+        ssFailed += 1;
+        continue;
+      }
+      if (enrich.error && !enrich.lineups && !(enrich.goalEvents ?? []).length) {
+        ssFailed += 1;
+        enqueueSsWeekPatch(fix.base, { eventId: fix.sofaScoreEventId, error: enrich.error }, {
+          applyGoals: false,
+          applyLineups: false,
+          source: "gw-fetch",
+        });
+        continue;
+      }
+      const item = enqueueSsWeekPatch(
+        fix.base,
+        {
+          eventId: fix.sofaScoreEventId,
+          lineups: null,
+          goalEvents: enrich.goalEvents,
+          error: enrich.error || "",
+        },
+        {
+          applyGoals,
+          applyLineups: false,
+          source: "gw-fetch",
+        },
+      );
+      if (item?.changes?.includes("goals")) ssGoals += 1;
+      if (!enrich.error) ssEnriched += 1;
+      else ssFailed += 1;
+    }
+
+    const statusText = [
+      `TM ${result.tmFixtures?.length ?? 0} fixtures`,
+      `SS ${ssIds} ids`,
+      `goals ${ssEnriched}/${ssIds || 0}`,
+      ssGoals ? `${ssGoals} with scorers` : null,
+      ssFailed ? `${ssFailed} SS errors` : null,
+      `queued +${tmAdded}/${tmSynced} updates`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    mwGameweekFetchStatus = { leagueId: leagueFilter, matchweek, text: statusText };
+    toast(statusText);
+    renderPanel();
+  } catch (err) {
+    console.error(err);
+    const msg = String(err?.message ?? err);
+    mwGameweekFetchStatus = {
+      leagueId: leagueFilter,
+      matchweek,
+      text: `Fetch gameweek failed: ${msg.slice(0, 120)}`,
+    };
+    toast(msg.slice(0, 180));
+    renderPanel();
+  } finally {
+    const ready = tmSyncLocalProxyReady() && Boolean(resolveTmCompetitionId(leagueFilter));
+    setBusy(false);
+    if (compareBtn) compareBtn.disabled = !ready;
+    if (importBtn) importBtn.disabled = !ready;
+  }
+}
+
+function markAllMwReviewReviewed() {
+  persistOpenMwReviewFromDom();
+  const rows = mwReviewQueueForLeague();
+  if (!rows.length) return toast("Review queue is empty");
+  for (const row of rows) row.reviewed = true;
+  persistMwReviewQueue();
+  toast(`Marked ${rows.length} match${rows.length === 1 ? "" : "es"} reviewed — not saved yet`);
+  renderPanel();
+}
+
 function maybeAdvanceLiveMatchweek(week) {
   const n = Number(week);
   if (!Number.isInteger(n) || n < 1) return;
@@ -13406,6 +14125,7 @@ function bindTmMatchdaySync() {
     if (Number.isInteger(season)) tmMatchdaySeason = season;
   });
   $("#btnTmMatchdayRefresh")?.addEventListener("click", refreshTransfermarktMatchday);
+  $("#btnFetchGameweek")?.addEventListener("click", fetchGameweekHybrid);
   $("#btnTmMatchdayImportRange")?.addEventListener("click", importTransfermarktMatchweekRange);
   $("#tmMatchdayImportFrom")?.addEventListener("change", (e) => {
     const n = Number(e.target.value);
@@ -13736,6 +14456,7 @@ function bindMatchweek() {
     });
   });
   $("#btnMarkMwReviewed")?.addEventListener("click", markCurrentMwReviewReviewed);
+  $("#btnMarkAllReviewedMw")?.addEventListener("click", markAllMwReviewReviewed);
   $("#btnSaveAllReviewedMw")?.addEventListener("click", saveAllReviewedMwMatches);
   $("#btnSaveAllReviewedMwEditor")?.addEventListener("click", saveAllReviewedMwMatches);
 
@@ -13753,6 +14474,7 @@ function bindMatchweek() {
 
   $("#btnSaveMwMatch")?.addEventListener("click", saveCurrentMwMatch);
 
+  bindMatchweekWorkspace();
   bindTmMatchdaySync();
   bindFixtureCardDrag();
 }
@@ -14834,6 +15556,7 @@ function bindSquadDepth() {
     renderPanel();
   });
 
+  $("#btnSdFromPositions")?.addEventListener("click", () => applySquadDepthFromPositions());
   $("#btnSdAutoFill")?.addEventListener("click", () => applySquadDepthAutoFill());
   $("#btnSdSeedLineup")?.addEventListener("click", () => applySquadDepthSeedFromLineup());
   $("#btnSdSeedTm")?.addEventListener("click", () => applySquadDepthSeedFromTm());
@@ -15415,10 +16138,17 @@ function listPlayerClubFixtures(leagueId, teamId, player) {
       const idx = indexOfPlayerInLineupSlots(lineup, teamId, player);
       const inTag = idx >= 0 ? String(lineup[idx]?.tag ?? "").trim() : "";
       let status = "no lineup yet";
+      let xiState = "none";
       if (filled > 0 || (Array.isArray(m.lineups?.[side]) && m.lineups[side].length)) {
-        status = idx >= 0 ? `in XI as ${inTag || "—"}` : "not in XI";
+        if (idx >= 0) {
+          status = `in XI as ${inTag || "—"}`;
+          xiState = "in";
+        } else {
+          status = "not in XI";
+          xiState = "out";
+        }
       }
-      return { match: m, week, home, side, opp, filled, idx, inTag, status, current: week > 0 && week === currentMw };
+      return { match: m, week, home, side, opp, filled, idx, inTag, status, xiState, current: week > 0 && week === currentMw };
     })
     .sort((a, b) => (b.week || 0) - (a.week || 0) || String(b.match.id).localeCompare(String(a.match.id)));
 }
@@ -15436,157 +16166,227 @@ function playerLineupTagChoices(formation) {
   return out;
 }
 
+const MATCH_POSITION_TAGS = ["GK", "CB", "RB", "LB", "RM", "LM", "DM", "CM", "AM", "RAM", "LAM", "RW", "LW", "CF"];
+
+function playerPositionRecords() {
+  return state()?.playerMatchPositions ?? [];
+}
+
+function playerPositionRecordFor(playerId, matchId) {
+  return (
+    playerPositionRecords().find((row) => row.playerId === playerId && row.matchId === matchId) || null
+  );
+}
+
+function positionCountsForPlayer(playerId, teamId) {
+  const counts = {};
+  for (const row of playerPositionRecords()) {
+    if (row.playerId !== playerId || row.status !== "played") continue;
+    if (teamId && row.teamId && row.teamId !== teamId) continue;
+    const tag = String(row.position ?? "").trim().toUpperCase();
+    if (!tag) continue;
+    counts[tag] = (counts[tag] || 0) + 1;
+  }
+  return counts;
+}
+
+function renderPlayerMatchPositions() {
+  const root = $("#playerMatchPositions");
+  if (!root) return;
+  const playerId = $("#playerEditId")?.value || "";
+  const player = playerId ? state().players.find((p) => p.id === playerId) : null;
+  if (!player) {
+    root.hidden = true;
+    root.classList.add("admin-hidden");
+    root.innerHTML = "";
+    return;
+  }
+  const team = state().teams.find((t) => t.id === player.teamId);
+  const leagueId = team?.leagueId || leagueFilter;
+  const fixtures = (state().matches ?? [])
+    .filter(
+      (m) =>
+        m.leagueId === leagueId &&
+        (m.homeTeamId === player.teamId || m.awayTeamId === player.teamId || playerPositionRecordFor(player.id, m.id)),
+    )
+    .sort((a, b) => (parseMwNumber(a.matchday) || 0) - (parseMwNumber(b.matchday) || 0));
+  const counts = positionCountsForPlayer(player.id, player.teamId);
+  const tally = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tag, n]) => `${tag} ${n}`)
+    .join(" · ");
+  const openRows = [];
+  const setRows = [];
+  for (const m of fixtures) {
+    const rec = playerPositionRecordFor(player.id, m.id);
+    const status = rec?.status || "";
+    const pos = rec?.position || "";
+    const oppId = m.homeTeamId === player.teamId ? m.awayTeamId : m.homeTeamId;
+    const opp = state().teams.find((t) => t.id === oppId);
+    const home = m.homeTeamId === player.teamId;
+    const week = parseMwNumber(m.matchday);
+    const label = week > 0 ? `GW${week}` : esc(m.matchday || "Match");
+    const kind = matchPositionRowKind(status, pos);
+    const html = `<div class="player-match-pos__row is-${kind}" data-pos-match="${esc(m.id)}" data-pos-team="${esc(home ? m.homeTeamId : m.awayTeamId)}" data-pos-week="${week || 0}">
+            <div class="player-match-pos__fix">
+              <strong>${label}</strong>
+              <span>${home ? "vs" : "at"} ${esc(opp?.name ?? "—")} · ${esc(m.score ? `${m.score[0]}–${m.score[1]}` : "—")}</span>
+            </div>
+            <select class="mw-select player-match-pos__status" data-pos-status aria-label="Appearance">
+              <option value=""${!status ? " selected" : ""}>Not set</option>
+              <option value="played"${status === "played" ? " selected" : ""}>Played</option>
+              <option value="dnp"${status === "dnp" ? " selected" : ""}>Did not play</option>
+              <option value="unknown"${status === "unknown" ? " selected" : ""}>Unknown</option>
+            </select>
+            <select class="mw-select player-match-pos__tag" data-pos-tag aria-label="Position"${status === "played" ? "" : " disabled"}>
+              <option value="">Position</option>
+              ${[...new Set([...MATCH_POSITION_TAGS, pos].filter(Boolean))]
+                .map((tag) => `<option value="${esc(tag)}"${tag === pos ? " selected" : ""}>${esc(tag)}</option>`)
+                .join("")}
+            </select>
+          </div>`;
+    if (matchPositionRowIsSet(kind)) setRows.push(html);
+    else openRows.push(html);
+  }
+  const rows = fixtures.length
+    ? `<div class="player-match-pos__section" data-pos-section="open"${openRows.length ? "" : " hidden"}>
+        <div class="player-match-pos__section-label">Still to set <span data-pos-count="open">${openRows.length}</span></div>
+        <div class="player-match-pos__list" data-pos-list="open">${openRows.join("")}</div>
+      </div>
+      <div class="player-match-pos__section player-match-pos__section--set" data-pos-section="set"${setRows.length ? "" : " hidden"}>
+        <div class="player-match-pos__section-label">Set <span data-pos-count="set">${setRows.length}</span></div>
+        <div class="player-match-pos__list" data-pos-list="set">${setRows.join("")}</div>
+      </div>`
+    : `<p class="admin-muted mb-0">No fixtures for ${esc(team?.name ?? "this club")} yet. Add matchweek results first. Nothing is assumed.</p>`;
+
+  root.innerHTML = `
+    <div class="player-match-pos__head">
+      <h4 class="player-lineup__title">Match positions</h4>
+      <p class="mw-field-note admin-muted mb-0">One position per fixture for ${esc(player.name)}. A week leaves <strong>Still to set</strong> until you choose an appearance. Played weeks turn green once a position is picked. This does not change the player’s profile position${tally ? `. Recorded: ${esc(tally)}` : ""}.</p>
+    </div>
+    ${rows}
+    <div class="player-match-pos__actions">
+      <button type="button" class="mw-btn-danger" id="btnResetOpenClubMatchPositions" title="Clear saved match positions for every player at this club, all gameweeks">Reset club positions</button>
+      <button type="button" class="mw-btn-primary mw-btn-primary--sm" id="btnSavePlayerPositions"${fixtures.length ? "" : " disabled"}>Save match positions</button>
+    </div>`;
+  root.hidden = false;
+  root.classList.remove("admin-hidden");
+  root.querySelectorAll("[data-pos-status], [data-pos-tag]").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      const row = sel.closest("[data-pos-match]");
+      if (row) placeMatchPositionRow(row);
+    });
+  });
+  $("#btnSavePlayerPositions")?.addEventListener("click", savePlayerMatchPositionsFromDom);
+  $("#btnResetOpenClubMatchPositions")?.addEventListener("click", () => resetClubMatchPositions(player.teamId));
+}
+
+function matchPositionRowKind(status, pos) {
+  if (status === "played" && String(pos || "").trim()) return "played";
+  if (status === "played") return "need-pos";
+  if (status === "dnp") return "dnp";
+  if (status === "unknown") return "unknown";
+  return "open";
+}
+
+function matchPositionRowIsSet(kind) {
+  return kind === "played" || kind === "need-pos" || kind === "dnp" || kind === "unknown";
+}
+
+function placeMatchPositionRow(row) {
+  const status = row.querySelector("[data-pos-status]")?.value || "";
+  const posSel = row.querySelector("[data-pos-tag]");
+  const pos = posSel?.value || "";
+  if (posSel) posSel.disabled = status !== "played";
+  const kind = matchPositionRowKind(status, pos);
+  row.classList.remove("is-open", "is-need-pos", "is-played", "is-dnp", "is-unknown");
+  row.classList.add(`is-${kind}`);
+  const bucket = matchPositionRowIsSet(kind) ? "set" : "open";
+  const root = row.closest(".player-match-pos");
+  const list = root?.querySelector(`[data-pos-list="${bucket}"]`);
+  if (list && row.parentElement !== list) {
+    const week = Number(row.getAttribute("data-pos-week") || 0);
+    const next = [...list.children].find((el) => Number(el.getAttribute("data-pos-week") || 0) > week);
+    list.insertBefore(row, next || null);
+  }
+  if (!root) return;
+  for (const name of ["open", "set"]) {
+    const section = root.querySelector(`[data-pos-section="${name}"]`);
+    const target = root.querySelector(`[data-pos-list="${name}"]`);
+    const count = target ? target.children.length : 0;
+    const badge = root.querySelector(`[data-pos-count="${name}"]`);
+    if (badge) badge.textContent = String(count);
+    if (section) section.hidden = count === 0;
+  }
+}
+
+function resetClubMatchPositions(teamId) {
+  const id = teamId || playerTeamFilter || $("#playerTeam")?.value || "";
+  const team = state().teams.find((t) => t.id === id);
+  if (!team) return toast("Choose a club first");
+  const rosterIds = new Set(playersForTeam(team.id).map((p) => p.id));
+  const n = (state().playerMatchPositions ?? []).filter(
+    (row) => row.teamId === team.id || (!row.teamId && rosterIds.has(row.playerId)),
+  ).length;
+  if (!n) return toast(`${team.name} has no saved match positions`);
+  if (
+    !confirm(
+      `Reset match positions for every ${team.name} player, all gameweeks (${n} record${n === 1 ? "" : "s"})?\n\nYou can key them in again. Profile positions are not changed.`,
+    )
+  ) {
+    return;
+  }
+  const removed = FCDataStore.clearClubPlayerMatchPositions(team.id);
+  toast(`Cleared ${removed} match position${removed === 1 ? "" : "s"} for ${team.name}`);
+  renderPlayerMatchPositions();
+}
+
+function savePlayerMatchPositionsFromDom() {
+  const playerId = $("#playerEditId")?.value || "";
+  const player = state().players.find((p) => p.id === playerId);
+  if (!player) return toast("Open a player first");
+  const team = state().teams.find((t) => t.id === player.teamId);
+  const writes = [];
+  let removed = 0;
+  document.querySelectorAll("#playerMatchPositions [data-pos-match]").forEach((row) => {
+    const matchId = row.getAttribute("data-pos-match");
+    const teamId = row.getAttribute("data-pos-team") || player.teamId;
+    const status = row.querySelector("[data-pos-status]")?.value || "";
+    const position = row.querySelector("[data-pos-tag]")?.value || "";
+    if (!status) {
+      if (playerPositionRecordFor(player.id, matchId)) {
+        FCDataStore.removePlayerMatchPosition(player.id, matchId);
+        removed += 1;
+      }
+      return;
+    }
+    if (status === "played" && !position) return;
+    writes.push({
+      playerId: player.id,
+      matchId,
+      season: team?.leagueId || "",
+      teamId,
+      position,
+      status,
+      notes: "",
+      source: "manual",
+    });
+  });
+  const saved = FCDataStore.upsertPlayerMatchPositions(writes);
+  toast(`Match positions saved (${saved} set${removed ? `, ${removed} cleared` : ""})`);
+  renderPlayerMatchPositions();
+}
+
 function renderPlayerLineupSection() {
   const root = $("#playerLineupSection");
   if (!root) return;
-  const sess = playerLineupSession;
-  const player = sess?.playerId ? state().players.find((p) => p.id === sess.playerId) : null;
-  if (!sess || !player) {
-    root.innerHTML = "";
-    root.hidden = true;
-    root.classList.add("admin-hidden");
-    return;
-  }
-
-  const teamId = player.teamId;
-  const team = state().teams.find((t) => t.id === teamId);
-  const fixtures = listPlayerClubFixtures(leagueFilter, teamId, player);
-  const selected = fixtures.find((f) => f.match.id === sess.matchId) ?? null;
-  const match = selected?.match ?? null;
-  const side = selected?.side ?? null;
-  if (match && side && (!sess.slots || sess.matchId !== match.id)) {
-    sess.matchId = match.id;
-    sess.slots = padLineupSlots11(match.lineups?.[side]);
-    sess.dirty = false;
-    sess.formDirty = false;
-    const stored = String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim();
-    sess.formation = isFormationUnset(stored) ? "" : stored;
-  }
-  const storedForm = match
-    ? String(side === "away" ? match.formation?.[1] : match.formation?.[0] ?? "").trim()
-    : "";
-  const formation = sess.formDirty
-    ? String(sess.formation ?? "").trim()
-    : String(sess.formation || storedForm || "").trim();
-  const formTags = getLineupFormationTags(formation || (side === "away" ? "4-3-3" : "4-2-3-1"));
-  const slots = sess.slots && sess.matchId === match?.id ? sess.slots : padLineupSlots11(match?.lineups?.[side]);
-  if (match && sess.matchId === match.id) sess.slots = slots;
-  const playerIdx = indexOfPlayerInLineupSlots(slots, teamId, player);
-  const filled = namedLineupCount(slots);
-  const xiFull = filled >= LINEUP_SLOTS && playerIdx < 0;
-  const formUnset = isFormationUnset(formation);
-  const canSync = playerIdx >= 0 || !formUnset;
-  const tagVal = playerIdx >= 0 ? String(slots[playerIdx]?.tag ?? "").trim() : "";
-  const capVal = playerIdx >= 0 && matchLineupSlotIsCaptain(slots[playerIdx]);
-  const oppName = selected?.opp?.name ?? "—";
-  const venue = selected ? (selected.home ? "Home" : "Away") : "";
-
-  const fixtureRows = fixtures.length
-    ? fixtures
-        .map((f) => {
-          const on = f.match.id === sess.matchId;
-          const mw = f.week > 0 ? `MW ${f.week}` : esc(f.match.matchday || "Match");
-          const now = f.current ? ` <span class="player-lineup-now">Now</span>` : "";
-          return `<button type="button" class="player-lineup-fix${on ? " is-active" : ""}${f.current ? " is-current" : ""}" data-player-xi-match="${esc(f.match.id)}">
-            <span class="player-lineup-fix__mw">${mw}${now}</span>
-            <span class="player-lineup-fix__opp">${f.home ? "vs" : "at"} ${esc(f.opp?.name ?? "—")} · ${f.home ? "H" : "A"}</span>
-            <span class="player-lineup-fix__fill">${f.filled}/${LINEUP_SLOTS}</span>
-            <span class="player-lineup-fix__st">${esc(f.status)}</span>
-          </button>`;
-        })
-        .join("")
-    : `<p class="admin-muted player-lineup-empty">No fixtures for ${esc(team?.name ?? "this club")} in this league yet. Add them on the Matchweek tab.</p>`;
-
-  const slotBtns = match
-    ? slots
-        .map((slot, i) => {
-          const tag = String(slot?.tag ?? "").trim() || formTags[i] || "";
-          const isPlayer = i === playerIdx;
-          const empty = !slot || !String(slot.name ?? "").trim();
-          const capMark = !empty && matchLineupSlotIsCaptain(slot) ? " · C" : "";
-          const label = empty
-            ? `Empty · ${tag || "—"}`
-            : `${slot.number != null && slot.number !== "" ? `${slot.number} · ` : ""}${stripCaptainSuffix(slot.name)} · ${tag || "—"}${capMark}`;
-          const cls = `player-lineup-slot${isPlayer ? " is-self" : ""}${empty ? " is-empty" : ""}${!empty && !isPlayer ? " is-other" : ""}`;
-          const title = empty
-            ? "Place this player in this slot"
-            : isPlayer
-              ? "This player"
-              : "Filled — swap in Matchweek";
-          return `<button type="button" class="${cls}" data-player-xi-slot="${i}" title="${esc(title)}">
-            <span class="player-lineup-slot__i">#${i + 1}</span>
-            <span class="player-lineup-slot__txt">${esc(label)}</span>
-          </button>`;
-        })
-        .join("")
-    : "";
-
-  const tagList = playerLineupTagChoices(formation || "4-2-3-1")
-    .map((t) => `<option value="${esc(t)}"></option>`)
-    .join("");
-  const pitch =
-    match && typeof mwLineupPitchPreviewHtml === "function"
-      ? `<div class="player-lineup-pitch">${mwLineupPitchPreviewHtml(side, teamId, formation, slots)}</div>`
-      : "";
-
-  let detail = `<p class="admin-muted player-lineup-empty">Pick a match to preview the XI and set this player’s position.</p>`;
-  if (match) {
-    const fullNote = xiFull
-      ? `<p class="player-lineup-warn">XI is full — swap in Matchweek.</p>`
-      : "";
-    const formNote = formUnset
-      ? `<p class="player-lineup-warn">No formation yet — pick one below and Sync to save it on this match.</p>`
-      : "";
-    const placeHint =
-      playerIdx < 0 && !xiFull
-        ? `<p class="mw-field-note admin-muted">Not in this XI — click an empty slot to add ${esc(stripCaptainSuffix(player.name))}.</p>`
-        : "";
-    const formCurrent = formUnset ? "" : formation;
-    const formCustom = Boolean(formCurrent) && !isFormationPreset(formCurrent);
-    detail = `
-      <div class="player-lineup-detail">
-        <p class="player-lineup-detail__title">${esc(team?.name ?? "Club")} · ${selected.week > 0 ? `MW ${selected.week}` : esc(match.matchday || "")} · ${esc(venue)} vs ${esc(oppName)}${formUnset ? " · No formation" : ` · ${esc(formation)}`} · ${filled}/${LINEUP_SLOTS}</p>
-        ${fullNote}${formNote}${placeHint}
-        ${pitch}
-        <div class="player-lineup-form mw-field mb-0">
-          <label for="playerLineupFormPreset">Starting formation</label>
-          ${formationPresetSelectHtml(formCurrent, { id: "playerLineupFormPreset", includeBlank: true, blankLabel: "Not set" })}
-          <input id="playerLineupForm" class="mw-input${formCustom ? "" : " admin-hidden"}" value="${esc(formCurrent)}" placeholder="e.g. 4-2-3-1" autocomplete="off" spellcheck="false" />
-        </div>
-        <div class="player-lineup-slots" role="list">${slotBtns}</div>
-        <div class="player-lineup-edit row g-2 align-items-end">
-          <div class="col-12 col-sm-6 col-lg-4">
-            <div class="mw-field mb-0">
-              <label for="playerLineupTag">Position for this match</label>
-              <input id="playerLineupTag" class="mw-input player-lineup-tag" list="playerLineupTagList" value="${esc(tagVal)}" placeholder="${playerIdx >= 0 ? "CM" : "Click an empty slot"}" ${playerIdx >= 0 ? "" : "disabled"} autocomplete="off" spellcheck="false" />
-              <datalist id="playerLineupTagList">${tagList}</datalist>
-            </div>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <label class="lineup-cap-label player-lineup-cap-label" title="Captain for this match only — not the club captain">
-              <input type="checkbox" class="player-lineup-cap" id="playerLineupCap"${capVal ? " checked" : ""}${playerIdx >= 0 ? "" : " disabled"} /> C
-            </label>
-          </div>
-          <div class="col-12 col-sm-auto">
-            <button type="button" class="mw-btn-primary" id="btnPlayerLineupSync"${canSync ? "" : " disabled"}>Sync to lineup</button>
-          </div>
-        </div>
-        <p class="mw-field-note admin-muted player-lineup-cap-note">C is for this fixture’s XI. Checking it clears any other match captain in this lineup. Club captain on the player form is separate. Formation Sync writes this club’s starting shape on the match.</p>
-      </div>`;
-  }
-
-  root.innerHTML = `
-    <div class="player-lineup__head">
-      <h4 class="player-lineup__title">Matchweek lineups</h4>
-      <p class="mw-field-note admin-muted mb-0">${esc(team?.name ?? "This club")} fixtures from the Matchweek tab. Pick a match, set this player’s slot, then <strong>Sync to lineup</strong>. Save player does not write the XI.</p>
-    </div>
-    <div class="player-lineup-fixes">${fixtureRows}</div>
-    ${detail}`;
-  root.hidden = false;
-  root.classList.remove("admin-hidden");
+  root.hidden = true;
+  root.classList.add("admin-hidden");
+  root.innerHTML = "";
 }
 
 function openPlayerLineupSection(player) {
+  renderPlayerMatchPositions();
   if (!player?.id) {
     playerLineupSession = null;
     renderPlayerLineupSection();
@@ -16318,6 +17118,7 @@ function bindPlayers() {
     refreshPlayerFormFieldHints();
   });
 
+  $("#btnResetClubMatchPositions")?.addEventListener("click", () => resetClubMatchPositions(playerTeamFilter));
   $("#btnFillBlankPitchLabels")?.addEventListener("click", () => {
     const teamId = playerTeamFilter;
     if (!teamId) return toast("Choose a team first");
@@ -16430,10 +17231,12 @@ function bindPlayers() {
     if (restoredPlayer) openPlayerLineupSection(restoredPlayer);
     else {
       playerLineupSession = null;
+      renderPlayerMatchPositions();
       renderPlayerLineupSection();
     }
   } else {
     playerLineupSession = null;
+    renderPlayerMatchPositions();
     renderPlayerLineupSection();
   }
   setupPlayerFlagAuto();
@@ -17003,6 +17806,31 @@ function bindMatchLogTallyCounts() {
   });
 }
 
+function bindMatchLogTallyDetails() {
+  const block = $(".matchlog-tally-block");
+  if (!block || block.dataset.tallyDetailBound) return;
+  block.dataset.tallyDetailBound = "1";
+  block.addEventListener("click", (e) => {
+    const btn = e.target.closest(".matchlog-tally-open");
+    if (!btn || !block.contains(btn)) return;
+    e.preventDefault();
+    const row = btn.closest(".matchlog-tally-row");
+    const detail = row?.querySelector(".matchlog-tally-detail");
+    if (!detail) return;
+    const open = detail.hasAttribute("hidden");
+    block.querySelectorAll(".matchlog-tally-detail").forEach((el) => el.setAttribute("hidden", ""));
+    block.querySelectorAll(".matchlog-tally-open").forEach((el) => {
+      el.setAttribute("aria-expanded", "false");
+      el.closest(".matchlog-tally-row")?.classList.remove("is-open");
+    });
+    if (open) {
+      detail.removeAttribute("hidden");
+      btn.setAttribute("aria-expanded", "true");
+      row.classList.add("is-open");
+    }
+  });
+}
+
 function bindMatchLog() {
   if (activeTab !== "matchlog") return;
 
@@ -17018,6 +17846,7 @@ function bindMatchLog() {
 
   bindMatchLogTallyDrag();
   bindMatchLogTallyCounts();
+  bindMatchLogTallyDetails();
 
   const body = $("#matchLogBody");
   body?.addEventListener("change", (e) => {
@@ -18233,6 +19062,16 @@ function bindAdminUrlInputTitles() {
 
 function finishBoot() {
   setSeedLoading(false);
+  try {
+    if (typeof FCDataStore.seedPlayerMatchPositionsFromLineups === "function") {
+      FCDataStore.seedPlayerMatchPositionsFromLineups();
+    }
+    if (typeof FCDataStore.clearAllMatchLineups === "function") {
+      FCDataStore.clearAllMatchLineups();
+    }
+  } catch (err) {
+    console.warn("Match position seed skipped", err);
+  }
   initAuth();
   bindAdminNavScroll();
   bindAdminUrlInputTitles();

@@ -119,6 +119,7 @@
       transfers: normalizeTransfersList(seed.transfers ?? []),
       leagueMeta: { ...defaultLeagueMeta(), ...(seed.leagueMeta ?? {}) },
       nationalDutyWindow: readDutyWindow(seed.nationalDutyWindow),
+      playerMatchPositions: clone(seed.playerMatchPositions ?? []),
       deleted: emptyTombstones(seed.deleted),
     };
   }
@@ -173,6 +174,9 @@
       transfers: patch.transfers ?? base.transfers,
       leagueMeta: { ...base.leagueMeta, ...(patch.leagueMeta ?? {}) },
       nationalDutyWindow: readDutyWindow(patch.nationalDutyWindow ?? base.nationalDutyWindow),
+      playerMatchPositions: Array.isArray(patch.playerMatchPositions)
+        ? clone(patch.playerMatchPositions)
+        : clone(base.playerMatchPositions ?? []),
       deleted: emptyTombstones(patch.deleted ?? base.deleted),
     };
   }
@@ -263,6 +267,9 @@
     // Admin always prefers localStorage; public site uses revision unless preferLocal.
     if (options.preferLocal || savedRev > pubRev) return mergeState(publishedBase, saved);
     const next = clone(publishedBase);
+    if (!Array.isArray(next.playerMatchPositions) || !next.playerMatchPositions.length) {
+      next.playerMatchPositions = clone(saved.playerMatchPositions ?? []);
+    }
     state = next;
     save();
     return next;
@@ -498,8 +505,186 @@
       state.leagueMeta = { ...defaultLeagueMeta(), ...(published.leagueMeta ?? state.leagueMeta) };
       if (published.dataRevision != null) state.dataRevision = published.dataRevision;
     }
+    const localPositions = saved?.playerMatchPositions ?? state.playerMatchPositions ?? [];
+    state.playerMatchPositions = mergePlayerMatchPositions(published.playerMatchPositions, localPositions);
     ensureLeagueStadiums();
     save();
+  }
+
+  function ensurePlayerMatchPositions() {
+    if (!Array.isArray(state.playerMatchPositions)) state.playerMatchPositions = [];
+    return state.playerMatchPositions;
+  }
+
+  function playerMatchPositionId(playerId, matchId) {
+    return `${String(playerId)}__${String(matchId)}`;
+  }
+
+  function mergePlayerMatchPositions(publishedList, localList) {
+    const map = new Map();
+    for (const row of publishedList ?? []) {
+      if (row?.playerId && row?.matchId) {
+        const id = row.id || playerMatchPositionId(row.playerId, row.matchId);
+        map.set(id, { ...clone(row), id });
+      }
+    }
+    for (const row of localList ?? []) {
+      if (!row?.playerId || !row?.matchId) continue;
+      const id = row.id || playerMatchPositionId(row.playerId, row.matchId);
+      const prev = map.get(id);
+      const manual = row.source === "manual";
+      if (!prev || manual || (row.updatedAt && (!prev.updatedAt || row.updatedAt >= prev.updatedAt))) {
+        map.set(id, { ...clone(row), id });
+      }
+    }
+    return [...map.values()];
+  }
+
+  function normalizePlayerMatchPosition(rec) {
+    const playerId = String(rec?.playerId ?? "").trim();
+    const matchId = String(rec?.matchId ?? "").trim();
+    if (!playerId || !matchId) return null;
+    const status = ["played", "dnp", "unknown"].includes(rec.status) ? rec.status : "unknown";
+    const position = status === "played" ? String(rec.position ?? "").trim().toUpperCase() : "";
+    if (status === "played" && !position) return null;
+    return {
+      id: playerMatchPositionId(playerId, matchId),
+      playerId,
+      matchId,
+      season: String(rec.season ?? "").trim(),
+      teamId: String(rec.teamId ?? "").trim(),
+      position,
+      status,
+      notes: String(rec.notes ?? "").trim(),
+      source: rec.source === "lineup" ? "lineup" : "manual",
+      updatedAt: rec.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  function upsertPlayerMatchPositions(records) {
+    const list = ensurePlayerMatchPositions();
+    let written = 0;
+    for (const raw of records ?? []) {
+      const next = normalizePlayerMatchPosition(raw);
+      if (!next) continue;
+      const i = list.findIndex((row) => row.id === next.id || (row.playerId === next.playerId && row.matchId === next.matchId));
+      if (i >= 0) list[i] = next;
+      else list.push(next);
+      written += 1;
+    }
+    if (written) {
+      touchRevision();
+      save();
+    }
+    return written;
+  }
+
+  function clearClubPlayerMatchPositions(teamId) {
+    const id = String(teamId ?? "").trim();
+    if (!id) return 0;
+    const playerIds = new Set(
+      (state.players ?? []).filter((p) => p.teamId === id).map((p) => p.id),
+    );
+    const before = ensurePlayerMatchPositions();
+    const next = before.filter((row) => {
+      if (row.teamId === id) return false;
+      if (!row.teamId && playerIds.has(row.playerId)) return false;
+      return true;
+    });
+    const removed = before.length - next.length;
+    if (removed) {
+      state.playerMatchPositions = next;
+      touchRevision();
+      save();
+    }
+    return removed;
+  }
+
+  function removePlayerMatchPosition(playerId, matchId) {
+    const id = playerMatchPositionId(playerId, matchId);
+    const before = ensurePlayerMatchPositions().length;
+    state.playerMatchPositions = ensurePlayerMatchPositions().filter(
+      (row) => row.id !== id && !(row.playerId === playerId && row.matchId === matchId),
+    );
+    if (state.playerMatchPositions.length !== before) {
+      touchRevision();
+      save();
+    }
+  }
+
+  function normPositionName(name) {
+    return String(name ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  /** One appearance per player per fixture, derived from saved XIs. Never overwrites manual rows. */
+  function clearAllMatchLineups() {
+    let cleared = 0;
+    for (const match of state.matches ?? []) {
+      const homeN = Array.isArray(match?.lineups?.home) ? match.lineups.home.length : 0;
+      const awayN = Array.isArray(match?.lineups?.away) ? match.lineups.away.length : 0;
+      const formation = Array.isArray(match?.formation) ? match.formation.join("") : "";
+      const hasFormation = formation && !/^[\s—\-]*$/.test(formation);
+      if (!homeN && !awayN && !hasFormation) continue;
+      match.lineups = { home: [], away: [] };
+      match.formation = ["—", "—"];
+      cleared += 1;
+    }
+    if (cleared) {
+      touchRevision();
+      save();
+    }
+    return cleared;
+  }
+
+  function seedPlayerMatchPositionsFromLineups() {
+    const list = ensurePlayerMatchPositions();
+    const existing = new Set(list.map((row) => row.id || playerMatchPositionId(row.playerId, row.matchId)));
+    const added = [];
+    for (const match of state.matches ?? []) {
+      const sides = [
+        [match.homeTeamId, match.lineups?.home],
+        [match.awayTeamId, match.lineups?.away],
+      ];
+      const seenInMatch = new Set();
+      for (const [teamId, slots] of sides) {
+        if (!teamId || !Array.isArray(slots)) continue;
+        for (const slot of slots) {
+          const tag = String(slot?.tag ?? "").trim().toUpperCase();
+          const slotName = normPositionName(slot?.name);
+          if (!tag || !slotName) continue;
+          const num = String(slot?.number ?? "").trim();
+          const roster = (state.players ?? []).filter((p) => p.teamId === teamId);
+          const player =
+            roster.find((p) => String(p.number) === num && normPositionName(p.name) === slotName) ||
+            roster.find((p) => normPositionName(p.name) === slotName) ||
+            (state.players ?? []).find(
+              (p) => normPositionName(p.name) === slotName && String(p.number) === num,
+            );
+          if (!player || seenInMatch.has(player.id)) continue;
+          seenInMatch.add(player.id);
+          const id = playerMatchPositionId(player.id, match.id);
+          if (existing.has(id)) continue;
+          existing.add(id);
+          added.push({
+            playerId: player.id,
+            matchId: match.id,
+            season: String(match.leagueId ?? ""),
+            teamId,
+            position: tag,
+            status: "played",
+            notes: "",
+            source: "lineup",
+          });
+        }
+      }
+    }
+    const written = upsertPlayerMatchPositions(added);
+    return { added: written, scanned: (state.matches ?? []).length };
   }
 
   function isPublicSite() {
@@ -1057,6 +1242,11 @@
     reorderMatches,
     upsertMatch,
     removeMatch,
+    upsertPlayerMatchPositions,
+    removePlayerMatchPosition,
+    clearClubPlayerMatchPositions,
+    seedPlayerMatchPositionsFromLineups,
+    clearAllMatchLineups,
     setStandings,
     setTopScorers,
     setTransfers,

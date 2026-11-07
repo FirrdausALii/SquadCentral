@@ -5719,6 +5719,51 @@ function normLineupName(name) {
     .replace(/\s+/g, " ");
 }
 
+function playerMatchPositionRows() {
+  const list = typeof FCDataStore !== "undefined" ? FCDataStore.getState?.()?.playerMatchPositions : null;
+  return Array.isArray(list) ? list : [];
+}
+
+function playerHasMatchPositionRecords(p) {
+  const id = p?.id;
+  if (!id) return false;
+  return playerMatchPositionRows().some((row) => row.playerId === id);
+}
+
+/** Played weeks from the Players-tab match positions (oldest → newest). */
+function playerRecordedPositionStarts(p, leagueId) {
+  const starts = [];
+  for (const row of playerMatchPositionRows()) {
+    if (row.playerId !== p?.id || row.status !== "played") continue;
+    const tag = String(row.position ?? "").trim().toUpperCase();
+    if (!tag) continue;
+    const match = (MATCHES ?? []).find((m) => m.id === row.matchId);
+    if (!match || (leagueId && match.leagueId !== leagueId)) continue;
+    const week = parseMatchweekNumber(match.matchday);
+    starts.push({ week: week > 0 ? week : 0, tag });
+  }
+  starts.sort((a, b) => a.week - b.week || a.tag.localeCompare(b.tag));
+  return starts;
+}
+
+/** Apps from saved match positions. Null when this player has no records yet. */
+function playerRecordedApps(p, leagueId) {
+  if (!playerHasMatchPositionRecords(p)) return null;
+  const published = publishedMatchweekForLeague(leagueId);
+  const decided = new Set(["FT", "AET", "PEN", "AWD", "LIVE"]);
+  let n = 0;
+  for (const row of playerMatchPositionRows()) {
+    if (row.playerId !== p.id || row.status !== "played") continue;
+    const match = (MATCHES ?? []).find((m) => m.id === row.matchId);
+    if (!match || (leagueId && match.leagueId !== leagueId)) continue;
+    if (!decided.has(effectiveMatchStatus(match))) continue;
+    const week = parseMatchweekNumber(match.matchday);
+    if (published > 0 && week > 0 && week > published) continue;
+    n += 1;
+  }
+  return n;
+}
+
 /** Count starting-XI appearances from match lineups (by shirt # + name). */
 function buildLineupStartsMap(leagueId) {
   const byTeam = new Map();
@@ -5765,7 +5810,9 @@ function formatLineupStarts(n) {
  * (oldest → newest). Skips weeks with no start / no tag.
  */
 function playerLineupPositionStarts(p, leagueId) {
-  if (!p?.teamId || !leagueId || isWorldCupLeague(leagueId)) return [];
+  if (!p) return [];
+  if (playerHasMatchPositionRecords(p)) return playerRecordedPositionStarts(p, leagueId);
+  if (!p.teamId || !leagueId || isWorldCupLeague(leagueId)) return [];
   const endWeek = positionTrailEndWeekForLeague(leagueId);
   if (!(endWeek > 0)) return [];
 
@@ -5888,7 +5935,11 @@ function playerPrimarySecondaryPositions(p, leagueId) {
   const starts = playerLineupPositionStarts(p, leagueId);
   const tallies = playerPositionTallies(p, leagueId);
   const recent = playerRecentLineupPositions(p, leagueId, { count: 5 });
-  if (!tallies.length && !recent.length) return null;
+  if (!tallies.length && !recent.length) {
+    const role = String(p?.role ?? "").trim().toUpperCase();
+    if (!role) return null;
+    return { primaryTag: role, otherTags: [], allTags: [role], recent: [], tallies: [] };
+  }
   const lastWeekByTag = new Map();
   for (const { week, tag } of starts) lastWeekByTag.set(tag, week);
   const ranked = [...tallies].sort((a, b) => {
@@ -6014,8 +6065,9 @@ function playerSeasonStats(p, leagueId, startsMap) {
       if (transferPlayerNameKey(ev.assist) === key) assists += 1;
     }
   }
+  const recordedApps = playerRecordedApps(p, leagueId);
   return {
-    apps: lineupStartsFor(p, startsMap),
+    apps: recordedApps == null ? lineupStartsFor(p, startsMap) : recordedApps,
     goals,
     assists,
   };
@@ -6953,6 +7005,14 @@ function matchCardStatusHtml(m, { showStatus = true } = {}) {
   return `<span class="${matchCardStatusClass(status)}">${escapeHtml(display)}</span>`;
 }
 
+function lineupSideNamedCount(slots) {
+  return (slots ?? []).filter((slot) => String(slot?.name ?? "").trim()).length;
+}
+
+function matchHasNamedLineup(match) {
+  return lineupSideNamedCount(match?.lineups?.home) > 0 || lineupSideNamedCount(match?.lineups?.away) > 0;
+}
+
 function matchCenterDetailTabsHtml(m, ht, at) {
   const overviewVenue = renderMatchVenueCoachesHtml(m, ht, at, { list: true, hero: true });
   /* Kickoff date/time lives in the hero block above — do not repeat under Overview. */
@@ -6960,19 +7020,6 @@ function matchCenterDetailTabsHtml(m, ht, at) {
     <div class="mc-tab-panel__stack">
       ${overviewVenue || `<p class="mc-tab-empty">No venue details yet.</p>`}
     </div>`;
-
-  const hasLineups = Boolean(m?.lineups?.home?.length || m?.lineups?.away?.length);
-  const formation =
-    Array.isArray(m?.formation) && (m.formation[0] || m.formation[1])
-      ? `${m.formation[0] || "—"} · ${m.formation[1] || "—"}`
-      : "";
-  const lineupsBody = hasLineups
-    ? `<div class="mc-tab-panel__stack">
-        ${formation ? `<p class="mc-tab-meta">Formations <strong>${escapeHtml(formation)}</strong></p>` : ""}
-        <p class="mc-tab-meta">${escapeHtml(ht?.name ?? "Home")}: ${escapeHtml(String(m.lineups.home?.length ?? 0))} named · ${escapeHtml(at?.name ?? "Away")}: ${escapeHtml(String(m.lineups.away?.length ?? 0))} named</p>
-        <button type="button" class="mc-tab-cta" data-open="${escapeHtml(m.id)}" data-open-tab="lineups">View full lineups →</button>
-      </div>`
-    : `<p class="mc-tab-empty">Lineups not available for this fixture.</p>`;
 
   const goals = Array.isArray(m?.goalEvents) ? m.goalEvents : [];
   const poss = Array.isArray(m?.possession) ? m.possession : [];
@@ -7014,7 +7061,6 @@ function matchCenterDetailTabsHtml(m, ht, at) {
 
   const tabs = [
     { id: "overview", label: "Overview", body: overviewBody },
-    { id: "lineups", label: "Lineups", body: lineupsBody },
     { id: "stats", label: "Stats", body: statsBody },
     { id: "h2h", label: "H2H", body: h2hBody },
   ];
@@ -9977,8 +10023,8 @@ function renderMatchCenter(leagueId) {
     const at = teamById.get(m.awayTeamId);
     const showGoals = leagueFeatureOn(leagueId, "matchGoalEvents");
     const showFormation = leagueFeatureOn(leagueId, "matchFormation");
-    const showLineups = leagueFeatureOn(leagueId, "matchLineups");
-    const showPitch = showLineups && leagueFeatureOn(leagueId, "matchPitchView");
+    const showLineups = false;
+    const showPitch = false;
     const showPossession = leagueFeatureOn(leagueId, "matchPossession");
     const goalsHtml = showGoals
       ? renderMatchGoalEventsHtml(ht?.name, at?.name, m.goalEvents, {
@@ -10054,7 +10100,7 @@ function renderMatchCenter(leagueId) {
       ? `<span class="chip">${escapeHtml(effectiveMatchStatus(m))} • ${escapeHtml(m.time)}</span>`
       : `<span class="chip">${escapeHtml(m.time)}</span>`;
 
-    if (m.lineups && showLineups) {
+    if (m.lineups && showLineups && matchHasNamedLineup(m)) {
       matchLineupSharePayload = buildLineupSharePayload(m, ht, at, leagueId);
       if (!matchLineupSharePayload.homeRows?.length && matchLineupSharePayload.awayRows?.length) {
         matchLineupShareSide = "away";
@@ -10130,13 +10176,17 @@ function renderMatchCenter(leagueId) {
 
     matchLineupSharePayload = null;
 
+    const venueHtml = renderLineupMatchInfoHtml(m, ht, at, leagueId);
+    const formHome = String(m.formation?.[0] ?? "").trim();
+    const formAway = String(m.formation?.[1] ?? "").trim();
+    const hasFormation = showFormation && formHome && formAway && formHome !== "—" && formAway !== "—";
     const possessionCard = showPossession
       ? `<div class="card" style="padding:12px">
             <div class="muted" style="font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:11px">Possession</div>
             <div style="font-weight:950;margin-top:6px">${escapeHtml(m.possession?.[0] ?? "—")}% — ${escapeHtml(m.possession?.[1] ?? "—")}%</div>
           </div>`
       : "";
-    const formationsCard = showFormation
+    const formationsCard = hasFormation
       ? `<div class="card" style="padding:12px">
             <div class="muted" style="font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:11px">Formations</div>
             <div style="font-weight:950;margin-top:6px">${escapeHtml(m.formation?.[0] ?? "—")} • ${escapeHtml(m.formation?.[1] ?? "—")}</div>

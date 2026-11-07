@@ -380,6 +380,109 @@
     return next;
   }
 
+  /** Compatible tags for a formation slot. Exact tag is first. */
+  const POSITION_SLOT_FAMILY = {
+    GK: ["GK"],
+    RB: ["RB", "RWB", "RCB"],
+    LB: ["LB", "LWB", "LCB"],
+    CB: ["CB", "RCB", "LCB"],
+    RCB: ["RCB", "CB", "RB"],
+    LCB: ["LCB", "CB", "LB"],
+    RWB: ["RWB", "RB", "RM"],
+    LWB: ["LWB", "LB", "LM"],
+    DM: ["DM", "CM"],
+    CM: ["CM", "DM", "AM"],
+    AM: ["AM", "CM", "RAM", "LAM"],
+    RAM: ["RAM", "AM", "RM", "RW"],
+    LAM: ["LAM", "AM", "LM", "LW"],
+    RM: ["RM", "RW", "RWB", "RAM"],
+    LM: ["LM", "LW", "LWB", "LAM"],
+    RW: ["RW", "RM", "RAM"],
+    LW: ["LW", "LM", "LAM"],
+    CF: ["CF", "ST"],
+    ST: ["ST", "CF"],
+  };
+
+  function positionTagKey(tag) {
+    const t = String(tag ?? "").trim().toUpperCase();
+    if (t === "CDM") return "DM";
+    if (t === "CAM") return "AM";
+    return t;
+  }
+
+  /**
+   * Rank depth from recorded match positions.
+   * countsByPlayer: { [playerId]: { [tag]: number } }
+   * Profile role/pos is used only when that player has no played tags.
+   * Does not write player profiles.
+   */
+  function fillDepthFromPositionHistory(depth, roster, countsByPlayer, opts = {}) {
+    const replaceExisting = opts.replaceExisting !== false;
+    const next = replaceExisting ? clearDepthPicks(depth) : normalizeSquadDepth(depth);
+    const used = depthPlayerIds(next);
+    const list = Array.isArray(roster) ? roster.filter((p) => p?.id) : [];
+    const countsFor = (playerId) => countsByPlayer?.[playerId] || countsByPlayer?.get?.(playerId) || {};
+    const playedTotal = (playerId) =>
+      Object.values(countsFor(playerId)).reduce((sum, n) => sum + (Number(n) || 0), 0);
+
+    function scoreForSlot(tag, player) {
+      const family = POSITION_SLOT_FAMILY[positionTagKey(tag)] || [positionTagKey(tag)];
+      const counts = countsFor(player.id);
+      const played = playedTotal(player.id);
+      let score = 0;
+      family.forEach((token, index) => {
+        const n = Number(counts[token] || counts[positionTagKey(token)] || 0);
+        if (n > 0) score += n * (index === 0 ? 10 : 3);
+      });
+      if (played > 0) return score;
+      const role = positionTagKey(player.role);
+      if (role && family[0] === role) return 2;
+      if (role && family.includes(role)) return 1;
+      const pos = String(player.pos ?? "").trim().toUpperCase();
+      if (!role && pos === "GK" && family[0] === "GK") return 1;
+      if (!role && pos === "DF" && ["RB", "LB", "CB", "RWB", "LWB", "RCB", "LCB"].includes(family[0])) return 1;
+      if (!role && pos === "MF" && ["DM", "CM", "AM", "LM", "RM", "RAM", "LAM"].includes(family[0])) return 1;
+      if (!role && pos === "FW" && ["CF", "ST", "LW", "RW"].includes(family[0])) return 1;
+      return 0;
+    }
+
+    const assignments = [];
+    const gkTags = next.goalkeepers.map(() => "GK");
+    gkTags.forEach((_, index) => {
+      if (next.goalkeepers[index]) return;
+      for (const player of list) {
+        if (used.has(player.id)) continue;
+        const score = scoreForSlot("GK", player);
+        if (score > 0) assignments.push({ kind: "gk", index, playerId: player.id, score });
+      }
+    });
+    next.slots.forEach((slot, index) => {
+      for (const pass of [0, 1]) {
+        if (slot.players[pass]) continue;
+        for (const player of list) {
+          if (isGoalkeeperPlayer(player) && playedTotal(player.id) === 0 && positionTagKey(player.role) === "GK") continue;
+          const score = scoreForSlot(slot.tag, player);
+          if (score > 0) assignments.push({ kind: "slot", index, pass, playerId: player.id, score });
+        }
+      }
+    });
+    assignments.sort((a, b) => b.score - a.score || a.index - b.index);
+    for (const row of assignments) {
+      if (used.has(row.playerId)) continue;
+      if (row.kind === "gk") {
+        if (next.goalkeepers[row.index]) continue;
+        next.goalkeepers[row.index] = row.playerId;
+        used.add(row.playerId);
+        continue;
+      }
+      if (next.slots[row.index].players[row.pass]) continue;
+      if (next.slots[row.index].players.includes(row.playerId)) continue;
+      next.slots[row.index].players[row.pass] = row.playerId;
+      used.add(row.playerId);
+    }
+    return next;
+  }
+
   /**
    * Map a match XI (lineup slots with tag + player) into depth starters.
    * @param {Array<{ id?: string, tag?: string, pos?: string, name?: string, number?: * }>} lineupSlots
@@ -451,6 +554,7 @@
     scorePlayerForTag,
     clearDepthPicks,
     autoFillDepthFromRoster,
+    fillDepthFromPositionHistory,
     seedDepthFromLineup,
   };
 })(typeof window !== "undefined" ? window : globalThis);

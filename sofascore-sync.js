@@ -74,9 +74,9 @@
     return "";
   }
 
-  async function fetchProxyText(url, label) {
+  async function fetchProxyText(url, label, timeoutMs = 55000) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 55000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     let res;
     try {
       res = await fetch(url, { cache: "no-store", signal: controller.signal });
@@ -107,8 +107,8 @@
     return body;
   }
 
-  async function fetchProxyJson(url, label) {
-    const body = await fetchProxyText(url, label);
+  async function fetchProxyJson(url, label, timeoutMs) {
+    const body = await fetchProxyText(url, label, timeoutMs);
     if (looksLikeHtml(body) && !body.includes("{")) {
       throw new Error(
         "SofaScore proxy missing — restart serve.bat so /api/ss-lineups is available.",
@@ -379,6 +379,161 @@
     return parsed;
   }
 
+  function incidentPlayerName(player) {
+    if (!player || typeof player !== "object") return "";
+    return toAsciiName(player.name || player.shortName || player.nickname || "");
+  }
+
+  function incidentAssistName(row) {
+    const assist =
+      row?.assist1 ||
+      row?.assist ||
+      row?.playerAssist ||
+      (Array.isArray(row?.assists) ? row.assists[0] : null);
+    if (!assist) return "";
+    if (typeof assist === "string") return toAsciiName(assist);
+    return incidentPlayerName(assist?.player || assist);
+  }
+
+  function isGoalIncident(row) {
+    const type = String(row?.incidentType || row?.type || "").toLowerCase();
+    return type === "goal" || type === "owngoal";
+  }
+
+  function isOwnGoalIncident(row) {
+    const type = String(row?.incidentType || row?.type || "").toLowerCase();
+    const cls = String(row?.incidentClass || "").toLowerCase();
+    return type === "owngoal" || cls === "owngoal" || cls === "own_goal" || Boolean(row?.isOwnGoal);
+  }
+
+  function incidentMinute(row) {
+    const base = Number(row?.time ?? row?.minute ?? row?.elapsed);
+    const added = Number(row?.addedTime ?? row?.injuryTime ?? 0);
+    if (!Number.isFinite(base) || base < 0) return 0;
+    if (Number.isFinite(added) && added > 0) return base; // display minute stays base; extra time is rare in our schema
+    return base;
+  }
+
+  function parseIncidentsJson(data) {
+    const list = Array.isArray(data?.incidents)
+      ? data.incidents
+      : Array.isArray(data?.events)
+        ? data.events
+        : Array.isArray(data)
+          ? data
+          : [];
+    const goals = [];
+    for (const row of list) {
+      if (!isGoalIncident(row)) continue;
+      const scorer = incidentPlayerName(row?.player || row?.playerName) || toAsciiName(row?.playerName || "");
+      if (!scorer) continue;
+      const ownGoal = isOwnGoalIncident(row);
+      const isHome = row?.isHome === true || row?.isHome === 1 || row?.side === 1 || row?.side === "home";
+      const isAway =
+        row?.isHome === false ||
+        row?.isHome === 0 ||
+        row?.side === 2 ||
+        row?.side === "away" ||
+        (!isHome && (row?.isHome != null || row?.side != null));
+      let side = isAway && !isHome ? "away" : "home";
+      // SofaScore own goals: scorer is on the team that conceded; keep side as the scoring side for the board.
+      if (ownGoal && row?.isHome != null) {
+        side = row.isHome ? "home" : "away";
+      }
+      const assist = ownGoal ? null : incidentAssistName(row) || null;
+      const cls = String(row?.incidentClass || "").toLowerCase();
+      let type = "goal";
+      if (ownGoal) type = "og";
+      else if (cls === "penalty" || cls === "penaltykick") type = "pen";
+      goals.push({
+        minute: incidentMinute(row),
+        side,
+        scorer,
+        assist,
+        type,
+      });
+    }
+    goals.sort((a, b) => a.minute - b.minute || String(a.scorer).localeCompare(String(b.scorer)));
+    return goals;
+  }
+
+  async function fetchAndParseIncidents(eventId) {
+    const id = parseEventId(eventId) || String(eventId ?? "").trim();
+    if (!/^\d{4,}$/.test(id)) throw new Error("Invalid SofaScore match id");
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "SofaScore incidents fetch only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const data = await fetchProxyJson(
+      `/api/ss-incidents?eventId=${encodeURIComponent(id)}`,
+      "SofaScore incidents",
+    );
+    return parseIncidentsJson(data);
+  }
+
+  async function fetchWeekEnrichment(eventIds, { lineups = true } = {}) {
+    const ids = [...new Set((eventIds ?? []).map((id) => parseEventId(id) || String(id ?? "").trim()).filter((id) => /^\d{4,}$/.test(id)))].slice(
+      0,
+      20,
+    );
+    if (!ids.length) return [];
+    if (!isLocalProxyHost()) {
+      throw new Error(
+        "SofaScore week enrich only works on your computer with serve.bat (not on phone / GitHub Pages).",
+      );
+    }
+    const lineupFlag = lineups ? "1" : "0";
+    const data = await fetchProxyJson(
+      `/api/ss-week-enrich?eventIds=${encodeURIComponent(ids.join(","))}&includeLineups=${lineupFlag}`,
+      "SofaScore week enrich",
+      Math.max(90000, ids.length * (lineups ? 70000 : 35000)),
+    );
+    const rows = Array.isArray(data?.results) ? data.results : [];
+    return rows.map((row) => {
+      const eventId = String(row?.eventId ?? "").trim();
+      if (row?.error) {
+        return { eventId, error: String(row.error), lineups: null, goalEvents: [] };
+      }
+      let lineups = null;
+      try {
+        if (row?.lineups) lineups = parseLineupsJson(row.lineups, eventId, null);
+      } catch (err) {
+        return {
+          eventId,
+          error: err?.message || "Could not parse lineups",
+          lineups: null,
+          goalEvents: parseIncidentsJson(row?.incidents),
+        };
+      }
+      return {
+        eventId,
+        error: "",
+        lineups,
+        goalEvents: parseIncidentsJson(row?.incidents),
+      };
+    });
+  }
+
+  function matchRoundEventsToFixtures(events, fixtures, { leagueId } = {}) {
+    return (fixtures ?? []).map((fix) => {
+      const entity = pickEventForTeams(events, {
+        homeName: fix.homeName,
+        awayName: fix.awayName,
+        time: fix.time,
+        leagueId: leagueId || fix.leagueId,
+        allowFuture: true,
+      });
+      const match = entity ? eventMatchesTeams(entity, fix.homeName, fix.awayName) : null;
+      return {
+        ...fix,
+        sofaScoreEventId: entity?.id ? String(entity.id) : "",
+        ssEntity: entity || null,
+        swapped: Boolean(match?.swapped),
+      };
+    });
+  }
+
   function parseSearchResults(data) {
     const rows = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
     return rows
@@ -480,8 +635,12 @@
     isLocalProxyHost,
     parseEventId,
     parseLineupsJson,
+    parseIncidentsJson,
     fetchAndParseLineups,
+    fetchAndParseIncidents,
+    fetchWeekEnrichment,
     fetchRoundEvents,
+    matchRoundEventsToFixtures,
     searchEvents,
     pickEventForTeams,
     namesLooselyMatch,
